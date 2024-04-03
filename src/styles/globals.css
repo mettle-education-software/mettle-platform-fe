@@ -1,0 +1,101 @@
+:root {
+    --max-width: 1100px;
+    --border-radius: 12px;
+    --font-mono: ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono',
+        'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
+
+    --primary-light: #ffffff;
+    --secondary-light: #b89261;
+    --tertiary-light: #3c362f;
+    --quaternary-light: #e0dcd7;
+    --quinary-light: #f2f0ee;
+    --primary-dark: #3c362f;
+    --secondary-dark: #b89261;
+    --tertiary-dark: #f2d5b1;
+    --quaternary-dark: #e0dcd7;
+    --quinary-dark: #3c362f;
+    --black: #212121;
+    --white: #fefdfb;
+    --neutral: #d9d9d9;
+    --neutral-text: #00000073;
+    --danger: #ff4d4f;
+}
+
+main[data-theme='light'] {
+    --primary: var(--primary-light);
+    --secondary: var(--secondary-light);
+    --tertiary: var(--tertiary-light);
+    --quaternary: var(--quaternary-light);
+    --quinary: var(--quinary-light);
+    --black: var(--black);
+    --white: var(--white);
+}
+
+main[data-theme='dark'] {
+    --primary: var(--primary-dark);
+    --secondary: var(--secondary-dark);
+    --tertiary: var(--tertiary-dark);
+    --quaternary: var(--quaternary-dark);
+    --quinary: var(--quinary-dark);
+    --black: var(--black);
+    --white: var(--white);
+}
+
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+html,
+body {
+    max-width: 100vw;
+    overflow-x: hidden;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Ant design style changes below */
+
+/*.ant-btn:not(.ant-btn-icon-only) {*/
+/*    display: flex;*/
+/*    align-items: center;*/
+/*    justify-content: center;*/
+/*    border-radius: 0 !important;*/
+/*    text-decoration: none !important;*/
+/*}*/
+
+/*.ant-btn-primary {*/
+/*    background-color: var(--secondary) !important;*/
+/*    border-color: var(--secondary) !important;*/
+/*    color: var(--primary) !important;*/
+/*    border-radius: 0 !important;*/
+/*}*/
+
+/*.ant-btn-primary:not(:disabled):hover {*/
+/*    background-color: var(--tertiary) !important;*/
+/*    border-color: var(--primary) !important;*/
+/*    color: var(--primary) !important;*/
+/*    border-radius: 0 !important;*/
+/*}*/
+
+/*.ant-btn-default:not(.ant-btn-dangerous) {*/
+/*    background-color: transparent;*/
+/*    border: 2px solid var(--secondary);*/
+/*    color: var(--secondary);*/
+/*}*/
+
+/*.ant-btn:disabled {*/
+/*    !*background-color: var(--tertiary);*!*/
+/*    !*border-color: var(--tertiary);*!*/
+/*    !*color: var(--secondary);*!*/
+/*    opacity: 0.1;*/
+/*}*/
+
+/*.ant-card {*/
+/*    border-radius: 0.25rem !important;*/
+/*    border-color: var(--neutral);*/
+/*}*/

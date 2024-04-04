@@ -1,9 +1,13 @@
 import styled from '@emotion/styled';
-import { Button } from 'antd';
+import { Button, Image } from 'antd';
+import { smallAndSmaller } from '../app.layout';
 
 export const Container = styled.div((props) => ({
     alignItems: 'center',
     display: 'flex',
+    [smallAndSmaller]: {
+        gap: 0,
+    },
     gap: '12rem',
     justifyContent: 'center',
 }));
@@ -24,7 +28,13 @@ export const input_icon = {
     color: 'var(--secondary)',
 };
 
-export const EnterButton = styled(Button)((props) => ({
+export const ImageLogo = styled(Image)(() => ({
+    [smallAndSmaller]: {
+        display: 'none',
+    },
+}));
+
+export const EnterButton = styled(Button)(() => ({
     height: '3.125rem',
     span: {
         color: 'var(--primary)',

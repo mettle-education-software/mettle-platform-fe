@@ -24,7 +24,7 @@ const App = ({ children }: { children: React.ReactNode }) => {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="pt">
+        <html lang="pt" suppressHydrationWarning={true}>
             <head>
                 <title>Mettle Backoffice Admin</title>
                 <meta name="viewport" content="initial-scale=1.0, width=device-width" />

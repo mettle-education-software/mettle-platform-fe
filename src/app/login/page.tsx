@@ -1,11 +1,20 @@
 'use client';
 
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { Tabs, Input, Flex, Checkbox, Typography, Image } from 'antd';
+import { Tabs, Input, Flex, Checkbox, Typography } from 'antd';
 import type { TabsProps } from 'antd';
 import { handleLogin, withoutAuthentication } from 'libs/authentication';
 import React, { useState } from 'react';
-import { Terms, EnterButton, Container, Form, input_icon, input_height, LoginErrorContainer } from './login.styled';
+import {
+    Terms,
+    EnterButton,
+    Container,
+    Form,
+    input_icon,
+    input_height,
+    LoginErrorContainer,
+    ImageLogo,
+} from './login.styled';
 
 function Page() {
     const items: TabsProps['items'] = [
@@ -24,7 +33,7 @@ function Page() {
     return (
         <Container>
             <Flex>
-                <Image src="/mettle-login.svg" alt="METTLE" preview={false} />
+                <ImageLogo src="/mettle-login.svg" alt="METTLE" preview={false} />
             </Flex>
             <Flex align="center" justify="center">
                 <Tabs

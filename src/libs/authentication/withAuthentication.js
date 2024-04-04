@@ -14,7 +14,7 @@ export const withAuthentication = (Component) => (props) => {
             setNextOrObserver(authUser);
 
             if (!authUser) {
-                router.push('/');
+                router.push('/login');
             }
 
             // this is a logic based on roles, I believe it might come handy in case we want to add something role based
@@ -47,7 +47,7 @@ export const withoutAuthentication = (Component) => (props) => {
         auth.onAuthStateChanged((authUser) => {
             setNextOrObserver(authUser);
             if (authUser) {
-                router.push('/home');
+                router.push('/');
             }
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -33,7 +33,7 @@ function Page() {
     return (
         <Container>
             <Flex>
-                <ImageLogo src="/mettle-login.svg" alt="METTLE" preview={false} />
+                <ImageLogo />
             </Flex>
             <Flex align="center" justify="center">
                 <Tabs

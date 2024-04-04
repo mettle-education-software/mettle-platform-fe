@@ -6,6 +6,7 @@ export const Container = styled.div((props) => ({
     alignItems: 'center',
     display: 'flex',
     [smallAndSmaller]: {
+        flexDirection: 'column',
         gap: 0,
     },
     gap: '12rem',
@@ -28,10 +29,17 @@ export const input_icon = {
     color: 'var(--secondary)',
 };
 
-export const ImageLogo = styled(Image)(() => ({
+export const ImageLogo = styled.div((props) => ({
     [smallAndSmaller]: {
-        display: 'none',
+        backgroundImage: "url('/mettle-logo.svg')",
+        width: '7.92rem',
+        height: '2.1rem',
+        marginBottom: '1.25rem',
+        marginTop: '1.25rem',
     },
+    backgroundImage: "url('/mettle-login.svg')",
+    width: '42.6875rem',
+    height: '43rem',
 }));
 
 export const EnterButton = styled(Button)(() => ({

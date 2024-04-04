@@ -1,20 +1,62 @@
 'use client';
 
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { Tabs, Input, Flex, Checkbox, Typography } from 'antd';
+import styled from '@emotion/styled';
+import { Tabs, Input, Flex, Checkbox, Typography, Form, Image, Button } from 'antd';
 import type { TabsProps } from 'antd';
+import { smallAndSmaller } from 'app/app.layout';
 import { handleLogin, withoutAuthentication } from 'libs/authentication';
 import React, { useState } from 'react';
-import {
-    Terms,
-    EnterButton,
-    Container,
-    Form,
-    input_icon,
-    input_height,
-    LoginErrorContainer,
-    ImageLogo,
-} from './login.styled';
+
+const Container = styled.div((props) => ({
+    alignItems: 'center',
+    display: 'flex',
+    [smallAndSmaller]: {
+        gap: 0,
+    },
+    gap: '12rem',
+    justifyContent: 'center',
+}));
+
+const input_height = '3.125rem';
+
+const input_icon = {
+    color: 'var(--secondary)',
+};
+
+const ImageLogo = styled(Image)(() => ({
+    [smallAndSmaller]: {
+        display: 'none',
+    },
+}));
+
+const EnterButton = styled(Button)(() => ({
+    height: '3.125rem',
+    span: {
+        color: 'var(--primary)',
+    },
+}));
+
+const Terms = styled.div((props) => ({
+    span: {
+        fontSize: '0.6rem',
+        width: '20rem',
+    },
+    'span > a': {
+        fontSize: '0.6rem',
+    },
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 0,
+}));
+
+const LoginErrorContainer = styled.div((props) => ({
+    color: 'var(--danger)',
+    fontSize: '0.8rem',
+    paddingTop: '0.4rem',
+    paddingBottom: '0.4rem',
+}));
 
 function Page() {
     const items: TabsProps['items'] = [
@@ -52,32 +94,44 @@ function LoginForm() {
     const [loginErrorMessage, setLoginErrorMessage] = useState<string | null>(null);
     const [isSignInLoading, setIsSignInLoading] = useState<boolean>(false);
 
-    const handleSubmit = async () => {
-        console.log(formEmail);
-        console.log(formPassword);
+    const handleSubmit = async (values: { formEmail: string; formPassword: string }) => {
         await handleLogin({
-            email: formEmail as string,
-            password: formPassword as string,
+            email: values.formEmail,
+            password: values.formPassword,
             setLoginErrorMessage,
             setIsSignInLoading,
         });
     };
 
     return (
-        <Form>
+        <Form onFinish={handleSubmit}>
             <Flex vertical>
                 <Typography.Text>Seu e-mail</Typography.Text>
-                <Input
-                    size="large"
-                    style={{ height: input_height }}
-                    placeholder="exemplo@email.com.br"
-                    prefix={<UserOutlined style={input_icon} />}
-                    onChange={(event) => {
-                        console.log(event);
-                        setFormEmail(event.target.value);
-                        setLoginErrorMessage(null);
-                    }}
-                />
+                <Form.Item
+                    name="formEmail"
+                    rules={[
+                        {
+                            required: true,
+                            message: 'Esse é necessário',
+                        },
+                        {
+                            type: 'email',
+                            message: 'E-mail inválido',
+                        },
+                    ]}
+                >
+                    <Input
+                        size="large"
+                        style={{ height: input_height }}
+                        placeholder="exemplo@email.com.br"
+                        prefix={<UserOutlined style={input_icon} />}
+                        onChange={(event) => {
+                            console.log(event);
+                            setFormEmail(event.target.value);
+                            setLoginErrorMessage(null);
+                        }}
+                    />
+                </Form.Item>
             </Flex>
             <Flex vertical>
                 <Typography.Text>Sua senha</Typography.Text>
@@ -100,12 +154,7 @@ function LoginForm() {
                     <Typography.Link href="/forgot-password">Esqueceu a senha?</Typography.Link>
                 </Flex>
             </Flex>
-            <EnterButton
-                type="primary"
-                onClick={async () => {
-                    await handleSubmit();
-                }}
-            >
+            <EnterButton htmlType="submit" type="primary">
                 Entrar
             </EnterButton>
             <Terms>

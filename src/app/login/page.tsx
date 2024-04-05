@@ -4,9 +4,9 @@ import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Tabs, Input, Flex, Checkbox, Typography, Button, Form } from 'antd';
 import type { FormProps, TabsProps } from 'antd';
-import { smallAndSmaller } from 'app/app.layout';
 import { handleLogin, withoutAuthentication } from 'libs/authentication';
 import React, { useState } from 'react';
+import { smallAndSmaller } from 'styles/media.constants';
 
 const Container = styled.div((props) => ({
     alignItems: 'center',

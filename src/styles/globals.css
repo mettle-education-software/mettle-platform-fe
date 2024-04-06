@@ -19,8 +19,17 @@
     --black: #212121;
     --white: #fefdfb;
     --neutral: #d9d9d9;
-    --neutral-text: #00000073;
+    --neutral-text: #000000;
     --danger: #ff4d4f;
+    --primary-gray-light: #f2f0ee;
+
+    --B1-light: #3c362f;
+    --B2-light: #312e2b;
+    --D1-light: #b89261;
+    --D2-light: #f2d5b1;
+    --C1-light: #e0dcd7;
+    --C2-light: #f2f0ee;
+    --W1-light: #fefdfb;
 }
 
 main[data-theme='light'] {
@@ -29,8 +38,15 @@ main[data-theme='light'] {
     --tertiary: var(--tertiary-light);
     --quaternary: var(--quaternary-light);
     --quinary: var(--quinary-light);
-    --black: var(--black);
-    --white: var(--white);
+    --gray: var(--primary-gray-light);
+
+    --B1: var(--B1-light);
+    --B2: var(--B2-light);
+    --D1: var(--D1-light);
+    --D2: var(--D2-light);
+    --C1: var(--C1-light);
+    --C2: var(--C2-light);
+    --W1: var(--W1-light);
 }
 
 main[data-theme='dark'] {
@@ -39,8 +55,7 @@ main[data-theme='dark'] {
     --tertiary: var(--tertiary-dark);
     --quaternary: var(--quaternary-dark);
     --quinary: var(--quinary-dark);
-    --black: var(--black);
-    --white: var(--white);
+    --gray: var(--primary-gray-light);
 }
 
 * {
@@ -51,6 +66,9 @@ main[data-theme='dark'] {
 
 html,
 body {
+    font-family: var(--body-font-family);
+    font-weight: var(--body-font-weight);
+    font-style: var(--body-font-style);
     max-width: 100vw;
     overflow-x: hidden;
 }

@@ -37,7 +37,7 @@ const input_icon = {
 
 const ImageLogo = styled.div((props) => ({
     [smallAndSmaller]: {
-        backgroundImage: "url('/mettle-logo.svg')",
+        backgroundImage: "url('/logo-light.svg')",
         width: '7.92rem',
         height: '2.1rem',
         marginBottom: '1.25rem',

@@ -33,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <meta property="og:title" content="Mettle" />
                 <meta property="og:image" content="/mettle.png" />
                 <link rel="apple-touch-icon" href="/mettle.png" />
+                <link rel="stylesheet" href="https://use.typekit.net/ted7yly.css" />
             </head>
             <AppProvider>
                 <NotificationsProvider>

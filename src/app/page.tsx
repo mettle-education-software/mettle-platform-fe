@@ -3,7 +3,10 @@
 import {
     BellOutlined,
     CaretDownOutlined,
+    CaretRightOutlined,
     DownOutlined,
+    HomeOutlined,
+    InfoCircleOutlined,
     MenuOutlined,
     SettingOutlined,
     UserOutlined,
@@ -12,13 +15,14 @@ import styled from '@emotion/styled';
 import { Typography, Image, Avatar, MenuProps, Dropdown, Space } from 'antd';
 import { useDedaMeta } from 'hooks';
 import { handleLogout, withAuthentication } from 'libs';
+import Link from 'next/link';
 import { useAppContext } from 'providers';
 import React from 'react';
 
 const Container = styled.div`
     display: grid;
     grid-template-columns: 13.75rem auto;
-    grid-template-rows: 2.875rem auto;
+    grid-template-rows: 2.875rem calc(100vh - 2.875rem);
     grid-template-areas:
         'logo header'
         'bar main';
@@ -94,10 +98,72 @@ const Bar = styled.div`
     justify-self: center;
     display: flex;
     flex-direction: column;
-    justify-content: end;
+    justify-content: space-between;
+    margin: 0.75rem 0;
+    width: 12.75rem;
 `;
 
-const Settings = styled.div``;
+const Menu = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
+
+const HomeMenu = styled(Link)`
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1rem;
+`;
+
+const MelpMenu = styled.div`
+    display: flex;
+    background-color: var(--C2);
+    border-radius: 0.375rem;
+    flex-direction: column;
+`;
+
+const MelpMenuHeader = styled.div`
+    display: flex;
+    font-weight: var(--h1-font-weight);
+    justify-content: space-between;
+    padding: 1rem 1rem;
+    span:last-child {
+        cursor: pointer;
+    }
+`;
+
+const MelpMenuDivider = styled.div`
+    border-bottom: 1px solid var(--C1);
+`;
+
+const MelpMenuItems = styled.div``;
+
+const MelpMenuItem = styled.div`
+    display: flex;
+    padding: 1rem 1rem;
+    gap: 1rem;
+    span:nth-child(2) {
+        font-size: 0.625rem;
+        cursor: pointer;
+    }
+    span:first-child {
+        cursor: pointer;
+    }
+`;
+
+const MelpMenuItemTooltip = styled.div`
+    align-content: center;
+    background-color: var(--B1);
+    border-radius: 0.375rem;
+    color: var(--white);
+    display: none;
+    text-align: center;
+`;
+
+const Settings = styled.div`
+    display: flex;
+    gap: 0.75rem;
+    cursor: pointer;
+`;
 
 const Main = styled.div`
     grid-area: main;
@@ -107,6 +173,7 @@ const Main = styled.div`
 function Home() {
     const { user } = useAppContext();
     const { loading, data } = useDedaMeta('DEDA8');
+    const [showMenu, setShowMenu] = React.useState(true);
 
     if (loading) {
         return <Loading />;
@@ -136,6 +203,15 @@ function Home() {
         handleLogout().catch((error) => {
             throw error;
         });
+    };
+
+    const handleShowMenu = () => {
+        setShowMenu(!showMenu);
+    };
+
+    const handleShowTooltip = (id: string) => {
+        var tooltip = document.getElementById(id);
+        tooltip?.setAttribute('style', 'display: inherit');
     };
 
     return (
@@ -195,6 +271,46 @@ function Home() {
                     </RightHeader>
                 </Header>
                 <Bar>
+                    <Menu>
+                        <HomeMenu href="/">
+                            <HomeOutlined />
+                            <span>Home</span>
+                        </HomeMenu>
+                        <MelpMenu>
+                            <MelpMenuHeader onClick={() => handleShowMenu()}>
+                                <Space>
+                                    <Image src="./melp-ico.svg" alt="MELP" preview={false} />
+                                    <span>MELP</span>
+                                </Space>
+                                {showMenu && <CaretDownOutlined />}
+                                {!showMenu && <CaretRightOutlined />}
+                            </MelpMenuHeader>
+                            {showMenu && (
+                                <>
+                                    <MelpMenuDivider />
+                                    <MelpMenuItems>
+                                        <MelpMenuItem>
+                                            <span>HPEC</span>
+                                            <InfoCircleOutlined onClick={() => handleShowTooltip('HPEC')} />
+                                            <MelpMenuItemTooltip id="HPEC">Tooltip text.</MelpMenuItemTooltip>
+                                        </MelpMenuItem>
+                                        <MelpMenuDivider />
+                                        <MelpMenuItem>
+                                            <span>DEDA</span>
+                                            <InfoCircleOutlined onClick={() => handleShowTooltip('DEDA')} />
+                                            <MelpMenuItemTooltip id="DEDA">Tooltip text.</MelpMenuItemTooltip>
+                                        </MelpMenuItem>
+                                        <MelpMenuDivider />
+                                        <MelpMenuItem>
+                                            <span>LAMP</span>
+                                            <InfoCircleOutlined onClick={() => handleShowTooltip('LAMP')} />
+                                            <MelpMenuItemTooltip id="LAMP">Tooltip text.</MelpMenuItemTooltip>
+                                        </MelpMenuItem>
+                                    </MelpMenuItems>
+                                </>
+                            )}
+                        </MelpMenu>
+                    </Menu>
                     <Settings>
                         <SettingOutlined />
                         <span>Settings</span>

@@ -83,9 +83,10 @@ function Page() {
             children: LoginForm(),
         },
         {
-            key: 'businessManager',
-            label: 'Business Manager',
+            key: 'creatAccount',
+            label: 'Crie sua conta',
             children: '',
+            disabled: true,
         },
     ];
 

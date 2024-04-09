@@ -96,6 +96,10 @@ a {
     width: 100%;
 }
 
+.ant-form-item {
+    margin-bottom: 0;
+}
+
 /*.ant-btn:not(.ant-btn-icon-only) {*/
 /*    display: flex;*/
 /*    align-items: center;*/

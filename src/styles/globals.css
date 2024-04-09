@@ -30,6 +30,8 @@
     --C1-light: #e0dcd7;
     --C2-light: #f2f0ee;
     --W1-light: #fefdfb;
+
+    --brown-light: #b79060;
 }
 
 main[data-theme='light'] {
@@ -39,6 +41,7 @@ main[data-theme='light'] {
     --quaternary: var(--quaternary-light);
     --quinary: var(--quinary-light);
     --gray: var(--primary-gray-light);
+    --brown: var(--brown-light);
 
     --B1: var(--B1-light);
     --B2: var(--B2-light);

@@ -20,7 +20,9 @@
     --h3-font-size: 2.2rem;
 
     --font-primary-light: rgba(0, 0, 0, 0.25);
-    --font-weight-bold: bold;
+    --font-weight-bold: 700;
+
+    --chip-font-size: 0.875rem;
 }
 
 main[data-theme='light'] {

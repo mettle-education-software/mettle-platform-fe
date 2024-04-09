@@ -27,4 +27,12 @@ export const lightTheme: ThemeConfig = {
         colorPrimaryActive: '#3c362f',
         fontFamily: roboto.style.fontFamily,
     },
+    components: {
+        Menu: {
+            colorBgContainer: 'var(--C2)',
+            padding: 0,
+            paddingContentHorizontal: 0,
+            paddingContentVertical: 0,
+        },
+    },
 };

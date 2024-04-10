@@ -47,7 +47,7 @@ export const withoutAuthentication = (Component) => (props) => {
         auth.onAuthStateChanged((authUser) => {
             setNextOrObserver(authUser);
             if (authUser) {
-                router.push('/');
+                router.push('/course');
             }
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps

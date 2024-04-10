@@ -4,9 +4,10 @@ import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Tabs, Input, Flex, Checkbox, Typography, Button, Form, Image } from 'antd';
 import type { FormProps, TabsProps } from 'antd';
+import { useDeviceSize } from 'hooks';
 import { handleLogin, withoutAuthentication } from 'libs/authentication';
 import React, { useState } from 'react';
-import { extraSmallAndSmaller, mediumAndBigger, smallAndBigger, smallAndSmaller } from 'styles/media.constants';
+import { smallAndSmaller } from 'styles/media.constants';
 
 const Container = styled.div`
     align-items: flex-start;
@@ -104,6 +105,13 @@ const LoginErrorContainer = styled.div`
     padding-bottom: 0.4rem;
 `;
 
+const LogoWrapper = styled.div`
+    align-items: center;
+    display: flex;
+    min-width: 10vw;
+    gap: 0.725rem;
+`;
+
 function Page() {
     const items: TabsProps['items'] = [
         {
@@ -113,20 +121,22 @@ function Page() {
         },
     ];
 
+    const deviceSize = useDeviceSize();
+
     return (
         <Container>
             <ContainerLeft>
-                {window.matchMedia(extraSmallAndSmaller.replace('@media ', '')).matches && (
-                    <>
+                {deviceSize === 'mobile' && (
+                    <LogoWrapper>
                         <ImageMettleSymbolBlack src="./mettle-symbol-black.svg" preview={false} />
                         <ImageMettleNameBlack src="./mettle-name-black.svg" preview={false} />
-                    </>
+                    </LogoWrapper>
                 )}
-                {window.matchMedia(mediumAndBigger.replace('@media ', '')).matches && (
-                    <>
+                {deviceSize === 'desktop' && (
+                    <LogoWrapper>
                         <Image src="./mettle-symbol-white.svg" preview={false} />
                         <Image src="./mettle-name-white.svg" preview={false} />
-                    </>
+                    </LogoWrapper>
                 )}
             </ContainerLeft>
             <ContainerRight>

@@ -7,13 +7,12 @@ import Link from 'next/link';
 import React from 'react';
 
 const Bar = styled.div`
-    grid-area: bar;
     justify-self: center;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    margin: 0.75rem 0;
-    width: 12.75rem;
+    margin: 0.75rem;
+    height: calc(100vh - 2.875rem);
 `;
 
 const MainMenu = styled.div`
@@ -74,6 +73,7 @@ const Settings = styled.div`
         width: 1.25rem;
         height: 1.25rem;
     }
+    padding: 1rem 1rem;
 `;
 
 export type MenuItem = {
@@ -127,7 +127,7 @@ function ExpandedSideBar(props: { items: Array<MenuItem> }) {
             </MainMenu>
             <Settings>
                 <SettingOutlined />
-                <div>Settings</div>
+                <span>Settings</span>
             </Settings>
         </Bar>
     );

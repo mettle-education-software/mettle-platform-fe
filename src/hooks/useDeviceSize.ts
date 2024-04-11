@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react';
 
 export const useDeviceSize = () => {
-    const [viewportState, setViewportState] = useState<'desktop' | 'mobile'>(
-        window.innerWidth <= 1024 ? 'mobile' : 'desktop',
-    );
+    const [viewportState, setViewportState] = useState<'desktop' | 'mobile'>('desktop');
 
     useEffect(() => {
         window.addEventListener('resize', () => {

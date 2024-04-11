@@ -2,18 +2,26 @@
 
 import { BellOutlined, CaretDownOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { ThemeConfig, Dropdown, Space, MenuProps, Avatar, Image } from 'antd';
+import { ThemeConfig, Dropdown, Space, MenuProps, Avatar, Image, Divider } from 'antd';
 import CollapsedMenu from 'components/CollapsedMenu/CollapsedMenu';
 import ExpandedMenu, { MenuItem } from 'components/ExpandedMenu/ExpandedMenu';
 import { useDeviceSize, useGetUser } from 'hooks';
 import { handleLogout } from 'libs';
 import { useAppContext } from 'providers';
 import React, { useState } from 'react';
+import { mediumAndSmaller } from 'styles/media.constants';
 import { darkTheme, lightTheme } from 'themes';
 import '../../styles/globals.css';
 
 const Container = styled.div`
     display: grid;
+    ${mediumAndSmaller} {
+        grid-template-columns: auto;
+        grid-template-rows: 2.875rem calc(100vh - 2.875rem);
+        grid-template-areas:
+            'header'
+            'main';
+    }
     grid-template-columns: auto 1fr;
     grid-template-rows: 2.875rem calc(100vh - 2.875rem);
     grid-template-areas:
@@ -47,6 +55,7 @@ const Header = styled.div`
     align-items: center;
     justify-content: space-between;
 `;
+
 const LeftHeader = styled.div``;
 
 const Summary = styled.div`
@@ -56,6 +65,30 @@ const Summary = styled.div`
     justify-content: center;
     padding-left: 0.5rem;
     gap: 0.5rem;
+`;
+
+const MobileSummary = styled.div`
+    align-items: center;
+    align-self: stretch;
+    display: flex;
+    justify-content: space-between;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    gap: 0.5rem;
+    width: 100%;
+    div {
+        display: flex;
+        align-items: center;
+    }
+    div:first-child {
+        gap: 0.5rem;
+    }
+    div:last-child {
+        gap: 0.1rem;
+    }
+    div > span > svg {
+        color: var(--brown-light);
+    }
 `;
 
 const Chip = styled('div')`
@@ -71,15 +104,13 @@ const Chip = styled('div')`
 `;
 
 const NeutralText = styled.span`
-    color: (--neutral-text);
+    color: var(--neutral-text);
     font-weight: var(--font-weight-bold);
 `;
 
-const Divider = styled.div`
-    border-left-color: var(--quaternary);
-    border-left-style: solid;
-    border-left-width: 1px;
-    height: 0.5rem;
+const BrownLightText = styled.span`
+    color: var(--brown-light);
+    font-weight: var(--font-weight-bold);
 `;
 
 const RightHeader = styled.div`
@@ -102,6 +133,11 @@ const User = styled.div`
 const Content = styled.div`
     grid-area: main;
     background-color: var(--B2);
+`;
+
+const MobileHead = styled.div`
+    display: flex;
+    grid-area: header;
 `;
 
 const App = ({ children }: { children: React.ReactNode }) => {
@@ -153,57 +189,86 @@ const App = ({ children }: { children: React.ReactNode }) => {
         setCollapsed(!collapsed);
     };
 
-    window.addEventListener('resize', () => {
-        deviceSize === 'desktop' ? setCollapsed(false) : setCollapsed(true);
-    });
-
     return (
         <Container>
-            <Header>
-                <LeftHeader>
-                    <Summary>
-                        <Chip color="var(--primary)" style={{ backgroundColor: 'var(--brown-light)' }}>
-                            DEDA
-                        </Chip>
-                        <NeutralText>{currentTime.currentDedaName}</NeutralText>
-                        <Divider />
-                        <Chip color="var(--neutral-text)" style={{ width: '3.625rem', backgroundColor: 'var(--gray)' }}>
-                            Week
-                        </Chip>
-                        <NeutralText>{currentTime.currentWeek}</NeutralText>
-                        <Divider />
-                        <Chip color="var(--neutral-text)" style={{ width: '3.625rem', backgroundColor: 'var(--gray)' }}>
-                            Day
-                        </Chip>
-                        <NeutralText>{currentTime.currentDay}</NeutralText>
-                    </Summary>
-                </LeftHeader>
-                <RightHeader>
-                    <Notifications>
-                        <BellOutlined />
-                    </Notifications>
-                    <User>
-                        {user?.profileImageSrc && <Avatar src={<img src={user.profileImageSrc} alt="avatar" />} />}
-                        {!user?.profileImageSrc && <Avatar icon={<UserOutlined />} />}
-                        <Dropdown menu={{ items }}>
-                            <a onClick={(e) => e.preventDefault()}>
-                                <Space>
-                                    {user?.name}
-                                    <CaretDownOutlined />
-                                </Space>
-                            </a>
-                        </Dropdown>
-                    </User>
-                </RightHeader>
-            </Header>
-            <Sidebar id="sidebar" style={{ width: !collapsed ? '13.75rem' : '3.25rem' }}>
-                <Logo>
-                    <MenuOutlined onClick={handleCollapsed} />
-                    {!collapsed && <Image src="./mettle-logo.svg" alt="METTLE" preview={false} />}
-                </Logo>
-                {collapsed && <CollapsedMenu />}
-                {!collapsed && <ExpandedMenu items={menuItems} />}
-            </Sidebar>
+            {deviceSize == 'mobile' && (
+                <MobileHead>
+                    <MobileSummary>
+                        <div>
+                            <MenuOutlined color="var(--brown-light)" />
+                            <Chip color="var(--primary)" style={{ backgroundColor: 'var(--brown-light)' }}>
+                                DEDA
+                            </Chip>
+                            <NeutralText>{currentTime.currentDedaName}</NeutralText>
+                        </div>
+                        <div>
+                            <Divider type="vertical" />
+                            <BrownLightText>W</BrownLightText>
+                            <NeutralText>{currentTime.currentWeek}</NeutralText>
+                            <Divider type="vertical" />
+                            <BrownLightText>D</BrownLightText>
+                            <NeutralText>{currentTime.currentDay}</NeutralText>
+                        </div>
+                    </MobileSummary>
+                </MobileHead>
+            )}
+            {deviceSize == 'desktop' && (
+                <>
+                    <Header>
+                        <LeftHeader>
+                            <Summary>
+                                <Chip color="var(--primary)" style={{ backgroundColor: 'var(--brown-light)' }}>
+                                    DEDA
+                                </Chip>
+                                <NeutralText>{currentTime.currentDedaName}</NeutralText>
+                                <Divider type="vertical" />
+                                <Chip
+                                    color="var(--neutral-text)"
+                                    style={{ width: '3.625rem', backgroundColor: 'var(--gray)' }}
+                                >
+                                    Week
+                                </Chip>
+                                <NeutralText>{currentTime.currentWeek}</NeutralText>
+                                <Divider type="vertical" />
+                                <Chip
+                                    color="var(--neutral-text)"
+                                    style={{ width: '3.625rem', backgroundColor: 'var(--gray)' }}
+                                >
+                                    Day
+                                </Chip>
+                                <NeutralText>{currentTime.currentDay}</NeutralText>
+                            </Summary>
+                        </LeftHeader>
+                        <RightHeader>
+                            <Notifications>
+                                <BellOutlined />
+                            </Notifications>
+                            <User>
+                                {user?.profileImageSrc && (
+                                    <Avatar src={<img src={user.profileImageSrc} alt="avatar" />} />
+                                )}
+                                {!user?.profileImageSrc && <Avatar icon={<UserOutlined />} />}
+                                <Dropdown menu={{ items }}>
+                                    <a onClick={(e) => e.preventDefault()}>
+                                        <Space>
+                                            {user?.name}
+                                            <CaretDownOutlined />
+                                        </Space>
+                                    </a>
+                                </Dropdown>
+                            </User>
+                        </RightHeader>
+                    </Header>
+                    <Sidebar id="sidebar" style={{ width: !collapsed ? '13.75rem' : '3.25rem' }}>
+                        <Logo>
+                            <MenuOutlined onClick={handleCollapsed} />
+                            {!collapsed && <Image src="./mettle-logo.svg" alt="METTLE" preview={false} />}
+                        </Logo>
+                        {collapsed && <CollapsedMenu />}
+                        {!collapsed && <ExpandedMenu items={menuItems} />}
+                    </Sidebar>
+                </>
+            )}
             <Content>{children}</Content>
         </Container>
     );

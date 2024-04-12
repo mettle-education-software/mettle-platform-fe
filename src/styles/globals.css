@@ -32,6 +32,11 @@
     --W1-light: #fefdfb;
 
     --brown-light: #b79060;
+    --grey-light: #f2f0ee;
+    --grey-dark: #cfcbbd;
+
+    --green-light: rgba(52, 168, 83, 0.75);
+    --yellow-light: rgba(255, 163, 0, 0.75);
 }
 
 main[data-theme='light'] {

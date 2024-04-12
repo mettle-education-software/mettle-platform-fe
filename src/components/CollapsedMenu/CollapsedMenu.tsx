@@ -45,7 +45,7 @@ const MelpLogo = styled(Link)`
 function CollapsedMenu() {
     return (
         <Bar>
-            <HomeMenu href="/">
+            <HomeMenu href="/course">
                 <HomeOutlined />
             </HomeMenu>
             <BottomArea>

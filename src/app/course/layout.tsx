@@ -17,13 +17,13 @@ const Container = styled.div`
     display: grid;
     ${mediumAndSmaller} {
         grid-template-columns: auto;
-        grid-template-rows: 2.875rem calc(100vh - 2.875rem);
+        grid-template-rows: 2.875rem 1fr;
         grid-template-areas:
             'header'
             'main';
     }
     grid-template-columns: auto 1fr;
-    grid-template-rows: 2.875rem calc(100vh - 2.875rem);
+    grid-template-rows: 2.875rem 1fr;
     grid-template-areas:
         'sidebar header'
         'sidebar main';
@@ -79,12 +79,7 @@ const MobileSummary = styled.div`
     div {
         display: flex;
         align-items: center;
-    }
-    div:first-child {
         gap: 0.5rem;
-    }
-    div:last-child {
-        gap: 0.1rem;
     }
     div > span > svg {
         color: var(--brown-light);
@@ -175,7 +170,7 @@ const App = ({ children }: { children: React.ReactNode }) => {
 
     const menuItems = [
         { label: 'HPEC', tooltip: 'tooltip text.', href: '/' } as MenuItem,
-        { label: 'DEDA', tooltip: 'tooltip text.', href: '/' } as MenuItem,
+        { label: 'DEDA', tooltip: 'tooltip text.', href: '/course' } as MenuItem,
         { label: 'LAMP', tooltip: 'tooltip text.', href: '/' } as MenuItem,
     ];
 
@@ -205,7 +200,6 @@ const App = ({ children }: { children: React.ReactNode }) => {
                             <Divider type="vertical" />
                             <BrownLightText>W</BrownLightText>
                             <NeutralText>{currentTime.currentWeek}</NeutralText>
-                            <Divider type="vertical" />
                             <BrownLightText>D</BrownLightText>
                             <NeutralText>{currentTime.currentDay}</NeutralText>
                         </div>

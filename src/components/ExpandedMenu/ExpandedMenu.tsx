@@ -12,7 +12,7 @@ const Bar = styled.div`
     flex-direction: column;
     justify-content: space-between;
     margin: 0.75rem;
-    height: calc(100vh - 2.875rem);
+    height: 100%;
 `;
 
 const MainMenu = styled.div`
@@ -92,7 +92,7 @@ function ExpandedSideBar(props: { items: Array<MenuItem> }) {
     return (
         <Bar>
             <MainMenu>
-                <HomeMenu href="/">
+                <HomeMenu href="/course">
                     <HomeOutlined />
                     <span>Home</span>
                 </HomeMenu>

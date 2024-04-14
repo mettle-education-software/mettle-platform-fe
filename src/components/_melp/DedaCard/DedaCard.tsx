@@ -10,7 +10,7 @@ import { Chip } from '../../atoms/Chip/Chip';
 interface CardComponentProps {
     imgUrl: string;
     title: string;
-    week: string;
+    week?: string;
     dedaId: string;
     onClick: (dedaId: string) => void;
 }
@@ -51,9 +51,7 @@ export const DedaCard: React.FC<CardComponentProps> = ({ imgUrl, title, week, de
                 onClick(dedaId);
             }}
         >
-            <div>
-                <Chip>{week}</Chip>
-            </div>
+            <div>{week && <Chip>{week}</Chip>}</div>
             <Typography.Title ellipsis={true} level={2}>
                 {title}
             </Typography.Title>

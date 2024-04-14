@@ -1,9 +1,9 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Chip } from '@mui/material';
 import { Flex, Typography, Tag, Skeleton, Row, Col } from 'antd';
 import { useDeviceSize, useMelpSummary } from 'hooks';
+import { padNumber, getWeekDay } from 'libs';
 import { useAppContext } from 'providers';
 import React from 'react';
 
@@ -51,9 +51,9 @@ export const MelpSummary: React.FC = () => {
                         <Flex gap="0.5rem">
                             <Divider />
                             <Typography.Text>W</Typography.Text>
-                            <Typography.Text>{currentTime.currentWeek}</Typography.Text>
+                            <Typography.Text>{padNumber(currentTime.currentWeek)}</Typography.Text>
                             <Typography.Text>D</Typography.Text>
-                            <Typography.Text>{currentTime.currentDay}</Typography.Text>
+                            <Typography.Text>{getWeekDay()}</Typography.Text>
                         </Flex>
                     </Col>
                 </Row>
@@ -73,12 +73,12 @@ export const MelpSummary: React.FC = () => {
                 <DedaChip bg="#F2F0EE">
                     <Typography.Title level={5}>Week</Typography.Title>
                 </DedaChip>
-                <Typography.Text>{currentTime.currentWeek}</Typography.Text>
+                <Typography.Text>{padNumber(currentTime.currentWeek)}</Typography.Text>
                 <Divider />
                 <DedaChip bg="#F2F0EE">
                     <Typography.Title level={5}>Day</Typography.Title>
                 </DedaChip>
-                <Typography.Text>{currentTime.currentDay}</Typography.Text>
+                <Typography.Text>{getWeekDay()}</Typography.Text>
             </Flex>
         </Skeleton>
     );

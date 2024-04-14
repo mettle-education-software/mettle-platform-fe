@@ -26,6 +26,8 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
 
     const { data: melpSummary, isLoading } = useMelpSummary(user?.uid as string);
 
+    const currentTime = melpSummary?.currentTime;
+
     const unlockedDEDAs = melpSummary?.unlockedDEDAs ?? [];
 
     const currentDeda = unlockedDEDAs[unlockedDEDAs.length - 1];
@@ -73,13 +75,13 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
 
                 <Row gutter={[24, 24]} justify="space-between">
                     {type === 'lastDedas' &&
-                        lastDedasResult.data?.dedaContentCollection.items.map((deda) => (
+                        lastDedasResult.data?.dedaContentCollection.items.map((deda, index) => (
                             <Col xs={12} md={6} key={deda.dedaSlug}>
                                 <DedaCard
                                     dedaId={deda.dedaId}
                                     imgUrl={deda.dedaFeaturedImage.url}
                                     title={deda.dedaTitle}
-                                    week="Week 013"
+                                    week={`Week ${(currentTime?.currentWeek as number) - index}`}
                                     onClick={() => {
                                         onSelectedDeda(deda.dedaId);
                                     }}
@@ -87,13 +89,13 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
                             </Col>
                         ))}
                     {type === 'nextDedas' &&
-                        nextDedasResult.data?.dedaContentCollection.items.map((deda) => (
+                        nextDedasResult.data?.dedaContentCollection.items.map((deda, index) => (
                             <Col xs={12} md={6} key={deda.dedaSlug}>
                                 <DedaCard
                                     dedaId={deda.dedaId}
                                     imgUrl={deda.dedaFeaturedImage.url}
                                     title={deda.dedaTitle}
-                                    week="Week 013"
+                                    week={`Week ${(currentTime?.currentWeek as number) + index + 1}`}
                                     onClick={() => {
                                         onSelectedDeda(deda.dedaId);
                                     }}
@@ -107,7 +109,6 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
                                     dedaId={deda.dedaId}
                                     imgUrl={deda.dedaFeaturedImage.url}
                                     title={deda.dedaTitle}
-                                    week="Week 013"
                                     onClick={() => {
                                         onSelectedDeda(deda.dedaId);
                                     }}

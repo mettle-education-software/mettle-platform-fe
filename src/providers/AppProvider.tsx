@@ -5,7 +5,7 @@ import { ApolloProvider } from '@apollo/react-hooks';
 import { User } from '@firebase/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
-import React, { useContext, createContext, useState, useEffect } from 'react';
+import React, { useContext, createContext, useState, useEffect, useMemo } from 'react';
 
 interface ProviderProps {
     children: React.ReactNode;
@@ -36,7 +36,7 @@ const queryClient = new QueryClient();
 const AppProviderContext = createContext<IProviderContext>({} as IProviderContext);
 
 export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
-    const [theme, setTheme] = useState<'light' | 'dark'>('light');
+    const [theme, setTheme] = useState<'light' | 'dark'>('dark');
     const [user, setUser] = useState<any>(null);
     const [isAppLoading, setIsAppLoading] = useState<boolean>(false);
 
@@ -66,12 +66,12 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
         auth.onAuthStateChanged(handleUserTokenChange);
     }, []);
 
+    const value = useMemo(() => ({ theme, user, isAppLoading }), [theme, user, isAppLoading]);
+
     return (
         <QueryClientProvider client={queryClient}>
             <ApolloProvider client={client}>
-                <AppProviderContext.Provider value={{ theme, user, isAppLoading }}>
-                    {children}
-                </AppProviderContext.Provider>
+                <AppProviderContext.Provider value={value}>{children}</AppProviderContext.Provider>
             </ApolloProvider>
         </QueryClientProvider>
     );

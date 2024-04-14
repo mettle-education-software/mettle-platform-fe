@@ -26,13 +26,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="pt" suppressHydrationWarning={true}>
             <head>
-                <title>Mettle Backoffice Admin</title>
+                <title>Plataforma Mettle</title>
                 <meta name="viewport" content="initial-scale=1.0, width=device-width" />
                 <link rel="icon" href="/favicon.ico" />
                 <meta name="description" content="Mettle Backoffice Admin" />
                 <meta property="og:title" content="Mettle" />
                 <meta property="og:image" content="/mettle.png" />
                 <link rel="apple-touch-icon" href="/mettle.png" />
+                <link rel="stylesheet" href="https://use.typekit.net/ted7yly.css" />
             </head>
             <AppProvider>
                 <NotificationsProvider>

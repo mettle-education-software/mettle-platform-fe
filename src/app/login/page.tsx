@@ -2,184 +2,237 @@
 
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Tabs, Input, Flex, Checkbox, Typography, Button, Form } from 'antd';
-import type { FormProps, TabsProps } from 'antd';
-import { handleLogin, withoutAuthentication } from 'libs/authentication';
-import React, { useState } from 'react';
-import { smallAndSmaller } from 'styles/media.constants';
+import { Input, Form, Button, Row, Col, Spin, Flex, Typography } from 'antd';
+import { Logo, Google, Microsoft } from 'components';
+import { useDeviceSize } from 'hooks';
+import { withoutAuthentication, handleLogin, handleGoogleLogin, SMALL_VIEWPORT, handleMicrosoftLogin } from 'libs';
+import Link from 'next/link';
+import React from 'react';
 
-const Container = styled.div((props) => ({
-    alignItems: 'center',
-    display: 'flex',
-    [smallAndSmaller]: {
-        flexDirection: 'column',
-        gap: 0,
-    },
-    gap: '12rem',
-    justifyContent: 'center',
-}));
+const PageContainer = styled.div`
+    max-height: 100vh;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    display: flex;
+`;
 
-const MainForm = styled(Form)((props) => ({
-    span: {
-        color: 'var(--font-primary)',
-    },
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.75rem',
-    width: '22.5rem',
-}));
+const LogoContainer = styled.div`
+    width: 50%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    background:
+        linear-gradient(0deg, rgba(60, 54, 47, 0.69) 0%, rgba(60, 54, 47, 0.69) 100%),
+        url('/img/woman_bg.jpeg') lightgray 50% / cover no-repeat;
+`;
 
-const input_height = '3.125rem';
+const LogoWrapper = styled.div`
+    width: 100%;
+    max-width: 50%;
+    padding: 1rem 0;
 
-const input_icon = {
-    color: 'var(--secondary)',
-};
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        padding-top: 3.3rem;
+    }
+`;
 
-const ImageLogo = styled.div((props) => ({
-    [smallAndSmaller]: {
-        backgroundImage: "url('/mettle-logo.svg')",
-        width: '7.92rem',
-        height: '2.1rem',
-        marginBottom: '1.25rem',
-        marginTop: '1.25rem',
-    },
-    backgroundImage: "url('/mettle-login.svg')",
-    width: '42.6875rem',
-    height: '43rem',
-}));
+const LoginContainer = styled.div`
+    width: 50%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #fefdfb;
 
-const EnterButton = styled(Button)(() => ({
-    height: '3.125rem',
-    span: {
-        color: 'var(--primary)',
-    },
-}));
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        width: 100%;
+    }
+`;
 
-const Terms = styled.div((props) => ({
-    span: {
-        fontSize: '0.6rem',
-        width: '20rem',
-    },
-    'span > a': {
-        fontSize: '0.6rem',
-    },
-    alignItems: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 0,
-}));
+const FormContainer = styled.div`
+    width: 50%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 
-const LoginErrorContainer = styled.div((props) => ({
-    color: 'var(--danger)',
-    fontSize: '0.8rem',
-    paddingBottom: '0.4rem',
-}));
+    .input {
+        border: 1px solid var(--neutral);
+        border-radius: 0;
+        padding: 1rem;
+        margin: 0;
+    }
 
-function Page() {
-    const items: TabsProps['items'] = [
-        {
-            key: 'mettlePlatform',
-            label: 'Plataforma Mettle',
-            children: LoginForm(),
-        },
-        {
-            key: 'businessManager',
-            label: 'Business Manager',
-            children: '',
-        },
-    ];
+    .prefix-icon {
+        color: var(--secondary);
+    }
 
-    return (
-        <Container>
-            <Flex>
-                <ImageLogo />
-            </Flex>
-            <Flex align="center" justify="center">
-                <Tabs
-                    defaultActiveKey="mettlePlatform"
-                    items={items}
-                    indicator={{ size: (origin) => origin + 25, align: 'center' }}
-                />
-            </Flex>
-        </Container>
-    );
-}
+    .forgot-col {
+        align-items: flex-end !important;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 1.25rem;
+    }
 
-function LoginForm() {
-    const [loginErrorMessage, setLoginErrorMessage] = useState<string | null>(null);
-    const [isSignInLoading, setIsSignInLoading] = useState<boolean>(false);
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        width: 90vw;
+    }
+`;
 
-    type FieldType = {
-        email?: string;
-        password?: string;
-        remember?: string;
-    };
+const FormHeader = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid var(--secondary);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    color: var(--primary);
+`;
 
-    const onFinish: FormProps['onFinish'] = async (values: FieldType) => {
-        await handleLogin({
-            email: values.email!,
-            password: values.password!,
-            setLoginErrorMessage,
-            setIsSignInLoading,
-        });
-    };
+const LoginButton = styled(Button)`
+    width: 100%;
+    min-height: 40px;
+    background: var(--secondary);
+    padding: 0.5rem 0;
+    height: 3rem;
 
-    const requiredRule = { required: true, message: 'Campo obrigatório' };
+    &:hover {
+        background: var(--primary) !important;
+    }
+`;
 
-    return (
-        <MainForm name="login" onFinish={onFinish} autoComplete="off">
-            <Flex vertical>
-                <Typography.Text>Seu e-mail</Typography.Text>
-                <Form.Item name="email" rules={[{ type: 'email', message: 'E-mail inválido' }, ...[requiredRule]]}>
-                    <Input
-                        size="large"
-                        style={{ height: input_height }}
-                        placeholder="exemplo@email.com.br"
-                        prefix={<UserOutlined style={input_icon} />}
-                        onChange={(event) => {
-                            setLoginErrorMessage(null);
+const ForgotPasswordLink = styled(Link)`
+    color: var(--secondary);
+    text-align: right;
+    font-size: 1.2rem;
+
+    &:hover {
+        color: var(--tertiary);
+    }
+`;
+
+const ErrorMessage = styled.span`
+    color: red;
+`;
+
+const LineDivider = styled.div`
+    width: 100%;
+    height: 1px;
+    background: var(--primary-bg, #b79060);
+`;
+
+function Login() {
+    const [loginError, setLoginError] = React.useState<null | string>(null);
+    const [isSignInLoading, setIsSignInLoading] = React.useState<boolean>(false);
+
+    const deviceSize = useDeviceSize();
+
+    const renderForm = () => (
+        <LoginContainer>
+            <FormContainer>
+                <Spin spinning={isSignInLoading}>
+                    <FormHeader>
+                        <span>Plataforma Mettle</span>
+                    </FormHeader>
+                    <Form
+                        layout="vertical"
+                        onFinish={(values) => {
+                            setIsSignInLoading(true);
+                            handleLogin({
+                                email: values.email,
+                                password: values.password,
+                                setLoginErrorMessage: setLoginError,
+                                setIsSignInLoading,
+                            });
                         }}
-                    />
-                </Form.Item>
-            </Flex>
-            <Flex vertical>
-                <Typography.Text>Sua senha</Typography.Text>
-                <Form.Item name="password" rules={[requiredRule]}>
-                    <Input
-                        size="large"
-                        style={{ height: input_height }}
-                        placeholder="senha"
-                        prefix={<LockOutlined style={input_icon} />}
-                        type="password"
-                        onChange={(event) => {
-                            setLoginErrorMessage(null);
-                        }}
-                    />
-                </Form.Item>
-                {loginErrorMessage && <LoginErrorContainer>{loginErrorMessage}</LoginErrorContainer>}
-                <Flex justify="space-between">
-                    <Form.Item name="remember">
-                        <Checkbox>
-                            <Typography.Text>Salvar meus dados</Typography.Text>
-                        </Checkbox>
-                    </Form.Item>
-                    <Typography.Link href="/forgot-password">Esqueceu a senha?</Typography.Link>
+                    >
+                        <Form.Item
+                            validateDebounce={800}
+                            name="email"
+                            rules={[
+                                {
+                                    required: true,
+                                    message: 'Por favor insira o seu e-mail de login',
+                                },
+                                { type: 'email', message: 'Por favor insira um e-mail válido' },
+                            ]}
+                        >
+                            <Input
+                                className="input"
+                                size="large"
+                                type="email"
+                                placeholder="exemplo@empresa.com.br"
+                                prefix={<UserOutlined className="prefix-icon" />}
+                            />
+                        </Form.Item>
+                        <Form.Item name="password" rules={[{ required: true, message: 'Por favor insira a senha' }]}>
+                            <Input.Password
+                                className="input"
+                                size="large"
+                                placeholder="Senha"
+                                prefix={<LockOutlined className="prefix-icon" />}
+                            />
+                        </Form.Item>
+                        <Row justify="end" align="middle">
+                            <Col className="forgot-col" span={12}>
+                                <ForgotPasswordLink href={'/forgot-password'}>Esqueceu a senha?</ForgotPasswordLink>
+                            </Col>
+                        </Row>
+                        <LoginButton loading={isSignInLoading} size="large" type="primary" htmlType="submit">
+                            Entrar
+                        </LoginButton>
+                        {loginError && <ErrorMessage>{loginError}</ErrorMessage>}
+                    </Form>
+                </Spin>
+
+                <Flex align="center" gap="1rem">
+                    <LineDivider />
+                    <div>
+                        <Typography.Text>ou</Typography.Text>
+                    </div>
+                    <LineDivider />
                 </Flex>
+
+                <Button onClick={handleGoogleLogin} style={{ padding: '0.5rem 1rem', height: '3.5rem' }}>
+                    <Flex style={{ width: '100%' }} align="center" gap="1rem">
+                        <Google />
+                        Continuar com o Google
+                    </Flex>
+                </Button>
+                <Button onClick={handleMicrosoftLogin} style={{ padding: '0.5rem 1rem', height: '3.5rem' }}>
+                    <Flex style={{ width: '100%' }} align="center" gap="1rem">
+                        <Microsoft />
+                        Continuar com a Microsoft
+                    </Flex>
+                </Button>
+            </FormContainer>
+        </LoginContainer>
+    );
+
+    if (deviceSize === 'mobile') {
+        return (
+            <Flex vertical align="center" gap={24}>
+                <LogoWrapper>
+                    <Logo theme="dark" />
+                </LogoWrapper>
+                {renderForm()}
             </Flex>
-            <EnterButton type="primary" htmlType="submit">
-                Entrar
-            </EnterButton>
-            <Terms>
-                <Typography.Text type="secondary">
-                    Ao fazer login na Plataforma Mettle ou no Mettle Business Manager, você concorda com nossos{' '}
-                    <Typography.Link href="https://mettle.com.br/termos-de-uso/">Termos de Uso</Typography.Link> e{' '}
-                    <Typography.Link href="https://mettle.com.br/politica-de-privacidade/">
-                        Política de Privacidade.
-                    </Typography.Link>
-                </Typography.Text>
-            </Terms>
-        </MainForm>
+        );
+    }
+
+    return (
+        <PageContainer>
+            <LogoContainer>
+                <LogoWrapper>
+                    <Logo />
+                </LogoWrapper>
+            </LogoContainer>
+            {renderForm()}
+        </PageContainer>
     );
 }
 
-export default withoutAuthentication(Page);
+export default withoutAuthentication(Login);

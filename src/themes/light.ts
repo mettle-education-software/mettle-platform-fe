@@ -25,6 +25,6 @@ export const lightTheme: ThemeConfig = {
         wireframe: false,
         colorBgBase: '#ffffff',
         colorPrimaryActive: '#3c362f',
-        fontFamily: roboto.style.fontFamily,
+        fontFamily: '"europa", sans-serif',
     },
 };

@@ -1,3 +1,3 @@
-export { handleLogin } from './handleLogin';
-export { handleLogout } from './handleLogout';
-export { withAuthentication, withoutAuthentication } from './withAuthentication';
+export * from './handleLogin';
+export * from './handleLogout';
+export * from './withAuthentication';

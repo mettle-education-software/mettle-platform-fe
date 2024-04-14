@@ -46,3 +46,5 @@ grahpql.config.yaml
 
 # Sentry Config File
 .sentryclirc
+
+graphql.config.yml

@@ -45,3 +45,11 @@ export interface IPagination {
     pageSize: number;
     pageOffset: number;
 }
+
+export type AccountCaseType =
+    | 'FIRST_DAYS'
+    | 'WEEK_ZERO'
+    | 'DEDA_CONFIRMED_AND_STARTED'
+    | 'DEDA_CONFIRMED_NOT_STARTED'
+    | 'DEDA_STARTED_ACCOUNT_PAUSED'
+    | 'PROMPT_CONFIRM';

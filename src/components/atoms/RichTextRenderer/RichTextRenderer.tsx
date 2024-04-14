@@ -53,7 +53,7 @@ const HyperLink = styled(Link)`
     color: blue;
 
     &::after {
-        content: '\2197'; /* Unicode code for the up-right arrow */
+        content: '\\2197'; /* Unicode code for the up-right arrow */
         font-size: inherit;
     }
 

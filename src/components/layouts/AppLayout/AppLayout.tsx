@@ -1,0 +1,201 @@
+'use client';
+
+import { MenuOutlined, HomeOutlined } from '@ant-design/icons';
+import styled from '@emotion/styled';
+import { Drawer, Flex, Layout, Menu } from 'antd';
+import { Logo } from 'components';
+import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
+import { useDeviceSize } from 'hooks';
+import { usePathname, useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { DedaIcon } from '../../icons';
+
+const { Header, Content, Sider } = Layout;
+
+const AppHeader = styled(Header)`
+    background: var(--tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 1rem;
+    padding-right: 1rem;
+`;
+
+const LogoWrapper = styled.div`
+    max-width: 6.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+`;
+
+const Sidebar = styled(Sider)`
+    width: 12rem;
+    max-width: 20vw;
+    max-height: 100%;
+    height: 100%;
+    min-height: 100%;
+    background: var(--tertiary) !important;
+    box-shadow: 0 2px 8px 0 #00000026;
+    padding: 1rem 1rem;
+`;
+
+const PageLayout = styled(Layout)`
+    height: 100vh;
+    max-height: 100vh;
+    width: 100vw;
+    max-width: 100vw;
+`;
+
+const ContentLayout = styled(Layout)`
+    max-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+`;
+
+const AppContent = styled(Content)`
+    padding: 0;
+    overflow-y: auto;
+`;
+
+const CustomMenu = styled(Menu)`
+    background: transparent;
+    border: none !important;
+    box-shadow: none !important;
+`;
+
+export const AppLayout = ({
+    children,
+    withMelpSummary = false,
+}: {
+    children: React.ReactNode;
+    withMelpSummary?: boolean;
+}) => {
+    const device = useDeviceSize();
+
+    const [collapsed, setCollapsed] = useState(true);
+
+    const collapseOnMobile = () => {
+        if (device === 'mobile') setCollapsed(true);
+    };
+
+    const pathname = usePathname();
+    const router = useRouter();
+
+    const trigger = (
+        <div
+            role="button"
+            autoFocus
+            className="trigger"
+            onClick={() => setCollapsed((previous) => !previous)}
+            style={{ cursor: 'pointer' }}
+        >
+            <MenuOutlined style={{ color: device === 'mobile' ? 'var(--secondary)' : undefined, fontSize: '1rem' }} />
+        </div>
+    );
+
+    const customMenu = (
+        <CustomMenu
+            mode="inline"
+            selectedKeys={pathname.split('/')}
+            items={[
+                {
+                    key: 'home',
+                    icon: <HomeOutlined />,
+                    label: 'Home',
+                    onClick: ({ domEvent }) => {
+                        domEvent.preventDefault();
+                        collapseOnMobile();
+                        router.push('/');
+                    },
+                },
+                {
+                    key: 'melp',
+                    icon: <DedaIcon style={{ marginLeft: '-3px' }} />,
+                    label: 'MELP',
+                    children: [
+                        {
+                            key: 'meplHpec',
+                            label: 'HPEC',
+                            onClick: ({ domEvent }) => {
+                                domEvent.preventDefault();
+                                collapseOnMobile();
+                                router.push('/melp/hpec');
+                            },
+                        },
+                        {
+                            key: 'melpDeda',
+                            label: 'DEDA',
+                            onClick: ({ domEvent }) => {
+                                domEvent.preventDefault();
+                                collapseOnMobile();
+                                router.push('/melp/deda');
+                            },
+                        },
+                        {
+                            key: 'melpLamp',
+                            label: 'LAMP',
+                            onClick: ({ domEvent }) => {
+                                domEvent.preventDefault();
+                                collapseOnMobile();
+                                router.push('/melp/lamp');
+                            },
+                        },
+                    ],
+                },
+            ]}
+        />
+    );
+
+    if (device === 'mobile') {
+        return (
+            <PageLayout>
+                <Layout>
+                    <AppHeader>
+                        <Flex gap="0.5rem">
+                            {trigger}
+                            {withMelpSummary && <MelpSummary />}
+                        </Flex>
+                        <Drawer open={!collapsed} onClose={() => setCollapsed(true)}>
+                            {customMenu}
+                        </Drawer>
+                    </AppHeader>
+                    <ContentLayout>
+                        <AppContent>{children}</AppContent>
+                    </ContentLayout>
+                </Layout>
+            </PageLayout>
+        );
+    }
+
+    return (
+        <PageLayout>
+            <Sidebar collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)} trigger={null}>
+                <Flex
+                    align="center"
+                    gap="12px"
+                    justify={collapsed ? 'center' : 'flex-start'}
+                    style={{ marginBottom: '1rem' }}
+                >
+                    {trigger}
+                    {!collapsed && (
+                        <LogoWrapper
+                            onClick={() => {
+                                router.push('/');
+                            }}
+                        >
+                            <Logo theme="dark" />
+                        </LogoWrapper>
+                    )}
+                </Flex>
+                {customMenu}
+            </Sidebar>
+            <Layout>
+                <AppHeader>{withMelpSummary && <MelpSummary />}</AppHeader>
+                <ContentLayout>
+                    <AppContent>{children}</AppContent>
+                </ContentLayout>
+            </Layout>
+        </PageLayout>
+    );
+};

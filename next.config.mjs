@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    images: {
+        domains: ['images.ctfassets.net', 'via.placeholder.com'],
+    },
     env: {
         FB_API_KEY: process.env.FB_API_KEY,
         FB_AUTH_DOMAIN: process.env.FB_AUTH_DOMAIN,

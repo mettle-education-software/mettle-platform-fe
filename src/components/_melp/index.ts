@@ -4,3 +4,6 @@ export { DedasGrid } from './DedasGrid/DedasGrid';
 export { DedaActivity } from './DedaActivity/DedaActivity';
 export { DedaNotes } from './DedaNotes/DedaNotes';
 export { DedaReview } from './DedaReview/DedaReview';
+export { PodcastFrame } from './PodcastFrame/PodcastFrame';
+export { ArticleFrame } from './ArticleFrame/ArticleFrame';
+export { VideoFrame } from './VideoFrame/VideoFrame';

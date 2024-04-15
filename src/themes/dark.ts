@@ -28,7 +28,7 @@ export const darkTheme: ThemeConfig = {
             paddingContentHorizontal: 36,
         },
         Tabs: {
-            cardBg: '#B89261',
+            cardBg: 'transparent',
             inkBarColor: 'var(--secondary)',
             itemActiveColor: 'var(--secondary)',
             itemColor: 'white',

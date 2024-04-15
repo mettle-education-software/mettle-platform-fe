@@ -7,7 +7,7 @@ import { Logo } from 'components';
 import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
 import { usePathname, useRouter } from 'next/navigation';
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useEffect, useState } from 'react';
 import { DedaIcon } from '../../icons';
 
 const { Header, Content, Sider } = Layout;
@@ -83,7 +83,13 @@ export const AppLayout = forwardRef<
     ) => {
         const device = useDeviceSize();
 
-        const [collapsed, setCollapsed] = useState(true);
+        const [collapsed, setCollapsed] = useState(window.localStorage.getItem('menuCollapsed') === 'true');
+
+        useEffect(() => {
+            if (device === 'mobile') {
+                setCollapsed(true);
+            }
+        }, [device]);
 
         const collapseOnMobile = () => {
             if (device === 'mobile') setCollapsed(true);
@@ -96,7 +102,12 @@ export const AppLayout = forwardRef<
             <Button
                 ghost
                 className="trigger"
-                onClick={() => setCollapsed((previous) => !previous)}
+                onClick={() =>
+                    setCollapsed((previous) => {
+                        window.localStorage.setItem('menuCollapsed', String(!previous));
+                        return !previous;
+                    })
+                }
                 icon={
                     <MenuOutlined
                         style={{ color: device === 'mobile' ? 'var(--secondary)' : 'var(--primary)', fontSize: '1rem' }}
@@ -131,7 +142,7 @@ export const AppLayout = forwardRef<
                                 onClick: ({ domEvent }) => {
                                     domEvent.preventDefault();
                                     collapseOnMobile();
-                                    router.push('/melp/hpec');
+                                    router.push('/melp/hpec/hpec1');
                                 },
                             },
                             {

@@ -1,4 +1,4 @@
-export const SMALL_VIEWPORT = 360;
+export const SMALL_VIEWPORT = 560;
 
 export const padding = {
     x: {

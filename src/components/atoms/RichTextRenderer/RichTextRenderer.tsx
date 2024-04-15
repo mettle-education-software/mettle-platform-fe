@@ -51,7 +51,7 @@ const TextWrapper = styled.div`
 
 const HyperLink = styled(Link)`
     font-weight: 700;
-    color: blue;
+    color: #3030e8;
 
     &::after {
         content: '\\2197'; /* Unicode code for the up-right arrow */

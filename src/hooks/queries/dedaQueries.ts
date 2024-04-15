@@ -312,8 +312,8 @@ const queries = {
     'deda-write': dedaWriteQuery,
 };
 
-export const useDeda = (queryName?: DedaQueryName, dedaId?: string) =>
-    useQuery(queries[queryName as DedaQueryName], {
+export const useDeda = <T>(queryName?: DedaQueryName, dedaId?: string) =>
+    useQuery<T>(queries[queryName as DedaQueryName], {
         variables: {
             dedaId,
         },

@@ -1,46 +1,81 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Flex, Skeleton } from 'antd';
-import { RichTextRenderer, MaxWidthContainer } from 'components';
-import { useDeda } from 'hooks/queries/dedaQueries';
-import React, { useMemo } from 'react';
+import { BookmarkOutlined, HomeOutlined, PsychologyOutlined } from '@mui/icons-material';
+import { Button, Flex } from 'antd';
+import { MaxWidthContainer } from 'components';
+import { padding } from 'libs';
+import React, { useState } from 'react';
+import { Glossary } from './Glossary/Glossary';
+import { Introduction } from './Introduction/Introduction';
+import { LinKnowledge } from './LinKnowledge/LinKnowledge';
 
 const DedaNotesNav = styled.div`
     width: 100%;
     background: #2b2b2b;
     display: flex;
     justify-content: center;
-    padding: 22px 0;
     position: sticky;
     top: 250px;
-    z-index: 0;
+    z-index: 1;
+    padding: ${padding.y.sm} ${padding.x.lg};
+`;
+
+const DedaNavButton = styled(Button)`
+    border: none;
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    font-size: 18px;
+
+    &.active {
+        color: var(--secondary);
+    }
 `;
 
 export const DedaNotes = ({ dedaId }: { dedaId: string }) => {
-    const dedaNotesResult = useDeda('deda-notes', dedaId);
-    const dedaNotesContent = useMemo(() => dedaNotesResult?.data?.dedaContentCollection?.items[0], [dedaNotesResult]);
+    const [selectedDedaNotesSection, setSelectedDedaNotesSection] = useState('introduction');
 
-    if (!dedaNotesContent) return <Skeleton active paragraph />;
+    const contentRenderer: Map<string, React.ReactNode> = new Map([
+        ['introduction', <Introduction key="introduction" dedaId={dedaId} />],
+        ['glossary', <Glossary key="glossary" dedaId={dedaId} />],
+        ['linknowledge', <LinKnowledge key="linknowledge" dedaId={dedaId} />],
+    ]);
 
     return (
-        <Flex vertical align="center" style={{ width: '100%' }} gap="40px">
+        <Flex vertical align="center" style={{ width: '100%', flexGrow: 1 }}>
             <DedaNotesNav>
                 <MaxWidthContainer>
-                    <Flex>
-                        <h1 style={{ color: 'white' }}>Deda Notes</h1>
-                        <h1 style={{ color: 'white' }}>Deda Notes</h1>
-                        <h1 style={{ color: 'white' }}>Deda Notes</h1>
+                    <Flex gap="1.5rem">
+                        <DedaNavButton
+                            className={selectedDedaNotesSection === 'introduction' ? 'active' : undefined}
+                            onClick={() => setSelectedDedaNotesSection('introduction')}
+                            icon={<HomeOutlined />}
+                            ghost
+                        >
+                            Introduction
+                        </DedaNavButton>
+                        <DedaNavButton
+                            className={selectedDedaNotesSection === 'glossary' ? 'active' : undefined}
+                            onClick={() => setSelectedDedaNotesSection('glossary')}
+                            icon={<BookmarkOutlined />}
+                            ghost
+                        >
+                            Glossary
+                        </DedaNavButton>
+                        <DedaNavButton
+                            className={selectedDedaNotesSection === 'linknowledge' ? 'active' : undefined}
+                            onClick={() => setSelectedDedaNotesSection('linknowledge')}
+                            icon={<PsychologyOutlined />}
+                            ghost
+                        >
+                            LinKnowledge
+                        </DedaNavButton>
                     </Flex>
                 </MaxWidthContainer>
             </DedaNotesNav>
-            <div style={{ maxWidth: '800px' }}>
-                <RichTextRenderer
-                    justify
-                    rawContent={dedaNotesContent.dedaNotesIntroductionContent?.json}
-                    links={dedaNotesContent.dedaNotesIntroductionContent?.links}
-                />
-            </div>
+            {contentRenderer.get(selectedDedaNotesSection)}
         </Flex>
     );
 };

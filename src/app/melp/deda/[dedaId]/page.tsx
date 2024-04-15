@@ -12,7 +12,7 @@ import React, { useEffect, useRef, useState } from 'react';
 const HeaderSummary = styled.section<{ imgUrl?: string; headerHeight: number }>`
     position: sticky;
     top: 0;
-    z-index: 1;
+    z-index: 2;
     background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43) 15%, rgb(0, 0, 0, 0) 100%),
         url(${({ imgUrl }) => imgUrl});
     background-size: cover;
@@ -25,7 +25,7 @@ const HeaderSummary = styled.section<{ imgUrl?: string; headerHeight: number }>`
     justify-content: flex-end;
     align-items: center;
     border: none;
-    transition: 0.3s ease-out;
+    transition: 0.6s ease-out;
 
     & h1 {
         color: var(--secondary);
@@ -53,6 +53,17 @@ const TabNav = styled(Tabs)`
     max-width: ${MAX_CONTENT_WIDTH}px;
     position: relative;
     top: 65px;
+
+    .ant-tabs-tab {
+        border: none !important;
+        background: transparent !important;
+    }
+
+    .ant-tabs-tab-active {
+        color: var(--secondary) !important;
+        background: #3c362f !important;
+        border-bottom: 1px solid var(--secondary) !important;
+    }
 `;
 
 function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
@@ -104,6 +115,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                 </div>
 
                 <TabNav
+                    type="card"
                     color="secondary"
                     activeKey={activeTab}
                     onChange={setActiveTab}

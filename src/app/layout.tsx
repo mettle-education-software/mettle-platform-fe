@@ -26,10 +26,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="pt" suppressHydrationWarning={true}>
             <head>
-                <title>Mettle Backoffice Admin</title>
+                <title>Mettle</title>
                 <meta name="viewport" content="initial-scale=1.0, width=device-width" />
                 <link rel="icon" href="/favicon.ico" />
-                <meta name="description" content="Mettle Backoffice Admin" />
+                <meta name="description" content="Mettle" />
                 <meta property="og:title" content="Mettle" />
                 <meta property="og:image" content="/mettle.png" />
                 <link rel="apple-touch-icon" href="/mettle.png" />

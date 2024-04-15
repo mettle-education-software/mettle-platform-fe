@@ -2,12 +2,12 @@
 
 import { MenuOutlined, HomeOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Drawer, Flex, Layout, Menu } from 'antd';
+import { Button, Drawer, Flex, Layout, Menu } from 'antd';
 import { Logo } from 'components';
 import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
 import { usePathname, useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { forwardRef, useState } from 'react';
 import { DedaIcon } from '../../icons';
 
 const { Header, Content, Sider } = Layout;
@@ -50,7 +50,7 @@ const PageLayout = styled(Layout)`
 const ContentLayout = styled(Layout)`
     max-height: 100vh;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden; // check this later if scroll does not work
 `;
 
 const AppContent = styled(Content)`
@@ -64,138 +64,152 @@ const CustomMenu = styled(Menu)`
     box-shadow: none !important;
 `;
 
-export const AppLayout = ({
-    children,
-    withMelpSummary = false,
-}: {
-    children: React.ReactNode;
-    withMelpSummary?: boolean;
-}) => {
-    const device = useDeviceSize();
+export const AppLayout = forwardRef<
+    HTMLDivElement,
+    {
+        children: React.ReactNode;
+        withMelpSummary?: boolean;
+    }
+>(
+    (
+        {
+            children,
+            withMelpSummary = false,
+        }: {
+            children: React.ReactNode;
+            withMelpSummary?: boolean;
+        },
+        ref,
+    ) => {
+        const device = useDeviceSize();
 
-    const [collapsed, setCollapsed] = useState(true);
+        const [collapsed, setCollapsed] = useState(true);
 
-    const collapseOnMobile = () => {
-        if (device === 'mobile') setCollapsed(true);
-    };
+        const collapseOnMobile = () => {
+            if (device === 'mobile') setCollapsed(true);
+        };
 
-    const pathname = usePathname();
-    const router = useRouter();
+        const pathname = usePathname();
+        const router = useRouter();
 
-    const trigger = (
-        <div
-            role="button"
-            autoFocus
-            className="trigger"
-            onClick={() => setCollapsed((previous) => !previous)}
-            style={{ cursor: 'pointer' }}
-        >
-            <MenuOutlined style={{ color: device === 'mobile' ? 'var(--secondary)' : undefined, fontSize: '1rem' }} />
-        </div>
-    );
+        const trigger = (
+            <Button
+                ghost
+                className="trigger"
+                onClick={() => setCollapsed((previous) => !previous)}
+                icon={
+                    <MenuOutlined
+                        style={{ color: device === 'mobile' ? 'var(--secondary)' : 'var(--primary)', fontSize: '1rem' }}
+                    />
+                }
+            />
+        );
 
-    const customMenu = (
-        <CustomMenu
-            mode="inline"
-            selectedKeys={pathname.split('/')}
-            items={[
-                {
-                    key: 'home',
-                    icon: <HomeOutlined />,
-                    label: 'Home',
-                    onClick: ({ domEvent }) => {
-                        domEvent.preventDefault();
-                        collapseOnMobile();
-                        router.push('/');
+        const customMenu = (
+            <CustomMenu
+                mode="inline"
+                selectedKeys={pathname.split('/')}
+                items={[
+                    {
+                        key: 'home',
+                        icon: <HomeOutlined />,
+                        label: 'Home',
+                        onClick: ({ domEvent }) => {
+                            domEvent.preventDefault();
+                            collapseOnMobile();
+                            router.push('/');
+                        },
                     },
-                },
-                {
-                    key: 'melp',
-                    icon: <DedaIcon style={{ marginLeft: '-3px' }} />,
-                    label: 'MELP',
-                    children: [
-                        {
-                            key: 'meplHpec',
-                            label: 'HPEC',
-                            onClick: ({ domEvent }) => {
-                                domEvent.preventDefault();
-                                collapseOnMobile();
-                                router.push('/melp/hpec');
+                    {
+                        key: 'melp',
+                        icon: <DedaIcon style={{ marginLeft: '-3px' }} />,
+                        label: 'MELP',
+                        children: [
+                            {
+                                key: 'meplHpec',
+                                label: 'HPEC',
+                                onClick: ({ domEvent }) => {
+                                    domEvent.preventDefault();
+                                    collapseOnMobile();
+                                    router.push('/melp/hpec');
+                                },
                             },
-                        },
-                        {
-                            key: 'melpDeda',
-                            label: 'DEDA',
-                            onClick: ({ domEvent }) => {
-                                domEvent.preventDefault();
-                                collapseOnMobile();
-                                router.push('/melp/deda');
+                            {
+                                key: 'melpDeda',
+                                label: 'DEDA',
+                                onClick: ({ domEvent }) => {
+                                    domEvent.preventDefault();
+                                    collapseOnMobile();
+                                    router.push('/melp/deda');
+                                },
                             },
-                        },
-                        {
-                            key: 'melpLamp',
-                            label: 'LAMP',
-                            onClick: ({ domEvent }) => {
-                                domEvent.preventDefault();
-                                collapseOnMobile();
-                                router.push('/melp/lamp');
+                            {
+                                key: 'melpLamp',
+                                label: 'LAMP',
+                                onClick: ({ domEvent }) => {
+                                    domEvent.preventDefault();
+                                    collapseOnMobile();
+                                    router.push('/melp/lamp');
+                                },
                             },
-                        },
-                    ],
-                },
-            ]}
-        />
-    );
+                        ],
+                    },
+                ]}
+            />
+        );
 
-    if (device === 'mobile') {
+        if (device === 'mobile') {
+            return (
+                <PageLayout>
+                    <Layout>
+                        <AppHeader>
+                            <Flex gap="0.5rem">
+                                {trigger}
+                                {withMelpSummary && <MelpSummary />}
+                            </Flex>
+                            <Drawer open={!collapsed} onClose={() => setCollapsed(true)}>
+                                {customMenu}
+                            </Drawer>
+                        </AppHeader>
+                        <ContentLayout>
+                            <AppContent>{children}</AppContent>
+                        </ContentLayout>
+                    </Layout>
+                </PageLayout>
+            );
+        }
+
         return (
             <PageLayout>
+                <Sidebar collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)} trigger={null}>
+                    <Flex
+                        align="center"
+                        gap="12px"
+                        justify={collapsed ? 'center' : 'flex-start'}
+                        style={{ marginBottom: '1rem' }}
+                    >
+                        {trigger}
+                        {!collapsed && (
+                            <LogoWrapper
+                                onClick={() => {
+                                    router.push('/');
+                                }}
+                            >
+                                <Logo theme="dark" />
+                            </LogoWrapper>
+                        )}
+                    </Flex>
+                    {customMenu}
+                </Sidebar>
                 <Layout>
-                    <AppHeader>
-                        <Flex gap="0.5rem">
-                            {trigger}
-                            {withMelpSummary && <MelpSummary />}
-                        </Flex>
-                        <Drawer open={!collapsed} onClose={() => setCollapsed(true)}>
-                            {customMenu}
-                        </Drawer>
-                    </AppHeader>
+                    <AppHeader>{withMelpSummary && <MelpSummary />}</AppHeader>
                     <ContentLayout>
-                        <AppContent>{children}</AppContent>
+                        <AppContent ref={ref}>{children}</AppContent>
                     </ContentLayout>
                 </Layout>
             </PageLayout>
         );
-    }
+    },
+);
 
-    return (
-        <PageLayout>
-            <Sidebar collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)} trigger={null}>
-                <Flex
-                    align="center"
-                    gap="12px"
-                    justify={collapsed ? 'center' : 'flex-start'}
-                    style={{ marginBottom: '1rem' }}
-                >
-                    {trigger}
-                    {!collapsed && (
-                        <LogoWrapper
-                            onClick={() => {
-                                router.push('/');
-                            }}
-                        >
-                            <Logo theme="dark" />
-                        </LogoWrapper>
-                    )}
-                </Flex>
-                {customMenu}
-            </Sidebar>
-            <Layout>
-                <AppHeader>{withMelpSummary && <MelpSummary />}</AppHeader>
-                <ContentLayout>
-                    <AppContent>{children}</AppContent>
-                </ContentLayout>
-            </Layout>
-        </PageLayout>
-    );
-};
+AppLayout.displayName = 'AppLayout';

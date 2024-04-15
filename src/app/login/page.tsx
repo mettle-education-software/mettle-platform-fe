@@ -54,14 +54,13 @@ const LoginContainer = styled.div`
 
 const FormContainer = styled.div`
     width: 50%;
-    max-width: 360px;
+    max-width: 500px;
     display: flex;
     flex-direction: column;
     gap: 1rem;
 
     .input {
         border: 1px solid var(--neutral);
-        border-radius: 0;
         padding: 1rem;
         margin: 0;
     }
@@ -98,10 +97,6 @@ const LoginButton = styled(Button)`
     background: var(--secondary);
     padding: 0.5rem 0;
     height: 3rem;
-
-    &:hover {
-        background: var(--primary) !important;
-    }
 `;
 
 const ForgotPasswordLink = styled(Link)`

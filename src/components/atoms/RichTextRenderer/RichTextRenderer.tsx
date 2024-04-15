@@ -23,12 +23,13 @@ interface ILinks {
 interface TextSectionProps {
     rawContent: Document;
     links: ILinks;
+    justify?: boolean;
 }
 
 const TextWrapper = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1rem;
     align-items: flex-start;
 
     & > * {
@@ -73,7 +74,7 @@ const EmbedImage = styled(Image)`
     margin-top: 2rem;
 `;
 
-const renderOptions = (links: ILinks): Options => {
+const renderOptions = (links: ILinks, justify: boolean): Options => {
     const assetMap = new Map();
 
     links?.assets?.block?.forEach((asset: IAsset) => {
@@ -86,7 +87,16 @@ const renderOptions = (links: ILinks): Options => {
             [MARKS.ITALIC]: (text: ReactNode) => <em>{text}</em>,
         },
         renderNode: {
-            [BLOCKS.PARAGRAPH]: (node: Node, children: ReactNode) => <Paragraph>{children}</Paragraph>,
+            [BLOCKS.PARAGRAPH]: (node: Node, children: ReactNode) => (
+                <Paragraph
+                    style={{
+                        whiteSpace: 'break-spaces',
+                        textAlign: justify ? 'justify' : undefined,
+                    }}
+                >
+                    {children}
+                </Paragraph>
+            ),
             [BLOCKS.HEADING_1]: (node: Node, children: ReactNode) => <Title level={1}>{children}</Title>,
             [BLOCKS.HEADING_2]: (node: Node, children: ReactNode) => <Title level={2}>{children}</Title>,
             [BLOCKS.HEADING_3]: (node: Node, children: ReactNode) => <Title level={3}>{children}</Title>,
@@ -117,6 +127,6 @@ const renderOptions = (links: ILinks): Options => {
     };
 };
 
-export const RichTextRenderer = ({ rawContent, links }: TextSectionProps) => {
-    return <TextWrapper>{documentToReactComponents(rawContent, renderOptions(links))}</TextWrapper>;
+export const RichTextRenderer = ({ rawContent, links, justify = false }: TextSectionProps) => {
+    return <TextWrapper>{documentToReactComponents(rawContent, renderOptions(links, justify))}</TextWrapper>;
 };

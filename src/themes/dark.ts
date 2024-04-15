@@ -8,7 +8,7 @@ export const darkTheme: ThemeConfig = {
         boxShadowSecondary: '0 2px 8px 0 #00000026;',
         wireframe: false,
         // colorBgBase: '#3c362f',
-        // colorPrimary: '#f2d5b1',
+        colorPrimary: '#B89261',
         // colorInfo: '#f2d5b1',
         fontFamily: '"europa", sans-serif',
     },
@@ -16,14 +16,22 @@ export const darkTheme: ThemeConfig = {
         Typography: {
             algorithm: true,
             titleMarginBottom: 0,
+            // fontSize: 'calc(20px + 1vw)' as unknown as number,
         },
         Input: {
-            borderRadius: 16,
+            borderRadius: 8,
         },
         Button: {
             algorithm: true,
-            borderRadius: 6,
+            borderRadius: 8,
             colorPrimaryBg: '#B89261',
+            paddingContentHorizontal: 36,
+        },
+        Tabs: {
+            cardBg: '#B89261',
+            inkBarColor: 'var(--secondary)',
+            itemActiveColor: 'var(--secondary)',
+            itemColor: 'white',
         },
     },
 };

@@ -2,12 +2,12 @@
 
 import styled from '@emotion/styled';
 import { Typography, Row, Col, Flex, Button } from 'antd';
-import { AppLayout, DedasGrid } from 'components';
+import { AppLayout, Chip, DedasGrid } from 'components';
 import { useDeviceSize, useMelpSummary } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { withAuthentication, padding, MAX_CONTENT_WIDTH, SMALL_VIEWPORT } from 'libs';
 import { useAppContext } from 'providers';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const HeaderSummary = styled.section<{ imgUrl?: string }>`
     position: sticky;
@@ -15,14 +15,14 @@ const HeaderSummary = styled.section<{ imgUrl?: string }>`
     z-index: 1;
     background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(0, 0, 0, 0) 100%), url(${({ imgUrl }) => imgUrl});
     background-size: cover;
-    background-position: bottom;
+    background-position: center;
     padding: ${padding.x.sm} ${padding.x.lg};
-    height: 190px;
+    height: 250px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    boder: none;
+    border: none;
 
     & h1 {
         color: var(--secondary);
@@ -55,11 +55,14 @@ function DedaPage() {
 
     const [selectedDeda, setSelectedDeda] = useState<string>();
 
+    const unlockedDEDAs = useMemo(() => melpSummary?.unlockedDEDAs ?? [], [melpSummary]);
+    const currentDedaId = unlockedDEDAs[unlockedDEDAs.length - 1];
+
     useEffect(() => {
         if (!selectedDeda) {
-            setSelectedDeda(melpSummary?.unlockedDEDAs[melpSummary?.unlockedDEDAs.length - 1]);
+            setSelectedDeda(unlockedDEDAs[unlockedDEDAs.length - 1]);
         }
-    }, [melpSummary]);
+    }, [melpSummary, unlockedDEDAs, setSelectedDeda, selectedDeda]);
 
     const featuredDedaDataResult = useFeaturedDedaData(selectedDeda);
 
@@ -70,16 +73,32 @@ function DedaPage() {
     return (
         <AppLayout withMelpSummary>
             <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
-                <div style={{ maxWidth: MAX_CONTENT_WIDTH, width: '100%' }}>
+                <div style={{ maxWidth: MAX_CONTENT_WIDTH, width: '100%', position: 'relative' }}>
+                    {selectedDeda === currentDedaId && (
+                        <div style={{ position: 'absolute', bottom: '60px' }}>
+                            <Chip
+                                bgColor="rgba(183, 144, 96, 0.3)"
+                                style={{ border: 'none', paddingLeft: 18, paddingRight: 18 }}
+                            >
+                                <Typography.Title level={5} style={{ color: '#FFFFFF' }}>
+                                    Current DEDA
+                                </Typography.Title>
+                            </Chip>
+                        </div>
+                    )}
                     {device === 'desktop' && (
                         <Row justify="space-between" align="middle">
                             <Col span={12}>
                                 <Flex vertical>
-                                    <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
+                                    <Typography.Title level={1}>{featuredDeda?.dedaTitle}</Typography.Title>
                                 </Flex>
                             </Col>
                             <Col>
-                                <Button href={`/melp/deda/${featuredDeda?.dedaId}`} type="primary">
+                                <Button
+                                    style={{ borderRadius: 36, fontSize: 20, height: 40 }}
+                                    href={`/melp/deda/${featuredDeda?.dedaId}`}
+                                    type="primary"
+                                >
                                     Go to DEDA
                                 </Button>
                             </Col>

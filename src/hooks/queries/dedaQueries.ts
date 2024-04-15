@@ -312,11 +312,12 @@ const queries = {
     'deda-write': dedaWriteQuery,
 };
 
-export const useDeda = (queryName?: DedaQueryName | string, dedaId?: string) =>
+export const useDeda = (queryName?: DedaQueryName, dedaId?: string) =>
     useQuery(queries[queryName as DedaQueryName], {
         variables: {
             dedaId,
         },
+        fetchPolicy: 'cache-first',
     });
 
 export const useDedaMeta = (dedaId: string) =>

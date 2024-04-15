@@ -4,17 +4,20 @@ import styled from '@emotion/styled';
 import { Tag } from 'antd';
 import React from 'react';
 
-const ChipTag = styled(Tag)<{ size?: string }>`
+const ChipTag = styled(Tag)<{ size?: string; bgColor?: string }>`
     border-radius: 100rem;
     ${({ size }) => (size === 'small' ? 'padding: 0 0.5rem;' : 'padding: 0.5rem 1rem;')}
+    ${({ bgColor }) => (bgColor ? `background-color: ${bgColor};` : '')}
 `;
 
-export const Chip: React.FC<React.HTMLAttributes<HTMLDivElement> & { size?: 'small' | 'large' }> = ({
-    size = 'small',
-    ...props
-}) => {
+export const Chip: React.FC<
+    React.HTMLAttributes<HTMLDivElement> & {
+        size?: 'small' | 'large';
+        bgColor?: string;
+    }
+> = ({ size = 'small', bgColor, ...props }) => {
     return (
-        <ChipTag size={size} className={props.className}>
+        <ChipTag bgColor={bgColor} size={size} className={props.className} {...props}>
             {props.children}
         </ChipTag>
     );

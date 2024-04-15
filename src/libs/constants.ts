@@ -15,4 +15,4 @@ export const padding = {
     },
 };
 
-export const MAX_CONTENT_WIDTH = 1356;
+export const MAX_CONTENT_WIDTH = 1440;

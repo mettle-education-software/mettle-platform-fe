@@ -73,7 +73,25 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
             <div>
                 <div style={{ width: '100%', marginBottom: '1rem' }}>{titles[type]}</div>
 
-                <Row gutter={[24, 24]} justify="space-between">
+                <Row
+                    gutter={[
+                        {
+                            xs: 16,
+                            sm: 24,
+                            md: 32,
+                            lg: 54,
+                            xl: 94,
+                        },
+                        {
+                            xs: 16,
+                            sm: 24,
+                            md: 32,
+                            lg: 54,
+                            xl: 94,
+                        },
+                    ]}
+                    justify="space-between"
+                >
                     {type === 'lastDedas' &&
                         lastDedasResult.data?.dedaContentCollection.items.map((deda, index) => (
                             <Col xs={12} md={6} key={deda.dedaSlug}>

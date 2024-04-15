@@ -15,7 +15,7 @@ const items = `
 
 const lastDedasQuery = gql`
     query LastDedas($dedasList: [String]) {
-        dedaContentCollection(where: { dedaId_in: $dedasList }) {
+        dedaContentCollection(where: { dedaId_in: $dedasList }, order: [dedaId_ASC]) {
             ${items}
         }
     }
@@ -31,7 +31,7 @@ const nextDedasQuery = gql`
 
 const allDedasQuery = gql`
     query AllDedas {
-        dedaContentCollection {
+        dedaContentCollection(order: [dedaId_ASC]) {
             ${items}
         }
     }

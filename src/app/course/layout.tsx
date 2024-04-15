@@ -3,8 +3,8 @@
 import { BellOutlined, CaretDownOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { ThemeConfig, Dropdown, Space, MenuProps, Avatar, Image, Divider } from 'antd';
-import CollapsedMenu from 'components/CollapsedMenu/CollapsedMenu';
-import ExpandedMenu, { MenuItem } from 'components/ExpandedMenu/ExpandedMenu';
+import CollapsedMenu from 'components/organisms/CollapsedMenu/CollapsedMenu';
+import ExpandedMenu, { MenuItem } from 'components/organisms/ExpandedMenu/ExpandedMenu';
 import { useDeviceSize, useGetUser } from 'hooks';
 import { handleLogout } from 'libs';
 import { useAppContext } from 'providers';
@@ -136,20 +136,19 @@ const MobileHead = styled.div`
 `;
 
 const App = ({ children }: { children: React.ReactNode }) => {
-    const { theme, isAppLoading } = useAppContext();
+    const { theme, user, isAppLoading } = useAppContext();
     const [collapsed, setCollapsed] = useState(false);
 
     const themeConfig: ThemeConfig | undefined = theme === 'light' ? lightTheme : darkTheme;
 
-    const { user } = useAppContext();
-    const { isLoading, data } = useGetUser(user?.uid);
+    const { isLoading, data: userData } = useGetUser(user?.uid);
     const deviceSize = useDeviceSize();
 
-    if (!data || isLoading) {
+    if (!userData || isLoading) {
         return null;
     }
 
-    const { currentTime } = data;
+    const { currentTime } = userData;
 
     const items: MenuProps['items'] = [
         {
@@ -256,7 +255,7 @@ const App = ({ children }: { children: React.ReactNode }) => {
                     <Sidebar id="sidebar" style={{ width: !collapsed ? '13.75rem' : '3.25rem' }}>
                         <Logo>
                             <MenuOutlined onClick={handleCollapsed} />
-                            {!collapsed && <Image src="./mettle-logo.svg" alt="METTLE" preview={false} />}
+                            {!collapsed && <Image src="/mettle-logo.svg" alt="METTLE" preview={false} />}
                         </Logo>
                         {collapsed && <CollapsedMenu />}
                         {!collapsed && <ExpandedMenu items={menuItems} />}

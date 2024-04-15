@@ -1,11 +1,15 @@
 import styled from '@emotion/styled';
 import { Image } from 'antd';
+import { DedaType } from 'interfaces';
+import Link from 'next/link';
 import { CSSProperties } from 'react';
 import { largeAndBigger } from 'styles/media.constants';
 
 const Deda = styled.div`
     display: flex;
     flex-direction: column;
+    background-repeat: no-repeat;
+    background-size: cover;
     border: 1px solid;
     border-color: var(--white);
     border-radius: var(--border-radius);
@@ -101,15 +105,6 @@ const SubTitle = styled.div`
     }
 `;
 
-type DedaType = {
-    title: string;
-    subTitle: Array<string>;
-    src: string;
-    summary: string;
-    status?: string;
-    locked?: boolean;
-};
-
 function getBackGroundColor(status?: string): string {
     switch (status?.toLowerCase()) {
         case 'completed': {
@@ -124,9 +119,9 @@ function getBackGroundColor(status?: string): string {
     }
 }
 
-function Molecule({ title, subTitle, src, summary, status }: DedaType) {
+function Molecule({ id, title, subTitle, src, summary, status }: DedaType) {
     const dedaStyle: CSSProperties = {
-        backgroundImage: src,
+        backgroundImage: `url(${src})`,
     };
 
     const statusStyle: CSSProperties = {
@@ -134,27 +129,29 @@ function Molecule({ title, subTitle, src, summary, status }: DedaType) {
     };
 
     return (
-        <Deda style={dedaStyle}>
-            <Frame>
-                <InnerFrame>
-                    <TitleWrapper>
-                        <Summary>{summary}</Summary>
-                        {status && <Status style={statusStyle}>{status}</Status>}
-                    </TitleWrapper>
-                    <BottomWrapper>
-                        <Title>{title}</Title>
-                        <SubTitle>
-                            {subTitle.map((item, i, { length }) => (
-                                <>
-                                    <div>{item}</div>
-                                    {!(length - 1 === i) && <Image src="./ellipse-2.svg" />}
-                                </>
-                            ))}
-                        </SubTitle>
-                    </BottomWrapper>
-                </InnerFrame>
-            </Frame>
-        </Deda>
+        <Link href={`/course/deda/${id}`}>
+            <Deda style={dedaStyle}>
+                <Frame>
+                    <InnerFrame>
+                        <TitleWrapper>
+                            <Summary>{summary}</Summary>
+                            {/* {status && <Status style={statusStyle}>{status}</Status>} */}
+                        </TitleWrapper>
+                        <BottomWrapper>
+                            <Title>{title}</Title>
+                            <SubTitle>
+                                {subTitle.map((item, i, { length }) => (
+                                    <>
+                                        <div>{item}</div>
+                                        {!(length - 1 === i) && <Image src="./ellipse-2.svg" />}
+                                    </>
+                                ))}
+                            </SubTitle>
+                        </BottomWrapper>
+                    </InnerFrame>
+                </Frame>
+            </Deda>
+        </Link>
     );
 }
 

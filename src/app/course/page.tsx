@@ -2,7 +2,11 @@
 
 import styled from '@emotion/styled';
 import Deda from 'components/molecules/deda';
+import { useGetDedas, useGetUser } from 'hooks';
+import { DedaType } from 'interfaces';
 import { withAuthentication } from 'libs';
+import { useAppContext } from 'providers';
+import { CSSProperties } from 'react';
 import { largeAndBigger } from 'styles/media.constants';
 
 const ContentFrame = styled.div`
@@ -18,12 +22,13 @@ const ContentFrame = styled.div`
 `;
 
 const HeaderFrame = styled.div`
-    display: flex;
-    padding: 1.75rem 2.625rem;
-    justify-content: space-between;
     align-items: center;
-    flex: 1 0 0;
     align-self: stretch;
+    display: flex;
+    justify-content: space-between;
+    flex: 1 0 0;
+    height: 15.375rem;
+    padding: 1.75rem 2.625rem;
 `;
 
 const ContentRow = styled.div`
@@ -50,79 +55,112 @@ const DEDAList = styled.div`
     display: flex;
     display: inline-flex;
     flex-wrap: wrap;
-    justify-content: space-between;
+    gap: 2.25rem;
     row-gap: 0.75rem;
+    ${largeAndBigger} {
+        column-gap: 10rem;
+        row-gap: 2.25rem;
+    }
 `;
 
+function getMostRecentDedas(dedas: [DedaType], currentDeda: DedaType): Array<DedaType> {
+    const maxRecentDedas = 3;
+    const currentDedaIndex = dedas.findIndex((deda) => deda.id === currentDeda.id);
+    const startIndex = currentDedaIndex <= 2 ? 0 : currentDedaIndex - maxRecentDedas;
+    const endIndex = currentDedaIndex + 1;
+    const recent = dedas.slice(startIndex, endIndex).reverse();
+    return recent;
+}
+
+function getUpcomingDedas(dedas: [DedaType], currentDeda: DedaType): Array<DedaType> {
+    const currentDedaIndex = dedas.findIndex((deda) => deda.id === currentDeda.id);
+    const nextFourDedas = currentDedaIndex + 5;
+    const upcoming = dedas.slice(currentDedaIndex + 1, nextFourDedas);
+    return upcoming;
+}
+
 function Page() {
+    const { user } = useAppContext();
+    const { isLoading, data: userData } = useGetUser(user?.uid);
+    const dedasData = useGetDedas();
+
+    if (!userData || isLoading || !dedasData) {
+        return null;
+    }
+
+    const { data } = dedasData;
+    if (!data) {
+        return null;
+    }
+
+    const { dedaContentCollection: collection } = data;
+    const dedas = collection!.items.map(
+        (item: { dedaId: any; dedaTitle: any; dedaFeaturedImage: { url: any } }, index: any) => ({
+            id: item.dedaId,
+            title: item.dedaTitle,
+            subTitle: [''],
+            src: item.dedaFeaturedImage.url,
+            summary: `Week ${index}`,
+        }),
+    ) as [DedaType];
+
+    const { currentTime } = userData;
+    const currentDeda = dedas.find((deda: { title: string }) => deda.title === currentTime.currentDedaName);
+
+    const recentDedas = getMostRecentDedas(dedas, currentDeda!);
+    const upcomingDedas = getUpcomingDedas(dedas, currentDeda!);
+
+    const headerStyle: CSSProperties = {
+        background: `linear-gradient(180deg, rgba(0, 0, 0, 0.00) 0%, #2B2B2B 100%), url(${currentDeda?.src}) lightgray 50% / cover no-repeat`,
+    };
+
     return (
         <>
-            <HeaderFrame style={{ backgroundImage: '' }}></HeaderFrame>
+            <HeaderFrame style={headerStyle}></HeaderFrame>
             <ContentFrame>
                 <ContentRow>
                     <RowTitle>Most recents DEDAs</RowTitle>
                     <DEDAList>
-                        <Deda
-                            title="New York City"
-                            subTitle={['Tecnology', 'News', 'Financials']}
-                            src=""
-                            summary="Week 10"
-                            status="Completed"
-                        />
-                        <Deda
-                            title="New York City"
-                            subTitle={['Tecnology', 'News', 'Financials']}
-                            src=""
-                            summary="Week 10"
-                            status="Completed"
-                        />
-                        <Deda
-                            title="New York City"
-                            subTitle={['Tecnology', 'News', 'Financials']}
-                            src=""
-                            summary="Week 10"
-                            status="Incomplete"
-                        />
-                        <Deda
-                            title="New York City"
-                            subTitle={['Tecnology', 'News', 'Financials']}
-                            src=""
-                            summary="Week 10"
-                            status=""
-                        />
+                        {recentDedas!.map((item, index) => (
+                            <Deda
+                                key={`${item.id}-${index}`}
+                                id={item.id}
+                                title={item.title}
+                                subTitle={item.subTitle}
+                                src={item.src}
+                                summary={index == 0 ? 'Current DEDA' : item.summary}
+                            />
+                        ))}
                     </DEDAList>
                 </ContentRow>
                 <ContentRow>
-                    <RowTitle>Most recents DEDAs</RowTitle>
+                    <RowTitle>Upcoming DEDAs</RowTitle>
                     <DEDAList>
-                        <Deda
-                            title="New York City"
-                            subTitle={['Tecnology', 'News', 'Financials']}
-                            src=""
-                            summary="Week 10"
-                            status="Completed"
-                        />
-                        <Deda
-                            title="New York City"
-                            subTitle={['Tecnology', 'News', 'Financials']}
-                            src=""
-                            summary="Week 10"
-                            status="Completed"
-                        />
-                        <Deda
-                            title="New York City"
-                            subTitle={['Tecnology', 'News', 'Financials']}
-                            src=""
-                            summary="Week 10"
-                            status="Incomplete"
-                        />
-                        <Deda
-                            title="New York City"
-                            subTitle={['Tecnology', 'News', 'Financials']}
-                            src=""
-                            summary="Week 10"
-                            status=""
-                        />
+                        {upcomingDedas!.map((item, index) => (
+                            <Deda
+                                key={`${item.id}-${index}`}
+                                id={item.id}
+                                title={item.title}
+                                subTitle={item.subTitle}
+                                src={item.src}
+                                summary={item.summary}
+                            />
+                        ))}
+                    </DEDAList>
+                </ContentRow>
+                <ContentRow>
+                    <RowTitle>All DEDAs</RowTitle>
+                    <DEDAList>
+                        {dedas!.map((item, index) => (
+                            <Deda
+                                key={`${item.id}-${index}`}
+                                id={item.id}
+                                title={item.title}
+                                subTitle={item.subTitle}
+                                src={item.src}
+                                summary={item.summary}
+                            />
+                        ))}
                     </DEDAList>
                 </ContentRow>
             </ContentFrame>

@@ -1,11 +1,27 @@
 import { useQuery } from '@apollo/client';
 import gql from 'graphql-tag';
-import { QueryNameType } from 'interfaces';
+import { DedaIdType, DedaType, QueryNameType } from 'interfaces';
 
 const dedaMetaDataQuery = gql`
     query DedaNotes($dedaId: String) {
         dedaContentCollection(where: { dedaId: $dedaId }, limit: 1) {
             items {
+                dedaId
+                dedaSlug
+                dedaTitle
+                dedaFeaturedImage {
+                    url
+                }
+            }
+        }
+    }
+`;
+
+const getDedas = gql`
+    query getDedas {
+        dedaContentCollection(order: [dedaId_ASC]) {
+            items {
+                dedaId
                 dedaSlug
                 dedaTitle
                 dedaFeaturedImage {
@@ -325,3 +341,5 @@ export const useDedaMeta = (dedaId: string) =>
             dedaId,
         },
     });
+
+export const useGetDedas = () => useQuery(getDedas);

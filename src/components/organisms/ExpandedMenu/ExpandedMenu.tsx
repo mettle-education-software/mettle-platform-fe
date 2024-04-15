@@ -56,11 +56,11 @@ const MelpMenuItem = styled.div`
     display: flex;
     padding: 1rem 1rem;
     gap: 1rem;
-    span:nth-child(2) {
+    span:nth-of-type(2) {
         font-size: 0.625rem;
         cursor: pointer;
     }
-    span:first-child {
+    span:first-of-type {
         cursor: pointer;
     }
 `;
@@ -99,7 +99,7 @@ function ExpandedSideBar(props: { items: Array<MenuItem> }) {
                 <MelpMenu>
                     <MelpMenuHeader onClick={handleShowMenu}>
                         <Space>
-                            <Image src="./melp-ico.svg" alt="MELP" preview={false} />
+                            <Image src="/melp-ico.svg" alt="MELP" preview={false} />
                             <span>MELP</span>
                         </Space>
                         {showMenu && <DownOutlined />}
@@ -109,15 +109,15 @@ function ExpandedSideBar(props: { items: Array<MenuItem> }) {
                         <>
                             <MelpMenuDivider />
                             <MelpMenuItems>
-                                {props.items.map((item, i, { length }) => (
+                                {props.items.map((item, index, { length }) => (
                                     <>
-                                        <MelpMenuItem>
+                                        <MelpMenuItem key={`${item.label}-${index}`}>
                                             <Link href={item.href}>{item.label}</Link>
                                             <Tooltip title={item.tooltip} placement="right">
                                                 <InfoCircleOutlined />
                                             </Tooltip>
                                         </MelpMenuItem>
-                                        {!(length - 1 === i) && <MelpMenuDivider />}
+                                        {!(length - 1 === index) && <MelpMenuDivider />}
                                     </>
                                 ))}
                             </MelpMenuItems>

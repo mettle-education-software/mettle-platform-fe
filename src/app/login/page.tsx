@@ -143,7 +143,7 @@ function Page() {
                 <Tabs
                     defaultActiveKey="mettlePlatform"
                     items={items}
-                    indicator={{ size: (origin) => origin + 25, align: 'center' }}
+                    indicator={{ size: (origin) => origin + 500, align: 'start' }}
                 />
             </ContainerRight>
         </Container>

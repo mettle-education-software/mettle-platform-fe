@@ -11,7 +11,15 @@ export type DedaType = {
     title: string;
     subTitle: Array<string>;
     src: string;
-    summary: string;
+    week: string;
     status?: string;
-    locked?: boolean;
+    locked: boolean;
+    current?: boolean;
+};
+
+export type ArticleType = {
+    text: string;
+    link: string;
+    image: string;
+    day: number;
 };

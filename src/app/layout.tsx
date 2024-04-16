@@ -28,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <head>
                 <title>Mettle</title>
                 <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+                <link rel="stylesheet" href="https://use.typekit.net/ted7yly.css" />
                 <link rel="icon" href="/favicon.ico" />
                 <meta name="description" content="Mettle" />
                 <meta property="og:title" content="Mettle" />

@@ -32,11 +32,16 @@
     --W1-light: #fefdfb;
 
     --brown-light: #b79060;
+    --brown-dark: #3c362f;
     --grey-light: #f2f0ee;
     --grey-dark: #cfcbbd;
+    --vanila-dark: #b89261;
+    --brown-main: #eae8e2;
 
     --green-light: rgba(52, 168, 83, 0.75);
     --yellow-light: rgba(255, 163, 0, 0.75);
+
+    --border-radius-small: 0.375rem;
 }
 
 main[data-theme='light'] {
@@ -94,14 +99,6 @@ a {
 
 .ant-input-outlined {
     border-radius: var(--border-radius);
-}
-
-.ant-tabs-nav-list {
-    width: 100%;
-}
-
-.ant-tabs-tab {
-    width: 100%;
 }
 
 .ant-form-item {

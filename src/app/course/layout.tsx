@@ -33,6 +33,7 @@ const Sidebar = styled.div`
     display: flex;
     flex-direction: column;
     grid-area: sidebar;
+    min-height: 100vh;
     transition: all 0.5s ease-out;
 `;
 

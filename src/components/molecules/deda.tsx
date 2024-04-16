@@ -66,6 +66,9 @@ const Summary = styled.div`
     text-align: center;
     font-size: 0.45rem;
     font-weight: var(--h1-font-weight);
+    span:last-of-type {
+        font-weight: normal;
+    }
     ${largeAndBigger} {
         font-size: 0.875rem;
     }
@@ -119,9 +122,20 @@ function getBackGroundColor(status?: string): string {
     }
 }
 
-function Molecule({ id, title, subTitle, src, summary, status }: DedaType) {
+function handleDisabled(event: any) {
+    var element = event.target as HTMLElement;
+    if (element.closest('a')?.classList.contains('disabled')) {
+        event.preventDefault();
+    }
+}
+
+function Molecule({ id, title, subTitle, src, week, status, locked, current }: DedaType) {
     const dedaStyle: CSSProperties = {
-        backgroundImage: `url(${src})`,
+        background: `linear-gradient(180deg, rgba(0, 0, 0, 0.00) 0%, #2B2B2B 83.45%), url(${src}) lightgray 50% / cover no-repeat`,
+    };
+
+    const currentDedaStyle: CSSProperties = {
+        color: 'var(--brown-light)',
     };
 
     const statusStyle: CSSProperties = {
@@ -129,16 +143,25 @@ function Molecule({ id, title, subTitle, src, summary, status }: DedaType) {
     };
 
     return (
-        <Link href={`/course/deda/${id}`}>
+        <Link href={`/course/deda/${id}`} onClick={(e) => handleDisabled(e)} className={locked ? 'disabled' : ''}>
             <Deda style={dedaStyle}>
                 <Frame>
                     <InnerFrame>
                         <TitleWrapper>
-                            <Summary>{summary}</Summary>
+                            <Summary>
+                                {current && <span>Current DEDA</span>}
+                                {!current && (
+                                    <>
+                                        <span>Week </span>
+                                        <span>{('00' + week).slice(-3)}</span>
+                                    </>
+                                )}
+                            </Summary>
                             {/* {status && <Status style={statusStyle}>{status}</Status>} */}
                         </TitleWrapper>
+                        {locked && <Image src="/lock.svg" alt="locked" preview={false} />}
                         <BottomWrapper>
-                            <Title>{title}</Title>
+                            <Title style={current ? currentDedaStyle : {}}>{title}</Title>
                             <SubTitle>
                                 {subTitle.map((item, i, { length }) => (
                                     <>

@@ -1,10 +1,12 @@
 'use client';
 
 import styled from '@emotion/styled';
+import { Button } from 'antd';
 import Deda from 'components/molecules/deda';
-import { useGetDedas, useGetUser } from 'hooks';
+import { useDeviceSize, useGetDedas, useGetUser } from 'hooks';
 import { DedaType } from 'interfaces';
 import { withAuthentication } from 'libs';
+import Link from 'next/link';
 import { useAppContext } from 'providers';
 import { CSSProperties } from 'react';
 import { largeAndBigger } from 'styles/media.constants';
@@ -27,8 +29,45 @@ const HeaderFrame = styled.div`
     display: flex;
     justify-content: space-between;
     flex: 1 0 0;
-    height: 15.375rem;
+    height: 6.25rem;
     padding: 1.75rem 2.625rem;
+    ${largeAndBigger} {
+        height: 15.375rem;
+    }
+`;
+
+const CurrentDedaChip = styled.div`
+    display: flex;
+    padding: 0.5rem 1rem;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 5rem;
+    background: rgba(183, 144, 96, 0.3);
+    backdrop-filter: blur(0.125rem);
+    color: var(--white);
+    overflow: hidden;
+    leading-trim: both;
+    text-edge: cap;
+    text-overflow: ellipsis;
+    font-size: 1.125rem;
+    font-weight: var(--font-weight-bold);
+    line-height: 130%;
+`;
+
+const HeaderTitle = styled.p`
+    color: var(--brown-light);
+    leading-trim: both;
+    text-edge: cap;
+    font-size: 3.25rem;
+    font-weight: 700;
+    line-height: 130%;
+`;
+
+const GoToDeda = styled(Link)`
+    background: var(--vanila-dark);
+    border-radius: 5.5rem;
+    color: var(--white);
+    padding: 0.625rem 2.25rem;
 `;
 
 const ContentRow = styled.div`
@@ -83,6 +122,7 @@ function Page() {
     const { user } = useAppContext();
     const { isLoading, data: userData } = useGetUser(user?.uid);
     const dedasData = useGetDedas();
+    const device = useDeviceSize();
 
     if (!userData || isLoading || !dedasData) {
         return null;
@@ -93,6 +133,8 @@ function Page() {
         return null;
     }
 
+    const { currentTime, unlockedDEDAs } = userData;
+
     const { dedaContentCollection: collection } = data;
     const dedas = collection!.items.map(
         (item: { dedaId: any; dedaTitle: any; dedaFeaturedImage: { url: any } }, index: any) => ({
@@ -100,11 +142,11 @@ function Page() {
             title: item.dedaTitle,
             subTitle: [''],
             src: item.dedaFeaturedImage.url,
-            summary: `Week ${index}`,
+            week: index,
+            locked: unlockedDEDAs.some((unlocked) => unlocked === item.dedaId),
         }),
     ) as [DedaType];
 
-    const { currentTime } = userData;
     const currentDeda = dedas.find((deda: { title: string }) => deda.title === currentTime.currentDedaName);
 
     const recentDedas = getMostRecentDedas(dedas, currentDeda!);
@@ -116,10 +158,22 @@ function Page() {
 
     return (
         <>
-            <HeaderFrame style={headerStyle}></HeaderFrame>
+            <HeaderFrame style={headerStyle}>
+                {device === 'desktop' && (
+                    <>
+                        <div>
+                            <CurrentDedaChip>Current DEDA</CurrentDedaChip>
+                            <HeaderTitle>{currentDeda?.title}</HeaderTitle>
+                        </div>
+                        <GoToDeda type="primary" href={`/course/deda/${currentDeda?.id}`}>
+                            Go to DEDA
+                        </GoToDeda>
+                    </>
+                )}
+            </HeaderFrame>
             <ContentFrame>
                 <ContentRow>
-                    <RowTitle>Most recents DEDAs</RowTitle>
+                    <RowTitle>Most recent DEDAs</RowTitle>
                     <DEDAList>
                         {recentDedas!.map((item, index) => (
                             <Deda
@@ -128,7 +182,9 @@ function Page() {
                                 title={item.title}
                                 subTitle={item.subTitle}
                                 src={item.src}
-                                summary={index == 0 ? 'Current DEDA' : item.summary}
+                                week={index == 0 ? 'Current DEDA' : item.week}
+                                locked={item.locked}
+                                current={index == 0 ? true : false}
                             />
                         ))}
                     </DEDAList>
@@ -143,7 +199,9 @@ function Page() {
                                 title={item.title}
                                 subTitle={item.subTitle}
                                 src={item.src}
-                                summary={item.summary}
+                                week={item.week}
+                                locked={item.locked}
+                                current={false}
                             />
                         ))}
                     </DEDAList>
@@ -158,7 +216,9 @@ function Page() {
                                 title={item.title}
                                 subTitle={item.subTitle}
                                 src={item.src}
-                                summary={item.summary}
+                                week={item.week}
+                                locked={item.locked}
+                                current={false}
                             />
                         ))}
                     </DEDAList>

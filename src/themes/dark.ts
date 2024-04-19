@@ -33,5 +33,9 @@ export const darkTheme: ThemeConfig = {
             itemActiveColor: 'var(--secondary)',
             itemColor: 'white',
         },
+        Steps: {
+            colorBorderBg: '#FFF',
+            colorText: '#FFF',
+        },
     },
 };

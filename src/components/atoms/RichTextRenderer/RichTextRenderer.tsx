@@ -2,6 +2,7 @@ import { documentToReactComponents, Options } from '@contentful/rich-text-react-
 import { BLOCKS, INLINES, MARKS, Node, Document } from '@contentful/rich-text-types';
 import styled from '@emotion/styled';
 import { Typography } from 'antd';
+import { LinkType } from 'interfaces';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ReactNode } from 'react';
@@ -14,15 +15,9 @@ interface IAsset {
     };
 }
 
-interface ILinks {
-    assets: {
-        block: IAsset[];
-    };
-}
-
 interface TextSectionProps {
     rawContent: Document;
-    links: ILinks;
+    links: LinkType;
     justify?: boolean;
 }
 
@@ -74,7 +69,7 @@ const EmbedImage = styled(Image)`
     margin-top: 2rem;
 `;
 
-const renderOptions = (links: ILinks, justify: boolean): Options => {
+const renderOptions = (links: LinkType, justify: boolean): Options => {
     const assetMap = new Map();
 
     links?.assets?.block?.forEach((asset: IAsset) => {

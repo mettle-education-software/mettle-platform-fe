@@ -1,6 +1,6 @@
 import { useQuery } from '@apollo/client';
 import gql from 'graphql-tag';
-import { DedaFeaturesResponse, DedaQueryName } from 'interfaces';
+import { DedaFeaturesResponse, DedaQueryName, DedaQuoteResponse } from 'interfaces';
 
 const dedaMetaDataQuery = gql`
     query DedaNotes($dedaId: String) {
@@ -348,5 +348,36 @@ export const useFeaturedDedaData = (dedaId?: string) => {
             skip: !dedaId,
             fetchPolicy: 'cache-first',
         },
+    );
+};
+
+export const useGetDedaQuote = (dedaId: string) => {
+    return useQuery<DedaQuoteResponse>(
+        gql`
+            query GetDedaQuote($dedaId: String) {
+                dedaContentCollection(where: { dedaId: $dedaId }, limit: 1) {
+                    items {
+                        dedaNotesQuote {
+                            json
+                            links {
+                                assets {
+                                    block {
+                                        sys {
+                                            id
+                                        }
+                                        url
+                                        title
+                                        width
+                                        height
+                                        description
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `,
+        { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
     );
 };

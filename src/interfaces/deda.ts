@@ -37,6 +37,21 @@ export interface DedaFeaturesResponse {
     dedaContentCollection: DedaContentCollection;
 }
 
+export type LinkType = {
+    assets: {
+        block: {
+            sys: {
+                id: string;
+            };
+            url: string;
+            title: string;
+            width: number;
+            height: number;
+            description: string;
+        }[];
+    };
+};
+
 export interface DedaNotesQueryResponse {
     dedaContentCollection: {
         items: {
@@ -45,20 +60,7 @@ export interface DedaNotesQueryResponse {
             dedaTitle: string;
             dedaNotesQuote: {
                 json: any;
-                links: {
-                    assets: {
-                        block: {
-                            sys: {
-                                id: string;
-                            };
-                            url: string;
-                            title: string;
-                            width: number;
-                            height: number;
-                            description: string;
-                        }[];
-                    };
-                };
+                links: LinkType[];
             };
             dedaNotesIntroductionContent: {
                 json: any;
@@ -116,6 +118,17 @@ export interface DedaNotesQueryResponse {
             dedaNotesPodcasts: string[];
             dedaNotesEndImage: {
                 url: string;
+            };
+        }[];
+    };
+}
+
+export interface DedaQuoteResponse {
+    dedaContentCollection: {
+        items: {
+            dedaNotesQuote: {
+                json: any;
+                links: LinkType;
             };
         }[];
     };

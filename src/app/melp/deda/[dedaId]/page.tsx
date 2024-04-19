@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Col, Flex, Row, Tabs, Typography } from 'antd';
-import { DedaActivity, DedaNotes, DedaReview } from 'components';
+import { DedaActivity, DedaNotes, DedaQuote, DedaReview } from 'components';
 import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
@@ -105,10 +105,13 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                 <div style={{ maxWidth: MAX_CONTENT_WIDTH, width: '100%' }}>
                     {device === 'desktop' && (
                         <Row justify="space-between" align="middle">
-                            <Col span={12}>
+                            <Col>
                                 <Flex vertical>
                                     <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
                                 </Flex>
+                            </Col>
+                            <Col>
+                                <DedaQuote dedaId={dedaId} />
                             </Col>
                         </Row>
                     )}

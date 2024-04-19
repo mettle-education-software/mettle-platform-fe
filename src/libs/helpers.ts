@@ -8,6 +8,12 @@ export const getWeekDay = () => {
     return day === 0 ? '07' : day.toString().padStart(2, '0');
 };
 
+export const getTodaysWeekDay = () => {
+    const date = new Date();
+    const day = date.getDay();
+    return day === 0 ? 7 : day;
+};
+
 export function extractYouTubeID(url: string) {
     const queryStart = url.indexOf('?v=') + 3; // Find the start index of "?v=" and adjust for its length
     const ampersandPosition = url.indexOf('&', queryStart); // Find the end of the video ID (it might be followed by other parameters)

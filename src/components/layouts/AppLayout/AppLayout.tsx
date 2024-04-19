@@ -83,7 +83,9 @@ export const AppLayout = forwardRef<
     ) => {
         const device = useDeviceSize();
 
-        const [collapsed, setCollapsed] = useState(window.localStorage.getItem('menuCollapsed') === 'true');
+        const defaultCollapsed = window?.localStorage?.getItem('menuCollapsed') === 'true';
+
+        const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
         useEffect(() => {
             if (device === 'mobile') {
@@ -104,7 +106,7 @@ export const AppLayout = forwardRef<
                 className="trigger"
                 onClick={() =>
                     setCollapsed((previous) => {
-                        window.localStorage.setItem('menuCollapsed', String(!previous));
+                        window?.localStorage.setItem('menuCollapsed', String(!previous));
                         return !previous;
                     })
                 }

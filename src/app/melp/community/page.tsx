@@ -1,9 +1,10 @@
 'use client';
 
 import { AppLayout } from 'components';
+import { withAuthentication } from 'libs';
 import React from 'react';
 
-export default function CommunityPage() {
+function CommunityPage() {
     return (
         <AppLayout withMelpSummary>
             <div style={{ width: '100%', height: '100vh' }}>
@@ -15,3 +16,5 @@ export default function CommunityPage() {
         </AppLayout>
     );
 }
+
+export default withAuthentication(CommunityPage);

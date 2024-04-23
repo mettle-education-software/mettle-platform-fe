@@ -1,11 +1,11 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { ArticleType } from 'interfaces';
+import { VideoType } from 'interfaces';
 import Link from 'next/link';
 import { CSSProperties } from 'react';
 
-const ArticleWrapper = styled(Link)`
+const VideoWrapper = styled(Link)`
     align-self: stretch;
     display: flex;
     flex-direction: column;
@@ -43,18 +43,20 @@ const Text = styled.div`
     text-wrap: wrap;
 `;
 
-function Article({ text, link, image, day }: ArticleType) {
+function Video({ text, link, day }: VideoType) {
+    const videoThumbUrl = `http://img.youtube.com/vi/${link.split('=')[1]}/hqdefault.jpg`;
     const thumbnailStyle: CSSProperties = {
-        background: `url(${image !== '' ? image : '/mettle-logo.svg'}) lightgray 50% / contain no-repeat`,
+        background: `url(${videoThumbUrl}) lightgray 50% / auto no-repeat`,
     };
+
     return (
-        <ArticleWrapper href={link} target="_blank">
+        <VideoWrapper href={link} target="_blank">
             <Thumbnail style={thumbnailStyle}>
                 <Day>Day {day}</Day>
             </Thumbnail>
             <Text>{text}</Text>
-        </ArticleWrapper>
+        </VideoWrapper>
     );
 }
 
-export default Article;
+export default Video;

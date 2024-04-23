@@ -1,15 +1,37 @@
 'use client';
 
+import Icon, { FileTextOutlined, HomeOutlined, SpotifyOutlined, YoutubeOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Tabs, TabsProps } from 'antd';
 import { RichTextRenderer } from 'components';
 import Article from 'components/molecules/article';
+import Chip from 'components/molecules/chip';
+import Video from 'components/molecules/video';
 import { useDeda } from 'hooks';
-import { CSSProperties } from 'react';
+import React, { CSSProperties, useState } from 'react';
 import { largeAndBigger } from 'styles/media.constants';
 
 const Content = styled.div`
     min-height: 100vh;
+`;
+
+const ContentTabs = styled(Tabs)`
+    .ant-tabs-nav-list {
+        justify-content: space-between;
+        width: 100vw;
+    }
+
+    .ant-tabs-tab {
+        display: flex;
+        flex: 1 0 0;
+        justify-content: center;
+        margin: 0;
+        color: var(--white);
+    }
+
+    .ant-tabs-tab-active {
+        color: var(--brown-light);
+    }
 `;
 
 const HeaderImage = styled.div`
@@ -20,7 +42,9 @@ const HeaderImage = styled.div`
 `;
 
 function Page({ params }: { params: { id: string } }) {
+    const [tabIndex, setTabIndex] = useState(0);
     const dedaData = useDeda('deda-notes', params.id);
+
     if (!dedaData) {
         return null;
     }
@@ -40,7 +64,7 @@ function Page({ params }: { params: { id: string } }) {
         {
             key: 'deda-notes',
             label: 'DEDA Notes',
-            children: DedaNotes(deda),
+            children: DedaNotes(deda, [tabIndex, setTabIndex]),
         },
         {
             key: 'deda',
@@ -57,13 +81,35 @@ function Page({ params }: { params: { id: string } }) {
     return (
         <Content>
             <HeaderImage style={headerImageStyle} />
-            <Tabs defaultActiveKey="deda-notes" items={items} />
+            <ContentTabs defaultActiveKey="deda-notes" items={items} />
         </Content>
     );
 }
 
-function DedaNotes(deda: any) {
+function DedaNotes(deda: any, tabs: [number, React.Dispatch<React.SetStateAction<number>>]) {
+    const tabIndex = 0;
+    const setTabIndex = 1;
+
     const Container = styled.div``;
+
+    const DedaNotesTabs = styled.div`
+        display: flex;
+        background-color: var(--grey-light);
+        justify-content: space-between;
+        .active {
+            background: rgba(60, 54, 47, 0.15);
+        }
+    `;
+
+    const DedaNotesTab = styled.div`
+        border-right: 1px solid var(--brown-main);
+        border-left: 1px solid var(--brown-main);
+        display: flex;
+        flex: 1 0 0;
+        gap: 0.25rem;
+        padding: 0.75rem 0.5rem;
+    `;
+
     const Introduction = styled.div`
         padding: 1.125rem 1rem;
         background-color: #fff;
@@ -89,6 +135,12 @@ function DedaNotes(deda: any) {
         padding: 0 0.75rem;
     `;
 
+    const LinKnowledgedTopBar = styled.div`
+        display: flex;
+        gap: 1rem;
+        padding: 0.5rem 0.75rem;
+    `;
+
     const Articles = styled.div`
         display: flex;
         flex-direction: column;
@@ -96,6 +148,30 @@ function DedaNotes(deda: any) {
         align-items: flex-start;
         gap: 1.5rem;
     `;
+
+    const Videos = styled.div`
+        display: flex;
+        flex-direction: column;
+        background-color: var(--brown-dark);
+        align-items: flex-start;
+        gap: 1.5rem;
+    `;
+
+    const Podcasts = styled.div`
+        display: flex;
+        flex-direction: column;
+        background-color: var(--brown-dark);
+        align-items: flex-start;
+        gap: 1.5rem;
+    `;
+
+    const bookmark_outline = () => <img src={'/bookmark-outline.svg'} alt={'bookmark'} />;
+
+    const head_snowflake_outline = () => <img src={'/head-snowflake-outline.svg'} alt={'head-snowflake'} />;
+
+    const onClick = (index: number) => {
+        tabs[setTabIndex](index);
+    };
 
     const items: TabsProps['items'] = [
         {
@@ -109,6 +185,7 @@ function DedaNotes(deda: any) {
                     />
                 </Introduction>
             ),
+            icon: <HomeOutlined />,
         },
         {
             key: 'glossary',
@@ -121,30 +198,74 @@ function DedaNotes(deda: any) {
                     />
                 </Glossary>
             ),
+            icon: <Icon component={bookmark_outline} />,
         },
         {
             key: 'link-knowledged',
             label: 'LinKnowledged',
             children: (
                 <LinKnowledged>
+                    <LinKnowledgedTopBar>
+                        <Chip
+                            text={'Articles'}
+                            color={'var(--white)'}
+                            background={'var(--brown-light)'}
+                            border={'1px solid var(--chip-border-color)'}
+                            icon={FileTextOutlined}
+                        />
+                        <Chip
+                            text={'Videos'}
+                            color={'var(--white)'}
+                            background={'var(--brown-light)'}
+                            border={'1px solid var(--chip-border-color)'}
+                            icon={YoutubeOutlined}
+                        />
+                        <Chip
+                            text={'Podcasts'}
+                            color={'var(--white)'}
+                            background={'var(--brown-light)'}
+                            border={'1px solid var(--chip-border-color)'}
+                            icon={SpotifyOutlined}
+                        />
+                    </LinKnowledgedTopBar>
                     <Articles>
                         {deda.dedaNotesArticlesLinksCollection.items.map((item: any, index: number) => (
                             <Article
                                 key={`article-${index}`}
                                 text={item.magicLinkLabel}
                                 link={item.magicLinkUrl}
-                                image=""
+                                image={''}
                                 day={index + 1}
                             />
                         ))}
                     </Articles>
+                    <Videos>
+                        {deda.dedaNotesVideosLinksCollection.items.map((item: any, index: number) => (
+                            <Video
+                                key={`article-${index}`}
+                                text={item.magicLinkLabel}
+                                link={item.magicLinkUrl}
+                                day={index + 1}
+                            />
+                        ))}
+                    </Videos>
+                    <Podcasts></Podcasts>
                 </LinKnowledged>
             ),
+            icon: <Icon component={head_snowflake_outline} />,
         },
     ];
     return (
         <Container>
-            <Tabs defaultActiveKey="deda-notes" items={items} />
+            <DedaNotesTabs>
+                {items.map((item, index) => (
+                    <DedaNotesTab key={index} onClick={() => onClick(index)}>
+                        {item.icon}
+                        {item.label}
+                    </DedaNotesTab>
+                ))}
+            </DedaNotesTabs>
+            {items[tabs[tabIndex]].children}
         </Container>
     );
 }

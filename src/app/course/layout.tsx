@@ -16,7 +16,7 @@ import '../../styles/globals.css';
 const Container = styled.div`
     display: grid;
     ${mediumAndSmaller} {
-        grid-template-columns: auto;
+        grid-template-columns: 100vw;
         grid-template-rows: 2.875rem 1fr;
         grid-template-areas:
             'header'

@@ -23,3 +23,18 @@ export type ArticleType = {
     image: string;
     day: number;
 };
+
+export type VideoType = {
+    text: string;
+    link: string;
+    day: number;
+};
+
+export type ChipType = {
+    text: string;
+    color: string;
+    background: string;
+    border: string;
+    icon?: any;
+    active?: boolean;
+};

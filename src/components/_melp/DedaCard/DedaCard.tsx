@@ -8,14 +8,15 @@ import React from 'react';
 import { Chip } from '../../atoms/Chip/Chip';
 
 interface CardComponentProps {
-    imgUrl: string;
-    title: string;
+    imgUrl?: string;
+    title?: string;
     week?: string;
-    dedaId: string;
-    onClick: (dedaId: string) => void;
+    dedaId?: string;
+    onClick?: (dedaId: string) => void;
+    isLoading?: boolean;
 }
 
-const Card = styled.div<{ imgUrl: string }>`
+const Card = styled.div<{ imgUrl?: string }>`
     background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(0, 0, 0, 0) 100%), url(${(props) => props.imgUrl});
     background-size: cover;
     background-position: center;
@@ -32,6 +33,21 @@ const Card = styled.div<{ imgUrl: string }>`
     transition: all 0.15s ease-in-out;
     cursor: pointer;
 
+    &.is-loading {
+        animation: ${keyframes`
+            0% {
+                background-color: #2b2b2b;
+            }
+            50% {
+                background-color: #3b3b3b;
+            }
+            100% {
+                background-color: #2b2b2b;
+            }
+        `} 1.1s infinite;
+        border: none;
+    }
+
     & h2 {
         color: var(--secondary);
         margin-bottom: 2rem;
@@ -43,12 +59,17 @@ const Card = styled.div<{ imgUrl: string }>`
     }
 `;
 
-export const DedaCard: React.FC<CardComponentProps> = ({ imgUrl, title, week, dedaId, onClick }) => {
+export const DedaCard: React.FC<CardComponentProps> = ({ imgUrl, title, week, dedaId, onClick, isLoading }) => {
+    if (isLoading) return <Card className="is-loading" />;
+
     return (
         <Card
+            className={isLoading ? 'is-loading' : ''}
             imgUrl={imgUrl}
             onClick={() => {
-                onClick(dedaId);
+                if (dedaId && onClick) {
+                    onClick(dedaId);
+                }
             }}
         >
             <div>{week && <Chip>{week}</Chip>}</div>

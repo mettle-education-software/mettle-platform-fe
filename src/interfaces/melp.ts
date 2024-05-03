@@ -1,74 +1,28 @@
+export enum MelpStatuses {
+    MELP_BEGIN = 'Melp start',
+    CAN_START_DEDA = 'Can start DEDA',
+    DEDA_STARTED_NOT_BEGUN = 'Waiting for DEDA to begin',
+    DEDA_STARTED = 'DEDA started',
+    DEDA_PAUSED = 'DEDA paused',
+    DEDA_FINISHED = 'DEDA completed',
+    MELP_SUSPENDED = 'MELP suspended',
+}
+
+export type MelpStatus = keyof typeof MelpStatuses;
+
 export interface MelpSummaryResponse {
-    notifications: {
-        link: string;
-        isRead: boolean;
-        description: string;
-        title: string;
-    }[];
-    accountStatus: {
-        purchaseDate: {
-            _seconds: number;
-            _nanoseconds: number;
-        };
-        melpStartDate: {
-            _seconds: number;
-            _nanoseconds: number;
-        };
-        isTutorialWatched: boolean;
-        purchasedProducts: string[];
-        isUserNewApi: boolean;
-        payment: string;
-        dedaStart: {
-            isDedaStartConfirmed: boolean;
-            startDates: {
-                _seconds: number;
-                _nanoseconds: number;
-            }[];
-        };
-        pause: {
-            pauseWeek: string;
-            isAccountPaused: boolean;
-            pauseDates: {
-                _seconds: number;
-                _nanoseconds: number;
-            }[];
-            lastPauseDate: {
-                _seconds: number;
-                _nanoseconds: number;
-            };
-        };
+    data: {
+        current_deda_day: number;
+        current_deda_week: number;
+        days_since_melp_start: number;
+        deda_pause_dates: string[];
+        deda_start_dates: string[];
+        melp_start_date: string;
+        melp_status: MelpStatus;
+        unlocked_dedas: string[];
+        user_uuid: string;
+        currentDedaName?: string;
     };
-    settings: {
-        theme: string;
-        remainingResetAttempts: number;
-        notifications: boolean;
-        remainingPauses: number;
-    };
-    userData: {
-        transactionId: string;
-        firstName: string;
-        uid: string;
-        isAdmin: boolean;
-        email: string;
-        lastName: string;
-        profilePhotoUrl: string;
-    };
-    userHistory: {
-        lastInputDate: {
-            _seconds: number;
-            _nanoseconds: number;
-        };
-    };
-    currentTime: {
-        daysSinceMelpBegin: number;
-        daysSinceFirstPurchase: number;
-        currentDay: number;
-        currentWeek: number;
-        currentDedaName: string;
-    };
-    unlockedDEDAs: string[];
-    dedaConfirmedAndStarted: boolean;
-    totalDedasAvailable: number;
 }
 
 export interface IWeeklyStatistics {

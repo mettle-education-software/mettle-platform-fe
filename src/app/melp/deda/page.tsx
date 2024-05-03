@@ -6,6 +6,7 @@ import { AppLayout, Chip, DedasGrid } from 'components';
 import { useDeviceSize, useMelpSummary } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { withAuthentication, padding, MAX_CONTENT_WIDTH, SMALL_VIEWPORT } from 'libs';
+import { useRouter } from 'next/navigation';
 import { useAppContext } from 'providers';
 import React, { useEffect, useMemo, useState } from 'react';
 
@@ -13,11 +14,12 @@ const HeaderSummary = styled.section<{ imgUrl?: string }>`
     position: sticky;
     top: 0;
     z-index: 1;
-    background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(0, 0, 0, 0) 100%), url(${({ imgUrl }) => imgUrl});
+    background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43, 0.7) 100%), url(${({ imgUrl }) => imgUrl}),
+        #2b2b2b;
     background-size: cover;
     background-position: center;
     padding: ${padding.x.sm} ${padding.x.lg};
-    height: 250px;
+    height: 200px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -55,7 +57,7 @@ function DedaPage() {
 
     const [selectedDeda, setSelectedDeda] = useState<string>();
 
-    const unlockedDEDAs = useMemo(() => melpSummary?.unlockedDEDAs ?? [], [melpSummary]);
+    const unlockedDEDAs = useMemo(() => melpSummary?.unlocked_dedas ?? [], [melpSummary]);
     const currentDedaId = unlockedDEDAs[unlockedDEDAs.length - 1];
 
     useEffect(() => {
@@ -68,7 +70,9 @@ function DedaPage() {
 
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
-    const handleSelectedDeda = (dedaId: string) => setSelectedDeda(dedaId);
+    const router = useRouter();
+
+    const handleSelectedDeda = (dedaId: string) => router.push(`/melp/deda/${dedaId}`);
 
     return (
         <AppLayout withMelpSummary>

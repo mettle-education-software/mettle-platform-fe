@@ -25,15 +25,15 @@ export const MelpSummary: React.FC = () => {
 
     const { user } = useAppContext();
 
-    const { data: melpSummary, isLoading } = useMelpSummary(user?.uid as string);
+    const { data: melpSummary, isLoading, isFetching } = useMelpSummary(user?.uid as string);
 
-    if (!melpSummary?.accountStatus?.dedaStart?.isDedaStartConfirmed) return null;
-
-    const { currentTime } = melpSummary;
+    const currentWeek = melpSummary?.current_deda_week as number;
+    const currentDay = melpSummary?.current_deda_day as number;
+    const currentDedaName = melpSummary?.currentDedaName as string;
 
     if (device === 'mobile')
         return (
-            <Skeleton loading={isLoading} round style={{ width: '15rem' }} active paragraph={false}>
+            <Skeleton loading={isLoading || isFetching} round style={{ width: '15rem' }} active paragraph={false}>
                 <Row align="middle" justify="space-between">
                     <Col span={18}>
                         <Flex>
@@ -43,7 +43,7 @@ export const MelpSummary: React.FC = () => {
                                 </Typography.Text>
                             </DedaChip>
                             <Typography.Text strong ellipsis>
-                                {currentTime.currentDedaName}
+                                Nobel
                             </Typography.Text>
                         </Flex>
                     </Col>
@@ -51,9 +51,9 @@ export const MelpSummary: React.FC = () => {
                         <Flex gap="0.5rem">
                             <Divider />
                             <Typography.Text>W</Typography.Text>
-                            <Typography.Text>{padNumber(currentTime.currentWeek)}</Typography.Text>
+                            <Typography.Text>{padNumber(currentWeek)}</Typography.Text>
                             <Typography.Text>D</Typography.Text>
-                            <Typography.Text>{getWeekDay()}</Typography.Text>
+                            <Typography.Text>{currentDay}</Typography.Text>
                         </Flex>
                     </Col>
                 </Row>
@@ -61,24 +61,24 @@ export const MelpSummary: React.FC = () => {
         );
 
     return (
-        <Skeleton loading={isLoading} round style={{ width: '15rem' }} active paragraph={false}>
+        <Skeleton loading={isLoading || isFetching} round style={{ width: '15rem' }} active paragraph={false}>
             <Flex gap={16} justify="flex-start" align="center">
                 <DedaChip bg="var(--secondary)">
                     <Typography.Title level={5} style={{ color: '#FFFFFF' }}>
                         DEDA
                     </Typography.Title>
                 </DedaChip>
-                <Typography.Title level={5}>{currentTime.currentDedaName}</Typography.Title>
+                <Typography.Title level={5}>{currentDedaName}</Typography.Title>
                 <Divider />
                 <DedaChip bg="#F2F0EE">
                     <Typography.Title level={5}>Week</Typography.Title>
                 </DedaChip>
-                <Typography.Text>{padNumber(currentTime.currentWeek)}</Typography.Text>
+                <Typography.Text>{currentWeek}</Typography.Text>
                 <Divider />
                 <DedaChip bg="#F2F0EE">
                     <Typography.Title level={5}>Day</Typography.Title>
                 </DedaChip>
-                <Typography.Text>{getWeekDay()}</Typography.Text>
+                <Typography.Text>{currentDay}</Typography.Text>
             </Flex>
         </Skeleton>
     );

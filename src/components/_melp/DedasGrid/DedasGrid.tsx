@@ -26,9 +26,9 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
 
     const { data: melpSummary, isLoading } = useMelpSummary(user?.uid as string);
 
-    const currentTime = melpSummary?.currentTime;
+    const currentWeek = melpSummary?.current_deda_week;
 
-    const unlockedDEDAs = melpSummary?.unlockedDEDAs ?? [];
+    const unlockedDEDAs = melpSummary?.unlocked_dedas ?? [];
 
     const currentDeda = unlockedDEDAs[unlockedDEDAs.length - 1];
 
@@ -48,6 +48,8 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
     const nextDedasResult = useNextDedas(nextDedas);
 
     const allDedasResult = useAllDedasList(type !== 'allDedas');
+
+    const showSkeleton = isLoading || lastDedasResult.loading || nextDedasResult.loading || allDedasResult.loading;
 
     const titles: { [key in DedasGridProps['type']]: React.ReactNode } = {
         lastDedas: (
@@ -69,7 +71,6 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
 
     return (
         <Flex style={{ maxWidth: MAX_CONTENT_WIDTH, width: '100%' }} vertical gap="2.25rem">
-            {isLoading && <Spin spinning />}
             <div>
                 <div style={{ width: '100%', marginBottom: '1rem' }}>{titles[type]}</div>
 
@@ -92,6 +93,22 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
                     ]}
                     justify="space-between"
                 >
+                    {showSkeleton && (
+                        <>
+                            <Col xs={12} md={6}>
+                                <DedaCard isLoading />
+                            </Col>
+                            <Col xs={12} md={6}>
+                                <DedaCard isLoading />
+                            </Col>
+                            <Col xs={12} md={6}>
+                                <DedaCard isLoading />
+                            </Col>
+                            <Col xs={12} md={6}>
+                                <DedaCard isLoading />
+                            </Col>
+                        </>
+                    )}
                     {type === 'lastDedas' &&
                         lastDedasResult.data?.dedaContentCollection.items.map((deda, index) => (
                             <Col xs={12} md={6} key={deda.dedaSlug}>
@@ -99,7 +116,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
                                     dedaId={deda.dedaId}
                                     imgUrl={deda.dedaFeaturedImage.url}
                                     title={deda.dedaTitle}
-                                    week={`Week ${(currentTime?.currentWeek as number) - index}`}
+                                    week={`Week ${(currentWeek as number) - index}`}
                                     onClick={() => {
                                         onSelectedDeda(deda.dedaId);
                                     }}
@@ -113,7 +130,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
                                     dedaId={deda.dedaId}
                                     imgUrl={deda.dedaFeaturedImage.url}
                                     title={deda.dedaTitle}
-                                    week={`Week ${(currentTime?.currentWeek as number) + index + 1}`}
+                                    week={`Week ${(currentWeek as number) + index + 1}`}
                                     onClick={() => {
                                         onSelectedDeda(deda.dedaId);
                                     }}

@@ -1,10 +1,14 @@
 'use client';
 
+import { CheckCircleFilled, CheckOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Steps } from 'antd';
+import { Steps, Typography } from 'antd';
+import { DedaSteps } from 'components/_melp/DedaActivity/DedaSteps';
 import { getTodaysWeekDay } from 'libs';
 import React from 'react';
 import { MaxWidthContainer } from '../../atoms';
+
+const { Text } = Typography;
 
 const ActivityWrapper = styled.div`
     width: 100%;
@@ -16,7 +20,26 @@ const ActivityWrapper = styled.div`
 `;
 
 const StyledSteps = styled(Steps)`
+    margin-bottom: 42px;
     padding: 16px 0;
+    font-size: 16px;
+
+    &.ant-steps .ant-steps-item-process > .ant-steps-item-container > .ant-steps-item-content > div::after,
+    &.ant-steps
+        .ant-steps-item-wait
+        > .ant-steps-item-container
+        > .ant-steps-item-content
+        > .ant-steps-item-title::after {
+        background: #564533 !important;
+    }
+
+    span {
+        color: #564533;
+    }
+
+    .today {
+        color: #b89261;
+    }
 
     .past-day {
         text-decoration: line-through;
@@ -26,41 +49,19 @@ const StyledSteps = styled(Steps)`
 const DayStepper = () => {
     const today = getTodaysWeekDay();
 
-    return (
-        <StyledSteps
-            size="small"
-            items={[
-                {
-                    title: 'day 1' + today,
-                    icon: <div>1</div>,
-                },
-                {
-                    title: 'day 1',
-                    icon: <div>1</div>,
-                },
-                {
-                    title: 'day 1',
-                    icon: <div>1</div>,
-                },
-                {
-                    title: 'day 1',
-                    icon: <div>1</div>,
-                },
-                {
-                    title: 'day 1',
-                    icon: <div>1</div>,
-                },
-                {
-                    title: 'day 1',
-                    icon: <div>1</div>,
-                },
-                {
-                    title: 'day 1',
-                    icon: <div>1</div>,
-                },
-            ]}
-        />
-    );
+    const items = [1, 2, 3, 4, 5, 6, 7].map((weekDay) => {
+        const isTodayBigger = today > weekDay;
+        const isToday = today === weekDay;
+
+        const className = isToday ? 'today' : isTodayBigger ? 'past-day' : '';
+
+        return {
+            title: <Text className={className}>Day {weekDay}</Text>,
+            icon: isTodayBigger ? <CheckCircleFilled /> : <CheckOutlined className={className} />,
+        };
+    });
+
+    return <StyledSteps current={today - 1} size="small" items={items} />;
 };
 
 export const DedaActivity = ({ dedaId }: { dedaId: string }) => {
@@ -68,6 +69,7 @@ export const DedaActivity = ({ dedaId }: { dedaId: string }) => {
         <ActivityWrapper>
             <MaxWidthContainer>
                 <DayStepper />
+                <DedaSteps dedaId={dedaId} />
             </MaxWidthContainer>
         </ActivityWrapper>
     );

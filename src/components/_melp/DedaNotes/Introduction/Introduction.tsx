@@ -19,7 +19,7 @@ export const Introduction = ({ dedaId }: { dedaId: string }) => {
         );
 
     return (
-        <div style={{ maxWidth: `${MAX_CONTENT_WIDTH - 120}px`, marginTop: '40px' }}>
+        <div style={{ maxWidth: `${MAX_CONTENT_WIDTH - 120}px`, marginTop: '40px', marginBottom: '40px' }}>
             <RichTextRenderer
                 rawContent={dedaNotesContent.dedaNotesIntroductionContent?.json}
                 links={dedaNotesContent.dedaNotesIntroductionContent?.links}

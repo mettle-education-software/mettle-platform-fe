@@ -81,14 +81,14 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
                             sm: 24,
                             md: 32,
                             lg: 54,
-                            xl: 94,
+                            xl: 24,
                         },
                         {
                             xs: 16,
                             sm: 24,
                             md: 32,
                             lg: 54,
-                            xl: 94,
+                            xl: 24,
                         },
                     ]}
                     justify="space-between"

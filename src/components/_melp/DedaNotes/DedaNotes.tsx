@@ -16,7 +16,7 @@ const DedaNotesNav = styled.div`
     display: flex;
     justify-content: center;
     position: sticky;
-    top: 250px;
+    top: 0;
     z-index: 1;
     padding: ${padding.y.sm} ${padding.x.lg};
 `;

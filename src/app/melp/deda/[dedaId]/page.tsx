@@ -6,26 +6,21 @@ import { DedaActivity, DedaNotes, DedaQuote, DedaReview } from 'components';
 import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
-import { MAX_CONTENT_WIDTH, padding, withAuthentication } from 'libs';
-import React, { useEffect, useRef, useState } from 'react';
+import { MAX_CONTENT_WIDTH, withAuthentication } from 'libs';
+import React, { useState } from 'react';
 
-const HeaderSummary = styled.section<{ imgUrl?: string; headerHeight: number }>`
-    position: sticky;
-    top: 0;
-    z-index: 2;
+const HeaderSummary = styled.section<{ imgUrl?: string }>`
     background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43) 15%, rgb(0, 0, 0, 0) 100%),
         url(${({ imgUrl }) => imgUrl});
     background-size: cover;
     background-position: center;
-    padding: ${padding.y.lg} ${padding.y.lg};
-    max-height: 500px;
-    height: ${({ headerHeight }) => headerHeight}px;
+    max-height: 250px;
+    height: 250px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     align-items: center;
     border: none;
-    transition: 0.6s ease-out;
 
     & h1 {
         color: var(--secondary);
@@ -51,8 +46,6 @@ const Content = styled.section`
 const TabNav = styled(Tabs)`
     width: 100%;
     max-width: ${MAX_CONTENT_WIDTH}px;
-    position: relative;
-    top: 65px;
 
     .ant-tabs-tab {
         border: none !important;
@@ -72,48 +65,19 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     const featuredDedaDataResult = useFeaturedDedaData(dedaId);
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
-    const MAX_HEADER_HEIGHT = 500;
-    const MIN_HEADER_HEIGHT = 250;
-
-    const contentRef = useRef<HTMLDivElement>(null);
-
-    const [headerHeight, setHeaderHeight] = useState(500);
-
-    useEffect(() => {
-        const contentElement = contentRef.current;
-
-        const handleScroll = () => {
-            if (contentElement?.scrollTop && contentElement?.scrollTop > 25) {
-                setHeaderHeight(MIN_HEADER_HEIGHT);
-            } else {
-                setHeaderHeight(MAX_HEADER_HEIGHT);
-            }
-        };
-        contentElement?.addEventListener('scroll', handleScroll, { passive: true });
-        contentElement?.addEventListener('click', handleScroll);
-
-        return () => {
-            contentElement?.removeEventListener('scroll', handleScroll);
-        };
-    }, [contentRef]);
-
     const [activeTab, setActiveTab] = useState('dedaNotes');
 
     return (
-        <AppLayout withMelpSummary ref={contentRef}>
-            <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url} headerHeight={headerHeight}>
-                <div style={{ maxWidth: MAX_CONTENT_WIDTH, width: '100%' }}>
+        <AppLayout withMelpSummary>
+            <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
+                <div style={{ maxWidth: MAX_CONTENT_WIDTH, width: '100%', marginBottom: '2rem' }}>
                     {device === 'desktop' && (
-                        <Row justify="space-between" align="middle">
-                            <Col>
-                                <Flex vertical>
-                                    <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
-                                </Flex>
-                            </Col>
-                            <Col>
+                        <Flex justify="space-between">
+                            <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
+                            <div style={{ flex: 0.55 }}>
                                 <DedaQuote dedaId={dedaId} />
-                            </Col>
-                        </Row>
+                            </div>
+                        </Flex>
                     )}
                 </div>
 
@@ -130,7 +94,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                                 <Typography.Title
                                     level={5}
                                     className={activeTab === 'dedaNotes' ? 'activeTab' : undefined}
-                                    style={{ color: '#FFFFFF' }}
+                                    style={{ color: '#FFFFFF', fontWeight: 400 }}
                                 >
                                     DEDA Notes
                                 </Typography.Title>
@@ -142,7 +106,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                                 <Typography.Title
                                     level={5}
                                     className={activeTab === 'dedaActivity' ? 'activeTab' : undefined}
-                                    style={{ color: '#FFFFFF' }}
+                                    style={{ color: '#FFFFFF', fontWeight: 400 }}
                                 >
                                     DEDA
                                 </Typography.Title>
@@ -154,7 +118,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                                 <Typography.Title
                                     level={5}
                                     className={activeTab === 'dedaReview' ? 'activeTab' : undefined}
-                                    style={{ color: '#FFFFFF' }}
+                                    style={{ color: '#FFFFFF', fontWeight: 400 }}
                                 >
                                     Review
                                 </Typography.Title>

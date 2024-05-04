@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client';
+import { DocumentNode, useQuery } from '@apollo/client';
 import gql from 'graphql-tag';
 import { DedaFeaturesResponse, DedaQueryName, DedaQuoteResponse } from 'interfaces';
 
@@ -303,7 +303,7 @@ const dedaWriteQuery = gql`
     }
 `;
 
-const queries = {
+const queries: Record<DedaQueryName, DocumentNode> = {
     'deda-notes': dedaNotesQuery,
     'deda-listen': dedaListenQuery,
     'deda-read-record': dedaReadRecordQuery,
@@ -312,11 +312,12 @@ const queries = {
     'deda-write': dedaWriteQuery,
 };
 
-export const useDeda = <T>(queryName?: DedaQueryName, dedaId?: string) =>
-    useQuery<T>(queries[queryName as DedaQueryName], {
+export const useDeda = <T>(queryName: DedaQueryName, dedaId?: string) =>
+    useQuery<T>(queries[queryName], {
         variables: {
             dedaId,
         },
+        skip: !dedaId || !queryName,
         fetchPolicy: 'cache-first',
     });
 

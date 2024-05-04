@@ -133,3 +133,11 @@ export interface DedaQuoteResponse {
         }[];
     };
 }
+
+export interface DedaListenQueryResponse {
+    dedaContentCollection: {
+        items: {
+            dedaListenSoundCloudLink: string;
+        }[];
+    };
+}

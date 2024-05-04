@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import { Skeleton, Typography } from 'antd';
 import { RichTextRenderer } from 'components';
 import { useGetDedaQuote } from 'hooks';
-import { LinkType } from 'interfaces';
 import React from 'react';
 
 const { Text } = Typography;
@@ -18,6 +17,7 @@ const QuoteText = styled(Text)`
 
     & * {
         color: #ffffff;
+        white-space: break-spaces;
     }
 `;
 
@@ -31,10 +31,8 @@ export const DedaQuote: React.FC<DedaQuoteProps> = ({ dedaId }) => {
     if (!content) return null;
 
     return (
-        <div>
-            <QuoteText>
-                <RichTextRenderer rawContent={content?.dedaNotesQuote.json} links={content?.dedaNotesQuote.links} />
-            </QuoteText>
-        </div>
+        <QuoteText>
+            <RichTextRenderer rawContent={content?.dedaNotesQuote.json} links={content?.dedaNotesQuote.links} />
+        </QuoteText>
     );
 };

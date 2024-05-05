@@ -17,24 +17,24 @@ export interface DedaItem {
     dedaTitle: string;
 }
 
-export interface DedaContentCollection {
+export interface DedaContentCollectionItems {
     items: DedaItem[];
 }
 
 export interface LastDedasResponse {
-    dedaContentCollection: DedaContentCollection;
+    dedaContentCollection: DedaContentCollectionItems;
 }
 
 export interface NextDedasResponse {
-    dedaContentCollection: DedaContentCollection;
+    dedaContentCollection: DedaContentCollectionItems;
 }
 
 export interface AllDedasResponse {
-    dedaContentCollection: DedaContentCollection;
+    dedaContentCollection: DedaContentCollectionItems;
 }
 
 export interface DedaFeaturesResponse {
-    dedaContentCollection: DedaContentCollection;
+    dedaContentCollection: DedaContentCollectionItems;
 }
 
 export type LinkType = {
@@ -123,21 +123,69 @@ export interface DedaNotesQueryResponse {
     };
 }
 
-export interface DedaQuoteResponse {
+export type DedaContentCollection<T> = {
     dedaContentCollection: {
-        items: {
-            dedaNotesQuote: {
-                json: any;
-                links: LinkType;
-            };
-        }[];
+        items: T[];
     };
-}
+};
 
-export interface DedaListenQueryResponse {
-    dedaContentCollection: {
-        items: {
-            dedaListenSoundCloudLink: string;
-        }[];
+export type DedaQuoteResponse = DedaContentCollection<{
+    dedaNotesQuote: {
+        json: any;
+        links: LinkType;
     };
-}
+}>;
+
+export type DedaListenQueryResponse = DedaContentCollection<{
+    dedaListenSoundCloudLink: string;
+}>;
+
+export type DedaReadRecordQueryResponse = DedaContentCollection<{
+    dedaReadContent: {
+        json: any;
+        links: LinkType;
+    };
+}>;
+
+export type DedaWatchQueryResponse = DedaContentCollection<{
+    dedaWatchVideoLink: string;
+}>;
+
+export type DedaListenReadQueryResponse = DedaContentCollection<{
+    dedaListenSoundCloudLink: string;
+    dedaReadContent: {
+        json: any;
+        links: LinkType;
+    };
+}>;
+
+export type DedaWriteQueryResponse = DedaContentCollection<{
+    dedaWriteContentDayOne: {
+        json: unknown;
+        links: LinkType;
+    };
+    dedaWriteContentDayTwo: {
+        json: unknown;
+        links: LinkType;
+    };
+    dedaWriteContentDayThree: {
+        json: unknown;
+        links: LinkType;
+    };
+    dedaWriteContentDayFour: {
+        json: unknown;
+        links: LinkType;
+    };
+    dedaWriteContentDayFive: {
+        json: unknown;
+        links: LinkType;
+    };
+    dedaWriteContentDaySix: {
+        json: unknown;
+        links: LinkType;
+    };
+    dedaWriteContentDaySeven: {
+        json: unknown;
+        links: LinkType;
+    };
+}>;

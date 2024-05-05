@@ -20,7 +20,7 @@ const ListenFrame = styled.div`
 export const Listen: React.FC<ListenProps> = ({ dedaId }) => {
     const dedaListenResult = useDeda<DedaListenQueryResponse>('deda-listen', dedaId);
 
-    const { loading, data, error } = dedaListenResult;
+    const { loading, data } = dedaListenResult;
 
     if (loading || data?.dedaContentCollection?.items?.length === 0) {
         return <div>Loading...</div>;

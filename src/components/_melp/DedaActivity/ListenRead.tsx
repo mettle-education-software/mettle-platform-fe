@@ -1,11 +1,38 @@
 'use client';
 
+import styled from '@emotion/styled';
+import { Card, Flex } from 'antd';
+import { RichTextRenderer } from 'components';
+import { useDeda } from 'hooks';
+import { DedaListenReadQueryResponse } from 'interfaces';
 import React from 'react';
+import { ListenSoundCloud } from '../ListenSoundCloud/ListenSoundCloud';
 
 interface ListenReadProps {
     dedaId: string;
 }
 
+const MaxTextWidth = styled.div`
+    max-width: 800px;
+`;
+
 export const ListenRead: React.FC<ListenReadProps> = ({ dedaId }) => {
-    return <h1>Listen read</h1>;
+    const dedaReadRecordResult = useDeda<DedaListenReadQueryResponse>('deda-listen-read', dedaId);
+
+    const dedaReadRecordData = dedaReadRecordResult.data?.dedaContentCollection?.items[0].dedaReadContent;
+    const dedaListenSoundCloudLink =
+        dedaReadRecordResult.data?.dedaContentCollection?.items[0].dedaListenSoundCloudLink;
+
+    return (
+        <Card>
+            <Flex justify="center">
+                <MaxTextWidth>
+                    <Flex vertical align="stretch" gap="2rem">
+                        <ListenSoundCloud src={dedaListenSoundCloudLink} />
+                        <RichTextRenderer rawContent={dedaReadRecordData?.json} links={dedaReadRecordData?.links} />
+                    </Flex>
+                </MaxTextWidth>
+            </Flex>
+        </Card>
+    );
 };

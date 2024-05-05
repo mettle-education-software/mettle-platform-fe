@@ -17,7 +17,7 @@ interface IAsset {
 
 interface TextSectionProps {
     rawContent: Document;
-    links: LinkType;
+    links?: LinkType;
     justify?: boolean;
 }
 
@@ -69,7 +69,7 @@ const EmbedImage = styled(Image)`
     margin-top: 2rem;
 `;
 
-const renderOptions = (links: LinkType, justify: boolean): Options => {
+const renderOptions = (links?: LinkType, justify?: boolean): Options => {
     const assetMap = new Map();
 
     links?.assets?.block?.forEach((asset: IAsset) => {

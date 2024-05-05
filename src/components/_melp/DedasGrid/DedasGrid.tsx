@@ -34,6 +34,8 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
 
     const lastDedas = unlockedDEDAs.slice(unlockedDEDAs.length - 4, unlockedDEDAs.length);
 
+    console.log(lastDedas);
+
     let nextDedas: string[] = [];
 
     if (currentDeda) {

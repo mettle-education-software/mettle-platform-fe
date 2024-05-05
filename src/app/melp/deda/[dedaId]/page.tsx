@@ -1,7 +1,7 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Col, Flex, Row, Tabs, Typography } from 'antd';
+import { Flex, Tabs, Typography } from 'antd';
 import { DedaActivity, DedaNotes, DedaQuote, DedaReview } from 'components';
 import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';

@@ -12,11 +12,12 @@ const { Text } = Typography;
 
 const ActivityWrapper = styled.div`
     width: 100%;
-    height: 100%;
     background: #2b2b2b;
+    padding-bottom: 2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
+    flex-grow: 1;
 `;
 
 const StyledSteps = styled(Steps)`

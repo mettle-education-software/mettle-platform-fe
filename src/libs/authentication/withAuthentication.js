@@ -1,6 +1,7 @@
 'use client';
 
 import { auth } from 'config/firebase';
+import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
@@ -10,10 +11,12 @@ export const withAuthentication = (Component) => (props) => {
     const router = useRouter();
 
     useEffect(() => {
+        console.log('in this use effect');
         auth.onAuthStateChanged(async (authUser) => {
             setNextOrObserver(authUser);
 
             if (!authUser) {
+                await signOut(auth);
                 router.push('/login');
             }
 

@@ -263,7 +263,12 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
                         </Flex>
                     </NavigationButton>
                 )}
-                <NavigationButton size="large" onClick={handleNextStep} type="primary">
+                <NavigationButton
+                    size="large"
+                    onClick={handleNextStep}
+                    type="primary"
+                    loading={currentStep === 'finish' && saveInput.isPending}
+                >
                     <Flex align="center">
                         {currentStep === 'write' && 'Finish'}
                         {currentStep === 'finish' && 'Save'}

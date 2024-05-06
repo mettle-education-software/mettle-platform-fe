@@ -207,7 +207,6 @@ export const DedaActivitySummary = ({
                                 </Col>
                             </Row>
                         </InputsWrapper>
-                        {dedaTime} {readingTime}
                         <InputsWrapper>
                             <Row>
                                 <Col span={16}>

@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useAppContext } from 'providers';
 import { useMelpContext } from 'providers/MelpProvider';
 import React, { useEffect, useState } from 'react';
-import { DedaActivitySummary, Listen, ListenRead, ReadRecord, Watch, Write } from './steps';
+import { DedaActivitySummary, DedaStepsCompleted, Listen, ListenRead, ReadRecord, Watch, Write } from './steps';
 
 const { Text } = Typography;
 
@@ -28,8 +28,6 @@ const ActivityCard = styled.div`
     flex-direction: column;
     gap: 1.5rem;
 `;
-
-const steps = ['listen', 'readRecord', 'watch', 'listenRead', 'write', 'finish'];
 
 const BreadCrumbs = styled(Breadcrumb)`
     color: white;
@@ -126,6 +124,8 @@ const StepChip = ({ status, stepName }: { status?: 'completed' | 'active'; stepN
     );
 };
 
+const steps = ['listen', 'readRecord', 'watch', 'listenRead', 'write', 'finish', 'completed'];
+
 export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
     const router = useRouter();
 
@@ -153,6 +153,7 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
                 key="finish"
             />,
         ],
+        ['completed', <DedaStepsCompleted key="completed" />],
     ]);
 
     const handlePreviousStep = () => {
@@ -163,6 +164,11 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
     const handleNextStep = () => {
         if (currentStep === 'finish') {
             return handleFinishSave();
+        }
+
+        if (currentStep === 'completed') {
+            router.push('/melp/deda');
+            return;
         }
 
         const nextStep = steps[steps.indexOf(currentStep) + 1];
@@ -185,7 +191,7 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
             },
             {
                 onSuccess: () => {
-                    router.push('/melp/deda');
+                    setCurrentStep('completed');
                 },
             },
         );
@@ -251,7 +257,7 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
             {dedaSteps.get(currentStep)}
 
             <Flex justify="flex-end" align="center" gap="1rem">
-                {currentStep !== 'finish' && (
+                {!['write', 'finish', 'completed'].includes(currentStep) && (
                     <NavigationButton
                         className="previous"
                         onClick={handlePreviousStep}
@@ -269,15 +275,14 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
                     type="primary"
                     loading={currentStep === 'finish' && saveInput.isPending}
                 >
-                    <Flex align="center">
-                        {currentStep === 'write' && 'Finish'}
-                        {currentStep === 'finish' && 'Save'}
-                        {!['write', 'finish'].includes(currentStep) && (
-                            <>
-                                Next <ChevronRight />
-                            </>
-                        )}
-                    </Flex>
+                    {currentStep === 'write' && 'Finish'}
+                    {currentStep === 'finish' && 'Save'}
+                    {currentStep === 'completed' && 'Go back'}
+                    {!['write', 'finish', 'completed'].includes(currentStep) && (
+                        <Flex align="center">
+                            Next <ChevronRight />
+                        </Flex>
+                    )}
                 </NavigationButton>
             </Flex>
         </ActivityCard>

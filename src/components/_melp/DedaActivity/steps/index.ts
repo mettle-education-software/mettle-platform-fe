@@ -4,3 +4,4 @@ export { ListenRead } from './ListenRead';
 export { ReadRecord } from './ReadRecord';
 export { Watch } from './Watch';
 export { Write } from './Write';
+export { DedaStepsCompleted } from './DedaStepsCompleted';

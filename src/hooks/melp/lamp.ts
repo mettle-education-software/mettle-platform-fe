@@ -84,10 +84,6 @@ export const useSaveDedaInput = () => {
                 throw error;
             }
         },
-        onSuccess: () => {
-            // Invalidate the cache here
-            alert('DEDA saved successfully!');
-        },
         onError: (error) => {
             alert(error.message);
         },

@@ -1,7 +1,7 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Card, Flex } from 'antd';
+import { Card, Flex, Skeleton } from 'antd';
 import { RichTextRenderer } from 'components';
 import { useDeda } from 'hooks';
 import { DedaReadRecordQueryResponse } from 'interfaces';
@@ -24,7 +24,9 @@ export const ReadRecord: React.FC<ReadRecordProps> = ({ dedaId }) => {
         <Card>
             <Flex justify="center">
                 <MaxTextWidth>
-                    <RichTextRenderer rawContent={dedaReadRecordData?.json} links={dedaReadRecordData?.links} />
+                    <Skeleton loading={dedaReadRecordResult.loading} active style={{ width: '100%' }}>
+                        <RichTextRenderer rawContent={dedaReadRecordData?.json} links={dedaReadRecordData?.links} />
+                    </Skeleton>
                 </MaxTextWidth>
             </Flex>
         </Card>

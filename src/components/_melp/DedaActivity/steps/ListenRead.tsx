@@ -1,12 +1,12 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Card, Flex } from 'antd';
+import { Card, Flex, Skeleton } from 'antd';
 import { RichTextRenderer } from 'components';
 import { useDeda } from 'hooks';
 import { DedaListenReadQueryResponse } from 'interfaces';
 import React from 'react';
-import { ListenSoundCloud } from '../ListenSoundCloud/ListenSoundCloud';
+import { ListenSoundCloud } from '../../ListenSoundCloud/ListenSoundCloud';
 
 interface ListenReadProps {
     dedaId: string;
@@ -17,11 +17,11 @@ const MaxTextWidth = styled.div`
 `;
 
 export const ListenRead: React.FC<ListenReadProps> = ({ dedaId }) => {
-    const dedaReadRecordResult = useDeda<DedaListenReadQueryResponse>('deda-listen-read', dedaId);
+    const dedaListenReadResult = useDeda<DedaListenReadQueryResponse>('deda-listen-read', dedaId);
 
-    const dedaReadRecordData = dedaReadRecordResult.data?.dedaContentCollection?.items[0].dedaReadContent;
+    const dedaReadRecordData = dedaListenReadResult.data?.dedaContentCollection?.items[0].dedaReadContent;
     const dedaListenSoundCloudLink =
-        dedaReadRecordResult.data?.dedaContentCollection?.items[0].dedaListenSoundCloudLink;
+        dedaListenReadResult.data?.dedaContentCollection?.items[0].dedaListenSoundCloudLink;
 
     return (
         <Card>
@@ -29,7 +29,9 @@ export const ListenRead: React.FC<ListenReadProps> = ({ dedaId }) => {
                 <MaxTextWidth>
                     <Flex vertical align="stretch" gap="2rem">
                         <ListenSoundCloud src={dedaListenSoundCloudLink} />
-                        <RichTextRenderer rawContent={dedaReadRecordData?.json} links={dedaReadRecordData?.links} />
+                        <Skeleton loading={dedaListenReadResult.loading} active style={{ width: '100%' }}>
+                            <RichTextRenderer rawContent={dedaReadRecordData?.json} links={dedaReadRecordData?.links} />
+                        </Skeleton>
                     </Flex>
                 </MaxTextWidth>
             </Flex>

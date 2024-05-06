@@ -1,10 +1,11 @@
 'use client';
 
 import styled from '@emotion/styled';
+import { Skeleton } from 'antd';
 import { useDeda } from 'hooks';
 import { DedaListenQueryResponse } from 'interfaces';
 import React from 'react';
-import { ListenSoundCloud } from '../ListenSoundCloud/ListenSoundCloud';
+import { ListenSoundCloud } from '../../ListenSoundCloud/ListenSoundCloud';
 
 interface ListenProps {
     dedaId: string;
@@ -23,7 +24,7 @@ export const Listen: React.FC<ListenProps> = ({ dedaId }) => {
     const { loading, data } = dedaListenResult;
 
     if (loading || data?.dedaContentCollection?.items?.length === 0) {
-        return <div>Loading...</div>;
+        return <Skeleton loading active style={{ height: '10rem', width: '100%' }} />;
     }
 
     return (

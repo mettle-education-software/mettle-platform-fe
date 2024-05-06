@@ -2,6 +2,7 @@
 
 import { Spin, ConfigProvider, ThemeConfig } from 'antd';
 import { AppProvider, NotificationsProvider, useAppContext } from 'providers';
+import { MelpProvider } from 'providers/MelpProvider';
 import React from 'react';
 import { darkTheme, lightTheme } from 'themes';
 import '../styles/globals.css';
@@ -36,9 +37,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <link rel="stylesheet" href="https://use.typekit.net/ted7yly.css" />
             </head>
             <AppProvider>
-                <NotificationsProvider>
-                    <App>{children}</App>
-                </NotificationsProvider>
+                <MelpProvider>
+                    <NotificationsProvider>
+                        <App>{children}</App>
+                    </NotificationsProvider>
+                </MelpProvider>
             </AppProvider>
         </html>
     );

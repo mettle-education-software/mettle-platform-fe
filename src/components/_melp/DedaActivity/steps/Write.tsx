@@ -1,7 +1,7 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Card, Flex } from 'antd';
+import { Card, Flex, Skeleton } from 'antd';
 import { RichTextRenderer } from 'components';
 import { useDeda } from 'hooks';
 import { DedaWriteQueryResponse } from 'interfaces';
@@ -16,9 +16,9 @@ const MaxTextWidth = styled.div`
 `;
 
 export const Write: React.FC<WriteProps> = ({ dedaId }) => {
-    const dedaReadRecordResult = useDeda<DedaWriteQueryResponse>('deda-write', dedaId);
+    const dedaWriteResult = useDeda<DedaWriteQueryResponse>('deda-write', dedaId);
 
-    const dedaWriteDays = dedaReadRecordResult.data?.dedaContentCollection?.items[0];
+    const dedaWriteDays = dedaWriteResult.data?.dedaContentCollection?.items[0];
 
     if (!dedaWriteDays) return null;
 
@@ -39,10 +39,12 @@ export const Write: React.FC<WriteProps> = ({ dedaId }) => {
         <Card>
             <Flex justify="center">
                 <MaxTextWidth>
-                    <RichTextRenderer
-                        rawContent={currentDayDedaWrite?.json as any}
-                        links={currentDayDedaWrite?.links}
-                    />
+                    <Skeleton loading={dedaWriteResult.loading} active style={{ width: '100%' }}>
+                        <RichTextRenderer
+                            rawContent={currentDayDedaWrite?.json as any}
+                            links={currentDayDedaWrite?.links}
+                        />
+                    </Skeleton>
                 </MaxTextWidth>
             </Flex>
         </Card>

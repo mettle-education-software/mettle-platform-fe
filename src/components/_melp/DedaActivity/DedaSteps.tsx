@@ -2,16 +2,15 @@
 
 import { CheckCircleFilled, CheckCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { CheckCircle, ChevronLeft, ChevronRight, Timer, TimerOff } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, Timer, TimerOff } from '@mui/icons-material';
 import { Breadcrumb, Button, Flex, Typography } from 'antd';
-import { padNumber } from 'libs';
+import { SaveDedaInputMutationDedaData, useSaveDedaInput } from 'hooks/melp/lamp';
+import { getDayToday, padNumber } from 'libs';
 import { useRouter } from 'next/navigation';
+import { useAppContext } from 'providers';
+import { useMelpContext } from 'providers/MelpProvider';
 import React, { useEffect, useState } from 'react';
-import { Listen } from './Listen';
-import { ListenRead } from './ListenRead';
-import { ReadRecord } from './ReadRecord';
-import { Watch } from './Watch';
-import { Write } from './Write';
+import { DedaActivitySummary, Listen, ListenRead, ReadRecord, Watch, Write } from './steps';
 
 const { Text } = Typography;
 
@@ -38,6 +37,12 @@ const BreadCrumbs = styled(Breadcrumb)`
 
 const NavigationButton = styled(Button)`
     border-radius: 50rem;
+
+    &.previous {
+        background: #777777;
+        color: white;
+        border-color: transparent;
+    }
 `;
 
 const ChipWrapper = styled.div`
@@ -52,6 +57,10 @@ const ChipWrapper = styled.div`
     position: relative;
 
     font-size: 0.75rem;
+
+    &.active {
+        border: 2px solid white;
+    }
 
     .active-icon {
         color: var(--secondary);
@@ -104,9 +113,9 @@ const StopWatch = ({ onStop }: { onStop(duration: number): void }) => {
     );
 };
 
-const StepChip = ({ status, stepName }: { status: 'completed' | 'active'; stepName: string }) => {
+const StepChip = ({ status, stepName }: { status?: 'completed' | 'active'; stepName: string }) => {
     return (
-        <ChipWrapper>
+        <ChipWrapper className={status}>
             {status === 'completed' ? (
                 <CheckCircleFilled className="active-icon" />
             ) : (
@@ -119,8 +128,13 @@ const StepChip = ({ status, stepName }: { status: 'completed' | 'active'; stepNa
 
 export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
     const router = useRouter();
+
+    const { melpSummary } = useMelpContext();
+    const { user } = useAppContext();
+
     const [currentStep, setCurrentStep] = useState('listen');
     const [dedaTime, setDedaTime] = useState(0);
+    const [inputData, setInputData] = useState<SaveDedaInputMutationDedaData>({} as SaveDedaInputMutationDedaData);
 
     const dedaSteps = new Map([
         ['listen', <Listen key="listen" dedaId={dedaId} />],
@@ -128,7 +142,17 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
         ['watch', <Watch key="watch" dedaId={dedaId} />],
         ['listenRead', <ListenRead key="listenRead" dedaId={dedaId} />],
         ['write', <Write key="write" dedaId={dedaId} />],
-        ['finish', <div key="finish">Finish</div>],
+        [
+            'finish',
+            <DedaActivitySummary
+                defaultDedaTime={dedaTime}
+                onInputs={(value) => {
+                    console.log(value);
+                    setInputData(value);
+                }}
+                key="finish"
+            />,
+        ],
     ]);
 
     const handlePreviousStep = () => {
@@ -145,9 +169,26 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
         setCurrentStep(nextStep);
     };
 
+    const saveInput = useSaveDedaInput();
+
     function handleFinishSave() {
-        alert(`Time to complete in seconds: ${dedaTime}`);
-        // router.push('/melp/deda');
+        const week = `week${melpSummary.unlocked_dedas.indexOf(dedaId)}`;
+        const day = getDayToday();
+        const userUid = user?.uid as string;
+
+        saveInput.mutate(
+            {
+                userUid,
+                week,
+                day,
+                inputData,
+            },
+            {
+                onSuccess: () => {
+                    router.push('/melp/deda');
+                },
+            },
+        );
     }
 
     const indexOfCurrentStep = steps.indexOf(currentStep);
@@ -163,21 +204,46 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
                     />
                 )}
 
-                <BreadCrumbs separator={<ChevronRight className="icon" />}>
+                <BreadCrumbs separator={<ChevronRight style={{ color: 'white', marginTop: '0.25rem' }} />}>
                     <Breadcrumb.Item>
-                        <StepChip stepName="Listen" status={indexOfCurrentStep > 0 ? 'completed' : 'active'} />
+                        <StepChip
+                            stepName="Listen"
+                            status={
+                                indexOfCurrentStep > 0 ? 'completed' : indexOfCurrentStep === 0 ? 'active' : undefined
+                            }
+                        />
                     </Breadcrumb.Item>
                     <Breadcrumb.Item>
-                        <StepChip stepName="Read + Record" status={indexOfCurrentStep > 1 ? 'completed' : 'active'} />
+                        <StepChip
+                            stepName="Read + Record"
+                            status={
+                                indexOfCurrentStep > 1 ? 'completed' : indexOfCurrentStep === 1 ? 'active' : undefined
+                            }
+                        />
                     </Breadcrumb.Item>
                     <Breadcrumb.Item>
-                        <StepChip stepName="Watch" status={indexOfCurrentStep > 2 ? 'completed' : 'active'} />
+                        <StepChip
+                            stepName="Watch"
+                            status={
+                                indexOfCurrentStep > 2 ? 'completed' : indexOfCurrentStep === 2 ? 'active' : undefined
+                            }
+                        />
                     </Breadcrumb.Item>
                     <Breadcrumb.Item>
-                        <StepChip stepName="Listen + Read" status={indexOfCurrentStep > 3 ? 'completed' : 'active'} />
+                        <StepChip
+                            stepName="Listen + Read"
+                            status={
+                                indexOfCurrentStep > 3 ? 'completed' : indexOfCurrentStep === 3 ? 'active' : undefined
+                            }
+                        />
                     </Breadcrumb.Item>
                     <Breadcrumb.Item>
-                        <StepChip stepName="Write" status={indexOfCurrentStep > 4 ? 'completed' : 'active'} />
+                        <StepChip
+                            stepName="Write"
+                            status={
+                                indexOfCurrentStep > 4 ? 'completed' : indexOfCurrentStep === 4 ? 'active' : undefined
+                            }
+                        />
                     </Breadcrumb.Item>
                 </BreadCrumbs>
             </Flex>
@@ -186,7 +252,12 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
 
             <Flex justify="flex-end" align="center" gap="1rem">
                 {currentStep !== 'finish' && (
-                    <NavigationButton onClick={handlePreviousStep} size="large" disabled={currentStep === 'listen'}>
+                    <NavigationButton
+                        className="previous"
+                        onClick={handlePreviousStep}
+                        size="large"
+                        disabled={currentStep === 'listen'}
+                    >
                         <Flex align="center">
                             <ChevronLeft /> Previous
                         </Flex>

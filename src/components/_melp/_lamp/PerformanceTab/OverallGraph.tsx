@@ -2,12 +2,13 @@
 
 import styled from '@emotion/styled';
 import { Col, Flex, Row, Skeleton, Typography } from 'antd';
-import { ApexOptions } from 'apexcharts';
 import { useOverallProgress } from 'hooks/melp/lamp';
 import { statisticsColors } from 'libs';
+import dynamic from 'next/dynamic';
 import { useAppContext } from 'providers';
-import React, { useState } from 'react';
-import ReactApexChart from 'react-apexcharts';
+import React from 'react';
+
+const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 const { Title } = Typography;
 

@@ -2,9 +2,11 @@
 
 import { Skeleton } from 'antd';
 import { useGeneralWeeklyDevelopment } from 'hooks/melp/lamp';
+import dynamic from 'next/dynamic';
 import { useAppContext } from 'providers';
 import React from 'react';
-import ReactApexChart from 'react-apexcharts';
+
+const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 export const WeeklyDevelopmentGraph: React.FC = () => {
     const { user } = useAppContext();

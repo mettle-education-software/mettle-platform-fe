@@ -2,8 +2,10 @@
 
 import { Row, Col, Typography } from 'antd';
 import { ApexOptions } from 'apexcharts';
+import dynamic from 'next/dynamic';
 import React, { useState } from 'react';
-import ReactApexChart from 'react-apexcharts';
+
+const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 const { Title } = Typography;
 

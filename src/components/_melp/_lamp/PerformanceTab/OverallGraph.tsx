@@ -33,7 +33,7 @@ export const OverallGraph: React.FC = () => {
     const { user } = useAppContext();
     const { overallGraph, isLoading, overallData } = useOverallProgress(user?.uid);
 
-    if (isLoading) return <Skeleton active loading />;
+    if (isLoading || !overallData || !user) return <Skeleton active loading />;
 
     return (
         <div
@@ -66,7 +66,13 @@ export const OverallGraph: React.FC = () => {
                     </Title>
                 </Flex>
             </div>
-            <ReactApexChart options={overallGraph.options} series={overallGraph.series} type="radialBar" />
+            <ReactApexChart
+                options={overallGraph.options}
+                series={overallGraph.series}
+                type="radialBar"
+                width="100%"
+                height="200%"
+            />
             <Row align="middle" gutter={[40, 40]} justify="center">
                 <Col>
                     <Legend name="DEDA" color={statisticsColors.DEDA} value={overallData?.byActivity.deda} />

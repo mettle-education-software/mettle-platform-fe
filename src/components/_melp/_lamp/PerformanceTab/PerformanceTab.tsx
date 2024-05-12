@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import { Row, Col } from 'antd';
 import { WidgetCard } from 'components';
 import React from 'react';
+import { DedasListSelect } from '../../DedasListSelect/DedasListSelect';
 import { DedaStatisticsGraphs } from './DedaStatisticsGraphs';
 import { OverallGraph } from './OverallGraph';
 import { WeeklyDevelopmentGraph } from './WeeklyDevelopmentGraph';
@@ -28,7 +29,7 @@ export const PerformanceTab: React.FC = () => {
                     </WidgetCard>
                 </Col>
                 <Col span={24}>
-                    <WidgetCard title="DEDA Statistics">
+                    <WidgetCard title="DEDA Statistics" extra={<DedasListSelect />}>
                         <DedaStatisticsGraphs />
                     </WidgetCard>
                 </Col>

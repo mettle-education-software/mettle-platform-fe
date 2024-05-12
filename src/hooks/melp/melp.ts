@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MelpSummaryResponse } from 'interfaces/melp';
+import { useMelpContext } from 'providers/MelpProvider';
+import { useEffect, useState } from 'react';
 import { melpService } from 'services';
 
 export const useMelpSummary = (userUid?: string) => {
@@ -61,4 +63,34 @@ export const useResetMelp = () => {
             });
         },
     });
+};
+
+export const useGetDedasList = () => {
+    const [dedasList, setDedasList] = useState<{ id: string; title: string }[]>([]);
+
+    const { melpSummary } = useMelpContext();
+
+    const { data: dedasListData, isLoading } = useQuery({
+        queryKey: ['get-dedas-list'],
+        queryFn: () => melpService.get<Record<string, string>>('/deda/list').then(({ data }) => data),
+        enabled: !!melpSummary,
+    });
+
+    useEffect(() => {
+        if (dedasListData && melpSummary) {
+            const dedasListContent = melpSummary.unlocked_dedas.map((dedaId) => {
+                return {
+                    id: dedaId,
+                    title: dedasListData[dedaId],
+                };
+            });
+
+            setDedasList(dedasListContent);
+        }
+    }, [dedasListData, melpSummary]);
+
+    return {
+        dedasList,
+        isLoading,
+    };
 };

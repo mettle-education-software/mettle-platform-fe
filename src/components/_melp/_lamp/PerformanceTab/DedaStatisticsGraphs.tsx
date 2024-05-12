@@ -140,21 +140,11 @@ export const DedaStatisticsGraphs: React.FC = () => {
         <Row gutter={[22, 22]} align="stretch">
             <Col span={8}>
                 <Title level={4}>Weekly</Title>
-                <div>
-                    <div id="chart">
-                        <ReactApexChart options={weekly.options} series={weekly.series} type="bar" height={350} />
-                    </div>
-                    <div id="html-dist"></div>
-                </div>
+                <ReactApexChart options={weekly.options} series={weekly.series} type="bar" height={350} />
             </Col>
             <Col span={16}>
                 <Title level={4}>Daily</Title>
-                <div>
-                    <div id="chart">
-                        <ReactApexChart options={daily.options} series={daily.series} type="bar" height={380} />
-                    </div>
-                    <div id="html-dist"></div>
-                </div>
+                <ReactApexChart options={daily.options} series={daily.series} type="bar" height={380} />
             </Col>
         </Row>
     );

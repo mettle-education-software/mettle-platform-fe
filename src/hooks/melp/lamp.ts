@@ -101,13 +101,11 @@ export const useSaveDedaInput = () => {
 
 export const useOverallProgress = (userUid?: string) => {
     const [overallGraph, setOverallGraph] = useState<GraphConfig>({
-        series: [0, 0, 0, 0],
+        series: [],
         options: {
             colors: [statisticsColors.DEDA, statisticsColors.Active, statisticsColors.Passive, statisticsColors.Review],
             chart: {
                 type: 'radialBar',
-                height: 500,
-                width: 500,
             },
             stroke: {
                 lineCap: 'round',

@@ -8,3 +8,5 @@ export { PodcastFrame } from './PodcastFrame/PodcastFrame';
 export { ArticleFrame } from './ArticleFrame/ArticleFrame';
 export { VideoFrame } from './VideoFrame/VideoFrame';
 export { DedaQuote } from './DedaQuote/DedaQuote';
+export { HeaderSummary } from './HeaderSummary/HeaderSummary';
+export * from './_lamp';

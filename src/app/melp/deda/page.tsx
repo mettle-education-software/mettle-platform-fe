@@ -3,11 +3,11 @@
 import styled from '@emotion/styled';
 import { Typography, Row, Col, Flex, Button } from 'antd';
 import { AppLayout, Chip, DedasGrid } from 'components';
-import { useDeviceSize, useMelpSummary } from 'hooks';
+import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { withAuthentication, padding, MAX_CONTENT_WIDTH, SMALL_VIEWPORT } from 'libs';
 import { useRouter } from 'next/navigation';
-import { useAppContext } from 'providers';
+import { useMelpContext } from 'providers/MelpProvider';
 import React, { useEffect, useMemo, useState } from 'react';
 
 const HeaderSummary = styled.section<{ imgUrl?: string }>`
@@ -51,9 +51,7 @@ const GridContent = styled.section`
 function DedaPage() {
     const device = useDeviceSize();
 
-    const { user } = useAppContext();
-
-    const { data: melpSummary } = useMelpSummary(user?.uid as string);
+    const { melpSummary } = useMelpContext();
 
     const [selectedDeda, setSelectedDeda] = useState<string>();
 

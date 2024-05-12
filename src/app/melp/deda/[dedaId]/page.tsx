@@ -1,8 +1,8 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Flex, Tabs, Typography } from 'antd';
-import { DedaActivity, DedaNotes, DedaQuote, DedaReview } from 'components';
+import { Flex, Typography } from 'antd';
+import { DedaActivity, DedaNotes, DedaQuote, DedaReview, TabNav } from 'components';
 import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
@@ -41,22 +41,6 @@ const Content = styled.section`
     gap: 3rem;
     border: none;
     height: 100%;
-`;
-
-const TabNav = styled(Tabs)`
-    width: 100%;
-    max-width: ${MAX_CONTENT_WIDTH}px;
-
-    .ant-tabs-tab {
-        border: none !important;
-        background: transparent !important;
-    }
-
-    .ant-tabs-tab-active {
-        color: var(--secondary) !important;
-        background: #3c362f !important;
-        border-bottom: 1px solid var(--secondary) !important;
-    }
 `;
 
 function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {

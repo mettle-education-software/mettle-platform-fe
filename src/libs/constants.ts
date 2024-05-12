@@ -17,6 +17,13 @@ export const padding = {
 
 export const MAX_CONTENT_WIDTH = 1440;
 
+export const statisticsColors = {
+    DEDA: '#F61F64',
+    Active: '#6FE71C',
+    Passive: '#19ECD5',
+    Review: '#F7C034',
+};
+
 export const readingTimeList = [
     {
         time: 'Not started yet',

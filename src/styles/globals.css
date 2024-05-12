@@ -19,6 +19,7 @@
     --neutral: #d9d9d9;
     --neutral-text: #00000073;
     --danger: #ff4d4f;
+    --main-bg: #2b2b2b;
 }
 
 main[data-theme='light'] {

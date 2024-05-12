@@ -5,3 +5,5 @@ export { Logo } from './Logo/Logo';
 export { Chip } from './Chip/Chip';
 export { MaxWidthContainer } from './MaxWidthContainer/MaxWidthContainer';
 export { FrameThumbnail } from './FrameThumbnail/FrameThumbnail';
+export { TabNav } from './TabNav/TabNav';
+export { WidgetCard } from './WidgetCard/WidgetCard';

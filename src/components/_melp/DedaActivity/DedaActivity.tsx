@@ -1,7 +1,8 @@
 'use client';
 
-import { CheckCircleFilled, CheckOutlined } from '@ant-design/icons';
+import { CheckCircleFilled, AimOutlined, HourglassOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
+import RotateRightIcon from '@mui/icons-material/RotateRight';
 import { Steps, Typography } from 'antd';
 import { DedaSteps } from 'components/_melp/DedaActivity/DedaSteps';
 import { getTodaysWeekDay } from 'libs';
@@ -48,7 +49,7 @@ const StyledSteps = styled(Steps)`
 `;
 
 const DayStepper = () => {
-    const today = getTodaysWeekDay();
+    const today = 3;
 
     const items = [1, 2, 3, 4, 5, 6, 7].map((weekDay) => {
         const isTodayBigger = today > weekDay;
@@ -58,7 +59,13 @@ const DayStepper = () => {
 
         return {
             title: <Text className={className}>Day {weekDay}</Text>,
-            icon: isTodayBigger ? <CheckCircleFilled /> : <CheckOutlined className={className} />,
+            icon: isTodayBigger ? (
+                <CheckCircleFilled />
+            ) : isToday ? (
+                <RotateRightIcon style={{ color: 'var(--secondary)', fontSize: '2rem' }} />
+            ) : (
+                <HourglassOutlined className={className} />
+            ),
         };
     });
 

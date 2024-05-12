@@ -1,3 +1,5 @@
+import { ApexOptions } from 'apexcharts';
+
 export interface InputDataDTO {
     inputData: {
         dedaInputData: {
@@ -96,4 +98,23 @@ export interface InputDataResponse {
             reviewProgress: 100;
         };
     };
+}
+
+export interface OverallPerformanceResponse {
+    overallPerformance: number;
+    byActivity: {
+        deda: number;
+        active: number;
+        passive: number;
+        review: number;
+    };
+}
+
+export interface WeeklyPerformanceResponse {
+    data: [string[], number[]];
+}
+
+export interface GraphConfig {
+    series: ApexOptions['series'];
+    options: ApexOptions;
 }

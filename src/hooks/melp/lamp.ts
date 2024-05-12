@@ -1,5 +1,14 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { InputDataDTO, InputDataResponse } from 'interfaces';
+import { ApexOptions } from 'apexcharts';
+import {
+    GraphConfig,
+    InputDataDTO,
+    InputDataResponse,
+    OverallPerformanceResponse,
+    WeeklyPerformanceResponse,
+} from 'interfaces';
+import { statisticsColors } from 'libs';
+import { useEffect, useState } from 'react';
 import { lampService } from 'services';
 
 export interface SaveDedaInputMutationDedaData {
@@ -88,6 +97,150 @@ export const useSaveDedaInput = () => {
             alert(error.message);
         },
     });
+};
+
+export const useOverallProgress = (userUid?: string) => {
+    const [overallGraph, setOverallGraph] = useState<GraphConfig>({
+        series: [0, 0, 0, 0],
+        options: {
+            colors: [statisticsColors.DEDA, statisticsColors.Active, statisticsColors.Passive, statisticsColors.Review],
+            chart: {
+                type: 'radialBar',
+                height: 500,
+                width: 500,
+            },
+            stroke: {
+                lineCap: 'round',
+            },
+            plotOptions: {
+                radialBar: {
+                    hollow: {
+                        size: '35%',
+                    },
+                    track: {
+                        background: ['#582133', '#365421', '#205550', '#F7C0341A'],
+                    },
+                    dataLabels: {
+                        name: {
+                            show: false,
+                        },
+                        value: {
+                            show: false,
+                        },
+                    },
+                },
+            },
+            labels: ['DEDA', 'ACTIVE', 'PASSIVE', 'REVIEW'],
+        },
+    });
+
+    const { data, isLoading } = useQuery({
+        queryKey: ['get-overall-progress', userUid],
+        queryFn: () =>
+            lampService.get<OverallPerformanceResponse>(`/performance/${userUid}/general`).then(({ data }) => data),
+        enabled: !!userUid,
+    });
+
+    useEffect(() => {
+        if (data) {
+            setOverallGraph((previousConfig) => ({
+                ...previousConfig,
+                series: [data.byActivity.deda, data.byActivity.active, data.byActivity.passive, data.byActivity.review],
+            }));
+        }
+    }, [data]);
+
+    return {
+        overallGraph,
+        overallData: data,
+        isLoading,
+    };
+};
+
+export const useGeneralWeeklyDevelopment = (userUid?: string) => {
+    const [weeklyDevelopment, setWeeklyDevelopment] = useState<GraphConfig>({
+        series: [],
+        options: {
+            colors: ['#ABF2B7'],
+            grid: {
+                borderColor: '#F2F0EE0D',
+                xaxis: {
+                    lines: {
+                        show: true,
+                    },
+                },
+            },
+            chart: {
+                type: 'area',
+                toolbar: {
+                    show: false,
+                },
+            },
+            dataLabels: {
+                enabled: false,
+            },
+            stroke: {
+                curve: 'smooth',
+            },
+            xaxis: {
+                labels: {
+                    style: {
+                        colors: '#FFF',
+                        fontFamily: 'Europa, sans-serif',
+                    },
+                },
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        colors: '#FFF',
+                        fontFamily: 'Europa, sans-serif',
+                    },
+                    formatter: (value) => {
+                        return value.toFixed(0);
+                    },
+                },
+                min: 0,
+                max: 100,
+            },
+        },
+    });
+
+    const { data, isLoading } = useQuery({
+        queryKey: ['get-general-weekly-development', userUid],
+        queryFn: () =>
+            lampService
+                .get<WeeklyPerformanceResponse>(`/performance/${userUid}/general/weekly`)
+                .then(({ data }) => data.data),
+        enabled: !!userUid,
+    });
+
+    useEffect(() => {
+        if (data) {
+            setWeeklyDevelopment((previousConfig) => ({
+                ...previousConfig,
+                series: [
+                    {
+                        name: 'General Weekly Development',
+                        data: data[1],
+                    },
+                ],
+                options: {
+                    ...previousConfig.options,
+                    xaxis: {
+                        ...previousConfig.options.xaxis,
+                        categories: data[0],
+                    },
+                },
+            }));
+        }
+    }, [data]);
+
+    return {
+        weeklyDevelopment,
+        weeklyDevelopmentData: data,
+        isLoading,
+    };
 };
 
 export const useGetInputData = (userUid: string, week: number, day: number) => {

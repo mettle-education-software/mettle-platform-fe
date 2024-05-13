@@ -6,8 +6,10 @@ import {
     InputDataResponse,
     OverallPerformanceResponse,
     WeeklyPerformanceResponse,
+    WeeklyStatisticsResponse,
 } from 'interfaces';
 import { statisticsColors } from 'libs';
+import { useAppContext } from 'providers';
 import { useEffect, useState } from 'react';
 import { lampService } from 'services';
 
@@ -99,6 +101,12 @@ export const useSaveDedaInput = () => {
     });
 };
 
+const graphLabelsStyles = {
+    colors: '#FFF',
+    fontFamily: 'Europa, sans-serif',
+    fontWeight: 700,
+};
+
 export const useOverallProgress = (userUid?: string) => {
     const [overallGraph, setOverallGraph] = useState<GraphConfig>({
         series: [],
@@ -182,20 +190,14 @@ export const useGeneralWeeklyDevelopment = (userUid?: string) => {
             },
             xaxis: {
                 labels: {
-                    style: {
-                        colors: '#FFF',
-                        fontFamily: 'Europa, sans-serif',
-                    },
+                    style: graphLabelsStyles,
                 },
             },
             yaxis: {
                 labels: {
-                    style: {
-                        colors: '#FFF',
-                        fontFamily: 'Europa, sans-serif',
-                    },
+                    style: graphLabelsStyles,
                     formatter: (value) => {
-                        return value.toFixed(0);
+                        return `${value.toFixed(0)}%`;
                     },
                 },
                 min: 0,
@@ -237,6 +239,222 @@ export const useGeneralWeeklyDevelopment = (userUid?: string) => {
     return {
         weeklyDevelopment,
         weeklyDevelopmentData: data,
+        isLoading,
+    };
+};
+
+export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', week?: string) => {
+    const { user } = useAppContext();
+
+    const [weeklyPerformanceGraph, setWeeklyPerformance] = useState<GraphConfig>({
+        series: [],
+        options: {
+            grid: {
+                borderColor: '#F2F0EE0D',
+                xaxis: {
+                    lines: {
+                        show: true,
+                    },
+                },
+            },
+            colors: [statisticsColors.DEDA, statisticsColors.Active, statisticsColors.Passive, statisticsColors.Review],
+            chart: {
+                toolbar: {
+                    show: false,
+                },
+                type: 'bar',
+            },
+            plotOptions: {
+                bar: {
+                    columnWidth: '45%',
+                    borderRadius: 5,
+                    borderRadiusApplication: 'end',
+                    distributed: true,
+                },
+            },
+            dataLabels: {
+                enabled: false,
+            },
+            legend: {
+                show: false,
+            },
+            xaxis: {
+                labels: {
+                    style: graphLabelsStyles,
+                },
+            },
+            yaxis: {
+                labels: {
+                    style: graphLabelsStyles,
+                    formatter: (value) => {
+                        return `${value.toFixed(0)}%`;
+                    },
+                },
+                min: 0,
+                max: 100,
+            },
+        },
+    });
+
+    const [dailyPerformanceGraph, setDailyPerformance] = useState<GraphConfig>({
+        series: [],
+        options: {
+            grid: {
+                borderColor: '#F2F0EE0D',
+                xaxis: {
+                    lines: {
+                        show: true,
+                    },
+                },
+            },
+            colors: ['var(--secondary)'],
+            chart: {
+                type: 'bar',
+                toolbar: {
+                    show: false,
+                },
+            },
+            dataLabels: {
+                enabled: false,
+            },
+            legend: {
+                show: false,
+            },
+            plotOptions: {
+                bar: {
+                    columnWidth: '65%',
+                    borderRadius: 5,
+                    borderRadiusApplication: 'end',
+                    distributed: true,
+                },
+            },
+            xaxis: {
+                type: 'category',
+                labels: {
+                    style: graphLabelsStyles,
+                },
+            },
+            yaxis: {
+                labels: {
+                    style: graphLabelsStyles,
+                    formatter: (value) => {
+                        return `${value.toFixed(0)} min`;
+                    },
+                },
+                min: 0,
+            },
+        },
+    });
+
+    const { data, isLoading } = useQuery({
+        queryKey: ['get-weekly-performance', user?.uid, week],
+        queryFn: () =>
+            lampService
+                .get<WeeklyStatisticsResponse>(`/performance/${user?.uid}/weekly/${week}`)
+                .then(({ data }) => data.data),
+        enabled: !!user?.uid && !!week,
+    });
+
+    useEffect(() => {
+        if (data && user?.uid) {
+            const weeklySeries = [
+                {
+                    x: 'DEDA',
+                    y: data.dedaAverage,
+                },
+                {
+                    x: 'ACTIVE',
+                    y: data.activeAverage,
+                },
+                {
+                    x: 'PASSIVE',
+                    y: data.passiveAverage,
+                },
+            ];
+
+            if (data.reviewAverages) {
+                weeklySeries.push({
+                    x: 'REVIEW',
+                    y: data.reviewAverages,
+                });
+            }
+
+            setWeeklyPerformance((previousConfig) => ({
+                series: [
+                    {
+                        name: 'Weekly Performance',
+                        data: weeklySeries,
+                    },
+                ],
+                options: {
+                    ...previousConfig.options,
+                },
+            }));
+
+            if (dailyView === 'dedaTime') {
+                const dedaTimeSeries = data.dedaDaily.map((daily) => ({
+                    x: daily.week_day,
+                    y: daily.deda_time,
+                }));
+
+                setDailyPerformance((previousConfig) => ({
+                    series: [
+                        {
+                            name: 'DEDA Time',
+                            data: dedaTimeSeries,
+                        },
+                    ],
+                    options: {
+                        ...previousConfig.options,
+                        yaxis: {
+                            ...previousConfig.options.yaxis,
+                            max: 100,
+                            labels: {
+                                style: graphLabelsStyles,
+                                formatter: (value) => {
+                                    return `${value.toFixed(0)} min`;
+                                },
+                            },
+                        },
+                    },
+                }));
+            }
+
+            if (dailyView === 'readingTime') {
+                const readingTimeSeries = data.dedaDaily.map((daily) => ({
+                    x: daily.week_day,
+                    y: daily.reading_time,
+                }));
+
+                setDailyPerformance((previousConfig) => ({
+                    series: [
+                        {
+                            name: 'Reading Time',
+                            data: readingTimeSeries,
+                        },
+                    ],
+                    options: {
+                        ...previousConfig.options,
+                        yaxis: {
+                            ...previousConfig.options.yaxis,
+                            max: 6000,
+                            labels: {
+                                style: graphLabelsStyles,
+                                formatter: (value) => {
+                                    return `${(value / 600).toFixed(0)} min`;
+                                },
+                            },
+                        },
+                    },
+                }));
+            }
+        }
+    }, [data, user?.uid, dailyView]);
+
+    return {
+        weeklyPerformanceGraph,
+        dailyPerformanceGraph,
+        graphsData: data,
         isLoading,
     };
 };

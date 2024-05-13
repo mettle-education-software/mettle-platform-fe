@@ -8,17 +8,17 @@ import React from 'react';
 
 const ContentContainer = styled.div`
     background: var(--main-bg);
-    height: 100%;
     width: 100%;
+    flex: 1;
     display: flex;
     align-items: center;
     flex-direction: column;
-    padding: ${padding.x.sm} ${padding.x.lg};
+    padding: ${padding.y.sm} ${padding.x.lg};
 `;
 
 const LampPage: React.FC = () => {
     return (
-        <AppLayout>
+        <AppLayout withMelpSummary>
             <HeaderSummary title="LAMP" description="Language Acquisition Management Platform" />
             <ContentContainer>
                 <MaxWidthContainer>

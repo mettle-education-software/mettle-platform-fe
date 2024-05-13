@@ -28,8 +28,8 @@ export const MelpSummary: React.FC = () => {
     const { data: melpSummary, isLoading, isFetching } = useMelpSummary(user?.uid as string);
 
     const currentWeek = melpSummary?.current_deda_week as number;
-    const currentDay = melpSummary?.current_deda_day as number;
     const currentDedaName = melpSummary?.currentDedaName as string;
+    const currentDay = `0${new Date().getDay() === 0 ? 7 : new Date().getDay()}`;
 
     if (device === 'mobile')
         return (

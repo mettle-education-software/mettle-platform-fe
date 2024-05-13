@@ -71,7 +71,7 @@ export const OverallGraph: React.FC = () => {
                 series={overallGraph.series}
                 type="radialBar"
                 width="100%"
-                height="200%"
+                height="150%"
             />
             <Row align="middle" gutter={[40, 40]} justify="center">
                 <Col>

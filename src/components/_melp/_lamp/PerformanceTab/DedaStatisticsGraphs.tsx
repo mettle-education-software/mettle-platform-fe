@@ -1,7 +1,8 @@
 'use client';
 
-import { Row, Col, Typography } from 'antd';
-import { ApexOptions } from 'apexcharts';
+import styled from '@emotion/styled';
+import { Row, Col, Typography, Skeleton } from 'antd';
+import { useGetWeeklyPerformance } from 'hooks/melp/lamp';
 import dynamic from 'next/dynamic';
 import React, { useState } from 'react';
 
@@ -9,142 +10,108 @@ const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 const { Title } = Typography;
 
-export const DedaStatisticsGraphs: React.FC = () => {
-    const [weekly, setWeekly] = useState<{ series: ApexOptions['series']; options: ApexOptions }>({
-        series: [
-            {
-                data: [21, 22, 10, 28, 16, 21, 13, 30],
-            },
-        ],
-        options: {
-            chart: {
-                height: 350,
-                type: 'bar',
-                events: {
-                    click: function (chart, w, e) {
-                        // console.log(chart, w, e)
-                    },
-                },
-            },
-            colors: ['red', 'blue', 'yellow', 'green', 'purple', 'black', 'orange', 'pink'],
-            plotOptions: {
-                bar: {
-                    columnWidth: '45%',
-                    distributed: true,
-                },
-            },
-            dataLabels: {
-                enabled: false,
-            },
-            legend: {
-                show: false,
-            },
-            xaxis: {
-                categories: [
-                    ['John', 'Doe'],
-                    ['Joe', 'Smith'],
-                    ['Jake', 'Williams'],
-                    'Amber',
-                    ['Peter', 'Brown'],
-                    ['Mary', 'Evans'],
-                    ['David', 'Wilson'],
-                    ['Lily', 'Roberts'],
-                ],
-                labels: {
-                    style: {
-                        colors: ['red', 'blue', 'yellow', 'green', 'purple', 'black', 'orange', 'pink'],
-                        fontSize: '12px',
-                    },
-                },
-            },
-        },
-    });
+const WhiteTitle = styled(Title)`
+    color: #ffffff !important;
+`;
 
-    const [daily, setDaily] = useState<{ series: ApexOptions['series']; options: ApexOptions }>({
-        series: [
-            {
-                name: 'sales',
-                data: [
-                    {
-                        x: '2019/01/01',
-                        y: 400,
-                    },
-                    {
-                        x: '2019/04/01',
-                        y: 430,
-                    },
-                    {
-                        x: '2019/07/01',
-                        y: 448,
-                    },
-                    {
-                        x: '2019/10/01',
-                        y: 470,
-                    },
-                    {
-                        x: '2020/01/01',
-                        y: 540,
-                    },
-                    {
-                        x: '2020/04/01',
-                        y: 580,
-                    },
-                    {
-                        x: '2020/07/01',
-                        y: 690,
-                    },
-                    {
-                        x: '2020/10/01',
-                        y: 690,
-                    },
-                ],
-            },
-        ],
-        options: {
-            chart: {
-                type: 'bar',
-                height: 380,
-            },
-            xaxis: {
-                type: 'category',
-                labels: {
-                    formatter: function (val) {
-                        return 'Q';
-                    },
-                },
-                group: {
-                    style: {
-                        fontSize: '10px',
-                        fontWeight: 700,
-                    },
-                    groups: [
-                        { title: '2019', cols: 4 },
-                        { title: '2020', cols: 4 },
-                    ],
-                },
-            },
-            title: {
-                text: 'Grouped Labels on the X-axis',
-            },
-            tooltip: {
-                x: {
-                    formatter: function (val) {
-                        return 'hello';
-                    },
-                },
-            },
-        },
-    });
+const DailySelectorButton = styled.button`
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #bbb;
+    border: none;
+    padding: 1px 20px;
+    font-size: 16px;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    & .icon {
+        font-size: 1.6rem;
+        color: rgba(255, 255, 255, 0.2);
+    }
+
+    &.active .icon {
+        color: var(--secondary);
+    }
+
+    &.active {
+        background-color: #fff;
+        color: #333;
+    }
+
+    &:focus {
+        outline: none;
+    }
+`;
+
+interface DedaStatisticsGraphsProps {
+    selectedWeek?: string;
+}
+
+export const DedaStatisticsGraphs: React.FC<DedaStatisticsGraphsProps> = ({ selectedWeek }) => {
+    const [dailySelectedType, setDailySelectedType] = useState<'dedaTime' | 'readingTime'>('dedaTime');
+
+    const {
+        weeklyPerformanceGraph,
+        dailyPerformanceGraph,
+        isLoading: isWeeklyLoading,
+        graphsData,
+    } = useGetWeeklyPerformance(dailySelectedType, selectedWeek);
+
+    if (isWeeklyLoading || !graphsData) return <Skeleton active loading paragraph={{ rows: 4 }} />;
 
     return (
         <Row gutter={[22, 22]} align="stretch">
-            <Col span={8}>
-                <Title level={4}>Weekly</Title>
-                <ReactApexChart options={weekly.options} series={weekly.series} type="bar" height={350} />
+            <Col span={9}>
+                <WhiteTitle level={4}>Weekly</WhiteTitle>
+                <ReactApexChart
+                    options={weeklyPerformanceGraph.options}
+                    series={weeklyPerformanceGraph.series}
+                    type="bar"
+                    width="100%"
+                    height="400"
+                />
             </Col>
-            <Col span={16}>
-                <Title level={4}>Daily</Title>
-                <ReactApexChart options={daily.options} series={daily.series} type="bar" height={380} />
+            <Col span={15}>
+                <Row justify="space-between">
+                    <Col span={12}>
+                        <WhiteTitle level={4}>Daily</WhiteTitle>
+                    </Col>
+                    <Col>
+                        <Row>
+                            <Col>
+                                <DailySelectorButton
+                                    onClick={() => {
+                                        setDailySelectedType('dedaTime');
+                                    }}
+                                    className={dailySelectedType === 'dedaTime' ? 'active' : undefined}
+                                >
+                                    <span className="icon">&#8226;</span> DEDA Time
+                                </DailySelectorButton>
+                            </Col>
+                            <Col>
+                                <DailySelectorButton
+                                    onClick={() => {
+                                        setDailySelectedType('readingTime');
+                                    }}
+                                    className={dailySelectedType === 'readingTime' ? 'active' : undefined}
+                                >
+                                    <span className="icon">&#8226;</span> Reading Time
+                                </DailySelectorButton>
+                            </Col>
+                        </Row>
+                    </Col>
+                </Row>
+                <ReactApexChart
+                    options={dailyPerformanceGraph.options}
+                    series={dailyPerformanceGraph.series}
+                    type="bar"
+                    width="100%"
+                    height="400"
+                />
             </Col>
         </Row>
     );

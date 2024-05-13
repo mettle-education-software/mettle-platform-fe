@@ -114,6 +114,20 @@ export interface WeeklyPerformanceResponse {
     data: [string[], number[]];
 }
 
+export interface WeeklyStatisticsResponse {
+    data: {
+        dedaAverage: number;
+        activeAverage: number;
+        passiveAverage: number;
+        reviewAverages: number;
+        dedaDaily: {
+            deda_time: number;
+            reading_time: number;
+            week_day: string;
+        }[];
+    };
+}
+
 export interface GraphConfig {
     series: ApexOptions['series'];
     options: ApexOptions;

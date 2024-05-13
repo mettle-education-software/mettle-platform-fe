@@ -66,7 +66,7 @@ export const useResetMelp = () => {
 };
 
 export const useGetDedasList = () => {
-    const [dedasList, setDedasList] = useState<{ id: string; title: string }[]>([]);
+    const [dedasList, setDedasList] = useState<{ value: string; label: string }[]>([]);
 
     const { melpSummary } = useMelpContext();
 
@@ -78,10 +78,10 @@ export const useGetDedasList = () => {
 
     useEffect(() => {
         if (dedasListData && melpSummary) {
-            const dedasListContent = melpSummary.unlocked_dedas.map((dedaId) => {
+            const dedasListContent = melpSummary.unlocked_dedas.slice(1).map((dedaId, index) => {
                 return {
-                    id: dedaId,
-                    title: dedasListData[dedaId],
+                    value: `week${index + 1}`,
+                    label: `W${index + 1} | ${dedasListData[dedaId]}`,
                 };
             });
 

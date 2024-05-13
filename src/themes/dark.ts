@@ -16,6 +16,8 @@ export const darkTheme: ThemeConfig = {
         Typography: {
             algorithm: true,
             titleMarginBottom: 0,
+            colorPrimary: '#FFFFFF',
+            colorTextSecondary: 'var(--secondary)',
             // fontSize: 'calc(20px + 1vw)' as unknown as number,
         },
         Input: {

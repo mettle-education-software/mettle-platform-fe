@@ -43,6 +43,13 @@ export interface InputDataDTO {
     };
 }
 
+export interface ReviewContent {
+    status: boolean;
+    name: string;
+    dedaId: string;
+    weekNumber: string;
+}
+
 export interface InputDataResponse {
     data: {
         dedaInput: {
@@ -83,18 +90,9 @@ export interface InputDataResponse {
             youtube: number;
         };
         reviewInput?: {
-            review1: {
-                status: boolean;
-                name: string;
-            };
-            review2?: {
-                status: boolean;
-                name: string;
-            };
-            review3?: {
-                status: boolean;
-                name: string;
-            };
+            review1: ReviewContent;
+            review2?: ReviewContent;
+            review3?: ReviewContent;
             reviewProgress: 100;
         };
     };
@@ -121,9 +119,9 @@ export interface WeeklyStatisticsResponse {
         passiveAverage: number;
         reviewAverages: number;
         dedaDaily: {
-            deda_time: number;
-            reading_time: number;
-            week_day: string;
+            dedaTime: number;
+            readingTime: number;
+            weekDay: string;
         }[];
     };
 }

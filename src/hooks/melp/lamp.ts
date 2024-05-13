@@ -393,8 +393,8 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
 
             if (dailyView === 'dedaTime') {
                 const dedaTimeSeries = data.dedaDaily.map((daily) => ({
-                    x: daily.week_day,
-                    y: daily.deda_time,
+                    x: daily.weekDay,
+                    y: daily.dedaTime,
                 }));
 
                 setDailyPerformance((previousConfig) => ({
@@ -422,8 +422,8 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
 
             if (dailyView === 'readingTime') {
                 const readingTimeSeries = data.dedaDaily.map((daily) => ({
-                    x: daily.week_day,
-                    y: daily.reading_time,
+                    x: daily.weekDay,
+                    y: daily.readingTime,
                 }));
 
                 setDailyPerformance((previousConfig) => ({
@@ -459,10 +459,22 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
     };
 };
 
-export const useGetInputData = (userUid: string, week: number, day: number) => {
+export const useGetInputData = (week: string, day: string) => {
+    const { user } = useAppContext();
+
     return useQuery({
-        queryKey: ['input', userUid, week, day],
-        queryFn: () => lampService.get(`/input/v2/${userUid}/${week}/${day}`).then(({ data }) => data),
-        enabled: !!userUid && !!week && !!day,
+        queryKey: ['input', user?.uid, week, day],
+        queryFn: () =>
+            lampService.get<InputDataResponse>(`/input/v2/${user?.uid}/${week}/${day}`).then(({ data }) => data.data),
+        enabled: !!user?.uid && !!week && !!day,
+    });
+};
+
+export const useSaveInput = () => {
+    const { user } = useAppContext();
+
+    return useMutation({
+        mutationFn: ({ week, day, inputDTO }: { week: string; day: string; inputDTO: InputDataDTO }) =>
+            lampService.patch(`/input/v2/${user?.uid}/${week}/${day}`, { ...inputDTO }),
     });
 };

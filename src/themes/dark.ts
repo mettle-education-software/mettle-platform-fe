@@ -23,6 +23,9 @@ export const darkTheme: ThemeConfig = {
         Input: {
             borderRadius: 8,
         },
+        DatePicker: {
+            borderRadius: 8,
+        },
         Button: {
             algorithm: true,
             borderRadius: 8,

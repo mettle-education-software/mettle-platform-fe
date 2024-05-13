@@ -11,7 +11,6 @@ export const withAuthentication = (Component) => (props) => {
     const router = useRouter();
 
     useEffect(() => {
-        console.log('in this use effect');
         auth.onAuthStateChanged(async (authUser) => {
             setNextOrObserver(authUser);
 

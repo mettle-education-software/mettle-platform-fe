@@ -1,12 +1,11 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Flex, Typography, Row, Col, Rate } from 'antd';
-import { SelectDedaTime } from 'components/_melp/SelectDedaTime/SelectDedaTime';
-import { SelectReadingTime } from 'components/_melp/SelectReadingTime/SelectReadingTime';
+import { Flex, Typography } from 'antd';
 import { SaveDedaInputMutationDedaData } from 'hooks/melp/lamp';
 import { getClosestTimeListValue } from 'libs';
 import React, { useCallback, useEffect, useState } from 'react';
+import { DedaInput } from '../../DedaInput/DedaInput';
 
 const { Text, Title } = Typography;
 
@@ -23,51 +22,11 @@ const SummaryWrapper = styled.div`
     .text {
         color: #ffffff;
     }
-
-    .highlight {
-        color: var(--secondary);
-    }
-
-    .input-variable-text {
-        font-size: 20px;
-        font-style: normal;
-        font-weight: 700;
-        line-height: 130%;
-        color: #ffffff;
-    }
-
-    .input-time-text {
-        font-size: 20px;
-        font-style: normal;
-        font-weight: 400;
-        line-height: 130%;
-        color: #ffffff;
-    }
-
-    .ant-rate-star-first {
-        color: var(--secondary) !important;
-    }
-
-    .ant-rate-star-second {
-        color: #ffffff;
-    }
-`;
-
-const InputsWrapper = styled.div`
-    border-radius: 0.5rem;
-    background: rgba(242, 240, 238, 0.05);
-    padding: 1.5rem 1rem;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 25px;
 `;
 
 const MaxContentWidth = styled.div`
     max-width: 573px;
 `;
-
-const dedaRatings = ['Terrible', 'Bad', 'Normal', 'Good', 'Wonderful'];
 
 export const DedaActivitySummary = ({
     defaultDedaTime,
@@ -90,7 +49,7 @@ export const DedaActivitySummary = ({
     const [dedaTime, setDedaTime] = useState<number>(getClosestTimeListValue(dedaTimeMin));
     const [readingTime, setReadingTime] = useState<number>(0);
 
-    const handleRateChange = (value: number, key: keyof typeof dedaInputData) => {
+    const handleRateChange = (value: number, key: string) => {
         setDedaInputData((previousInputData) => ({
             ...previousInputData,
             [key]: value,
@@ -120,125 +79,14 @@ export const DedaActivitySummary = ({
                                 (From 1 to 5, score the quality of each of the five variables for the day.)
                             </Text>
                         </Flex>
-                        <InputsWrapper>
-                            <Row>
-                                <Col span={16}>
-                                    <Text className="input-variable-text">Predetermined Place/Time</Text>
-                                </Col>
-                                <Col span={8}>
-                                    <Flex justify="flex-end">
-                                        <Rate
-                                            className="ant-rate-star-first"
-                                            tooltips={dedaRatings}
-                                            onChange={(value) => {
-                                                handleRateChange(value, 'dedaPredPlace');
-                                            }}
-                                            value={dedaInputData.dedaPredPlace}
-                                        />
-                                    </Flex>
-                                </Col>
-                            </Row>
-                            <Row>
-                                <Col span={16}>
-                                    <Text className="input-variable-text">Five steps (DEEP)</Text>
-                                </Col>
-                                <Col span={8}>
-                                    <Flex justify="flex-end">
-                                        <Rate
-                                            className="ant-rate-star-first"
-                                            tooltips={dedaRatings}
-                                            onChange={(value) => {
-                                                handleRateChange(value, 'dedaSteps');
-                                            }}
-                                            value={dedaInputData.dedaSteps}
-                                        />
-                                    </Flex>
-                                </Col>
-                            </Row>
-                            <Row>
-                                <Col span={16}>
-                                    <Text className="input-variable-text">State of mind</Text>
-                                </Col>
-                                <Col span={8}>
-                                    <Flex justify="flex-end">
-                                        <Rate
-                                            className="ant-rate-star-first"
-                                            tooltips={dedaRatings}
-                                            onChange={(value) => {
-                                                handleRateChange(value, 'dedaStateMind');
-                                            }}
-                                            value={dedaInputData.dedaStateMind}
-                                        />
-                                    </Flex>
-                                </Col>
-                            </Row>
-                            <Row>
-                                <Col span={16}>
-                                    <Text className="input-variable-text">State of being</Text>
-                                </Col>
-                                <Col span={8}>
-                                    <Flex justify="flex-end">
-                                        <Rate
-                                            className="ant-rate-star-first"
-                                            tooltips={dedaRatings}
-                                            onChange={(value) => {
-                                                handleRateChange(value, 'dedaStateBeing');
-                                            }}
-                                            value={dedaInputData.dedaStateBeing}
-                                        />
-                                    </Flex>
-                                </Col>
-                            </Row>
-                            <Row>
-                                <Col span={16}>
-                                    <Text className="input-variable-text">Focus</Text>
-                                </Col>
-                                <Col span={8}>
-                                    <Flex justify="flex-end">
-                                        <Rate
-                                            className="ant-rate-star-first"
-                                            tooltips={dedaRatings}
-                                            onChange={(value) => {
-                                                handleRateChange(value, 'dedaFocus');
-                                            }}
-                                            value={dedaInputData.dedaFocus}
-                                        />
-                                    </Flex>
-                                </Col>
-                            </Row>
-                        </InputsWrapper>
-                        <InputsWrapper>
-                            <Row>
-                                <Col span={16}>
-                                    <Text className="input-time-text">
-                                        Enter the <span className="highlight">Reading Time</span>
-                                    </Text>
-                                </Col>
-                                <Col span={8}>
-                                    <SelectReadingTime
-                                        value={readingTime}
-                                        onChange={(readingTimeValue) => {
-                                            setReadingTime(readingTimeValue);
-                                        }}
-                                    />
-                                </Col>
-                            </Row>
-                            <Row>
-                                <Col span={16}>
-                                    <Text className="input-time-text">
-                                        Enter the <span className="highlight">DEDA Time</span>
-                                    </Text>
-                                </Col>
-                                <Col span={8}>
-                                    <SelectDedaTime
-                                        value={dedaTime}
-                                        onChange={(dedaTimeValue) => {
-                                            setDedaTime(dedaTimeValue);
-                                        }}
-                                    />
-                                </Col>
-                            </Row>
-                        </InputsWrapper>
+                        <DedaInput
+                            dedaInputData={dedaInputData}
+                            dedaTime={dedaTime}
+                            readingTime={readingTime}
+                            setDedaTime={setDedaTime}
+                            setReadingTime={setReadingTime}
+                            handleRateChange={handleRateChange}
+                        />
                     </Flex>
                 </MaxContentWidth>
             </Flex>

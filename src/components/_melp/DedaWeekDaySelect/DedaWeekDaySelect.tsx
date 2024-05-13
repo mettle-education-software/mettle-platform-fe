@@ -3,6 +3,7 @@
 import styled from '@emotion/styled';
 import { ConfigProvider, Select as AntSelect, SelectProps, Skeleton } from 'antd';
 import { useGetDedasList } from 'hooks';
+import { useMelpContext } from 'providers/MelpProvider';
 import React from 'react';
 
 const Select = styled(AntSelect)`
@@ -24,7 +25,7 @@ const Select = styled(AntSelect)`
     }
 
     &::before {
-        content: 'DEDA';
+        content: 'Day';
         position: absolute;
         font-size: 13px;
         background: #3c362f;
@@ -36,12 +37,20 @@ const Select = styled(AntSelect)`
     }
 `;
 
-export const DedasListSelect: React.FC<SelectProps> = (props) => {
-    const { dedasList, isLoading: isDedasListLoading } = useGetDedasList();
+export const DedaWeekDaySelect: React.FC<SelectProps & { selectedWeek?: string }> = (props) => {
+    const { melpSummary } = useMelpContext();
 
-    return isDedasListLoading ? (
-        <Skeleton active loading />
-    ) : (
+    const options = [
+        { label: 'Monday', value: 'day1' },
+        { label: 'Tuesday', value: 'day2' },
+        { label: 'Wednesday', value: 'day3' },
+        { label: 'Thursday', value: 'day4' },
+        { label: 'Friday', value: 'day5' },
+        { label: 'Saturday', value: 'day6' },
+        { label: 'Sunday', value: 'day7' },
+    ];
+
+    return (
         <ConfigProvider
             theme={{
                 components: {
@@ -60,8 +69,8 @@ export const DedasListSelect: React.FC<SelectProps> = (props) => {
                     {...props}
                     size="large"
                     style={{ width: 300 }}
-                    placeholder="Select DEDA week"
-                    options={dedasList}
+                    placeholder="Select DEDA day"
+                    options={options}
                 />
             </div>
         </ConfigProvider>

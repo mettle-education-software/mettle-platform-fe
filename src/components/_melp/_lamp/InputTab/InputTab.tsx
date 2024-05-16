@@ -1,55 +1,20 @@
 'use client';
 
-import styled from '@emotion/styled';
-import { debounce } from '@mui/material';
-import { Col, Flex, Row, Skeleton, TimePicker, Typography } from 'antd';
+import { Col, Flex, Row, Skeleton, Typography } from 'antd';
 import { WidgetCard } from 'components';
 import { DedaRateInput } from 'components/_melp/DedaInput/DedaInput';
 import { DedaWeekDaySelect } from 'components/_melp/DedaWeekDaySelect/DedaWeekDaySelect';
 import { DedasListSelect } from 'components/_melp/DedasListSelect/DedasListSelect';
 import { InputsWrapper } from 'components/_melp/InputsWrapper/InputsWrapper';
 import { ReviewThumbnail } from 'components/_melp/ReviewThumbnail/ReviewThumbnail';
-import dayjs from 'dayjs';
 import { useGetInputData, useSaveInput } from 'hooks/melp/lamp';
 import { InputDataDTO } from 'interfaces';
 import { getDayToday } from 'libs';
 import { useMelpContext } from 'providers/MelpProvider';
-import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import React, { Dispatch, SetStateAction, useCallback, useEffect, useState } from 'react';
+import { InputWithTime } from '../../InputWithTime/InputWithTime';
 
 const { Title, Text } = Typography;
-
-const MelpTimePicker = styled(TimePicker)`
-    border-radius: 2px !important;
-`;
-
-const InputWithTime = ({
-    label,
-    value,
-    onChange,
-}: {
-    label: string | React.ReactNode;
-    value: number;
-    onChange(value: number): void;
-}) => {
-    return (
-        <Row>
-            <Col span={16}>
-                <Text style={{ color: '#FFF', fontWeight: 700, fontSize: '20px', lineHeight: '130%' }}>{label}</Text>
-            </Col>
-            <Col span={8}>
-                <MelpTimePicker
-                    value={dayjs().startOf('day').add(value, 'minutes')}
-                    onChange={(value) => {
-                        const timeInMinutes = value?.hour() * 60 + value?.minute();
-                        onChange(timeInMinutes);
-                    }}
-                    format="HH:mm"
-                    showNow={false}
-                />
-            </Col>
-        </Row>
-    );
-};
 
 const SectionTitle = ({ title, subtitle }: { title: string; subtitle: string }) => {
     return (
@@ -91,9 +56,10 @@ interface InputDataEdit {
 
 interface InputTabProps {
     setIsSaving: Dispatch<SetStateAction<boolean>>;
+    setLastTimeSaved: Dispatch<SetStateAction<Date | undefined>>;
 }
 
-export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
+export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSaved }) => {
     const { melpSummary } = useMelpContext();
 
     const [inputDataEdit, setInputDataEdit] = useState<InputDataEdit>({} as InputDataEdit);
@@ -111,7 +77,6 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
 
     useEffect(() => {
         if (inputData) {
-            console.log('defining here');
             const { dedaInput, activeInput, passiveInput } = inputData;
 
             const editData: InputDataEdit = {
@@ -154,7 +119,16 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
         }
     }, [inputData]);
 
+    const [saveKey, setSaveKey] = useState<string>();
+
+    const getSaveKey = useCallback(
+        (keyPrefix: string) => `${keyPrefix}-${selectedWeek}-${selectedDay}-${new Date().getTime()}`,
+        [selectedDay, selectedWeek],
+    );
+
     const saveInputCall = () => {
+        if (Object.keys(inputDataEdit).length === 0) return;
+
         const inputDTO: InputDataDTO = {
             inputData: {
                 dedaInputData: {
@@ -205,25 +179,37 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
             }
         }
 
-        saveInput.mutate({
-            week: selectedWeek,
-            day: selectedDay,
-            inputDTO,
-        });
+        saveInput.mutate(
+            {
+                week: selectedWeek,
+                day: selectedDay,
+                inputDTO,
+            },
+            {
+                onSuccess: () => {
+                    setLastTimeSaved(new Date());
+                    setSaveKey(undefined);
+                },
+            },
+        );
     };
 
     const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
-    useEffect(() => {
+    const saveInputDebounce = () => {
         if (timeoutId) {
             clearTimeout(timeoutId);
         }
 
-        const newTimeoutId = setTimeout(saveInputCall, 5000);
+        const newTimeoutId = setTimeout(saveInputCall, 3500);
         setTimeoutId(newTimeoutId);
+    };
 
-        return () => clearTimeout(newTimeoutId);
-    }, [inputDataEdit]);
+    useEffect(() => {
+        if (saveKey) {
+            saveInputDebounce();
+        }
+    }, [saveKey]);
 
     const extraInputSelect = () => (
         <Flex gap="1rem">
@@ -234,6 +220,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                 }}
             />
             <DedaWeekDaySelect
+                selectedWeek={selectedWeek}
                 value={selectedDay}
                 onChange={(value) => {
                     setSelectedDay(value);
@@ -260,6 +247,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                                 ...previousData,
                                                 dedaPredPlace: value,
                                             }));
+                                            setSaveKey(getSaveKey('dedaPredPlace'));
                                         }}
                                         value={inputDataEdit.dedaPredPlace}
                                     />
@@ -270,6 +258,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                                 ...previousData,
                                                 dedaFiveSteps: value,
                                             }));
+                                            setSaveKey(getSaveKey('dedaFiveSteps'));
                                         }}
                                         value={inputDataEdit.dedaFiveSteps}
                                     />
@@ -280,6 +269,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                                 ...previousData,
                                                 dedaStateMind: value,
                                             }));
+                                            setSaveKey(getSaveKey('dedaStateMind'));
                                         }}
                                         value={inputDataEdit.dedaStateMind}
                                     />
@@ -290,6 +280,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                                 ...previousData,
                                                 dedaStateBeing: value,
                                             }));
+                                            setSaveKey(getSaveKey('dedaStateBeing'));
                                         }}
                                         value={inputDataEdit.dedaStateBeing}
                                     />
@@ -300,6 +291,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                                 ...previousData,
                                                 dedaFocus: value,
                                             }));
+                                            setSaveKey(getSaveKey('dedaFocus'));
                                         }}
                                         value={inputDataEdit.dedaFocus}
                                     />
@@ -313,12 +305,13 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                                 <span style={{ color: 'var(--secondary)' }}>Reading Time</span>
                                             </>
                                         }
-                                        value={inputDataEdit.activeBook}
+                                        value={inputDataEdit.readingTime}
                                         onChange={(value) => {
                                             setInputDataEdit((previousData) => ({
                                                 ...previousData,
                                                 readingTime: value,
                                             }));
+                                            setSaveKey(getSaveKey('readingTime'));
                                         }}
                                     />
                                     <InputWithTime
@@ -327,12 +320,13 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                                 Enter the <span style={{ color: 'var(--secondary)' }}>DEDA Time</span>
                                             </>
                                         }
-                                        value={inputDataEdit.activeDedaNotes}
+                                        value={inputDataEdit.dedaTime}
                                         onChange={(value) => {
                                             setInputDataEdit((previousData) => ({
                                                 ...previousData,
                                                 dedaTime: value,
                                             }));
+                                            setSaveKey(getSaveKey('dedaTime'));
                                         }}
                                     />
                                 </InputsWrapper>
@@ -351,6 +345,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             activeBook: value,
                                         }));
+                                        setSaveKey(getSaveKey('activeBook'));
                                     }}
                                 />
                                 <InputWithTime
@@ -361,6 +356,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             activeDedaNotes: value,
                                         }));
+                                        setSaveKey(getSaveKey('activeDedaNotes'));
                                     }}
                                 />
                                 <InputWithTime
@@ -371,6 +367,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             activeMooc: value,
                                         }));
+                                        setSaveKey(getSaveKey('activeMooc'));
                                     }}
                                 />
                                 <InputWithTime
@@ -381,6 +378,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             activeOthers: value,
                                         }));
+                                        setSaveKey(getSaveKey('activeOthers'));
                                     }}
                                 />
                                 <InputWithTime
@@ -391,6 +389,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             activeReview: value,
                                         }));
+                                        setSaveKey(getSaveKey('activeReview'));
                                     }}
                                 />
                             </InputsWrapper>
@@ -408,6 +407,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             passiveAudiobook: value,
                                         }));
+                                        setSaveKey(getSaveKey('passiveAudiobook'));
                                     }}
                                 />
                                 <InputWithTime
@@ -418,6 +418,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             passiveConversation: value,
                                         }));
+                                        setSaveKey(getSaveKey('passiveConversation'));
                                     }}
                                 />
                                 <InputWithTime
@@ -428,6 +429,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             passiveMovieDoc: value,
                                         }));
+                                        setSaveKey(getSaveKey('passiveMovieDoc'));
                                     }}
                                 />
                                 <InputWithTime
@@ -438,6 +440,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             passiveNewsShows: value,
                                         }));
+                                        setSaveKey(getSaveKey('passiveNewsShows'));
                                     }}
                                 />
                                 <InputWithTime
@@ -448,6 +451,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             passiveOthers: value,
                                         }));
+                                        setSaveKey(getSaveKey('passiveOthers'));
                                     }}
                                 />
                                 <InputWithTime
@@ -458,6 +462,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             passivePodcast: value,
                                         }));
+                                        setSaveKey(getSaveKey('passivePodcast'));
                                     }}
                                 />
                                 <InputWithTime
@@ -468,6 +473,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             passiveSeries: value,
                                         }));
+                                        setSaveKey(getSaveKey('passiveSeries'));
                                     }}
                                 />
                                 <InputWithTime
@@ -478,6 +484,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             passiveTed: value,
                                         }));
+                                        setSaveKey(getSaveKey('passiveTed'));
                                     }}
                                 />
                                 <InputWithTime
@@ -488,6 +495,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                             ...previousData,
                                             passiveYoutube: value,
                                         }));
+                                        setSaveKey(getSaveKey('passiveYoutube'));
                                     }}
                                 />
                             </InputsWrapper>
@@ -514,6 +522,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                                         ...previousData,
                                                         reviewStatus1: status,
                                                     }));
+                                                    setSaveKey(getSaveKey('reviewStatus1'));
                                                 }}
                                             />
                                         </Col>
@@ -530,6 +539,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                                             ...previousData,
                                                             reviewStatus2: status,
                                                         }));
+                                                        setSaveKey(getSaveKey('reviewStatus2'));
                                                     }}
                                                 />
                                             </Col>
@@ -547,6 +557,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving }) => {
                                                             ...previousData,
                                                             reviewStatus3: status,
                                                         }));
+                                                        setSaveKey(getSaveKey('reviewStatus3'));
                                                     }}
                                                 />
                                             </Col>

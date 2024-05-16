@@ -1,5 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { ApexOptions } from 'apexcharts';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     GraphConfig,
     InputDataDTO,
@@ -92,6 +91,7 @@ export const useSaveDedaInput = () => {
 
                 await lampService.patch(`/input/v2/${userUid}/${week}/${day}`, { ...inputDTO });
             } catch (error) {
+                console.error(error);
                 throw error;
             }
         },
@@ -246,7 +246,7 @@ export const useGeneralWeeklyDevelopment = (userUid?: string) => {
 export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', week?: string) => {
     const { user } = useAppContext();
 
-    const [weeklyPerformanceGraph, setWeeklyPerformance] = useState<GraphConfig>({
+    const [weeklyPerformanceGraph, setWeeklyPerformanceGraph] = useState<GraphConfig>({
         series: [],
         options: {
             grid: {
@@ -296,7 +296,7 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
         },
     });
 
-    const [dailyPerformanceGraph, setDailyPerformance] = useState<GraphConfig>({
+    const [dailyPerformanceGraph, setDailyPerformanceGraph] = useState<GraphConfig>({
         series: [],
         options: {
             grid: {
@@ -379,7 +379,7 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
                 });
             }
 
-            setWeeklyPerformance((previousConfig) => ({
+            setWeeklyPerformanceGraph((previousConfig) => ({
                 series: [
                     {
                         name: 'Weekly Performance',
@@ -397,7 +397,7 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
                     y: daily.dedaTime,
                 }));
 
-                setDailyPerformance((previousConfig) => ({
+                setDailyPerformanceGraph((previousConfig) => ({
                     series: [
                         {
                             name: 'DEDA Time',
@@ -426,7 +426,7 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
                     y: daily.readingTime,
                 }));
 
-                setDailyPerformance((previousConfig) => ({
+                setDailyPerformanceGraph((previousConfig) => ({
                     series: [
                         {
                             name: 'Reading Time',
@@ -437,11 +437,11 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
                         ...previousConfig.options,
                         yaxis: {
                             ...previousConfig.options.yaxis,
-                            max: 6000,
+                            max: 30,
                             labels: {
                                 style: graphLabelsStyles,
                                 formatter: (value) => {
-                                    return `${(value / 600).toFixed(0)} min`;
+                                    return `${value.toFixed(0)} min`;
                                 },
                             },
                         },
@@ -463,7 +463,7 @@ export const useGetInputData = (week: string, day: string) => {
     const { user } = useAppContext();
 
     return useQuery({
-        queryKey: ['input', user?.uid, week, day],
+        queryKey: ['get-input-data', user?.uid, week, day],
         queryFn: () =>
             lampService.get<InputDataResponse>(`/input/v2/${user?.uid}/${week}/${day}`).then(({ data }) => data.data),
         enabled: !!user?.uid && !!week && !!day,
@@ -472,9 +472,24 @@ export const useGetInputData = (week: string, day: string) => {
 
 export const useSaveInput = () => {
     const { user } = useAppContext();
+    const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: ({ week, day, inputDTO }: { week: string; day: string; inputDTO: InputDataDTO }) =>
             lampService.patch(`/input/v2/${user?.uid}/${week}/${day}`, { ...inputDTO }),
+        onSuccess: async (data, variables) => {
+            await queryClient.invalidateQueries({
+                queryKey: ['get-input-data', user?.uid, variables.week, variables.day],
+            });
+            await queryClient.invalidateQueries({
+                queryKey: ['get-weekly-performance'],
+            });
+            await queryClient.invalidateQueries({
+                queryKey: ['get-general-weekly-development'],
+            });
+            await queryClient.invalidateQueries({
+                queryKey: ['get-overall-progress'],
+            });
+        },
     });
 };

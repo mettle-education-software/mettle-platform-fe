@@ -50,7 +50,7 @@ main[data-theme='dark'] {
     box-sizing: border-box;
     padding: 0;
     margin: 0;
-    white-space: nowrap;
+    /*white-space: nowrap;*/
     font-family: 'europa', sans-serif;
 }
 
@@ -63,6 +63,15 @@ body {
 a {
     color: inherit;
     text-decoration: none;
+}
+
+/*Global color classes*/
+.color-white {
+    color: #fff !important;
+}
+
+.bg-white {
+    background-color: var(--white);
 }
 
 /* Ant design style changes below */

@@ -45,7 +45,7 @@ export const OverallGraph: React.FC = () => {
             <div
                 style={{
                     position: 'absolute',
-                    top: '34%',
+                    top: '36%',
                     left: '42%',
                 }}
             >
@@ -71,7 +71,7 @@ export const OverallGraph: React.FC = () => {
                 series={overallGraph.series}
                 type="radialBar"
                 width="100%"
-                height="150%"
+                height="190%"
             />
             <Row align="middle" gutter={[40, 40]} justify="center">
                 <Col>

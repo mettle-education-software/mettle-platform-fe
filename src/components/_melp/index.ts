@@ -9,4 +9,6 @@ export { ArticleFrame } from './ArticleFrame/ArticleFrame';
 export { VideoFrame } from './VideoFrame/VideoFrame';
 export { DedaQuote } from './DedaQuote/DedaQuote';
 export { HeaderSummary } from './HeaderSummary/HeaderSummary';
+export { InputWithTime } from './InputWithTime/InputWithTime';
+export { InputsWrapper } from './InputsWrapper/InputsWrapper';
 export * from './_lamp';

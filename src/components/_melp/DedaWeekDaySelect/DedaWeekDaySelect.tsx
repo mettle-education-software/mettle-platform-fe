@@ -1,10 +1,9 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { ConfigProvider, Select as AntSelect, SelectProps, Skeleton } from 'antd';
-import { useGetDedasList } from 'hooks';
+import { ConfigProvider, Select as AntSelect, SelectProps } from 'antd';
 import { useMelpContext } from 'providers/MelpProvider';
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const Select = styled(AntSelect)`
     position: relative;
@@ -37,18 +36,49 @@ const Select = styled(AntSelect)`
     }
 `;
 
-export const DedaWeekDaySelect: React.FC<SelectProps & { selectedWeek?: string }> = (props) => {
+export const DedaWeekDaySelect: React.FC<SelectProps & { selectedWeek?: string }> = ({ selectedWeek, ...props }) => {
     const { melpSummary } = useMelpContext();
 
-    const options = [
-        { label: 'Monday', value: 'day1' },
-        { label: 'Tuesday', value: 'day2' },
-        { label: 'Wednesday', value: 'day3' },
-        { label: 'Thursday', value: 'day4' },
-        { label: 'Friday', value: 'day5' },
-        { label: 'Saturday', value: 'day6' },
-        { label: 'Sunday', value: 'day7' },
-    ];
+    const weekDays = useMemo(
+        () => [
+            { label: 'Monday', value: 'day1' },
+            { label: 'Tuesday', value: 'day2' },
+            { label: 'Wednesday', value: 'day3' },
+            { label: 'Thursday', value: 'day4' },
+            { label: 'Friday', value: 'day5' },
+            { label: 'Saturday', value: 'day6' },
+            { label: 'Sunday', value: 'day7' },
+        ],
+        [],
+    );
+
+    const [options, setOptions] = useState(weekDays);
+    const [value, setValue] = useState(props.value);
+
+    useEffect(() => {
+        if (selectedWeek && melpSummary) {
+            const weekNumber = Number(selectedWeek.split('week')[1]);
+            if (melpSummary.current_deda_week === weekNumber) {
+                const today = new Date().getDay() === 0 ? 7 : new Date().getDay();
+                const filteredDays = weekDays.filter((_, index) => index + 1 <= today);
+
+                setOptions(filteredDays);
+
+                const valueDay = Number(value.split('day')[1]);
+                if (valueDay > today) {
+                    setValue(`day${today}`);
+                }
+            } else {
+                setOptions(weekDays);
+            }
+        }
+    }, [selectedWeek, melpSummary, weekDays]);
+
+    useEffect(() => {
+        if (props.onChange) {
+            props.onChange(value, options);
+        }
+    }, [value]);
 
     return (
         <ConfigProvider
@@ -67,6 +97,10 @@ export const DedaWeekDaySelect: React.FC<SelectProps & { selectedWeek?: string }
             <div style={{ padding: '1rem 0' }}>
                 <Select
                     {...props}
+                    onChange={(value) => {
+                        setValue(value);
+                    }}
+                    value={value}
                     size="large"
                     style={{ width: 300 }}
                     placeholder="Select DEDA day"

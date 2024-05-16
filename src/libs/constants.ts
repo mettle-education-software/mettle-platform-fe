@@ -909,3 +909,238 @@ export const dedaTimeList = [
         value: 90,
     },
 ];
+
+export const timeList = [
+    {
+        time: '00h:00min',
+        value: 0,
+    },
+    {
+        time: '00h:05min',
+        value: 5,
+    },
+    {
+        time: '00h:10min',
+        value: 10,
+    },
+    {
+        time: '00h:15min',
+        value: 15,
+    },
+    {
+        time: '00h:20min',
+        value: 20,
+    },
+    {
+        time: '00h:25min',
+        value: 25,
+    },
+    {
+        time: '00h:30min',
+        value: 30,
+    },
+    {
+        time: '00h:35min',
+        value: 35,
+    },
+    {
+        time: '00h:40min',
+        value: 40,
+    },
+    {
+        time: '00h:45min',
+        value: 45,
+    },
+    {
+        time: '00h:50min',
+        value: 50,
+    },
+    {
+        time: '00h:55min',
+        value: 55,
+    },
+    {
+        time: '01h:00min',
+        value: 60,
+    },
+    {
+        time: '01h:05min',
+        value: 65,
+    },
+    {
+        time: '01h:10min',
+        value: 70,
+    },
+    {
+        time: '01h:15min',
+        value: 75,
+    },
+    {
+        time: '01h:20min',
+        value: 80,
+    },
+    {
+        time: '01h:25min',
+        value: 85,
+    },
+    {
+        time: '01h:30min',
+        value: 90,
+    },
+    {
+        time: '01h:35min',
+        value: 95,
+    },
+    {
+        time: '01h:40min',
+        value: 100,
+    },
+    {
+        time: '01h:45min',
+        value: 105,
+    },
+    {
+        time: '01h:50min',
+        value: 110,
+    },
+    {
+        time: '01h:55min',
+        value: 115,
+    },
+    {
+        time: '02h:00min',
+        value: 120,
+    },
+    {
+        time: '02h:05min',
+        value: 125,
+    },
+    {
+        time: '02h:10min',
+        value: 130,
+    },
+    {
+        time: '02h:15min',
+        value: 135,
+    },
+    {
+        time: '02h:20min',
+        value: 140,
+    },
+    {
+        time: '02h:25min',
+        value: 145,
+    },
+    {
+        time: '02h:30min',
+        value: 150,
+    },
+    {
+        time: '02h:35min',
+        value: 155,
+    },
+    {
+        time: '02h:40min',
+        value: 160,
+    },
+    {
+        time: '02h:45min',
+        value: 165,
+    },
+    {
+        time: '02h:50min',
+        value: 170,
+    },
+    {
+        time: '02h:55min',
+        value: 175,
+    },
+    {
+        time: '03h:00min',
+        value: 180,
+    },
+    {
+        time: '03h:05min',
+        value: 185,
+    },
+    {
+        time: '03h:10min',
+        value: 190,
+    },
+    {
+        time: '03h:15min',
+        value: 195,
+    },
+    {
+        time: '03h:20min',
+        value: 200,
+    },
+    {
+        time: '03h:25min',
+        value: 205,
+    },
+    {
+        time: '03h:30min',
+        value: 210,
+    },
+    {
+        time: '03h:35min',
+        value: 215,
+    },
+    {
+        time: '03h:40min',
+        value: 220,
+    },
+    {
+        time: '03h:45min',
+        value: 225,
+    },
+    {
+        time: '03h:50min',
+        value: 230,
+    },
+    {
+        time: '03h:55min',
+        value: 235,
+    },
+    {
+        time: '04h:00min',
+        value: 240,
+    },
+    {
+        time: '04h:05min',
+        value: 245,
+    },
+    {
+        time: '04h:10min',
+        value: 250,
+    },
+    {
+        time: '04h:15min',
+        value: 255,
+    },
+    {
+        time: '04h:20min',
+        value: 260,
+    },
+    {
+        time: '04h:25min',
+        value: 265,
+    },
+    {
+        time: '04h:30min',
+        value: 270,
+    },
+    {
+        time: '04h:35min',
+        value: 275,
+    },
+    {
+        time: '04h:40min',
+        value: 280,
+    },
+    {
+        time: '04h:45min',
+        value: 285,
+    },
+];

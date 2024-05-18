@@ -6,6 +6,7 @@ import { Typography } from 'antd';
 import { AppLayout, MaxWidthContainer, TabNav } from 'components';
 import { HeaderSummary, PerformanceTab, InputTab, GoalsTab } from 'components';
 import { padding, withAuthentication } from 'libs';
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 const ContentContainer = styled.div`
@@ -38,10 +39,12 @@ const SaveStatus = ({ isSaving, lastTimeSaved }: { isSaving: boolean; lastTimeSa
     );
 };
 
-const LampPage: React.FC = () => {
+const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: string } }) => {
     const [isSaving, setIsSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState('performance');
+    const [activeTab, setActiveTab] = useState(searchParams?.lampTab ?? 'performance');
     const [lastTimeInputSaved, setLastTimeInputSaved] = useState<Date>();
+
+    const router = useRouter();
 
     return (
         <AppLayout withMelpSummary>
@@ -50,7 +53,10 @@ const LampPage: React.FC = () => {
                 <MaxWidthContainer style={{ position: 'relative' }}>
                     <TabNav
                         activeKey={activeTab}
-                        onTabClick={setActiveTab}
+                        onTabClick={(key) => {
+                            router.replace(`/melp/lamp?lampTab=${key}`);
+                            setActiveTab(key);
+                        }}
                         tabBarExtraContent={
                             activeTab !== 'input' ? undefined : (
                                 <SaveStatus isSaving={isSaving} lastTimeSaved={lastTimeInputSaved} />

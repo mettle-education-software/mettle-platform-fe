@@ -25,7 +25,7 @@ export const GoalsGraph: React.FC = () => {
                 series={goalGraph.series}
                 type="line"
                 width="100%"
-                height="190%"
+                height="200%"
             />
         </GraphWrapper>
     );

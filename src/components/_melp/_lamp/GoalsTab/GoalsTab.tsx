@@ -113,7 +113,7 @@ export const GoalsTab: React.FC = () => {
                 </Col>
             </Row>
 
-            <Skeleton active loading={isGoalsLoading}>
+            <Skeleton active loading={isGoalsLoading || !goalsData}>
                 <Row>
                     <Col span={24}>
                         <GoalSummaryCard>
@@ -139,7 +139,7 @@ export const GoalsTab: React.FC = () => {
                                             <Col span={6}>
                                                 <StatisticCard
                                                     title="DEDA"
-                                                    value="0:45 min"
+                                                    value={(goalsData ? goalsData[currentWeek - 1].deda : '') + ' min'}
                                                     color="#582133"
                                                     textColor="#F61F64"
                                                 />
@@ -147,7 +147,9 @@ export const GoalsTab: React.FC = () => {
                                             <Col span={6}>
                                                 <StatisticCard
                                                     title="Active"
-                                                    value="0:45 min"
+                                                    value={
+                                                        (goalsData ? goalsData[currentWeek - 1].active : '') + ' min'
+                                                    }
                                                     color="#365421"
                                                     textColor="#6FE71C"
                                                 />
@@ -155,7 +157,9 @@ export const GoalsTab: React.FC = () => {
                                             <Col span={6}>
                                                 <StatisticCard
                                                     title="Passive"
-                                                    value="0:45 min"
+                                                    value={
+                                                        (goalsData ? goalsData[currentWeek - 1].passive : '') + ' min'
+                                                    }
                                                     color="#205550"
                                                     textColor="#19ECD5"
                                                 />
@@ -163,7 +167,9 @@ export const GoalsTab: React.FC = () => {
                                             <Col span={6}>
                                                 <StatisticCard
                                                     title="Review"
-                                                    value="0:45 min"
+                                                    value={
+                                                        (goalsData ? goalsData[currentWeek - 1].review : '') + ' min'
+                                                    }
                                                     color="#423C2E"
                                                     textColor="#F7C034"
                                                 />
@@ -171,7 +177,11 @@ export const GoalsTab: React.FC = () => {
                                         </Row>
                                     </Col>
                                     <Col span={5}>
-                                        <StatisticCard title="Total study time" value="0:45 min" isHighlight />
+                                        <StatisticCard
+                                            title="Total study time"
+                                            value={(goalsData ? goalsData[currentWeek - 1].total : '') + ' min'}
+                                            isHighlight
+                                        />
                                     </Col>
                                 </Row>
                             </Flex>

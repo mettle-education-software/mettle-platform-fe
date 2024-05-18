@@ -64,7 +64,12 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSave
 
     const [inputDataEdit, setInputDataEdit] = useState<InputDataEdit>({} as InputDataEdit);
 
-    const [selectedWeek, setSelectedWeek] = useState(`week${melpSummary.current_deda_week}`);
+    const [selectedWeek, setSelectedWeek] = useState(`week${melpSummary?.current_deda_week}`);
+    useEffect(() => {
+        if (melpSummary) {
+            setSelectedWeek(`week${melpSummary.current_deda_week}`);
+        }
+    }, [melpSummary]);
     const [selectedDay, setSelectedDay] = useState(getDayToday());
 
     const { data: inputData, isLoading: isInputLoading } = useGetInputData(selectedWeek, selectedDay);
@@ -80,27 +85,27 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSave
             const { dedaInput, activeInput, passiveInput } = inputData;
 
             const editData: InputDataEdit = {
-                dedaPredPlace: dedaInput.deda_pred_place,
-                dedaFiveSteps: dedaInput.deda_steps,
-                dedaStateMind: dedaInput.deda_state_mind,
-                dedaStateBeing: dedaInput.deda_state_being,
-                dedaFocus: dedaInput.deda_focus,
-                readingTime: dedaInput.reading_time,
-                dedaTime: dedaInput.deda_time,
-                activeBook: activeInput.book,
-                activeDedaNotes: activeInput.deda_notes,
-                activeMooc: activeInput.mooc,
-                activeOthers: activeInput.others,
-                activeReview: activeInput.review,
-                passiveAudiobook: passiveInput.audiobook,
-                passiveConversation: passiveInput.conversation,
-                passiveMovieDoc: passiveInput.movie_doc,
-                passiveNewsShows: passiveInput.news_shows,
-                passiveOthers: passiveInput.others,
-                passivePodcast: passiveInput.podcast,
-                passiveSeries: passiveInput.series,
-                passiveTed: passiveInput.ted,
-                passiveYoutube: passiveInput.youtube,
+                dedaPredPlace: dedaInput?.deda_pred_place,
+                dedaFiveSteps: dedaInput?.deda_steps,
+                dedaStateMind: dedaInput?.deda_state_mind,
+                dedaStateBeing: dedaInput?.deda_state_being,
+                dedaFocus: dedaInput?.deda_focus,
+                readingTime: dedaInput?.reading_time,
+                dedaTime: dedaInput?.deda_time,
+                activeBook: activeInput?.book,
+                activeDedaNotes: activeInput?.deda_notes,
+                activeMooc: activeInput?.mooc,
+                activeOthers: activeInput?.others,
+                activeReview: activeInput?.review,
+                passiveAudiobook: passiveInput?.audiobook,
+                passiveConversation: passiveInput?.conversation,
+                passiveMovieDoc: passiveInput?.movie_doc,
+                passiveNewsShows: passiveInput?.news_shows,
+                passiveOthers: passiveInput?.others,
+                passivePodcast: passiveInput?.podcast,
+                passiveSeries: passiveInput?.series,
+                passiveTed: passiveInput?.ted,
+                passiveYoutube: passiveInput?.youtube,
             };
 
             if (inputData.reviewInput) {

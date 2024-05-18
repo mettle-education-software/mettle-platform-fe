@@ -147,6 +147,7 @@ export type GoalTableDataResponse = {
             deda: string;
             active: string;
             passive: string;
+            review: string;
             totalActive: string;
             total: string;
         }[];

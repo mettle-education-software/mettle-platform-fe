@@ -510,12 +510,60 @@ export const useGetGoalByLevel = (level?: GoalLevels) => {
 export const useGoalGraphOptions = (level?: GoalLevels) => {
     const [goalGraph, setGoalGraph] = useState<GraphConfig>({
         options: {
+            stroke: {
+                width: 2,
+            },
+            colors: [
+                '#B79060',
+                statisticsColors.DEDA,
+                statisticsColors.Active,
+                statisticsColors.Passive,
+                statisticsColors.Review,
+            ],
+            grid: {
+                borderColor: '#F2F0EE0D',
+                xaxis: {
+                    lines: {
+                        show: true,
+                    },
+                },
+            },
             chart: {
-                height: 350,
+                toolbar: {
+                    show: false,
+                },
                 type: 'line',
                 zoom: {
                     enabled: false,
                 },
+            },
+            legend: {
+                position: 'top',
+                labels: {
+                    colors: ['#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF'],
+                },
+                fontSize: '14px',
+            },
+            xaxis: {
+                stepSize: 10,
+                labels: {
+                    style: graphLabelsStyles,
+                    formatter: (value) => {
+                        return ['W10', 'W20', 'W30', 'W40', 'W50'].includes(value) ? value : '';
+                    },
+                },
+            },
+            yaxis: {
+                labels: {
+                    style: graphLabelsStyles,
+                    formatter: (value) => {
+                        const hours = Math.floor(value / 60);
+                        return `${hours} hour${hours > 1 ? 's' : ''}`;
+                    },
+                },
+                stepSize: 60,
+                min: 0,
+                max: 360,
             },
         },
         series: [],
@@ -525,18 +573,48 @@ export const useGoalGraphOptions = (level?: GoalLevels) => {
 
     useEffect(() => {
         if (data) {
-            const seriesData = data.map(({ total }) => {
-                const [hours, minutes] = total.split(':');
+            const parseMinutes = (time: string) => {
+                const [hours, minutes] = time.split(':');
                 const totalMinutes = parseInt(hours) * 60 + parseInt(minutes);
                 return totalMinutes;
-            });
-            const categories = data.map(({ week }) => `W${week}`);
+            };
+
+            const totalSeries = data.slice(0, 41).map(({ total }) => parseMinutes(total));
+            const dedaSeries = data.slice(0, 41).map(({ deda }) => parseMinutes(deda));
+            const activeSeries = data.slice(0, 41).map(({ active }) => parseMinutes(active));
+            const passiveSeries = data.slice(0, 41).map(({ passive }) => parseMinutes(passive));
+            const reviewSeries = data.slice(0, 41).map(({ review }) => parseMinutes(review));
+
+            const categories = data.slice(0, 41).map(({ week }) => `W${week}`);
 
             setGoalGraph((previousConfig) => ({
-                ...previousConfig,
+                options: {
+                    ...previousConfig.options,
+                    xaxis: {
+                        ...previousConfig.options.xaxis,
+                        categories,
+                    },
+                },
                 series: [
                     {
-                        data: seriesData,
+                        name: 'TOTAL',
+                        data: totalSeries,
+                    },
+                    {
+                        name: 'DEDA',
+                        data: dedaSeries,
+                    },
+                    {
+                        name: 'ACTIVE',
+                        data: activeSeries,
+                    },
+                    {
+                        name: 'PASSIVE',
+                        data: passiveSeries,
+                    },
+                    {
+                        name: 'REVIEW',
+                        data: reviewSeries,
                     },
                 ],
             }));

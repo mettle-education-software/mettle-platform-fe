@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+    GoalLevels,
+    GoalTableDataResponse,
     GraphConfig,
     InputDataDTO,
     InputDataResponse,
@@ -492,4 +494,57 @@ export const useSaveInput = () => {
             });
         },
     });
+};
+
+export const useGetGoalByLevel = (level?: GoalLevels) => {
+    return useQuery({
+        queryKey: ['get-goal-by-level', level],
+        queryFn: () =>
+            lampService
+                .get<GoalTableDataResponse>(`/goals/${level}`)
+                .then(({ data }) => data[level as GoalLevels].data),
+        enabled: !!level,
+    });
+};
+
+export const useGoalGraphOptions = (level?: GoalLevels) => {
+    const [goalGraph, setGoalGraph] = useState<GraphConfig>({
+        options: {
+            chart: {
+                height: 350,
+                type: 'line',
+                zoom: {
+                    enabled: false,
+                },
+            },
+        },
+        series: [],
+    });
+
+    const { data, isLoading: isGraphLoading } = useGetGoalByLevel(level);
+
+    useEffect(() => {
+        if (data) {
+            const seriesData = data.map(({ total }) => {
+                const [hours, minutes] = total.split(':');
+                const totalMinutes = parseInt(hours) * 60 + parseInt(minutes);
+                return totalMinutes;
+            });
+            const categories = data.map(({ week }) => `W${week}`);
+
+            setGoalGraph((previousConfig) => ({
+                ...previousConfig,
+                series: [
+                    {
+                        data: seriesData,
+                    },
+                ],
+            }));
+        }
+    }, [data]);
+
+    return {
+        isGraphLoading,
+        goalGraph,
+    };
 };

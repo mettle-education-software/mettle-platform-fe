@@ -1,11 +1,17 @@
 'use client';
 
+import styled from '@emotion/styled';
 import { Flex, Result, Button, Typography } from 'antd';
-import { AppLayout } from 'components';
+
+const ErrorContainer = styled.div`
+    height: 100vh;
+    width: 100%;
+    background: var(--main-bg);
+`;
 
 export default function NotFound() {
     return (
-        <AppLayout>
+        <ErrorContainer>
             <Flex
                 justify="center"
                 align="center"
@@ -28,6 +34,6 @@ export default function NotFound() {
                     }
                 />
             </Flex>
-        </AppLayout>
+        </ErrorContainer>
     );
 }

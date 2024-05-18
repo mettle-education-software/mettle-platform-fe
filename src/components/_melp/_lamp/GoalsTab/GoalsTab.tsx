@@ -3,8 +3,10 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import AdsClickIcon from '@mui/icons-material/AdsClick';
-import { Avatar, Col, Flex, Row, Tooltip, Typography } from 'antd';
+import { Avatar, Col, Flex, Row, Skeleton, Tooltip, Typography } from 'antd';
+import { GoalsGraph } from 'components/_melp/_lamp/GoalsTab/GoalsGraph';
 import { GoalsTable } from 'components/_melp/_lamp/GoalsTab/GoalsTable';
+import { useGetGoalByLevel } from 'hooks/melp/lamp';
 import { useMelpContext } from 'providers/MelpProvider';
 import React from 'react';
 
@@ -87,6 +89,7 @@ const StatisticCard = styled(StatisticCardRaw)`
 
 export const GoalsTab: React.FC = () => {
     const { melpSummary } = useMelpContext();
+    const { data: goalsData, isLoading: isGoalsLoading } = useGetGoalByLevel('hard');
 
     const currentWeek = melpSummary?.current_deda_week;
 
@@ -105,101 +108,81 @@ export const GoalsTab: React.FC = () => {
                         </Text>
                     </Flex>
                 </Col>
-                <Col span={12}>{/*    Graph here */}</Col>
-            </Row>
-
-            <Row>
-                <Col span={24}>
-                    <GoalSummaryCard>
-                        <Flex vertical gap="1rem">
-                            <Flex align="center" gap="0.8rem">
-                                <AdsClickIcon className="color-white" />
-                                <Title className="color-white" level={5}>
-                                    This is your daily goal on this week{' '}
-                                    {currentWeek < 10
-                                        ? `00${currentWeek}`
-                                        : currentWeek >= 10 && currentWeek < 100
-                                          ? `0${currentWeek}`
-                                          : currentWeek}
-                                </Title>
-                                <Tooltip title="This is your daily goal on this week">
-                                    <InfoCircleOutlined style={{ cursor: 'pointer' }} className="color-white" />
-                                </Tooltip>
-                            </Flex>
-
-                            <Row gutter={[22, 22]}>
-                                <Col span={19}>
-                                    <Row gutter={[12, 12]}>
-                                        <Col span={6}>
-                                            <StatisticCard
-                                                title="DEDA"
-                                                value="0:45 min"
-                                                color="#582133"
-                                                textColor="#F61F64"
-                                            />
-                                        </Col>
-                                        <Col span={6}>
-                                            <StatisticCard
-                                                title="Active"
-                                                value="0:45 min"
-                                                color="#365421"
-                                                textColor="#6FE71C"
-                                            />
-                                        </Col>
-                                        <Col span={6}>
-                                            <StatisticCard
-                                                title="Passive"
-                                                value="0:45 min"
-                                                color="#205550"
-                                                textColor="#19ECD5"
-                                            />
-                                        </Col>
-                                        <Col span={6}>
-                                            <StatisticCard
-                                                title="Review"
-                                                value="0:45 min"
-                                                color="#423C2E"
-                                                textColor="#F7C034"
-                                            />
-                                        </Col>
-                                    </Row>
-                                </Col>
-                                <Col span={5}>
-                                    <StatisticCard title="Total study time" value="0:45 min" isHighlight />
-                                </Col>
-                            </Row>
-                        </Flex>
-                    </GoalSummaryCard>
+                <Col span={12}>
+                    <GoalsGraph />
                 </Col>
             </Row>
 
-            <GoalsTable
-                currentWeek={currentWeek}
-                data={[
-                    {
-                        key: 1,
-                        week: 13,
-                        deda: '0:45 min',
-                        active: '0:45 min',
-                        passive: '0:45 min',
-                        review: '0:45 min',
-                        total: '0:45 min',
-                        totalActive: '0:45 min',
-                        totalPassive: '0:45 min',
-                    },
-                    {
-                        key: 2,
-                        week: 14,
-                        deda: '0:45 min',
-                        active: '0:45 min',
-                        passive: '0:45 min',
-                        review: '0:45 min',
-                        total: '0:45 min',
-                        totalActive: '0:45 min',
-                        totalPassive: '0:45 min',
-                    },
-                ]}
-            />
+            <Skeleton active loading={isGoalsLoading}>
+                <Row>
+                    <Col span={24}>
+                        <GoalSummaryCard>
+                            <Flex vertical gap="1rem">
+                                <Flex align="center" gap="0.8rem">
+                                    <AdsClickIcon className="color-white" />
+                                    <Title className="color-white" level={5}>
+                                        This is your daily goal on this week{' '}
+                                        {currentWeek < 10
+                                            ? `00${currentWeek}`
+                                            : currentWeek >= 10 && currentWeek < 100
+                                              ? `0${currentWeek}`
+                                              : currentWeek}
+                                    </Title>
+                                    <Tooltip title="This is your daily goal on this week">
+                                        <InfoCircleOutlined style={{ cursor: 'pointer' }} className="color-white" />
+                                    </Tooltip>
+                                </Flex>
+
+                                <Row gutter={[22, 22]}>
+                                    <Col span={19}>
+                                        <Row gutter={[12, 12]}>
+                                            <Col span={6}>
+                                                <StatisticCard
+                                                    title="DEDA"
+                                                    value="0:45 min"
+                                                    color="#582133"
+                                                    textColor="#F61F64"
+                                                />
+                                            </Col>
+                                            <Col span={6}>
+                                                <StatisticCard
+                                                    title="Active"
+                                                    value="0:45 min"
+                                                    color="#365421"
+                                                    textColor="#6FE71C"
+                                                />
+                                            </Col>
+                                            <Col span={6}>
+                                                <StatisticCard
+                                                    title="Passive"
+                                                    value="0:45 min"
+                                                    color="#205550"
+                                                    textColor="#19ECD5"
+                                                />
+                                            </Col>
+                                            <Col span={6}>
+                                                <StatisticCard
+                                                    title="Review"
+                                                    value="0:45 min"
+                                                    color="#423C2E"
+                                                    textColor="#F7C034"
+                                                />
+                                            </Col>
+                                        </Row>
+                                    </Col>
+                                    <Col span={5}>
+                                        <StatisticCard title="Total study time" value="0:45 min" isHighlight />
+                                    </Col>
+                                </Row>
+                            </Flex>
+                        </GoalSummaryCard>
+                    </Col>
+                </Row>
+            </Skeleton>
+
+            <Skeleton active loading={isGoalsLoading}>
+                <GoalsTable data={goalsData ?? []} currentWeek={currentWeek} />
+            </Skeleton>
         </GoalsWrapper>
     );
 };

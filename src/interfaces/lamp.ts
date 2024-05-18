@@ -130,3 +130,25 @@ export interface GraphConfig {
     series: ApexOptions['series'];
     options: ApexOptions;
 }
+
+export enum GoalLevelsEnum {
+    easy = 'Low',
+    medium = 'Medium',
+    hard = 'High',
+}
+
+export type GoalLevels = keyof typeof GoalLevelsEnum;
+
+export type GoalTableDataResponse = {
+    [key in GoalLevels]: {
+        data: {
+            key: string;
+            week: number;
+            deda: string;
+            active: string;
+            passive: string;
+            totalActive: string;
+            total: string;
+        }[];
+    };
+};

@@ -1,9 +1,15 @@
 'use client';
 
 // Error components must be Client Components
+import styled from '@emotion/styled';
 import { Flex, Result, Button, Typography } from 'antd';
-import { AppLayout } from 'components';
 import { useEffect } from 'react';
+
+const ErrorContainer = styled.div`
+    height: 100vh;
+    width: 100%;
+    background: var(--main-bg);
+`;
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     useEffect(() => {
@@ -12,7 +18,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
     }, [error]);
 
     return (
-        <AppLayout>
+        <ErrorContainer>
             <Flex
                 justify="center"
                 align="center"
@@ -33,6 +39,6 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
                     }
                 />
             </Flex>
-        </AppLayout>
+        </ErrorContainer>
     );
 }

@@ -8,11 +8,6 @@ import React from 'react';
 
 const { Title } = Typography;
 
-interface GoalsTableProps {
-    data: any[];
-    currentWeek: number;
-}
-
 const TitleCell = styled.div`
     font-weight: 400 !important;
     padding: 1rem 2rem;
@@ -96,6 +91,11 @@ const Table = styled(AntTable)`
         border-top: none !important;
         border-bottom: none !important;
     }
+
+    .ant-table-fixed-header {
+        background: #37312a !important;
+        border: none;
+    }
 `;
 
 const goalTableColumns: (currentWeek: number) => TableColumnsType = (currentWeek) => [
@@ -118,15 +118,15 @@ const goalTableColumns: (currentWeek: number) => TableColumnsType = (currentWeek
         render: (value, { week }) => <CellContent isCurrent={currentWeek === week}>{value}</CellContent>,
     },
     {
-        title: <TitleCell>PASSIVE</TitleCell>,
-        dataIndex: 'passive',
-        key: 'passive',
-        render: (value, { week }) => <CellContent isCurrent={currentWeek === week}>{value}</CellContent>,
-    },
-    {
         title: <TitleCell>REVIEW</TitleCell>,
         dataIndex: 'review',
         key: 'review',
+        render: (value, { week }) => <CellContent isCurrent={currentWeek === week}>{value}</CellContent>,
+    },
+    {
+        title: <TitleCell>PASSIVE</TitleCell>,
+        dataIndex: 'passive',
+        key: 'passive',
         render: (value, { week }) => <CellContent isCurrent={currentWeek === week}>{value}</CellContent>,
     },
     {
@@ -139,12 +139,6 @@ const goalTableColumns: (currentWeek: number) => TableColumnsType = (currentWeek
         title: <TitleCell>TOTAL ACTIVE</TitleCell>,
         dataIndex: 'totalActive',
         key: 'totalActive',
-        render: (value, { week }) => <CellContent isCurrent={currentWeek === week}>{value}</CellContent>,
-    },
-    {
-        title: <TitleCell>TOTAL PASSIVE</TitleCell>,
-        dataIndex: 'totalPassive',
-        key: 'totalPassive',
         render: (value, { week }) => (
             <CellContent isLast isCurrent={currentWeek === week}>
                 {value}
@@ -152,6 +146,19 @@ const goalTableColumns: (currentWeek: number) => TableColumnsType = (currentWeek
         ),
     },
 ];
+
+interface GoalsTableProps {
+    data: {
+        key: string;
+        week: number;
+        deda: string;
+        active: string;
+        passive: string;
+        totalActive: string;
+        total: string;
+    }[];
+    currentWeek: number;
+}
 
 export const GoalsTable: React.FC<GoalsTableProps> = ({ data, currentWeek }) => {
     return (
@@ -165,7 +172,14 @@ export const GoalsTable: React.FC<GoalsTableProps> = ({ data, currentWeek }) => 
                     <InfoCircleOutlined style={{ cursor: 'pointer' }} className="color-white" />
                 </Tooltip>
             </Flex>
-            <Table dataSource={data} columns={goalTableColumns(currentWeek)} pagination={false} />
+            <Table
+                dataSource={data}
+                columns={goalTableColumns(currentWeek)}
+                pagination={false}
+                scroll={{
+                    y: 350,
+                }}
+            />
         </TableCard>
     );
 };

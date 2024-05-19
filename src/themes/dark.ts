@@ -13,9 +13,16 @@ export const darkTheme: ThemeConfig = {
         fontFamily: '"europa", sans-serif',
     },
     components: {
+        Collapse: {
+            contentPadding: 0,
+        },
+        Progress: {
+            circleTextColor: '#FFFFFF',
+        },
         Typography: {
             algorithm: true,
             titleMarginBottom: 0,
+            titleMarginTop: 0,
             colorPrimary: '#FFFFFF',
             colorTextSecondary: 'var(--secondary)',
             // fontSize: 'calc(20px + 1vw)' as unknown as number,

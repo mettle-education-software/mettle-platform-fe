@@ -2,12 +2,22 @@
 
 import { CloudOutlined, LoadingOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Typography } from 'antd';
+import { Flex, Typography } from 'antd';
 import { AppLayout, MaxWidthContainer, TabNav } from 'components';
-import { HeaderSummary, PerformanceTab, InputTab, GoalsTab } from 'components';
+import { PerformanceTab, InputTab, GoalsTab } from 'components';
 import { padding, withAuthentication } from 'libs';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
+
+const { Title, Text } = Typography;
+
+const Header = styled.div`
+    width: 100%;
+    padding: 1.8rem 0;
+    display: flex;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, #2b2b2b 100%);
+`;
 
 const ContentContainer = styled.div`
     background: var(--main-bg);
@@ -18,6 +28,7 @@ const ContentContainer = styled.div`
     align-items: center;
     flex-direction: column;
     padding: ${padding.y.sm} ${padding.x.lg};
+    position: relative;
 `;
 
 const SaveStatus = ({ isSaving, lastTimeSaved }: { isSaving: boolean; lastTimeSaved?: Date }) => {
@@ -26,16 +37,16 @@ const SaveStatus = ({ isSaving, lastTimeSaved }: { isSaving: boolean; lastTimeSa
 
     if (isSaving) {
         return (
-            <Typography.Text style={textStyle}>
+            <Text style={textStyle}>
                 <LoadingOutlined style={iconStyle} /> Saving...
-            </Typography.Text>
+            </Text>
         );
     }
 
     return (
-        <Typography.Text style={textStyle}>
+        <Text style={textStyle}>
             <CloudOutlined style={iconStyle} /> Saved {lastTimeSaved && `on ${lastTimeSaved.toLocaleString()}`}
-        </Typography.Text>
+        </Text>
     );
 };
 
@@ -48,10 +59,22 @@ const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: strin
 
     return (
         <AppLayout withMelpSummary>
-            <HeaderSummary title="LAMP" description="Language Acquisition Management Platform" />
+            <Header>
+                <MaxWidthContainer>
+                    <Flex vertical gap="0.2rem">
+                        <Title level={1} className="color-secondary">
+                            LAMP
+                        </Title>
+                        <Title level={4} className="color-white" style={{ fontWeight: 400 }}>
+                            Language Acquisition Management Platform
+                        </Title>
+                    </Flex>
+                </MaxWidthContainer>
+            </Header>
             <ContentContainer>
                 <MaxWidthContainer style={{ position: 'relative' }}>
                     <TabNav
+                        sticky
                         activeKey={activeTab}
                         onTabClick={(key) => {
                             router.replace(`/melp/lamp?lampTab=${key}`);

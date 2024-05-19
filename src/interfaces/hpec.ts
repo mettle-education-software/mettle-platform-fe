@@ -16,4 +16,24 @@ export interface IHpecModulesProcessed {
     blockedHpecs: IHPECLesson[];
 }
 
-export type HPECListType = IHPECLesson[];
+export interface HpecModulesResponse {
+    hpecContentCollection: {
+        items: IHPECLesson[];
+    };
+}
+
+export interface HpecResourcesResponse {
+    singleLessonCollection: {
+        items: {
+            lessonResourcesCollection: {
+                items: {
+                    url: string;
+                    title: string;
+                    fileName: string;
+                    contentType: string;
+                    size: number;
+                }[];
+            };
+        }[];
+    };
+}

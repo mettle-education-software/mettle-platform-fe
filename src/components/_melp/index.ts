@@ -12,3 +12,4 @@ export { HeaderSummary } from './HeaderSummary/HeaderSummary';
 export { InputWithTime } from './InputWithTime/InputWithTime';
 export { InputsWrapper } from './InputsWrapper/InputsWrapper';
 export * from './_lamp';
+export * from './_hpec';

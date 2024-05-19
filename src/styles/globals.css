@@ -70,6 +70,10 @@ a {
     color: #fff !important;
 }
 
+.color-secondary {
+    color: var(--secondary) !important;
+}
+
 .bg-white {
     background-color: var(--white);
 }

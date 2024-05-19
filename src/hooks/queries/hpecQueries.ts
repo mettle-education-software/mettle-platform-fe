@@ -1,6 +1,12 @@
 import { useQuery } from '@apollo/client';
 import gql from 'graphql-tag';
-import { AccountCaseType, IHPECLesson, IHpecModulesProcessed } from 'interfaces';
+import {
+    AccountCaseType,
+    HpecModulesResponse,
+    HpecResourcesResponse,
+    IHPECLesson,
+    IHpecModulesProcessed,
+} from 'interfaces';
 
 const hpecTitlesQuery = gql`
     query HpecTitles {
@@ -21,7 +27,7 @@ const hpecTitlesQuery = gql`
     }
 `;
 
-export const useGetHpecsModules = () => useQuery(hpecTitlesQuery);
+export const useGetHpecsModules = () => useQuery<HpecModulesResponse>(hpecTitlesQuery);
 
 export const useHpecModulesWithDripping: (
     currentTime: { daysSinceMelpBegin: number; currentDay: number },
@@ -95,3 +101,29 @@ export const useHpecModulesWithDripping: (
         }
     }
 };
+
+const hpecResourcesQuery = gql`
+    query HpecResources($lessonId: String) {
+        singleLessonCollection(where: { lessonId: $lessonId }, limit: 1) {
+            items {
+                lessonResourcesCollection {
+                    items {
+                        url
+                        title
+                        fileName
+                        contentType
+                        size
+                    }
+                }
+            }
+        }
+    }
+`;
+
+export const useGetHpecResources = (lessonId: string) =>
+    useQuery<HpecResourcesResponse>(hpecResourcesQuery, {
+        variables: {
+            lessonId,
+        },
+        fetchPolicy: 'cache-first',
+    });

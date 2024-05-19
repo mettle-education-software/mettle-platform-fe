@@ -144,7 +144,7 @@ export const AppLayout = forwardRef<
                                 onClick: ({ domEvent }) => {
                                     domEvent.preventDefault();
                                     collapseOnMobile();
-                                    router.push('/melp/hpec/hpec1');
+                                    router.push('/melp/hpec/HPEC1/welcome');
                                 },
                             },
                             {

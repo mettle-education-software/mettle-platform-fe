@@ -15,6 +15,7 @@ export interface DedaItem {
     dedaSlug: string;
     dedaFeaturedImage: DedaFeaturedImage;
     dedaTitle: string;
+    dedaCategories: string[];
 }
 
 export interface DedaContentCollectionItems {

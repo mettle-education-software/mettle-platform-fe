@@ -51,7 +51,8 @@ interface HpecModulesListProps {
 
 export const HpecModulesList: React.FC<HpecModulesListProps> = ({ activeLessonId, activeHpecId }) => {
     const { melpSummary } = useMelpContext();
-    const { unlockedModules, lockedModules, loading } = useGetHpecsModules();
+    const { unlockedModules, lockedModules, unlockedLessons, totalLessons, progressCount, loading } =
+        useGetHpecsModules();
     const [activeKey, setActiveKey] = useState(activeHpecId);
 
     if (loading || !melpSummary) return <Skeleton.Button active shape="round" block />;
@@ -103,7 +104,7 @@ export const HpecModulesList: React.FC<HpecModulesListProps> = ({ activeLessonId
                     <Progress
                         size={50}
                         type="circle"
-                        percent={40}
+                        percent={progressCount}
                         strokeColor="var(--secondary)"
                         trailColor="#FFFFFF"
                     />
@@ -111,7 +112,9 @@ export const HpecModulesList: React.FC<HpecModulesListProps> = ({ activeLessonId
                         <Title level={5} className="color-white">
                             HPEC Progress
                         </Title>
-                        <Text className="color-white">xx of 32 classes completed</Text>
+                        <Text className="color-white">
+                            {unlockedLessons} of {totalLessons} classes unlocked
+                        </Text>
                     </Flex>
                 </Flex>
             </CompletedCard>

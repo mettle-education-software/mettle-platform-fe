@@ -2,21 +2,13 @@
 
 import { keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
-import { Typography } from 'antd';
+import LockIcon from '@mui/icons-material/Lock';
+import { Flex, Typography } from 'antd';
 import { padding } from 'libs';
 import React from 'react';
 import { Chip } from '../../atoms/Chip/Chip';
 
-interface CardComponentProps {
-    imgUrl?: string;
-    title?: string;
-    week?: string;
-    dedaId?: string;
-    onClick?: (dedaId: string) => void;
-    isLoading?: boolean;
-}
-
-const Card = styled.div<{ imgUrl?: string }>`
+const Card = styled.div<{ imgUrl?: string; blocked?: boolean }>`
     background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(0, 0, 0, 0) 100%), url(${(props) => props.imgUrl});
     background-size: cover;
     background-position: center;
@@ -31,7 +23,9 @@ const Card = styled.div<{ imgUrl?: string }>`
     justify-content: space-between;
     padding: ${padding.y.sm} ${padding.x.sm};
     transition: all 0.15s ease-in-out;
-    cursor: pointer;
+    cursor: ${({ blocked }) => (blocked ? 'not-allowed' : 'pointer')};
+    position: relative;
+    z-index: 1;
 
     &.is-loading {
         animation: ${keyframes`
@@ -48,9 +42,14 @@ const Card = styled.div<{ imgUrl?: string }>`
         border: none;
     }
 
+    .categories {
+        color: #cfcbbd;
+        font-size: 1rem;
+        font-weight: 400;
+    }
+
     & h2 {
         color: var(--secondary);
-        margin-bottom: 2rem;
         font-weight: 700;
     }
 
@@ -59,23 +58,79 @@ const Card = styled.div<{ imgUrl?: string }>`
     }
 `;
 
-export const DedaCard: React.FC<CardComponentProps> = ({ imgUrl, title, week, dedaId, onClick, isLoading }) => {
+const Blocked = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .lock {
+        color: #fefdfb;
+        font-size: 5rem;
+    }
+`;
+
+interface CardComponentProps {
+    imgUrl?: string;
+    title?: string;
+    week?: string;
+    dedaId?: string;
+    onClick?: (dedaId: string) => void;
+    isLoading?: boolean;
+    blocked?: boolean;
+    categories?: string[];
+}
+
+export const DedaCard: React.FC<CardComponentProps> = ({
+    imgUrl,
+    title,
+    week,
+    dedaId,
+    onClick,
+    isLoading,
+    blocked = false,
+    categories = [],
+}) => {
     if (isLoading) return <Card className="is-loading" />;
 
     return (
         <Card
+            blocked={blocked}
             className={isLoading ? 'is-loading' : ''}
             imgUrl={imgUrl}
             onClick={() => {
-                if (dedaId && onClick) {
+                if (dedaId && onClick && !blocked) {
                     onClick(dedaId);
                 }
             }}
         >
+            {blocked && (
+                <Blocked>
+                    <LockIcon className="lock" />
+                </Blocked>
+            )}
             <div>{week && <Chip>{week}</Chip>}</div>
-            <Typography.Title ellipsis={true} level={2}>
-                {title}
-            </Typography.Title>
+            <Flex vertical gap="12px">
+                <Typography.Title level={2}>{title}</Typography.Title>
+                <Typography.Text className="categories">
+                    {categories?.map((category, index) => (
+                        <>
+                            {category}
+                            {index < categories.length - 1 && (
+                                <span style={{ color: 'var(--secondary)', margin: '0 0.8rem', fontSize: 10 }}>
+                                    &#9210;
+                                </span>
+                            )}
+                        </>
+                    ))}
+                </Typography.Text>
+            </Flex>
         </Card>
     );
 };

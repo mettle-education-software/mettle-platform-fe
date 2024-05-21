@@ -9,6 +9,7 @@ import { useDeviceSize } from 'hooks';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { forwardRef, useEffect, useState } from 'react';
 import { DedaIcon } from '../../icons';
+import { UserMenu } from '../../molecules/UserMenu/UserMenu';
 
 const { Header, Content, Sider } = Layout;
 
@@ -215,7 +216,12 @@ export const AppLayout = forwardRef<
                     {customMenu}
                 </Sidebar>
                 <Layout>
-                    <AppHeader>{withMelpSummary && <MelpSummary />}</AppHeader>
+                    <AppHeader>
+                        <div>{withMelpSummary && <MelpSummary />}</div>
+                        <div>
+                            <UserMenu />
+                        </div>
+                    </AppHeader>
                     <ContentLayout>
                         <AppContent ref={ref}>{children}</AppContent>
                     </ContentLayout>

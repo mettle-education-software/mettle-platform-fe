@@ -15,7 +15,7 @@ const { Title } = Typography;
 const WhiteTitle = styled(Title)`
     color: #ffffff !important;
     font-weight: 400 !important;
-    font-size: 0.8rem !important;
+    font-size: 1rem !important;
 `;
 
 const Legend = ({ value, name, color }: { name: string; color: string; value?: number }) => {
@@ -23,7 +23,7 @@ const Legend = ({ value, name, color }: { name: string; color: string; value?: n
         <Flex vertical align="center" gap="0.7rem">
             <Flex vertical align="center">
                 <WhiteTitle level={5}>{value?.toFixed(0)}%</WhiteTitle>
-                <hr style={{ border: `4px solid ${color}`, borderRadius: '30px', width: '45px' }} />
+                <hr style={{ border: `4px solid ${color}`, borderRadius: '30px', width: '55px' }} />
             </Flex>
             <WhiteTitle level={5}>{name}</WhiteTitle>
         </Flex>
@@ -46,7 +46,7 @@ export const OverallGraph: React.FC = () => {
             <div
                 style={{
                     position: 'absolute',
-                    top: '36%',
+                    top: '37.5%',
                     left: '42%',
                 }}
             >

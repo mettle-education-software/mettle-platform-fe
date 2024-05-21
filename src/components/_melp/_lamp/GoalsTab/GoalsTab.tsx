@@ -7,6 +7,7 @@ import { Avatar, Col, Flex, Row, Skeleton, Tooltip, Typography } from 'antd';
 import { GoalsGraph } from 'components/_melp/_lamp/GoalsTab/GoalsGraph';
 import { GoalsTable } from 'components/_melp/_lamp/GoalsTab/GoalsTable';
 import { useGetGoalByLevel } from 'hooks/melp/lamp';
+import { DedaDifficulty } from 'interfaces/melp';
 import { useMelpContext } from 'providers/MelpProvider';
 import React from 'react';
 
@@ -87,9 +88,13 @@ const StatisticCard = styled(StatisticCardRaw)`
     }
 `;
 
-export const GoalsTab: React.FC = () => {
+interface GoalsTabProps {
+    goalLevel: DedaDifficulty;
+}
+
+export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
     const { melpSummary } = useMelpContext();
-    const { data: goalsData, isLoading: isGoalsLoading } = useGetGoalByLevel('hard');
+    const { data: goalsData, isLoading: isGoalsLoading } = useGetGoalByLevel(goalLevel);
 
     const currentWeek = melpSummary?.current_deda_week;
 
@@ -109,7 +114,7 @@ export const GoalsTab: React.FC = () => {
                     </Flex>
                 </Col>
                 <Col span={12}>
-                    <GoalsGraph />
+                    <GoalsGraph goalLevel={goalLevel} />
                 </Col>
             </Row>
 
@@ -190,7 +195,7 @@ export const GoalsTab: React.FC = () => {
                 </Row>
             </Skeleton>
 
-            <Skeleton active loading={isGoalsLoading}>
+            <Skeleton active loading={isGoalsLoading || !goalsData}>
                 <GoalsTable data={goalsData ?? []} currentWeek={currentWeek} />
             </Skeleton>
         </GoalsWrapper>

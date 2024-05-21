@@ -34,8 +34,6 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
 
     const lastDedas = unlockedDEDAs.slice(unlockedDEDAs.length - 4, unlockedDEDAs.length);
 
-    console.log(lastDedas);
-
     let nextDedas: string[] = [];
 
     if (currentDeda) {
@@ -122,6 +120,8 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
                                     onClick={() => {
                                         onSelectedDeda(deda.dedaId);
                                     }}
+                                    categories={deda.dedaCategories}
+                                    blocked={!unlockedDEDAs?.includes(deda.dedaId)}
                                 />
                             </Col>
                         ))}
@@ -136,6 +136,8 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
                                     onClick={() => {
                                         onSelectedDeda(deda.dedaId);
                                     }}
+                                    categories={deda.dedaCategories}
+                                    blocked={!unlockedDEDAs?.includes(deda.dedaId)}
                                 />
                             </Col>
                         ))}
@@ -149,6 +151,8 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
                                     onClick={() => {
                                         onSelectedDeda(deda.dedaId);
                                     }}
+                                    categories={deda.dedaCategories}
+                                    blocked={!unlockedDEDAs?.includes(deda.dedaId)}
                                 />
                             </Col>
                         ))}

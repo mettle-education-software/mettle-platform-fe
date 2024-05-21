@@ -9,6 +9,7 @@ import {
     WeeklyPerformanceResponse,
     WeeklyStatisticsResponse,
 } from 'interfaces';
+import { DedaDifficulty } from 'interfaces/melp';
 import { statisticsColors } from 'libs';
 import { useAppContext } from 'providers';
 import { useEffect, useState } from 'react';
@@ -179,6 +180,12 @@ export const useGeneralWeeklyDevelopment = (userUid?: string) => {
                 },
             },
             chart: {
+                zoom: {
+                    enabled: false,
+                },
+                selection: {
+                    enabled: false,
+                },
                 type: 'area',
                 toolbar: {
                     show: false,
@@ -496,18 +503,18 @@ export const useSaveInput = () => {
     });
 };
 
-export const useGetGoalByLevel = (level?: GoalLevels) => {
+export const useGetGoalByLevel = (level?: DedaDifficulty) => {
     return useQuery({
         queryKey: ['get-goal-by-level', level],
         queryFn: () =>
             lampService
-                .get<GoalTableDataResponse>(`/goals/${level}`)
-                .then(({ data }) => data[level as GoalLevels].data),
+                .get<GoalTableDataResponse>(`/goals/${level?.toLowerCase()}`)
+                .then(({ data }) => data[level?.toLowerCase() as GoalLevels].data),
         enabled: !!level,
     });
 };
 
-export const useGoalGraphOptions = (level?: GoalLevels) => {
+export const useGoalGraphOptions = (level?: DedaDifficulty) => {
     const [goalGraph, setGoalGraph] = useState<GraphConfig>({
         options: {
             stroke: {

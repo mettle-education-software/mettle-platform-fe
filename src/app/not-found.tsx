@@ -2,6 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Flex, Result, Button, Typography } from 'antd';
+import Image from 'next/image';
 
 const ErrorContainer = styled.div`
     height: 100vh;
@@ -15,8 +16,16 @@ export default function NotFound() {
             <Flex
                 justify="center"
                 align="center"
+                vertical
                 style={{ height: '100vh', width: '100%', background: 'var(--main-bg)' }}
             >
+                <Image
+                    style={{ marginBottom: -100 }}
+                    src="/img/logo_light.svg"
+                    height={300}
+                    width={400}
+                    alt="Mettle-logo"
+                />
                 <Result
                     status="404"
                     title={
@@ -25,11 +34,13 @@ export default function NotFound() {
                         </Typography.Title>
                     }
                     subTitle={
-                        <Typography.Text style={{ color: '#FFF' }}>This page could not be found.</Typography.Text>
+                        <Typography.Text style={{ color: '#FFF' }}>
+                            A página que você está procurando não existe.
+                        </Typography.Text>
                     }
                     extra={
                         <Button type="primary" href="/">
-                            Go back
+                            Voltar
                         </Button>
                     }
                 />

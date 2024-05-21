@@ -10,6 +10,7 @@ const items = `
                 url
             }
             dedaTitle
+            dedaCategories
         }
 `;
 

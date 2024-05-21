@@ -42,6 +42,8 @@ export const useGetHpecsModules = () => {
 
     const [unlockedModules, setUnlockedModules] = useState<IHPECLesson[]>([]);
     const [lockedModules, setLockedModules] = useState<IHPECLesson[]>([]);
+    const [unlockedLessons, setUnlockedLessons] = useState(0);
+    const [totalLessons, setTotalLessons] = useState(0);
 
     useEffect(() => {
         if (melpSummary && modulesContentData) {
@@ -79,7 +81,23 @@ export const useGetHpecsModules = () => {
                 unlocked.push(hpec);
             });
 
-            console.log('after here', unlocked, locked);
+            let unlockedLessonsCount = 0;
+            let totalLessonsCount = 0;
+
+            unlocked.forEach((module) => {
+                const moduleLessonsLength = module.hpecLessonsCollection.items.length;
+                unlockedLessonsCount += moduleLessonsLength;
+                totalLessonsCount += moduleLessonsLength;
+            });
+
+            locked.forEach((module) => {
+                const moduleLessonsLength = module.hpecLessonsCollection.items.length;
+
+                totalLessonsCount += moduleLessonsLength;
+            });
+
+            setUnlockedLessons(unlockedLessonsCount);
+            setTotalLessons(totalLessonsCount);
 
             setUnlockedModules(unlocked);
             setLockedModules(locked);
@@ -89,6 +107,9 @@ export const useGetHpecsModules = () => {
     return {
         unlockedModules,
         lockedModules,
+        unlockedLessons,
+        totalLessons,
+        progressCount: (unlockedLessons / totalLessons) * 100,
         loading,
         error,
     };

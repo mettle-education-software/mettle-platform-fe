@@ -10,6 +10,14 @@ export enum MelpStatuses {
 
 export type MelpStatus = keyof typeof MelpStatuses;
 
+export enum DedaDifficulties {
+    EASY = 'Low',
+    MEDIUM = 'Medium',
+    HARD = 'High',
+}
+
+export type DedaDifficulty = keyof typeof DedaDifficulties;
+
 export interface MelpSummaryResponse {
     data: {
         current_deda_day: number;
@@ -22,6 +30,7 @@ export interface MelpSummaryResponse {
         unlocked_dedas: string[];
         user_uuid: string;
         currentDedaName?: string;
+        deda_difficulty: DedaDifficulty;
     };
 }
 

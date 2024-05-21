@@ -7,6 +7,7 @@ import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { MAX_CONTENT_WIDTH, withAuthentication } from 'libs';
+import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
 import React, { useState } from 'react';
 
 const HeaderSummary = styled.section<{ imgUrl?: string }>`
@@ -120,4 +121,4 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     );
 }
 
-export default withAuthentication(DedaContent);
+export default withAuthentication(withDedaUnlocked(DedaContent));

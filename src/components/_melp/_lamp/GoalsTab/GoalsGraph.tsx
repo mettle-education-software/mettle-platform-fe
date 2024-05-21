@@ -3,6 +3,7 @@
 import styled from '@emotion/styled';
 import { Skeleton } from 'antd';
 import { useGoalGraphOptions } from 'hooks/melp/lamp';
+import { DedaDifficulty } from 'interfaces/melp';
 import dynamic from 'next/dynamic';
 import React from 'react';
 
@@ -13,10 +14,14 @@ const GraphWrapper = styled.div`
     height: 100%;
 `;
 
-export const GoalsGraph: React.FC = () => {
-    const { goalGraph, isGraphLoading } = useGoalGraphOptions('hard');
+interface GoalsGraphProps {
+    goalLevel: DedaDifficulty;
+}
 
-    if (isGraphLoading || !goalGraph) return <Skeleton active loading />;
+export const GoalsGraph: React.FC<GoalsGraphProps> = ({ goalLevel }) => {
+    const { goalGraph, isGraphLoading } = useGoalGraphOptions(goalLevel);
+
+    if (isGraphLoading || !goalGraph || !goalLevel) return <Skeleton active loading />;
 
     return (
         <GraphWrapper>

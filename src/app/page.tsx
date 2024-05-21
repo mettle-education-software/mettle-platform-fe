@@ -1,9 +1,9 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Button, Card, Col, Flex, Row, Typography } from 'antd';
+import { Card, Col, Flex, Row, Typography } from 'antd';
 import { AppLayout, CourseCard, MaxWidthContainer } from 'components';
-import { handleLogout, withAuthentication } from 'libs';
+import { withAuthentication } from 'libs';
 import { useAppContext } from 'providers';
 import React from 'react';
 
@@ -88,7 +88,7 @@ function Home() {
                                         imgUrl={'/img/melp-thumb.webp'}
                                         title="MELP"
                                         type="Programa"
-                                        href="/melp/deda"
+                                        href="/melp"
                                     />
                                 </Col>
                             </Row>
@@ -96,9 +96,6 @@ function Home() {
                     </ContinueCard>
                 </MaxWidthContainer>
             </Content>
-
-            <Typography>Dashboard here</Typography>
-            <Button onClick={handleLogout}>Sair</Button>
         </AppLayout>
     );
 }

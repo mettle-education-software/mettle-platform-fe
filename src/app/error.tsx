@@ -3,6 +3,7 @@
 // Error components must be Client Components
 import styled from '@emotion/styled';
 import { Flex, Result, Button, Typography } from 'antd';
+import Image from 'next/image';
 import { useEffect } from 'react';
 
 const ErrorContainer = styled.div`
@@ -22,8 +23,16 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
             <Flex
                 justify="center"
                 align="center"
+                vertical
                 style={{ height: '100vh', width: '100%', background: 'var(--main-bg)' }}
             >
+                <Image
+                    style={{ marginBottom: -100 }}
+                    src="/img/logo_light.svg"
+                    height={300}
+                    width={400}
+                    alt="Mettle-logo"
+                />
                 <Result
                     status="500"
                     title={

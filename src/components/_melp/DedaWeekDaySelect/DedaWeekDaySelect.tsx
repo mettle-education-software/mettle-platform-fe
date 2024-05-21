@@ -72,12 +72,14 @@ export const DedaWeekDaySelect: React.FC<SelectProps & { selectedWeek?: string }
                 setOptions(weekDays);
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedWeek, melpSummary, weekDays]);
 
     useEffect(() => {
         if (props.onChange) {
             props.onChange(value, options);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value]);
 
     return (

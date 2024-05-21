@@ -78,6 +78,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSave
 
     useEffect(() => {
         setIsSaving(saveInput.isPending);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [saveInput.isPending]);
 
     useEffect(() => {
@@ -214,6 +215,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSave
         if (saveKey) {
             saveInputDebounce();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [saveKey]);
 
     const extraInputSelect = () => (

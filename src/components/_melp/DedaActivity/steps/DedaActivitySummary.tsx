@@ -56,6 +56,7 @@ export const DedaActivitySummary = ({
         }));
     };
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const onInputsCallback = useCallback(onInputs, []);
 
     useEffect(() => {

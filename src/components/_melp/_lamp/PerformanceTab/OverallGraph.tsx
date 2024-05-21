@@ -15,6 +15,7 @@ const { Title } = Typography;
 const WhiteTitle = styled(Title)`
     color: #ffffff !important;
     font-weight: 400 !important;
+    font-size: 0.8rem !important;
 `;
 
 const Legend = ({ value, name, color }: { name: string; color: string; value?: number }) => {
@@ -71,19 +72,19 @@ export const OverallGraph: React.FC = () => {
                 series={overallGraph.series}
                 type="radialBar"
                 width="100%"
-                height="190%"
+                height={400}
             />
             <Row align="middle" gutter={[40, 40]} justify="center">
-                <Col>
+                <Col span={6}>
                     <Legend name="DEDA" color={statisticsColors.DEDA} value={overallData?.byActivity.deda} />
                 </Col>
-                <Col>
+                <Col span={6}>
                     <Legend name="ACTIVE" color={statisticsColors.Active} value={overallData?.byActivity.active} />
                 </Col>
-                <Col>
+                <Col span={6}>
                     <Legend name="PASSIVE" color={statisticsColors.Passive} value={overallData?.byActivity.passive} />
                 </Col>
-                <Col>
+                <Col span={6}>
                     <Legend name="REVIEW" color={statisticsColors.Review} value={overallData?.byActivity.review} />
                 </Col>
             </Row>

@@ -24,28 +24,6 @@ export const statisticsColors = {
     Review: '#F7C034',
 };
 
-export const fileTypes = {
-    'application/pdf': 'PDF',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
-    'image/png': 'PNG Image',
-    'image/jpeg': 'JPEG Image',
-    'image/gif': 'GIF Image',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel',
-    'application/zip': 'ZIP',
-    'application/x-rar-compressed': 'RAR',
-    'application/octet-stream': 'Binary',
-    'application/vnd.ms-excel': 'Excel',
-    'application/msword': 'Word',
-    'application/vnd.ms-powerpoint': 'PowerPoint',
-    'text/plain': 'Text',
-    'application/vnd.ms-outlook': 'Outlook',
-    'application/vnd.ms-publisher': 'Publisher',
-    'application/vnd.ms-visio.drawing': 'Visio',
-    'application/vnd.ms-project': 'Project',
-    'application/vnd.ms-access': 'Access',
-};
-
 export const readingTimeList = [
     {
         time: 'Not started yet',

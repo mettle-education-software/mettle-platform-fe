@@ -4,7 +4,7 @@ import { DownloadOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Avatar, Col, Flex, Row, Skeleton, Typography } from 'antd';
 import { useGetHpecResources } from 'hooks/queries/hpecQueries';
-import { fileTypes } from 'libs';
+import { fileTypes, saveFile } from 'libs';
 import React from 'react';
 
 const { Text, Title } = Typography;
@@ -18,11 +18,13 @@ const ResourceCard = ({
     title,
     fileType,
     fileSize,
+    onClick,
 }: {
     title: string;
     fileType: string;
     fileSize: number;
     className?: string;
+    onClick?: () => void;
 }) => {
     const parseFileSize = (size: number) => {
         if (size < 1024) {
@@ -34,7 +36,7 @@ const ResourceCard = ({
         }
     };
     return (
-        <div className={className}>
+        <div onClick={onClick} className={className}>
             <Flex justify="flex-start" align="center" gap="1rem">
                 <Avatar size={40} className="avatar">
                     <DownloadOutlined className="icon" />
@@ -56,9 +58,20 @@ const StyleResourceCard = styled(ResourceCard)`
     padding: 1rem;
     border-radius: 10px;
     background: #353535;
+    cursor: pointer;
+    transition: background 0.3s;
+
+    &:hover {
+        background: #423e39;
+    }
+
+    &:hover .avatar {
+        background: #353535;
+    }
 
     .avatar {
         background: #423e39;
+        transition: background 0.3s;
     }
 
     .icon {
@@ -89,7 +102,14 @@ export const HpecResources: React.FC<HpecResourcesProps> = ({ lessonId }) => {
         <Row gutter={[22, 22]}>
             {filesList?.map((file) => (
                 <Col key={file.url}>
-                    <StyleResourceCard title={file.title} fileType={file.contentType} fileSize={file.size} />
+                    <StyleResourceCard
+                        onClick={() => {
+                            saveFile(file.url, file.title, file.contentType as keyof typeof fileTypes);
+                        }}
+                        title={file.title}
+                        fileType={file.contentType}
+                        fileSize={file.size}
+                    />
                 </Col>
             ))}
         </Row>

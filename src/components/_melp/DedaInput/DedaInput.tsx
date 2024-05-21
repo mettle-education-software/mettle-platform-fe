@@ -51,10 +51,10 @@ const DedaRateInputWrapper = styled.div`
 export const DedaRateInput: React.FC<DedaRateInputProps> = ({ label, value, onChange }) => (
     <DedaRateInputWrapper>
         <Row>
-            <Col span={16}>
+            <Col span={14}>
                 <Text className="input-variable-text">{label}</Text>
             </Col>
-            <Col span={8}>
+            <Col span={10}>
                 <Flex justify="flex-end">
                     <Rate
                         className="ant-rate-star-first"

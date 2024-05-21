@@ -7,6 +7,8 @@ import {
     IHPECLesson,
     IHpecModulesProcessed,
 } from 'interfaces';
+import { useMelpContext } from 'providers/MelpProvider';
+import { useEffect, useState } from 'react';
 
 const hpecTitlesQuery = gql`
     query HpecTitles {
@@ -27,79 +29,69 @@ const hpecTitlesQuery = gql`
     }
 `;
 
-export const useGetHpecsModules = () => useQuery<HpecModulesResponse>(hpecTitlesQuery);
+export const useGetHpecsModules = () => {
+    const { melpSummary } = useMelpContext();
 
-export const useHpecModulesWithDripping: (
-    currentTime: { daysSinceMelpBegin: number; currentDay: number },
-    accountCase: AccountCaseType,
-) => IHpecModulesProcessed = (currentTime, accountCase) => {
-    const hpecModulesQueryResponse = useGetHpecsModules();
+    const {
+        data: modulesContentData,
+        loading,
+        error,
+    } = useQuery<HpecModulesResponse>(hpecTitlesQuery, {
+        fetchPolicy: 'cache-first',
+    });
 
-    if (hpecModulesQueryResponse.error) throw new Error('Error while fetching hpec modules');
+    const [unlockedModules, setUnlockedModules] = useState<IHPECLesson[]>([]);
+    const [lockedModules, setLockedModules] = useState<IHPECLesson[]>([]);
 
-    if (!hpecModulesQueryResponse.data || !currentTime || !accountCase) return { unlockedHpecs: [], blockedHpecs: [] };
+    useEffect(() => {
+        if (melpSummary && modulesContentData) {
+            const drippingBeforeDedaStatuses = ['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN'];
 
-    const { items: queryItems }: { items: IHPECLesson[] } = hpecModulesQueryResponse.data.hpecContentCollection;
+            const melpStatus = melpSummary.melp_status;
+            const daysSinceMelpStart = melpSummary.days_since_melp_start;
+            const currentDedaDay = melpSummary.current_deda_day;
 
-    const hpecsBeforeDedaStart = queryItems.filter(
-        ({ drippingDayBeforeDedaStart }) => drippingDayBeforeDedaStart !== null,
-    );
+            const unlocked: IHPECLesson[] = [];
+            const locked: IHPECLesson[] = [];
 
-    const hpecsAfterDedaStart = queryItems.filter(
-        ({ drippingDayAfterDedaStart }) => drippingDayAfterDedaStart !== null,
-    );
-
-    switch (accountCase) {
-        case 'WEEK_ZERO':
-        case 'FIRST_DAYS': {
-            const unlockedHpecs: IHPECLesson[] = [];
-            const blockedHpecs: IHPECLesson[] = [];
-
-            const { daysSinceMelpBegin } = currentTime;
-
-            hpecsBeforeDedaStart.forEach((hpec) => {
-                if (daysSinceMelpBegin >= hpec.drippingDayBeforeDedaStart) {
-                    unlockedHpecs.push(hpec);
-                } else {
-                    blockedHpecs.push(hpec);
+            modulesContentData.hpecContentCollection.items.forEach((hpec) => {
+                if (drippingBeforeDedaStatuses.includes(melpStatus)) {
+                    if (daysSinceMelpStart < hpec.drippingDayBeforeDedaStart) {
+                        return locked.push({
+                            ...hpec,
+                        });
+                    }
+                    if (!!hpec.drippingDayAfterDedaStart) {
+                        return locked.push({
+                            ...hpec,
+                        });
+                    }
                 }
+
+                if (melpStatus === 'DEDA_STARTED') {
+                    if (currentDedaDay < hpec.drippingDayBeforeDedaStart) {
+                        return locked.push({
+                            ...hpec,
+                        });
+                    }
+                }
+
+                unlocked.push(hpec);
             });
 
-            blockedHpecs.concat(hpecsAfterDedaStart);
+            console.log('after here', unlocked, locked);
 
-            return {
-                unlockedHpecs,
-                blockedHpecs,
-            };
+            setUnlockedModules(unlocked);
+            setLockedModules(locked);
         }
-        default: {
-            const unlockedHpecs: IHPECLesson[] = [];
-            const blockedHpecs: IHPECLesson[] = [];
+    }, [modulesContentData, melpSummary]);
 
-            const { daysSinceMelpBegin, currentDay } = currentTime;
-
-            hpecsBeforeDedaStart.forEach((hpec) => {
-                if (daysSinceMelpBegin >= hpec.drippingDayBeforeDedaStart) {
-                    unlockedHpecs.push(hpec);
-                } else {
-                    blockedHpecs.push(hpec);
-                }
-            });
-
-            hpecsAfterDedaStart.forEach((hpec) => {
-                if (currentDay >= hpec.drippingDayAfterDedaStart) {
-                    unlockedHpecs.push(hpec);
-                } else {
-                    blockedHpecs.push(hpec);
-                }
-            });
-
-            return {
-                unlockedHpecs,
-                blockedHpecs,
-            };
-        }
-    }
+    return {
+        unlockedModules,
+        lockedModules,
+        loading,
+        error,
+    };
 };
 
 const hpecResourcesQuery = gql`

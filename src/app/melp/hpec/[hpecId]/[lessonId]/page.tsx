@@ -32,7 +32,7 @@ const HpecSection = styled.section`
 `;
 
 function HpecContent({ params: { hpecId, lessonId } }: { params: { hpecId: string; lessonId: string } }) {
-    const { data, loading } = useGetHpecResources(lessonId);
+    const { data } = useGetHpecResources(lessonId);
 
     return (
         <AppLayout withMelpSummary>

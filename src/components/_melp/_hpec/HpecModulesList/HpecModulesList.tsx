@@ -5,7 +5,7 @@ import { Collapse, CollapseProps, Flex, Progress, Skeleton, Typography } from 'a
 import { useGetHpecsModules } from 'hooks/queries/hpecQueries';
 import Link from 'next/link';
 import { useMelpContext } from 'providers/MelpProvider';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 const { Title, Text } = Typography;
 
@@ -51,35 +51,12 @@ interface HpecModulesListProps {
 
 export const HpecModulesList: React.FC<HpecModulesListProps> = ({ activeLessonId, activeHpecId }) => {
     const { melpSummary } = useMelpContext();
-    const { data, loading } = useGetHpecsModules();
+    const { unlockedModules, lockedModules, loading } = useGetHpecsModules();
     const [activeKey, setActiveKey] = useState(activeHpecId);
 
     if (loading || !melpSummary) return <Skeleton.Button active shape="round" block />;
 
-    if (!data) return null;
-
-    const { items: hpecList } = data.hpecContentCollection;
-
-    const melpStatus = melpSummary.melp_status;
-    const daysSinceMelpStart = melpSummary.days_since_melp_start;
-    const currentDedaDay = melpSummary.current_deda_day;
-
-    const items: CollapseProps['items'] = hpecList.map((hpec) => {
-        let isLocked = false;
-
-        if (['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN'].includes(melpStatus)) {
-            if (daysSinceMelpStart < hpec.drippingDayBeforeDedaStart) {
-                isLocked = true;
-            }
-            if (hpec.drippingDayAfterDedaStart) isLocked = true;
-        }
-
-        if (melpStatus === 'DEDA_STARTED') {
-            if (currentDedaDay < hpec.drippingDayBeforeDedaStart) {
-                isLocked = true;
-            }
-        }
-
+    const unlockedItems: CollapseProps['items'] = unlockedModules.map((hpec) => {
         return {
             key: hpec.hpecId,
             label: hpec.hpecTitle,
@@ -88,7 +65,7 @@ export const HpecModulesList: React.FC<HpecModulesListProps> = ({ activeLessonId
                 color: '#FFFFFF',
                 borderBottom: '1px solid var(--secondary)',
             },
-            collapsible: isLocked ? 'disabled' : 'header',
+            collapsible: 'header',
             children: hpec.hpecLessonsCollection.items.map((lesson) => (
                 <Link
                     key={lesson.lessonId}
@@ -103,6 +80,19 @@ export const HpecModulesList: React.FC<HpecModulesListProps> = ({ activeLessonId
                     </LessonLink>
                 </Link>
             )),
+        };
+    });
+
+    const lockedItems: CollapseProps['items'] = lockedModules.map((hpec) => {
+        return {
+            key: hpec.hpecId,
+            label: hpec.hpecTitle,
+            style: {
+                background: '#3C362F',
+                color: '#FFFFFF',
+                borderBottom: '1px solid var(--secondary)',
+            },
+            collapsible: 'disabled',
         };
     });
 
@@ -130,7 +120,7 @@ export const HpecModulesList: React.FC<HpecModulesListProps> = ({ activeLessonId
                 onChange={(key) => setActiveKey(key as string)}
                 style={{ border: 'none' }}
                 expandIconPosition="end"
-                items={items}
+                items={unlockedItems.concat(lockedItems)}
                 accordion
             />
         </Flex>

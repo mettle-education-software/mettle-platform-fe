@@ -7,8 +7,7 @@ import { Breadcrumb, Button, Flex, Typography } from 'antd';
 import { SaveDedaInputMutationDedaData, useSaveDedaInput } from 'hooks';
 import { getDayToday, padNumber } from 'libs';
 import { useRouter } from 'next/navigation';
-import { useAppContext } from 'providers';
-import { useMelpContext } from 'providers';
+import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { DedaActivitySummary, DedaStepsCompleted, Listen, ListenRead, ReadRecord, Watch, Write } from './steps';
 
@@ -33,13 +32,19 @@ const BreadCrumbs = styled(Breadcrumb)`
     color: white;
 `;
 
-const NavigationButton = styled(Button)`
+const CompleteButton = styled(Button)`
     border-radius: 50rem;
 
     &.previous {
         background: #777777;
         color: white;
         border-color: transparent;
+    }
+
+    &[disabled] {
+        background: rgba(243, 236, 228, 0.07);
+        color: #ffffff;
+        border: none;
     }
 `;
 
@@ -71,6 +76,19 @@ const ChipWrapper = styled.div`
     .icon {
         color: white;
     }
+`;
+
+const NavButton = styled(Button)`
+    width: 2rem !important;
+    height: 2rem !important;
+    padding: 0 !important;
+    border-radius: 25%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(243, 236, 228, 0.07);
+    color: var(--secondary);
+    border: none;
 `;
 
 const StopWatch = ({ onStop }: { onStop(duration: number): void }) => {
@@ -129,12 +147,24 @@ const steps = ['listen', 'readRecord', 'watch', 'listenRead', 'write', 'finish',
 export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
     const router = useRouter();
 
-    const { melpSummary } = useMelpContext();
+    const { melpSummary, isTodaysDedaCompleted } = useMelpContext();
     const { user } = useAppContext();
 
+    const [stepsProgress, setStepsProgress] = useState({
+        listen: false,
+        readRecord: false,
+        watch: false,
+        listenRead: false,
+        write: false,
+        finish: null,
+        completed: null,
+    });
     const [currentStep, setCurrentStep] = useState('listen');
     const [dedaTime, setDedaTime] = useState(0);
     const [inputData, setInputData] = useState<SaveDedaInputMutationDedaData>({} as SaveDedaInputMutationDedaData);
+
+    const isTodaysDeda = melpSummary?.unlocked_dedas[melpSummary?.unlocked_dedas.length - 1] === dedaId;
+    // TODO - implement this logic here
 
     const dedaSteps = new Map([
         ['listen', <Listen key="listen" dedaId={dedaId} />],
@@ -147,7 +177,6 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
             <DedaActivitySummary
                 defaultDedaTime={dedaTime}
                 onInputs={(value) => {
-                    console.log(value);
                     setInputData(value);
                 }}
                 key="finish"
@@ -215,7 +244,7 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
                         <StepChip
                             stepName="Listen"
                             status={
-                                indexOfCurrentStep > 0 ? 'completed' : indexOfCurrentStep === 0 ? 'active' : undefined
+                                stepsProgress.listen ? 'completed' : indexOfCurrentStep === 0 ? 'active' : undefined
                             }
                         />
                     </Breadcrumb.Item>
@@ -223,32 +252,28 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
                         <StepChip
                             stepName="Read + Record"
                             status={
-                                indexOfCurrentStep > 1 ? 'completed' : indexOfCurrentStep === 1 ? 'active' : undefined
+                                stepsProgress.readRecord ? 'completed' : indexOfCurrentStep === 1 ? 'active' : undefined
                             }
                         />
                     </Breadcrumb.Item>
                     <Breadcrumb.Item>
                         <StepChip
                             stepName="Watch"
-                            status={
-                                indexOfCurrentStep > 2 ? 'completed' : indexOfCurrentStep === 2 ? 'active' : undefined
-                            }
+                            status={stepsProgress.watch ? 'completed' : indexOfCurrentStep === 2 ? 'active' : undefined}
                         />
                     </Breadcrumb.Item>
                     <Breadcrumb.Item>
                         <StepChip
                             stepName="Listen + Read"
                             status={
-                                indexOfCurrentStep > 3 ? 'completed' : indexOfCurrentStep === 3 ? 'active' : undefined
+                                stepsProgress.listenRead ? 'completed' : indexOfCurrentStep === 3 ? 'active' : undefined
                             }
                         />
                     </Breadcrumb.Item>
                     <Breadcrumb.Item>
                         <StepChip
                             stepName="Write"
-                            status={
-                                indexOfCurrentStep > 4 ? 'completed' : indexOfCurrentStep === 4 ? 'active' : undefined
-                            }
+                            status={stepsProgress.write ? 'completed' : indexOfCurrentStep === 4 ? 'active' : undefined}
                         />
                     </Breadcrumb.Item>
                 </BreadCrumbs>
@@ -257,33 +282,27 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
             {dedaSteps.get(currentStep)}
 
             <Flex justify="flex-end" align="center" gap="1rem">
-                {!['write', 'finish', 'completed'].includes(currentStep) && (
-                    <NavigationButton
-                        className="previous"
-                        onClick={handlePreviousStep}
-                        size="large"
-                        disabled={currentStep === 'listen'}
+                <Flex gap="0.5rem">
+                    <NavButton disabled={currentStep === 'listen'} onClick={handlePreviousStep}>
+                        <ChevronLeft />
+                    </NavButton>
+                    <NavButton onClick={handleNextStep}>
+                        <ChevronRight />
+                    </NavButton>
+                </Flex>
+                {!['finish', 'completed'].includes(currentStep) && (
+                    <CompleteButton
+                        type="primary"
+                        disabled={stepsProgress[currentStep as keyof typeof stepsProgress] as boolean}
+                        onClick={() => {
+                            setStepsProgress((prev) => ({ ...prev, [currentStep]: true }));
+                        }}
                     >
-                        <Flex align="center">
-                            <ChevronLeft /> Previous
-                        </Flex>
-                    </NavigationButton>
+                        {(stepsProgress[currentStep as keyof typeof stepsProgress] as boolean)
+                            ? 'Step completed 🎉'
+                            : 'Complete step'}
+                    </CompleteButton>
                 )}
-                <NavigationButton
-                    size="large"
-                    onClick={handleNextStep}
-                    type="primary"
-                    loading={currentStep === 'finish' && saveInput.isPending}
-                >
-                    {currentStep === 'write' && 'Finish'}
-                    {currentStep === 'finish' && 'Save'}
-                    {currentStep === 'completed' && 'Go back'}
-                    {!['write', 'finish', 'completed'].includes(currentStep) && (
-                        <Flex align="center">
-                            Next <ChevronRight />
-                        </Flex>
-                    )}
-                </NavigationButton>
             </Flex>
         </ActivityCard>
     );

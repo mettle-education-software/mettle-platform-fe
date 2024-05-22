@@ -2,11 +2,11 @@
 
 import styled from '@emotion/styled';
 import { Flex, Typography } from 'antd';
-import { DedaActivity, DedaNotes, DedaQuote, DedaReview, TabNav } from 'components';
+import { DedaActivity, DedaNotes, DedaQuote, DedaReview, MaxWidthContainer, TabNav } from 'components';
 import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
-import { MAX_CONTENT_WIDTH, withAuthentication } from 'libs';
+import { withAuthentication } from 'libs';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
 import React, { useState } from 'react';
 
@@ -55,7 +55,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     return (
         <AppLayout withMelpSummary>
             <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
-                <div style={{ maxWidth: MAX_CONTENT_WIDTH, width: '100%', marginBottom: '2rem' }}>
+                <MaxWidthContainer style={{ marginBottom: '2rem' }}>
                     {device === 'desktop' && (
                         <Flex justify="space-between">
                             <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
@@ -64,53 +64,56 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                             </div>
                         </Flex>
                     )}
-                </div>
+                </MaxWidthContainer>
 
-                <TabNav
-                    type="card"
-                    color="secondary"
-                    activeKey={activeTab}
-                    onChange={setActiveTab}
-                    defaultActiveKey="dedaNotes"
-                    items={[
-                        {
-                            key: 'dedaNotes',
-                            label: (
-                                <Typography.Title
-                                    level={5}
-                                    className={activeTab === 'dedaNotes' ? 'activeTab' : undefined}
-                                    style={{ color: '#FFFFFF', fontWeight: 400 }}
-                                >
-                                    DEDA Notes
-                                </Typography.Title>
-                            ),
-                        },
-                        {
-                            key: 'dedaActivity',
-                            label: (
-                                <Typography.Title
-                                    level={5}
-                                    className={activeTab === 'dedaActivity' ? 'activeTab' : undefined}
-                                    style={{ color: '#FFFFFF', fontWeight: 400 }}
-                                >
-                                    DEDA
-                                </Typography.Title>
-                            ),
-                        },
-                        {
-                            key: 'dedaReview',
-                            label: (
-                                <Typography.Title
-                                    level={5}
-                                    className={activeTab === 'dedaReview' ? 'activeTab' : undefined}
-                                    style={{ color: '#FFFFFF', fontWeight: 400 }}
-                                >
-                                    Review
-                                </Typography.Title>
-                            ),
-                        },
-                    ]}
-                />
+                <MaxWidthContainer>
+                    <TabNav
+                        sticky={activeTab === 'dedaActivity'}
+                        type="card"
+                        color="secondary"
+                        activeKey={activeTab}
+                        onChange={setActiveTab}
+                        defaultActiveKey="dedaNotes"
+                        items={[
+                            {
+                                key: 'dedaNotes',
+                                label: (
+                                    <Typography.Title
+                                        level={5}
+                                        className={activeTab === 'dedaNotes' ? 'activeTab' : undefined}
+                                        style={{ color: '#FFFFFF', fontWeight: 400 }}
+                                    >
+                                        DEDA Notes
+                                    </Typography.Title>
+                                ),
+                            },
+                            {
+                                key: 'dedaActivity',
+                                label: (
+                                    <Typography.Title
+                                        level={5}
+                                        className={activeTab === 'dedaActivity' ? 'activeTab' : undefined}
+                                        style={{ color: '#FFFFFF', fontWeight: 400 }}
+                                    >
+                                        DEDA
+                                    </Typography.Title>
+                                ),
+                            },
+                            {
+                                key: 'dedaReview',
+                                label: (
+                                    <Typography.Title
+                                        level={5}
+                                        className={activeTab === 'dedaReview' ? 'activeTab' : undefined}
+                                        style={{ color: '#FFFFFF', fontWeight: 400 }}
+                                    >
+                                        Review
+                                    </Typography.Title>
+                                ),
+                            },
+                        ]}
+                    />
+                </MaxWidthContainer>
             </HeaderSummary>
             <Content>
                 {activeTab === 'dedaNotes' && <DedaNotes dedaId={dedaId} />}

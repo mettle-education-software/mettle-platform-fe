@@ -23,7 +23,7 @@ const CardWrapper = styled(Card)`
 const DedaWatchVideo = styled.iframe`
     border: none;
     border-radius: 1rem;
-    width: 40vw;
+    width: 50vw;
     aspect-ratio: 16/9;
 `;
 

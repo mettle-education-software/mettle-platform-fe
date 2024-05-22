@@ -1,11 +1,11 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Typography, Flex, Button } from 'antd';
+import { Button, Flex, Typography } from 'antd';
 import { AppLayout, Chip, DedasGrid, MaxWidthContainer } from 'components';
 import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
-import { withAuthentication, padding, SMALL_VIEWPORT } from 'libs';
+import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -31,7 +31,7 @@ const GridContent = styled.section`
     background: #2b2b2b;
     width: 100%;
     min-height: 100%;
-    padding: 23px ${padding.x.lg} ${padding.x.lg} ${padding.x.lg};
+    //padding: 23px ${padding.x.lg} ${padding.x.lg} ${padding.x.lg};
     display: flex;
     flex-direction: column;
     align-items: center;

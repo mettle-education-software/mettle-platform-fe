@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import { BookmarkOutlined, HomeOutlined, PsychologyOutlined } from '@mui/icons-material';
 import { Button, Flex } from 'antd';
 import { MaxWidthContainer } from 'components';
-import { padding } from 'libs';
 import React, { useState } from 'react';
 import { Glossary } from './Glossary/Glossary';
 import { Introduction } from './Introduction/Introduction';
@@ -18,7 +17,6 @@ const DedaNotesNav = styled.div`
     position: sticky;
     top: 0;
     z-index: 1;
-    padding: ${padding.y.sm} ${padding.x.lg};
 `;
 
 const DedaNavButton = styled(Button)`

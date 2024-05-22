@@ -15,13 +15,18 @@ const MaxTextWidth = styled.div`
     max-width: 800px;
 `;
 
+const ReadingCard = styled(Card)`
+    max-height: 800px;
+    overflow-y: auto;
+`;
+
 export const ReadRecord: React.FC<ReadRecordProps> = ({ dedaId }) => {
     const dedaReadRecordResult = useDeda<DedaReadRecordQueryResponse>('deda-read-record', dedaId);
 
     const dedaReadRecordData = dedaReadRecordResult.data?.dedaContentCollection?.items[0].dedaReadContent;
 
     return (
-        <Card>
+        <ReadingCard>
             <Flex justify="center">
                 <MaxTextWidth>
                     <Skeleton loading={dedaReadRecordResult.loading} active style={{ width: '100%' }}>
@@ -29,6 +34,6 @@ export const ReadRecord: React.FC<ReadRecordProps> = ({ dedaId }) => {
                     </Skeleton>
                 </MaxTextWidth>
             </Flex>
-        </Card>
+        </ReadingCard>
     );
 };

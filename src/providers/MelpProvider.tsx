@@ -3,7 +3,7 @@
 import { useMelpSummary } from 'hooks';
 import { MelpSummaryResponse } from 'interfaces/melp';
 import { useAppContext } from 'providers/AppProvider';
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 
 interface ProviderProps {
     children: React.ReactNode;
@@ -11,6 +11,7 @@ interface ProviderProps {
 
 interface ProviderContext {
     melpSummary: MelpSummaryResponse['data'];
+    isMelpSummaryLoading: boolean;
 }
 
 const MelpContext = createContext<ProviderContext>({} as ProviderContext);
@@ -18,13 +19,17 @@ const MelpContext = createContext<ProviderContext>({} as ProviderContext);
 export const MelpProvider: React.FC<ProviderProps> = ({ children }) => {
     const { user } = useAppContext();
 
-    const { data: melpSummary } = useMelpSummary(user?.uid as string);
+    const { data: melpSummary, isLoading: isMelpSummaryLoading } = useMelpSummary(user?.uid as string);
 
-    return (
-        <MelpContext.Provider value={{ melpSummary: melpSummary as MelpSummaryResponse['data'] }}>
-            {children}
-        </MelpContext.Provider>
+    const value = useMemo(
+        () => ({
+            melpSummary: melpSummary as MelpSummaryResponse['data'],
+            isMelpSummaryLoading,
+        }),
+        [melpSummary, isMelpSummaryLoading],
     );
+
+    return <MelpContext.Provider value={value}>{children}</MelpContext.Provider>;
 };
 
 export const useMelpContext = () => useContext(MelpContext);

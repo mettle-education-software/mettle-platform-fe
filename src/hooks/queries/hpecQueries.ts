@@ -7,7 +7,7 @@ import {
     IHPECLesson,
     IHpecModulesProcessed,
 } from 'interfaces';
-import { useMelpContext } from 'providers/MelpProvider';
+import { useMelpContext } from 'providers';
 import { useEffect, useState } from 'react';
 
 const hpecTitlesQuery = gql`

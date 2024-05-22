@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Row, Col, Typography, Skeleton } from 'antd';
-import { useGetWeeklyPerformance } from 'hooks/melp/lamp';
+import { useGetWeeklyPerformance } from 'hooks';
 import dynamic from 'next/dynamic';
 import React, { useState } from 'react';
 

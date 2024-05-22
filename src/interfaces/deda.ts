@@ -190,3 +190,7 @@ export type DedaWriteQueryResponse = DedaContentCollection<{
         links: LinkType;
     };
 }>;
+
+export interface DedaActivityStatusResponse {
+    isDedaCompleted: boolean;
+}

@@ -1,10 +1,11 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Row, Col, Typography, Flex, Spin } from 'antd';
+import { Row, Col, Typography, Flex } from 'antd';
 import { DedaCard } from 'components';
 import { useDeviceSize, useMelpSummary } from 'hooks';
 import { useAllDedasList, useLastDedas, useNextDedas } from 'hooks/queries/dedasLists';
+import { DedaItem } from 'interfaces';
 import { MAX_CONTENT_WIDTH } from 'libs';
 import { useAppContext } from 'providers';
 import React from 'react';
@@ -32,7 +33,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
 
     const currentDeda = unlockedDEDAs[unlockedDEDAs.length - 1];
 
-    const lastDedas = unlockedDEDAs.slice(unlockedDEDAs.length - 4, unlockedDEDAs.length);
+    const lastDedas = unlockedDEDAs.slice(unlockedDEDAs.length - 4, unlockedDEDAs.length).reverse();
 
     let nextDedas: string[] = [];
 
@@ -44,10 +45,21 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
     }
 
     const lastDedasResult = useLastDedas(lastDedas);
+    const sortedLastDedasResult: DedaItem[] = [];
+
+    lastDedasResult.data?.dedaContentCollection.items.forEach((deda) => {
+        const indexOfLastDedas = lastDedas.indexOf(deda.dedaId);
+        sortedLastDedasResult[indexOfLastDedas] = deda;
+    });
 
     const nextDedasResult = useNextDedas(nextDedas);
 
     const allDedasResult = useAllDedasList(type !== 'allDedas');
+    const sortedAllDedasResult: DedaItem[] = allDedasResult
+        ? (allDedasResult.data?.dedaContentCollection?.items?.toSorted((a, b) => {
+              return Number(a.dedaId.replace(/\D/g, '')) - Number(b.dedaId.replace(/\D/g, ''));
+          }) as DedaItem[])
+        : [];
 
     const showSkeleton = isLoading || lastDedasResult.loading || nextDedasResult.loading || allDedasResult.loading;
 
@@ -110,7 +122,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
                         </>
                     )}
                     {type === 'lastDedas' &&
-                        lastDedasResult.data?.dedaContentCollection.items.map((deda, index) => (
+                        sortedLastDedasResult.map((deda, index) => (
                             <Col xs={12} md={6} key={deda.dedaSlug}>
                                 <DedaCard
                                     dedaId={deda.dedaId}
@@ -142,7 +154,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
                             </Col>
                         ))}
                     {type === 'allDedas' &&
-                        allDedasResult.data?.dedaContentCollection.items.map((deda) => (
+                        sortedAllDedasResult?.map((deda) => (
                             <Col xs={12} md={6} key={deda.dedaSlug}>
                                 <DedaCard
                                     dedaId={deda.dedaId}

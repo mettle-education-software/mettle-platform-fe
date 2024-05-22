@@ -12,7 +12,7 @@ import {
 } from 'components';
 import { MelpStatus } from 'interfaces/melp';
 import { withAuthentication } from 'libs';
-import { useMelpContext } from 'providers/MelpProvider';
+import { useMelpContext } from 'providers';
 import React from 'react';
 
 const renderMelpHome = (melpAccountStatus: MelpStatus) => {

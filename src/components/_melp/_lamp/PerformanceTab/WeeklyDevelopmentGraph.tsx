@@ -1,7 +1,7 @@
 'use client';
 
 import { Skeleton } from 'antd';
-import { useGeneralWeeklyDevelopment } from 'hooks/melp/lamp';
+import { useGeneralWeeklyDevelopment } from 'hooks';
 import dynamic from 'next/dynamic';
 import { useAppContext } from 'providers';
 import React from 'react';

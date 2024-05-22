@@ -4,11 +4,11 @@ import { CheckCircleFilled, CheckCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { ChevronLeft, ChevronRight, Timer, TimerOff } from '@mui/icons-material';
 import { Breadcrumb, Button, Flex, Typography } from 'antd';
-import { SaveDedaInputMutationDedaData, useSaveDedaInput } from 'hooks/melp/lamp';
+import { SaveDedaInputMutationDedaData, useSaveDedaInput } from 'hooks';
 import { getDayToday, padNumber } from 'libs';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from 'providers';
-import { useMelpContext } from 'providers/MelpProvider';
+import { useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { DedaActivitySummary, DedaStepsCompleted, Listen, ListenRead, ReadRecord, Watch, Write } from './steps';
 

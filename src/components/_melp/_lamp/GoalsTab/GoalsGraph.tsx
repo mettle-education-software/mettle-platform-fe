@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Skeleton } from 'antd';
-import { useGoalGraphOptions } from 'hooks/melp/lamp';
+import { useGoalGraphOptions } from 'hooks';
 import { DedaDifficulty } from 'interfaces/melp';
 import dynamic from 'next/dynamic';
 import React from 'react';

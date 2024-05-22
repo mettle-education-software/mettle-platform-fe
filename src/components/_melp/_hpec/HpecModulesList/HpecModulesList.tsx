@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import { Collapse, CollapseProps, Flex, Progress, Skeleton, Typography } from 'antd';
 import { useGetHpecsModules } from 'hooks/queries/hpecQueries';
 import Link from 'next/link';
-import { useMelpContext } from 'providers/MelpProvider';
+import { useMelpContext } from 'providers';
 import React, { useState } from 'react';
 
 const { Title, Text } = Typography;

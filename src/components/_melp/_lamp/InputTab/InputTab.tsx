@@ -7,10 +7,10 @@ import { DedaWeekDaySelect } from 'components/_melp/DedaWeekDaySelect/DedaWeekDa
 import { DedasListSelect } from 'components/_melp/DedasListSelect/DedasListSelect';
 import { InputsWrapper } from 'components/_melp/InputsWrapper/InputsWrapper';
 import { ReviewThumbnail } from 'components/_melp/ReviewThumbnail/ReviewThumbnail';
-import { useGetInputData, useSaveInput } from 'hooks/melp/lamp';
+import { useGetInputData, useSaveInput } from 'hooks';
 import { InputDataDTO } from 'interfaces';
 import { getDayToday } from 'libs';
-import { useMelpContext } from 'providers/MelpProvider';
+import { useMelpContext } from 'providers';
 import React, { Dispatch, SetStateAction, useCallback, useEffect, useState } from 'react';
 import { InputWithTime } from '../../InputWithTime/InputWithTime';
 

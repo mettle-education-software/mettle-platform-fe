@@ -76,7 +76,7 @@ export const DedaActivity = ({ dedaId }: { dedaId: string }) => {
     return (
         <ActivityWrapper>
             <MaxWidthContainer>
-                <DayStepper />
+                {/*<DayStepper />*/}
                 <DedaSteps dedaId={dedaId} />
             </MaxWidthContainer>
         </ActivityWrapper>

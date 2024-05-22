@@ -3,7 +3,7 @@
 import styled from '@emotion/styled';
 import { Row, Col } from 'antd';
 import { WidgetCard } from 'components';
-import { useMelpContext } from 'providers/MelpProvider';
+import { useMelpContext } from 'providers';
 import React, { useEffect } from 'react';
 import { DedasListSelect } from '../../DedasListSelect/DedasListSelect';
 import { DedaStatisticsGraphs } from './DedaStatisticsGraphs';

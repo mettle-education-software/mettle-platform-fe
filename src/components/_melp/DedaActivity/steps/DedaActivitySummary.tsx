@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Flex, Typography } from 'antd';
-import { SaveDedaInputMutationDedaData } from 'hooks/melp/lamp';
+import { SaveDedaInputMutationDedaData } from 'hooks';
 import { getClosestTimeListValue } from 'libs';
 import React, { useCallback, useEffect, useState } from 'react';
 import { DedaInput } from '../../DedaInput/DedaInput';

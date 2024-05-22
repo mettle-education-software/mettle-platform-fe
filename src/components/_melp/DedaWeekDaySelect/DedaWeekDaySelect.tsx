@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { ConfigProvider, Select as AntSelect, SelectProps } from 'antd';
-import { useMelpContext } from 'providers/MelpProvider';
+import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useState } from 'react';
 
 const Select = styled(AntSelect)`

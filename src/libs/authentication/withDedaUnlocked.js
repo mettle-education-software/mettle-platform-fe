@@ -6,12 +6,12 @@ import { useMelpContext } from '../../providers/MelpProvider';
 
 // eslint-disable-next-line react/display-name
 const withDedaUnlocked = (Component) => (props) => {
-    const { melpSummary } = useMelpContext();
+    const { isMelpSummaryLoading, melpSummary } = useMelpContext();
     const router = useRouter();
 
-    if (!melpSummary) return <LoadingLayout />;
+    if (isMelpSummaryLoading || !melpSummary) return <LoadingLayout />;
 
-    if (!melpSummary.unlocked_dedas.includes(props.params.dedaId)) {
+    if (!melpSummary?.unlocked_dedas.includes(props.params.dedaId)) {
         return router.push('/404');
     } else {
         return <Component {...props} />;

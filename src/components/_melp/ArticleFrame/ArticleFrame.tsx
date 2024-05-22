@@ -3,7 +3,7 @@
 import styled from '@emotion/styled';
 import { Skeleton, Modal } from 'antd';
 import { useGetMetadata } from 'hooks';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FrameThumbnail } from '../../atoms/FrameThumbnail/FrameThumbnail';
 
 const Dialog = styled(Modal)`
@@ -32,15 +32,62 @@ export const ArticleFrame = ({ href, title }: { href: string; title: string }) =
         setIsModalOpen(false);
     };
 
-    const { data: metadata, isError } = useGetMetadata(href);
+    const { data: metadata, isError, isLoading } = useGetMetadata(href);
 
-    if (!metadata) return <Skeleton.Image active />;
+    const [thumbStyle, setThumbStyle] = useState({
+        borderRadius: 6,
+        width: '100%',
+        aspectRatio: '16 / 9',
+        backgroundImage: `url("/mettle.png")`,
+        backgroundSize: 'contain',
+        backgroundPosition: 'center',
+    });
+    const [shouldOpenExternal, setShouldOpenExternal] = useState(true);
+
+    useEffect(() => {
+        fetch(href)
+            .then((response) => {
+                if (response.status === 200) {
+                    setShouldOpenExternal(false);
+                }
+            })
+            .catch((error) => {
+                console.error('Error fetching href', error);
+            });
+    }, [href]);
+
+    useEffect(() => {
+        if (metadata?.image) {
+            fetch(metadata.image).then((response) => {
+                if (response.status === 200) {
+                    setThumbStyle((previous) => ({
+                        ...previous,
+                        backgroundImage: `url(${metadata.image})`,
+                        backgroundSize: 'contain',
+                    }));
+                }
+            });
+        }
+    }, [metadata?.image]);
+
+    if (isLoading)
+        return (
+            <Skeleton.Image
+                active
+                style={{
+                    width: '100%',
+                    minWidth: '250px',
+                    minHeight: 'calc(9/16 * 250px)',
+                    aspectRatio: '16/9',
+                }}
+            />
+        );
 
     return (
         <FrameThumbnail
             title={title}
             onThumbClick={() => {
-                if (isError) {
+                if (isError || shouldOpenExternal) {
                     window.open(href, '_blank');
                     return;
                 }
@@ -51,16 +98,7 @@ export const ArticleFrame = ({ href, title }: { href: string; title: string }) =
             <Dialog open={isModalOpen} onCancel={handleOk} onOk={handleOk} destroyOnClose footer={null} width="70vw">
                 <ArticleFrameContainer allowFullScreen height="100%" src={href} />
             </Dialog>
-            <div
-                style={{
-                    borderRadius: 6,
-                    height: '100%',
-                    width: '100%',
-                    background: `url(${metadata.image ?? '/mettle.png'})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                }}
-            />
+            <div style={thumbStyle} />
         </FrameThumbnail>
     );
 };

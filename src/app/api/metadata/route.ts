@@ -12,7 +12,12 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const response = await axios.get(url);
+        const response = await axios.get(url).catch((error) => error);
+
+        if (response.status !== 200) {
+            return Response.error();
+        }
+
         const metadata = extractMetadata(response.data);
         return Response.json(metadata);
     } catch (error) {

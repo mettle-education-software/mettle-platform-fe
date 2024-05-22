@@ -1,34 +1,29 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Typography, Row, Col, Flex, Button } from 'antd';
-import { AppLayout, Chip, DedasGrid } from 'components';
+import { Typography, Flex, Button } from 'antd';
+import { AppLayout, Chip, DedasGrid, MaxWidthContainer } from 'components';
 import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
-import { withAuthentication, padding, MAX_CONTENT_WIDTH, SMALL_VIEWPORT } from 'libs';
+import { withAuthentication, padding, SMALL_VIEWPORT } from 'libs';
 import { useRouter } from 'next/navigation';
-import { useMelpContext } from 'providers/MelpProvider';
+import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useState } from 'react';
 
+const { Title } = Typography;
+
 const HeaderSummary = styled.section<{ imgUrl?: string }>`
-    position: sticky;
-    top: 0;
-    z-index: 1;
     background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43, 0.7) 100%), url(${({ imgUrl }) => imgUrl}),
         #2b2b2b;
     background-size: cover;
     background-position: center;
-    padding: ${padding.x.sm} ${padding.x.lg};
-    height: 200px;
+    width: 100%;
+    padding: 1.8rem 0;
     display: flex;
-    flex-direction: column;
     justify-content: center;
-    align-items: center;
-    border: none;
-
-    & h1 {
-        color: var(--secondary);
-    }
+    position: sticky;
+    top: 0;
+    z-index: 3;
 `;
 
 const GridContent = styled.section`
@@ -56,7 +51,6 @@ function DedaPage() {
     const [selectedDeda, setSelectedDeda] = useState<string>();
 
     const unlockedDEDAs = useMemo(() => melpSummary?.unlocked_dedas ?? [], [melpSummary]);
-    const currentDedaId = unlockedDEDAs[unlockedDEDAs.length - 1];
 
     useEffect(() => {
         if (!selectedDeda) {
@@ -75,43 +69,43 @@ function DedaPage() {
     return (
         <AppLayout withMelpSummary>
             <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
-                <div style={{ maxWidth: MAX_CONTENT_WIDTH, width: '100%', position: 'relative' }}>
-                    {selectedDeda === currentDedaId && (
-                        <div style={{ position: 'absolute', bottom: '60px' }}>
-                            <Chip
-                                bgColor="rgba(183, 144, 96, 0.3)"
-                                style={{ border: 'none', paddingLeft: 18, paddingRight: 18 }}
-                            >
-                                <Typography.Title level={5} style={{ color: '#FFFFFF' }}>
-                                    Current DEDA
-                                </Typography.Title>
-                            </Chip>
-                        </div>
-                    )}
+                <MaxWidthContainer>
                     {device === 'desktop' && (
-                        <Row justify="space-between" align="middle">
-                            <Col span={12}>
-                                <Flex vertical>
-                                    <Typography.Title level={1}>{featuredDeda?.dedaTitle}</Typography.Title>
-                                </Flex>
-                            </Col>
-                            <Col>
-                                <Button
-                                    style={{ borderRadius: 36, fontSize: 20, height: 40 }}
-                                    href={`/melp/deda/${featuredDeda?.dedaId}`}
-                                    type="primary"
+                        <Flex align="flex-end" justify="space-between">
+                            <Flex vertical gap="0.8rem">
+                                <Chip
+                                    bgColor="rgba(183, 144, 96, 0.3)"
+                                    style={{ border: 'none', paddingLeft: 18, paddingRight: 18 }}
                                 >
-                                    Go to DEDA
-                                </Button>
-                            </Col>
-                        </Row>
+                                    <Title level={5} style={{ color: '#FFFFFF' }}>
+                                        Current DEDA
+                                    </Title>
+                                </Chip>
+                                <Title level={1} className="color-secondary">
+                                    {featuredDeda?.dedaTitle}
+                                </Title>
+                            </Flex>
+                            <Button
+                                style={{ borderRadius: 36, fontSize: 20, height: 40 }}
+                                href={`/melp/deda/${featuredDeda?.dedaId}`}
+                                type="primary"
+                            >
+                                Go to DEDA
+                            </Button>
+                        </Flex>
                     )}
-                </div>
+                </MaxWidthContainer>
             </HeaderSummary>
             <GridContent>
-                <DedasGrid type="lastDedas" onSelectedDeda={handleSelectedDeda} />
-                <DedasGrid type="nextDedas" onSelectedDeda={handleSelectedDeda} />
-                <DedasGrid type="allDedas" onSelectedDeda={handleSelectedDeda} />
+                <MaxWidthContainer>
+                    <DedasGrid type="lastDedas" onSelectedDeda={handleSelectedDeda} />
+                </MaxWidthContainer>
+                <MaxWidthContainer>
+                    <DedasGrid type="nextDedas" onSelectedDeda={handleSelectedDeda} />
+                </MaxWidthContainer>
+                <MaxWidthContainer>
+                    <DedasGrid type="allDedas" onSelectedDeda={handleSelectedDeda} />
+                </MaxWidthContainer>
             </GridContent>
         </AppLayout>
     );

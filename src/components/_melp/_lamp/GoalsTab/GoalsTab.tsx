@@ -6,9 +6,9 @@ import AdsClickIcon from '@mui/icons-material/AdsClick';
 import { Avatar, Col, Flex, Row, Skeleton, Tooltip, Typography } from 'antd';
 import { GoalsGraph } from 'components/_melp/_lamp/GoalsTab/GoalsGraph';
 import { GoalsTable } from 'components/_melp/_lamp/GoalsTab/GoalsTable';
-import { useGetGoalByLevel } from 'hooks/melp/lamp';
+import { useGetGoalByLevel } from 'hooks';
 import { DedaDifficulty } from 'interfaces/melp';
-import { useMelpContext } from 'providers/MelpProvider';
+import { useMelpContext } from 'providers';
 import React from 'react';
 
 const { Title, Text } = Typography;

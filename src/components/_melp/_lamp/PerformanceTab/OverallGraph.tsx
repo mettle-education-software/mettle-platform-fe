@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Col, Flex, Row, Skeleton, Typography } from 'antd';
-import { useOverallProgress } from 'hooks/melp/lamp';
+import { useOverallProgress } from 'hooks';
 import { statisticsColors } from 'libs';
 import dynamic from 'next/dynamic';
 import { useAppContext } from 'providers';

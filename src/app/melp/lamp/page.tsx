@@ -8,7 +8,7 @@ import { PerformanceTab, InputTab, GoalsTab } from 'components';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
 import { padding, withAuthentication } from 'libs';
 import { useRouter } from 'next/navigation';
-import { useMelpContext } from 'providers/MelpProvider';
+import { useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 
 const { Title, Text } = Typography;

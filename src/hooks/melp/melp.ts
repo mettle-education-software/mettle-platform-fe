@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MelpSummaryResponse } from 'interfaces/melp';
-import { useMelpContext } from 'providers/MelpProvider';
+import { useMelpContext } from 'providers';
 import { useEffect, useState } from 'react';
 import { melpService } from 'services';
 

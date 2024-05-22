@@ -120,14 +120,14 @@ export const DedaCard: React.FC<CardComponentProps> = ({
                 <Typography.Title level={2}>{title}</Typography.Title>
                 <Typography.Text className="categories">
                     {categories?.map((category, index) => (
-                        <>
+                        <React.Fragment key={`${category}-${index}`}>
                             {category}
                             {index < categories.length - 1 && (
                                 <span style={{ color: 'var(--secondary)', margin: '0 0.8rem', fontSize: 10 }}>
                                     &#9210;
                                 </span>
                             )}
-                        </>
+                        </React.Fragment>
                     ))}
                 </Typography.Text>
             </Flex>

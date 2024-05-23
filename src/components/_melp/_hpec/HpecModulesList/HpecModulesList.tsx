@@ -121,6 +121,7 @@ export const HpecModulesList: React.FC<HpecModulesListProps> = ({
                         percent={progressCount}
                         strokeColor="var(--secondary)"
                         trailColor="#FFFFFF"
+                        format={(percent) => `${percent?.toFixed(0)}%`}
                     />
                     <Flex vertical gap="0.5rem">
                         <Title level={5} className="color-white">

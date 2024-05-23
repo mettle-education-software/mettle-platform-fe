@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import { Badge, Button, Col, Dropdown, Empty, Flex, Row, Skeleton, Typography } from 'antd';
 import { useGetNotifications, useMarkAsRead, useListenForNotifications } from 'hooks';
 import { Notification } from 'interfaces';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAppContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 
@@ -78,6 +80,8 @@ export const NotificationsList: React.FC = () => {
         setUnreads(notifications.filter((notification) => !notification.isRead).length);
     }, [notifications]);
 
+    const router = useRouter();
+
     return (
         <Dropdown
             open={open}
@@ -113,9 +117,18 @@ export const NotificationsList: React.FC = () => {
                                                     <Text>{notification.body}</Text>
                                                 </div>
                                                 {notification.actionLink && (
-                                                    <Button size="small" href={notification.actionLink}>
-                                                        Access
-                                                    </Button>
+                                                    <Link
+                                                        prefetch
+                                                        shallow
+                                                        href={notification.actionLink}
+                                                        onClick={() => {
+                                                            if (!notification.isRead) {
+                                                                markRead.mutate(notification.notificationId);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Button size="small">Access</Button>
+                                                    </Link>
                                                 )}
                                             </Flex>
                                         </Col>

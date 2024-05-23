@@ -8,3 +8,4 @@ export { FrameThumbnail } from './FrameThumbnail/FrameThumbnail';
 export { TabNav } from './TabNav/TabNav';
 export { WidgetCard } from './WidgetCard/WidgetCard';
 export { CourseCard } from './CourseCard/CourseCard';
+export { NotificationsList } from './NotificationsList/NotificationsList';

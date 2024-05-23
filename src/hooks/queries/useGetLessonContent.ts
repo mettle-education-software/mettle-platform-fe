@@ -53,6 +53,7 @@ const useGetLessonContent = (lessonId?: string) => {
             lessonId,
         },
         fetchPolicy: 'cache-first',
+        skip: lessonId === 'first-lesson',
     });
 };
 

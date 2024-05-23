@@ -6,7 +6,7 @@ import { HpecModulesList, HpecResources, HpecSummary, HpecVideo, MaxWidthContain
 import { AppLayout } from 'components/layouts';
 import { useGetHpecResources } from 'hooks/queries/hpecQueries';
 import { withAuthentication } from 'libs';
-import React from 'react';
+import React, { useState } from 'react';
 
 const { Title } = Typography;
 
@@ -32,7 +32,15 @@ const HpecSection = styled.section`
 `;
 
 function HpecContent({ params: { hpecId, lessonId } }: { params: { hpecId: string; lessonId: string } }) {
-    const { data } = useGetHpecResources(lessonId);
+    const [hpecLessonId, setHpecLessonId] = useState<string>(lessonId);
+
+    const { data } = useGetHpecResources(hpecLessonId);
+
+    const onModuleFirstLesson = (firsLessonId: string) => {
+        if (lessonId === 'first-lesson') {
+            setHpecLessonId(firsLessonId);
+        }
+    };
 
     return (
         <AppLayout withMelpSummary>
@@ -53,7 +61,11 @@ function HpecContent({ params: { hpecId, lessonId } }: { params: { hpecId: strin
                 <MaxWidthContainer>
                     <Row gutter={[16, 16]}>
                         <Col span={6}>
-                            <HpecModulesList activeLessonId={lessonId} activeHpecId={hpecId} />
+                            <HpecModulesList
+                                activeLessonId={hpecLessonId}
+                                activeHpecId={hpecId}
+                                onModuleFirstLesson={onModuleFirstLesson}
+                            />
                         </Col>
                         <Col span={18}>
                             <TabNav
@@ -61,17 +73,17 @@ function HpecContent({ params: { hpecId, lessonId } }: { params: { hpecId: strin
                                     {
                                         key: 'video',
                                         label: 'Video',
-                                        children: <HpecVideo lessonId={lessonId} />,
+                                        children: <HpecVideo lessonId={hpecLessonId} />,
                                     },
                                     {
                                         key: 'summary',
                                         label: 'Summary',
-                                        children: <HpecSummary lessonId={lessonId} />,
+                                        children: <HpecSummary lessonId={hpecLessonId} />,
                                     },
                                     {
                                         key: 'resources',
                                         label: 'Resources',
-                                        children: <HpecResources lessonId={lessonId} />,
+                                        children: <HpecResources lessonId={hpecLessonId} />,
                                         disabled:
                                             data?.singleLessonCollection?.items[0].lessonResourcesCollection.items
                                                 .length === 0,

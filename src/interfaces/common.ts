@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase/firestore';
+
 export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export type QueryParams = Record<string, unknown>;
@@ -53,3 +55,13 @@ export type AccountCaseType =
     | 'DEDA_CONFIRMED_NOT_STARTED'
     | 'DEDA_STARTED_ACCOUNT_PAUSED'
     | 'PROMPT_CONFIRM';
+
+export interface Notification {
+    title: string;
+    body: string;
+    actionLink?: string;
+    isRead: boolean;
+    notificationId: string;
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+}

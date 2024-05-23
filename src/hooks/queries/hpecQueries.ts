@@ -1,12 +1,6 @@
 import { useQuery } from '@apollo/client';
 import gql from 'graphql-tag';
-import {
-    AccountCaseType,
-    HpecModulesResponse,
-    HpecResourcesResponse,
-    IHPECLesson,
-    IHpecModulesProcessed,
-} from 'interfaces';
+import { HpecModulesResponse, HpecResourcesResponse, IHPECLesson } from 'interfaces';
 import { useMelpContext } from 'providers';
 import { useEffect, useState } from 'react';
 
@@ -139,4 +133,5 @@ export const useGetHpecResources = (lessonId: string) =>
             lessonId,
         },
         fetchPolicy: 'cache-first',
+        skip: lessonId === 'first-lesson',
     });

@@ -1,11 +1,11 @@
 'use client';
 
-import { BellOutlined } from '@ant-design/icons';
-import { Avatar, Flex, Typography, Dropdown, Empty } from 'antd';
+import { Avatar, Flex, Typography, Dropdown } from 'antd';
 import { handleLogout } from 'libs';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from 'providers';
 import React, { useState } from 'react';
+import { NotificationsList } from '../../atoms';
 import { ArrowDown } from '../../icons';
 
 const { Text } = Typography;
@@ -17,19 +17,7 @@ export const UserMenu = () => {
 
     return (
         <Flex align="center" gap="1rem">
-            <Dropdown
-                menu={{
-                    items: [
-                        {
-                            key: 'none',
-                            label: <Empty style={{ cursor: 'default' }} description="Não há notificações" />,
-                            disabled: true,
-                        },
-                    ],
-                }}
-            >
-                <BellOutlined />
-            </Dropdown>
+            <NotificationsList />
 
             <Dropdown
                 open={userMenuOpen}

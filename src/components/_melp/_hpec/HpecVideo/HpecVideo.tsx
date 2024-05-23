@@ -31,7 +31,7 @@ const Markdown = styled(ReactMarkdown)`
 export const HpecVideo: React.FC<HpecVideoProps> = ({ lessonId }) => {
     const { data, loading } = useGetLessonContent(lessonId);
 
-    if (loading) return <Skeleton active loading />;
+    if (loading || !data) return <Skeleton active loading />;
 
     return (
         <VideoWrapper>

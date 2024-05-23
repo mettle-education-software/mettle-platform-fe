@@ -5,7 +5,7 @@ import { Collapse, CollapseProps, Flex, Progress, Skeleton, Typography } from 'a
 import { useGetHpecsModules } from 'hooks/queries/hpecQueries';
 import Link from 'next/link';
 import { useMelpContext } from 'providers';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const { Title, Text } = Typography;
 
@@ -47,13 +47,27 @@ const CompletedCard = styled.div`
 interface HpecModulesListProps {
     activeLessonId: string;
     activeHpecId: string;
+    onModuleFirstLesson: (firsLessonId: string) => void;
 }
 
-export const HpecModulesList: React.FC<HpecModulesListProps> = ({ activeLessonId, activeHpecId }) => {
+export const HpecModulesList: React.FC<HpecModulesListProps> = ({
+    activeLessonId,
+    activeHpecId,
+    onModuleFirstLesson,
+}) => {
     const { melpSummary } = useMelpContext();
     const { unlockedModules, lockedModules, unlockedLessons, totalLessons, progressCount, loading } =
         useGetHpecsModules();
     const [activeKey, setActiveKey] = useState(activeHpecId);
+
+    useEffect(() => {
+        if (activeHpecId) {
+            const activeModule = unlockedModules.find(({ hpecId }) => hpecId === activeHpecId);
+            if (activeModule) {
+                onModuleFirstLesson(activeModule.hpecLessonsCollection.items[0].lessonId);
+            }
+        }
+    }, [unlockedModules, activeHpecId]);
 
     if (loading || !melpSummary) return <Skeleton.Button active shape="round" block />;
 

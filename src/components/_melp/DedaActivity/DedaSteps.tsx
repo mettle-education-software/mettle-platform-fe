@@ -13,10 +13,6 @@ import { DedaActivitySummary, DedaStepsCompleted, Listen, ListenRead, ReadRecord
 
 const { Text } = Typography;
 
-interface DedaStepsProps {
-    dedaId: string;
-}
-
 const ActivityCard = styled.div`
     width: 100%;
     min-height: 314px;
@@ -58,7 +54,6 @@ const ChipWrapper = styled.div`
     background: rgba(242, 240, 238, 0.05);
     padding: 0.25rem 0.75rem;
     position: relative;
-
     font-size: 0.75rem;
 
     &.active {
@@ -91,24 +86,28 @@ const NavButton = styled(Button)`
     border: none;
 `;
 
+const StepChip = ({ status, stepName }: { status?: 'completed' | 'active'; stepName: string }) => (
+    <ChipWrapper className={status}>
+        {status === 'completed' ? (
+            <CheckCircleFilled className="active-icon" />
+        ) : (
+            <CheckCircleOutlined className="icon" />
+        )}
+        <Text className="text">{stepName}</Text>
+    </ChipWrapper>
+);
+
 const StopWatch = ({ onStop }: { onStop(duration: number): void }) => {
     const [stopwatch, setStopwatch] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setStopwatch((previousTime) => previousTime + 1);
-        }, 1000);
-
+        const interval = setInterval(() => setStopwatch((prev) => prev + 1), 1000);
         return () => {
             clearInterval(interval);
             onStop(stopwatch);
         };
-    });
-
-    const toggleStopwatch = () => {
-        setIsOpen(!isOpen);
-    };
+    }, [stopwatch, onStop]);
 
     return (
         <ChipWrapper>
@@ -120,33 +119,19 @@ const StopWatch = ({ onStop }: { onStop(duration: number): void }) => {
                     </Text>
                 )}
                 {isOpen ? (
-                    <Timer style={{ cursor: 'pointer' }} className="icon" onClick={toggleStopwatch} />
+                    <Timer style={{ cursor: 'pointer' }} className="icon" onClick={() => setIsOpen(false)} />
                 ) : (
-                    <TimerOff style={{ cursor: 'pointer' }} className="icon" onClick={toggleStopwatch} />
+                    <TimerOff style={{ cursor: 'pointer' }} className="icon" onClick={() => setIsOpen(true)} />
                 )}
             </Flex>
         </ChipWrapper>
     );
 };
 
-const StepChip = ({ status, stepName }: { status?: 'completed' | 'active'; stepName: string }) => {
-    return (
-        <ChipWrapper className={status}>
-            {status === 'completed' ? (
-                <CheckCircleFilled className="active-icon" />
-            ) : (
-                <CheckCircleOutlined className="icon" />
-            )}
-            <Text className="text">{stepName}</Text>
-        </ChipWrapper>
-    );
-};
-
 const steps = ['listen', 'readRecord', 'watch', 'listenRead', 'write', 'finish', 'completed'];
 
-export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
+export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     const router = useRouter();
-
     const { melpSummary, isTodaysDedaCompleted } = useMelpContext();
     const { user } = useAppContext();
 
@@ -164,141 +149,92 @@ export const DedaSteps: React.FC<DedaStepsProps> = ({ dedaId }) => {
     const [inputData, setInputData] = useState<SaveDedaInputMutationDedaData>({} as SaveDedaInputMutationDedaData);
 
     const isTodaysDeda = melpSummary?.unlocked_dedas[melpSummary?.unlocked_dedas.length - 1] === dedaId;
-    // TODO - implement this logic here
+    const isTodaysDedaAndNotCompleted = isTodaysDeda && !isTodaysDedaCompleted;
 
-    const dedaSteps = new Map([
-        ['listen', <Listen key="listen" dedaId={dedaId} />],
-        ['readRecord', <ReadRecord key="readRecord" dedaId={dedaId} />],
-        ['watch', <Watch key="watch" dedaId={dedaId} />],
-        ['listenRead', <ListenRead key="listenRead" dedaId={dedaId} />],
-        ['write', <Write key="write" dedaId={dedaId} />],
-        [
-            'finish',
-            <DedaActivitySummary
-                defaultDedaTime={dedaTime}
-                onInputs={(value) => {
-                    setInputData(value);
-                }}
-                key="finish"
-            />,
-        ],
-        ['completed', <DedaStepsCompleted key="completed" />],
-    ]);
-
-    const handlePreviousStep = () => {
-        const previousStep = steps[steps.indexOf(currentStep) - 1];
-        setCurrentStep(previousStep);
+    const dedaSteps = {
+        listen: <Listen key="listen" dedaId={dedaId} />,
+        readRecord: <ReadRecord key="readRecord" dedaId={dedaId} />,
+        watch: <Watch key="watch" dedaId={dedaId} />,
+        listenRead: <ListenRead key="listenRead" dedaId={dedaId} />,
+        write: <Write key="write" dedaId={dedaId} />,
+        finish: <DedaActivitySummary defaultDedaTime={dedaTime} onInputs={setInputData} key="finish" />,
+        completed: <DedaStepsCompleted key="completed" />,
     };
 
-    const handleNextStep = () => {
-        if (currentStep === 'finish') {
-            return handleFinishSave();
-        }
+    const handleStepChange = (direction: 'next' | 'previous') => {
+        const currentIndex = steps.indexOf(currentStep);
+        const newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+        const newStep = steps[newIndex];
 
-        if (currentStep === 'completed') {
+        if (newStep === 'finish' && !isTodaysDedaAndNotCompleted) {
+            handleFinishSave();
+        } else if (newStep === 'completed') {
             router.push('/melp/deda');
-            return;
+        } else {
+            setCurrentStep(newStep);
         }
-
-        const nextStep = steps[steps.indexOf(currentStep) + 1];
-        setCurrentStep(nextStep);
     };
 
     const saveInput = useSaveDedaInput();
 
-    function handleFinishSave() {
+    const handleFinishSave = () => {
         const week = `week${melpSummary.unlocked_dedas.indexOf(dedaId)}`;
         const day = getDayToday();
         const userUid = user?.uid as string;
 
         saveInput.mutate(
+            { userUid, week, day, inputData },
             {
-                userUid,
-                week,
-                day,
-                inputData,
-            },
-            {
-                onSuccess: () => {
-                    setCurrentStep('completed');
-                },
+                onSuccess: () => setCurrentStep('completed'),
             },
         );
-    }
+    };
 
     const indexOfCurrentStep = steps.indexOf(currentStep);
 
     return (
         <ActivityCard>
             <Flex justify="center" align="center" gap="1rem">
-                {currentStep !== 'finish' && (
-                    <StopWatch
-                        onStop={(duration) => {
-                            setDedaTime(duration);
-                        }}
-                    />
-                )}
-
+                {currentStep !== 'finish' && <StopWatch onStop={setDedaTime} />}
                 <BreadCrumbs separator={<ChevronRight style={{ color: 'white', marginTop: '0.25rem' }} />}>
-                    <Breadcrumb.Item>
-                        <StepChip
-                            stepName="Listen"
-                            status={
-                                stepsProgress.listen ? 'completed' : indexOfCurrentStep === 0 ? 'active' : undefined
-                            }
-                        />
-                    </Breadcrumb.Item>
-                    <Breadcrumb.Item>
-                        <StepChip
-                            stepName="Read + Record"
-                            status={
-                                stepsProgress.readRecord ? 'completed' : indexOfCurrentStep === 1 ? 'active' : undefined
-                            }
-                        />
-                    </Breadcrumb.Item>
-                    <Breadcrumb.Item>
-                        <StepChip
-                            stepName="Watch"
-                            status={stepsProgress.watch ? 'completed' : indexOfCurrentStep === 2 ? 'active' : undefined}
-                        />
-                    </Breadcrumb.Item>
-                    <Breadcrumb.Item>
-                        <StepChip
-                            stepName="Listen + Read"
-                            status={
-                                stepsProgress.listenRead ? 'completed' : indexOfCurrentStep === 3 ? 'active' : undefined
-                            }
-                        />
-                    </Breadcrumb.Item>
-                    <Breadcrumb.Item>
-                        <StepChip
-                            stepName="Write"
-                            status={stepsProgress.write ? 'completed' : indexOfCurrentStep === 4 ? 'active' : undefined}
-                        />
-                    </Breadcrumb.Item>
+                    {steps.slice(0, 5).map((step, index) => (
+                        <Breadcrumb.Item key={step}>
+                            <StepChip
+                                stepName={step.charAt(0).toUpperCase() + step.slice(1)}
+                                status={
+                                    stepsProgress[step as keyof typeof stepsProgress]
+                                        ? 'completed'
+                                        : indexOfCurrentStep === index
+                                          ? 'active'
+                                          : undefined
+                                }
+                            />
+                        </Breadcrumb.Item>
+                    ))}
                 </BreadCrumbs>
             </Flex>
-
-            {dedaSteps.get(currentStep)}
-
+            {dedaSteps[currentStep as keyof typeof dedaSteps]}
             <Flex justify="flex-end" align="center" gap="1rem">
                 <Flex gap="0.5rem">
-                    <NavButton disabled={currentStep === 'listen'} onClick={handlePreviousStep}>
+                    <NavButton disabled={currentStep === 'listen'} onClick={() => handleStepChange('previous')}>
                         <ChevronLeft />
                     </NavButton>
-                    <NavButton onClick={handleNextStep}>
+                    <NavButton onClick={() => handleStepChange('next')}>
                         <ChevronRight />
                     </NavButton>
                 </Flex>
-                {!['finish', 'completed'].includes(currentStep) && (
+                {!['finish', 'completed'].includes(currentStep) && isTodaysDedaAndNotCompleted && (
                     <CompleteButton
                         type="primary"
-                        disabled={stepsProgress[currentStep as keyof typeof stepsProgress] as boolean}
-                        onClick={() => {
-                            setStepsProgress((prev) => ({ ...prev, [currentStep]: true }));
-                        }}
+                        disabled={!!stepsProgress[currentStep as keyof typeof stepsProgress]}
+                        onClick={() =>
+                            setStepsProgress((prev) => ({
+                                ...prev,
+                                [currentStep]: true,
+                            }))
+                        }
                     >
-                        {(stepsProgress[currentStep as keyof typeof stepsProgress] as boolean)
+                        {stepsProgress[currentStep as keyof typeof stepsProgress]
                             ? 'Step completed 🎉'
                             : 'Complete step'}
                     </CompleteButton>

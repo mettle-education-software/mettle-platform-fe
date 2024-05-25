@@ -15,6 +15,11 @@ const MaxTextWidth = styled.div`
     max-width: 800px;
 `;
 
+const ContentCard = styled(Card)`
+    max-height: 660px;
+    overflow-y: auto;
+`;
+
 export const Write: React.FC<WriteProps> = ({ dedaId }) => {
     const dedaWriteResult = useDeda<DedaWriteQueryResponse>('deda-write', dedaId);
 
@@ -36,7 +41,7 @@ export const Write: React.FC<WriteProps> = ({ dedaId }) => {
     const currentDayDedaWrite = dedaWriteDays[dedaWriteDaysKeys[weekDay] as keyof typeof dedaWriteDays];
 
     return (
-        <Card>
+        <ContentCard>
             <Flex justify="center">
                 <MaxTextWidth>
                     <Skeleton loading={dedaWriteResult.loading} active style={{ width: '100%' }}>
@@ -47,6 +52,6 @@ export const Write: React.FC<WriteProps> = ({ dedaId }) => {
                     </Skeleton>
                 </MaxTextWidth>
             </Flex>
-        </Card>
+        </ContentCard>
     );
 };

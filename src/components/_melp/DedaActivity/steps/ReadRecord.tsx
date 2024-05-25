@@ -16,7 +16,7 @@ const MaxTextWidth = styled.div`
 `;
 
 const ReadingCard = styled(Card)`
-    max-height: 800px;
+    max-height: 660px;
     overflow-y: auto;
 `;
 

@@ -21,13 +21,14 @@ export const MelpProvider: React.FC<ProviderProps> = ({ children }) => {
     const { user } = useAppContext();
 
     const { data: melpSummary, isLoading: isMelpSummaryLoading } = useMelpSummary(user?.uid as string);
-    const { data: currentDayDedaActivityStatus } = useCurrentDayDedaActivityStatus();
+    const { data: currentDayDedaActivityStatus } = useCurrentDayDedaActivityStatus(melpSummary, user);
 
     const value = useMemo(
         () => ({
             melpSummary: melpSummary as MelpSummaryResponse['data'],
             isMelpSummaryLoading,
-            isTodaysDedaCompleted: currentDayDedaActivityStatus?.isDedaCompleted,
+            isTodaysDedaCompleted: false,
+            // isTodaysDedaCompleted: currentDayDedaActivityStatus?.isDedaCompleted,
         }),
         [melpSummary, isMelpSummaryLoading, currentDayDedaActivityStatus?.isDedaCompleted],
     );

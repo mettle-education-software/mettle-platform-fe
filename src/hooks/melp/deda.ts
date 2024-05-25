@@ -1,13 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { DedaActivityStatusResponse } from 'interfaces';
+import { DedaActivityStatusResponse, FireUser } from 'interfaces';
+import { MelpSummaryResponse } from 'interfaces/melp';
 import { getDayToday } from 'libs';
-import { useAppContext, useMelpContext } from 'providers';
 import { melpService } from 'services';
 
-export const useCurrentDayDedaActivityStatus = () => {
-    const { user } = useAppContext();
-    const { melpSummary, isMelpSummaryLoading } = useMelpContext();
-
+export const useCurrentDayDedaActivityStatus = (melpSummary?: MelpSummaryResponse['data'], user?: FireUser) => {
     const currentWeek = `week${melpSummary?.current_deda_week}`;
     const currentDay = getDayToday();
 
@@ -17,6 +14,6 @@ export const useCurrentDayDedaActivityStatus = () => {
             melpService
                 .get<DedaActivityStatusResponse>(`/deda/status/${user?.uid}/${currentWeek}/${currentDay}`)
                 .then(({ data }) => data),
-        enabled: !!melpSummary && !isMelpSummaryLoading && !!user,
+        enabled: !!melpSummary && !!user,
     });
 };

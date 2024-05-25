@@ -1,8 +1,9 @@
 import { SmileOutlined } from '@ant-design/icons';
 import { Result, Typography } from 'antd';
+import { withDedaActivity } from 'components/HOCs';
 import React from 'react';
 
-export const DedaStepsCompleted = () => {
+const DedaStepsCompletedRaw = () => {
     return (
         <Result
             icon={<SmileOutlined style={{ color: 'white' }} />}
@@ -14,3 +15,5 @@ export const DedaStepsCompleted = () => {
         />
     );
 };
+
+export const DedaStepsCompleted = withDedaActivity(DedaStepsCompletedRaw);

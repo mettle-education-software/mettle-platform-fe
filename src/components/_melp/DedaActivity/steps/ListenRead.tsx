@@ -16,6 +16,11 @@ const MaxTextWidth = styled.div`
     max-width: 800px;
 `;
 
+const ListenCard = styled(Card)`
+    max-height: 660px;
+    overflow-y: auto;
+`;
+
 export const ListenRead: React.FC<ListenReadProps> = ({ dedaId }) => {
     const dedaListenReadResult = useDeda<DedaListenReadQueryResponse>('deda-listen-read', dedaId);
 
@@ -24,7 +29,7 @@ export const ListenRead: React.FC<ListenReadProps> = ({ dedaId }) => {
         dedaListenReadResult.data?.dedaContentCollection?.items[0].dedaListenSoundCloudLink;
 
     return (
-        <Card>
+        <ListenCard>
             <Flex justify="center">
                 <MaxTextWidth>
                     <Flex vertical align="stretch" gap="2rem">
@@ -35,6 +40,6 @@ export const ListenRead: React.FC<ListenReadProps> = ({ dedaId }) => {
                     </Flex>
                 </MaxTextWidth>
             </Flex>
-        </Card>
+        </ListenCard>
     );
 };

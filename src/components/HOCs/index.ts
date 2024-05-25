@@ -1,0 +1,1 @@
+export { withDedaActivity } from './withDedaActivity';

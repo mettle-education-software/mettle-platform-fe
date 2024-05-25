@@ -60,6 +60,10 @@ const ChipWrapper = styled.div`
         border: 2px solid white;
     }
 
+    &.highlighted {
+        background: var(--secondary);
+    }
+
     .active-icon {
         color: var(--secondary);
     }
@@ -86,13 +90,23 @@ const NavButton = styled(Button)`
     border: none;
 `;
 
-const StepChip = ({ status, stepName }: { status?: 'completed' | 'active'; stepName: string }) => (
+const StepChip = ({
+    status,
+    stepName,
+    type,
+}: {
+    status?: 'completed' | 'active' | 'highlighted';
+    stepName: string;
+    type: 'step' | 'chip';
+}) => (
     <ChipWrapper className={status}>
-        {status === 'completed' ? (
-            <CheckCircleFilled className="active-icon" />
-        ) : (
-            <CheckCircleOutlined className="icon" />
-        )}
+        {type === 'step' ? (
+            status === 'completed' ? (
+                <CheckCircleFilled className="active-icon" />
+            ) : (
+                <CheckCircleOutlined className="icon" />
+            )
+        ) : null}
         <Text className="text">{stepName}</Text>
     </ChipWrapper>
 );
@@ -114,7 +128,8 @@ const StopWatch = ({ onStop }: { onStop(duration: number): void }) => {
             <Flex justify="flex-end" align="center" gap="0.6rem">
                 {isOpen && (
                     <Text className="text">
-                        {padNumber(Math.floor(stopwatch / 3600))}:{padNumber(Math.floor(stopwatch / 60))}:
+                        {padNumber(Math.floor(stopwatch / 3600))}:
+                        {padNumber(Math.floor(stopwatch / 60) - Math.floor(stopwatch / 3600) * 60)}:
                         {padNumber(stopwatch % 60)}
                     </Text>
                 )}
@@ -129,6 +144,16 @@ const StopWatch = ({ onStop }: { onStop(duration: number): void }) => {
 };
 
 const steps = ['listen', 'readRecord', 'watch', 'listenRead', 'write', 'finish', 'completed'];
+
+enum Steps {
+    listen = 'Listen',
+    readRecord = 'Read + Record',
+    watch = 'Watch',
+    listenRead = 'Listen + Read',
+    write = 'Write',
+    finish = 'Finish',
+    completed = 'Completed',
+}
 
 export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     const router = useRouter();
@@ -148,6 +173,21 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     const [dedaTime, setDedaTime] = useState(0);
     const [inputData, setInputData] = useState<SaveDedaInputMutationDedaData>({} as SaveDedaInputMutationDedaData);
 
+    const saveInput = useSaveDedaInput();
+
+    const handleFinishSave = () => {
+        const week = `week${melpSummary.unlocked_dedas.indexOf(dedaId)}`;
+        const day = getDayToday();
+        const userUid = user?.uid as string;
+
+        saveInput.mutate(
+            { userUid, week, day, inputData },
+            {
+                onSuccess: () => setCurrentStep('completed'),
+            },
+        );
+    };
+
     const isTodaysDeda = melpSummary?.unlocked_dedas[melpSummary?.unlocked_dedas.length - 1] === dedaId;
     const isTodaysDedaAndNotCompleted = isTodaysDeda && !isTodaysDedaCompleted;
 
@@ -157,8 +197,16 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
         watch: <Watch key="watch" dedaId={dedaId} />,
         listenRead: <ListenRead key="listenRead" dedaId={dedaId} />,
         write: <Write key="write" dedaId={dedaId} />,
-        finish: <DedaActivitySummary defaultDedaTime={dedaTime} onInputs={setInputData} key="finish" />,
-        completed: <DedaStepsCompleted key="completed" />,
+        finish: (
+            <DedaActivitySummary
+                defaultDedaTime={dedaTime}
+                onInputs={setInputData}
+                key="finish"
+                isDedaCompleted={!isTodaysDedaAndNotCompleted}
+                loading={saveInput.isPending}
+            />
+        ),
+        completed: <DedaStepsCompleted key="completed" isDedaCompleted={!isTodaysDedaAndNotCompleted} />,
     };
 
     const handleStepChange = (direction: 'next' | 'previous') => {
@@ -175,43 +223,46 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
         }
     };
 
-    const saveInput = useSaveDedaInput();
-
-    const handleFinishSave = () => {
-        const week = `week${melpSummary.unlocked_dedas.indexOf(dedaId)}`;
-        const day = getDayToday();
-        const userUid = user?.uid as string;
-
-        saveInput.mutate(
-            { userUid, week, day, inputData },
-            {
-                onSuccess: () => setCurrentStep('completed'),
-            },
-        );
-    };
-
     const indexOfCurrentStep = steps.indexOf(currentStep);
 
     return (
         <ActivityCard>
-            <Flex justify="center" align="center" gap="1rem">
-                {currentStep !== 'finish' && <StopWatch onStop={setDedaTime} />}
+            <Flex justify="space-between" align="center" gap="1rem">
+                {isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && (
+                    <StopWatch onStop={setDedaTime} />
+                )}
                 <BreadCrumbs separator={<ChevronRight style={{ color: 'white', marginTop: '0.25rem' }} />}>
                     {steps.slice(0, 5).map((step, index) => (
                         <Breadcrumb.Item key={step}>
                             <StepChip
-                                stepName={step.charAt(0).toUpperCase() + step.slice(1)}
+                                type="step"
+                                stepName={Steps[step as keyof typeof Steps]}
                                 status={
-                                    stepsProgress[step as keyof typeof stepsProgress]
-                                        ? 'completed'
-                                        : indexOfCurrentStep === index
-                                          ? 'active'
-                                          : undefined
+                                    isTodaysDedaCompleted
+                                        ? undefined
+                                        : stepsProgress[step as keyof typeof stepsProgress]
+                                          ? 'completed'
+                                          : indexOfCurrentStep === index
+                                            ? 'active'
+                                            : undefined
                                 }
                             />
                         </Breadcrumb.Item>
                     ))}
                 </BreadCrumbs>
+
+                <Flex align="center" gap="1rem">
+                    <StepChip
+                        type="chip"
+                        stepName="Summary"
+                        status={currentStep === 'finish' ? 'highlighted' : undefined}
+                    />
+                    <StepChip
+                        type="chip"
+                        stepName="LinKnowledge"
+                        status={currentStep === 'completed' ? 'highlighted' : undefined}
+                    />
+                </Flex>
             </Flex>
             {dedaSteps[currentStep as keyof typeof dedaSteps]}
             <Flex justify="flex-end" align="center" gap="1rem">
@@ -219,7 +270,14 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                     <NavButton disabled={currentStep === 'listen'} onClick={() => handleStepChange('previous')}>
                         <ChevronLeft />
                     </NavButton>
-                    <NavButton onClick={() => handleStepChange('next')}>
+                    <NavButton
+                        onClick={() => handleStepChange('next')}
+                        disabled={
+                            !isTodaysDeda || !isTodaysDedaAndNotCompleted
+                                ? currentStep === 'write'
+                                : !stepsProgress[currentStep as keyof typeof stepsProgress]
+                        }
+                    >
                         <ChevronRight />
                     </NavButton>
                 </Flex>
@@ -227,16 +285,24 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                     <CompleteButton
                         type="primary"
                         disabled={!!stepsProgress[currentStep as keyof typeof stepsProgress]}
-                        onClick={() =>
+                        onClick={() => {
                             setStepsProgress((prev) => ({
                                 ...prev,
                                 [currentStep]: true,
-                            }))
-                        }
+                            }));
+                            handleStepChange('next');
+                        }}
                     >
                         {stepsProgress[currentStep as keyof typeof stepsProgress]
                             ? 'Step completed 🎉'
-                            : 'Complete step'}
+                            : currentStep === 'write'
+                              ? 'Finish'
+                              : 'Complete step'}
+                    </CompleteButton>
+                )}
+                {currentStep === 'finish' && (
+                    <CompleteButton loading={saveInput.isPending} type="primary" onClick={handleFinishSave}>
+                        Complete DEDA
                     </CompleteButton>
                 )}
             </Flex>

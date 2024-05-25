@@ -5,24 +5,16 @@ import { ApolloProvider } from '@apollo/react-hooks';
 import { User } from '@firebase/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
+import { FireUser } from 'interfaces';
 import React, { useContext, createContext, useState, useEffect, useMemo } from 'react';
 
 interface ProviderProps {
     children: React.ReactNode;
 }
 
-interface IUser {
-    email: string;
-    roles: string[];
-    uid: string;
-    businessUuid: string;
-    name: string;
-    profileImageSrc: string | null;
-}
-
 interface IProviderContext {
     theme: 'light' | 'dark';
-    user?: IUser;
+    user?: FireUser;
     isAppLoading: boolean;
 }
 

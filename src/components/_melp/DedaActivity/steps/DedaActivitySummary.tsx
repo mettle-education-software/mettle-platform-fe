@@ -1,7 +1,8 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Flex, Typography } from 'antd';
+import { Flex, Skeleton, Typography } from 'antd';
+import { withDedaActivity } from 'components/HOCs';
 import { SaveDedaInputMutationDedaData } from 'hooks';
 import { getClosestTimeListValue } from 'libs';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -28,12 +29,14 @@ const MaxContentWidth = styled.div`
     max-width: 573px;
 `;
 
-export const DedaActivitySummary = ({
+const DedaActivitySummaryRaw = ({
     defaultDedaTime,
     onInputs,
+    loading,
 }: {
     defaultDedaTime: number;
     onInputs(inputValue: SaveDedaInputMutationDedaData): void;
+    loading: boolean;
 }) => {
     const dedaTimeMin = Math.floor(defaultDedaTime / 60);
 
@@ -67,6 +70,8 @@ export const DedaActivitySummary = ({
         });
     }, [dedaInputData, dedaTime, readingTime, onInputsCallback]);
 
+    if (loading) return <Skeleton active loading />;
+
     return (
         <SummaryWrapper>
             <Flex justify="center">
@@ -94,3 +99,5 @@ export const DedaActivitySummary = ({
         </SummaryWrapper>
     );
 };
+
+export const DedaActivitySummary = withDedaActivity(DedaActivitySummaryRaw);

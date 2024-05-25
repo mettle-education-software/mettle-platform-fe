@@ -68,7 +68,6 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
 
                 <MaxWidthContainer>
                     <TabNav
-                        sticky={activeTab === 'dedaActivity'}
                         type="card"
                         color="secondary"
                         activeKey={activeTab}

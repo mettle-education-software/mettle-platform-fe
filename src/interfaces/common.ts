@@ -65,3 +65,12 @@ export interface Notification {
     createdAt: Timestamp;
     updatedAt: Timestamp;
 }
+
+export interface FireUser {
+    email: string;
+    roles: string[];
+    uid: string;
+    businessUuid: string;
+    name: string;
+    profileImageSrc: string | null;
+}

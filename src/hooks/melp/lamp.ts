@@ -33,6 +33,8 @@ interface SaveDedaInputMutation {
 }
 
 export const useSaveDedaInput = () => {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: async ({ userUid, week, day, inputData }: SaveDedaInputMutation) => {
             try {
@@ -62,10 +64,10 @@ export const useSaveDedaInput = () => {
                         },
                         dedaInputData: {
                             dedaFocus: inputData.dedaFocus,
-                            dedaSteps: inputData.dedaFocus,
-                            dedaPredPlace: inputData.dedaFocus,
-                            dedaStateBeing: inputData.dedaFocus,
-                            dedaStateMind: inputData.dedaFocus,
+                            dedaSteps: inputData.dedaSteps,
+                            dedaPredPlace: inputData.dedaPredPlace,
+                            dedaStateBeing: inputData.dedaStateBeing,
+                            dedaStateMind: inputData.dedaStateMind,
                             readingTime: inputData.readingTime,
                             dedaTime: inputData.dedaTime,
                         },
@@ -97,6 +99,11 @@ export const useSaveDedaInput = () => {
                 console.error(error);
                 throw error;
             }
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({
+                queryKey: ['get-deda-status'],
+            });
         },
         onError: (error) => {
             alert(error.message);

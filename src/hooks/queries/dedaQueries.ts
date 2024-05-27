@@ -1,6 +1,6 @@
 import { DocumentNode, useQuery } from '@apollo/client';
 import gql from 'graphql-tag';
-import { DedaFeaturesResponse, DedaQueryName, DedaQuoteResponse } from 'interfaces';
+import { DedaFeaturesResponse, DedaQueryName, DedaQuoteResponse, DedaVideosArticlesQueryResponse } from 'interfaces';
 
 const dedaMetaDataQuery = gql`
     query DedaNotes($dedaId: String) {
@@ -381,4 +381,34 @@ export const useGetDedaQuote = (dedaId: string) => {
         `,
         { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
     );
+};
+
+const dedaVideosArticlesQuery = gql`
+    query DedaVideosArticlesQuery($dedaId: String) {
+        dedaContentCollection(where: { dedaId: $dedaId }, limit: 1) {
+            items {
+                dedaTitle
+                dedaNotesArticlesLinksCollection {
+                    items {
+                        magicLinkUrl
+                        magicLinkLabel
+                    }
+                }
+                dedaNotesVideosLinksCollection {
+                    items {
+                        magicLinkUrl
+                        magicLinkLabel
+                    }
+                }
+            }
+        }
+    }
+`;
+
+export const useGetDedaVideosArticles = (dedaId: string) => {
+    return useQuery<DedaVideosArticlesQueryResponse>(dedaVideosArticlesQuery, {
+        variables: { dedaId },
+        skip: !dedaId,
+        fetchPolicy: 'cache-first',
+    });
 };

@@ -6,7 +6,7 @@ import { RichTextRenderer } from 'components';
 import { useDeda } from 'hooks';
 import { DedaListenReadQueryResponse } from 'interfaces';
 import React from 'react';
-import { ListenSoundCloud } from '../../ListenSoundCloud/ListenSoundCloud';
+import { ListenSoundCloud } from '../../../ListenSoundCloud/ListenSoundCloud';
 
 interface ListenReadProps {
     dedaId: string;

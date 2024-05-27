@@ -14,23 +14,24 @@ const FrameThumbnailContainer = styled.div`
     cursor: pointer;
 `;
 
-const ThumbnailWrapper = styled.div`
-    width: 250px;
-    max-width: 250px;
-    aspect-ratio: 211/126;
+const ThumbnailWrapper = styled.div<{ fullWidth?: boolean }>`
+    min-width: 250px;
+    width: 100%;
+    ${({ fullWidth }) => (fullWidth ? '' : 'max-width: 250px;')}
+    aspect-ratio: 211 / 126;
     border-radius: 6px;
-    //background: url('https://source.unsplash.com/random');
 `;
 
-export const FrameThumbnail: React.FC<{ title: string; onThumbClick(): void; children: React.ReactNode }> = ({
-    title,
-    onThumbClick,
-    children,
-}) => {
+export const FrameThumbnail: React.FC<{
+    title: string;
+    onThumbClick(): void;
+    children: React.ReactNode;
+    fullWidth?: boolean;
+}> = ({ title, onThumbClick, children, fullWidth = false }) => {
     return (
         <FrameThumbnailContainer onClick={onThumbClick}>
-            <ThumbnailWrapper>{children}</ThumbnailWrapper>
-            <Typography.Title style={{ whiteSpace: 'break-spaces' }} level={4}>
+            <ThumbnailWrapper fullWidth={fullWidth}>{children}</ThumbnailWrapper>
+            <Typography.Title className="color-white" style={{ whiteSpace: 'break-spaces' }} level={4}>
                 {title}
             </Typography.Title>
         </FrameThumbnailContainer>

@@ -127,8 +127,8 @@ export const DedaInput: React.FC<DedaInputProps> = ({
             <InputsWrapper>
                 <Row>
                     <Col span={16}>
-                        <Text className="input-time-text">
-                            Enter the <span className="highlight">Reading Time</span>
+                        <Text className="color-white" style={{ fontWeight: 700, fontSize: '1.2rem' }}>
+                            Enter the <span className="highlight color-secondary">Reading Time</span>
                         </Text>
                     </Col>
                     <Col span={8}>
@@ -142,8 +142,8 @@ export const DedaInput: React.FC<DedaInputProps> = ({
                 </Row>
                 <Row>
                     <Col span={16}>
-                        <Text className="input-time-text">
-                            Enter the <span className="highlight">DEDA Time</span>
+                        <Text className="color-white" style={{ fontWeight: 700, fontSize: '1.2rem' }}>
+                            Enter the <span className="highlight color-secondary">DEDA Time</span>
                         </Text>
                     </Col>
                     <Col span={8}>

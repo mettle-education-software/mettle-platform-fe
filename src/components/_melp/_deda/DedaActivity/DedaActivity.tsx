@@ -4,10 +4,9 @@ import { CheckCircleFilled, AimOutlined, HourglassOutlined } from '@ant-design/i
 import styled from '@emotion/styled';
 import RotateRightIcon from '@mui/icons-material/RotateRight';
 import { Steps, Typography } from 'antd';
-import { DedaSteps } from 'components/_melp/DedaActivity/DedaSteps';
-import { getTodaysWeekDay } from 'libs';
 import React from 'react';
-import { MaxWidthContainer } from '../../atoms';
+import { MaxWidthContainer } from '../../../atoms';
+import { DedaSteps } from '../DedaActivity/DedaSteps';
 
 const { Text } = Typography;
 

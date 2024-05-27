@@ -9,7 +9,7 @@ import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaNotesQueryResponse } from 'interfaces';
 import { padding } from 'libs';
 import React, { useMemo, useRef } from 'react';
-import { PodcastFrame } from '../../PodcastFrame/PodcastFrame';
+import { PodcastFrame } from '../../../PodcastFrame/PodcastFrame';
 
 const LinKnowledgeContainer = styled.div`
     background: #2b2b2b;

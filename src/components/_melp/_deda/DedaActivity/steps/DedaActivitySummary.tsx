@@ -6,7 +6,7 @@ import { withDedaActivity } from 'components/HOCs';
 import { SaveDedaInputMutationDedaData } from 'hooks';
 import { getClosestTimeListValue } from 'libs';
 import React, { useCallback, useEffect, useState } from 'react';
-import { DedaInput } from '../../DedaInput/DedaInput';
+import { DedaInput } from '../../../DedaInput/DedaInput';
 
 const { Text, Title } = Typography;
 

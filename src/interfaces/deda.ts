@@ -194,3 +194,23 @@ export type DedaWriteQueryResponse = DedaContentCollection<{
 export interface DedaActivityStatusResponse {
     isDedaCompleted: boolean;
 }
+
+export interface DedaVideosArticlesQueryResponse {
+    dedaContentCollection: {
+        items: {
+            dedaTitle: string;
+            dedaNotesArticlesLinksCollection: {
+                items: {
+                    magicLinkUrl: string;
+                    magicLinkLabel: string;
+                }[];
+            };
+            dedaNotesVideosLinksCollection: {
+                items: {
+                    magicLinkUrl: string;
+                    magicLinkLabel: string;
+                }[];
+            };
+        }[];
+    };
+}

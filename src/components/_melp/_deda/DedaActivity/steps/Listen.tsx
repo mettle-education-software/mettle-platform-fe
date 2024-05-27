@@ -5,7 +5,7 @@ import { Skeleton } from 'antd';
 import { useDeda } from 'hooks';
 import { DedaListenQueryResponse } from 'interfaces';
 import React from 'react';
-import { ListenSoundCloud } from '../../ListenSoundCloud/ListenSoundCloud';
+import { ListenSoundCloud } from '../../../ListenSoundCloud/ListenSoundCloud';
 
 interface ListenProps {
     dedaId: string;

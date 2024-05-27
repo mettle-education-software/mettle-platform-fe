@@ -27,8 +27,7 @@ export const MelpProvider: React.FC<ProviderProps> = ({ children }) => {
         () => ({
             melpSummary: melpSummary as MelpSummaryResponse['data'],
             isMelpSummaryLoading,
-            isTodaysDedaCompleted: false,
-            // isTodaysDedaCompleted: currentDayDedaActivityStatus?.isDedaCompleted,
+            isTodaysDedaCompleted: currentDayDedaActivityStatus?.isDedaCompleted,
         }),
         [melpSummary, isMelpSummaryLoading, currentDayDedaActivityStatus?.isDedaCompleted],
     );

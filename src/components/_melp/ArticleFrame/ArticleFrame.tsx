@@ -25,7 +25,7 @@ const ArticleFrameContainer = styled.iframe`
     border: none;
 `;
 
-export const ArticleFrame = ({ href, title }: { href: string; title: string }) => {
+export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: string; fullWidth?: boolean }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleOk = () => {
@@ -85,6 +85,7 @@ export const ArticleFrame = ({ href, title }: { href: string; title: string }) =
 
     return (
         <FrameThumbnail
+            fullWidth={fullWidth}
             title={title}
             onThumbClick={() => {
                 if (isError || shouldOpenExternal) {

@@ -46,7 +46,15 @@ const Dialog = styled(Modal)`
     }
 `;
 
-export const VideoFrame = ({ videoSrc, title }: { videoSrc: string; title: string }) => {
+export const VideoFrame = ({
+    videoSrc,
+    title,
+    fullWidth,
+}: {
+    videoSrc: string;
+    title: string;
+    fullWidth?: boolean;
+}) => {
     const videoId = extractYouTubeID(videoSrc);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,6 +69,7 @@ export const VideoFrame = ({ videoSrc, title }: { videoSrc: string; title: strin
             onThumbClick={() => {
                 if (!isModalOpen) setIsModalOpen(true);
             }}
+            fullWidth={fullWidth}
         >
             <Dialog open={isModalOpen} onCancel={handleOk} onOk={handleOk} destroyOnClose footer={null} width="70vw">
                 <IFrame

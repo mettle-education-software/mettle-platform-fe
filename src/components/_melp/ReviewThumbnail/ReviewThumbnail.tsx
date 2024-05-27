@@ -80,6 +80,7 @@ interface ReviewThumbnailProps {
     week: string;
     status: boolean;
     onMarkCompleted: (status: boolean) => void;
+    loading?: boolean;
 }
 
 export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
@@ -89,10 +90,11 @@ export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
     week,
     status,
     onMarkCompleted,
+    loading = false,
 }) => {
-    const { data, loading } = useDeda<DedaWatchQueryResponse>('deda-watch', dedaId);
+    const { data, loading: isWatchLoading } = useDeda<DedaWatchQueryResponse>('deda-watch', dedaId);
 
-    if (!data || loading) return <Skeleton.Image active />;
+    if (!data || isWatchLoading) return <Skeleton.Image active />;
 
     const dedaUrl = data?.dedaContentCollection.items[0].dedaWatchVideoLink;
 
@@ -136,6 +138,7 @@ export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
                     </WeekChip>
                 </Flex>
                 <ReviewStatusChip
+                    disabled={loading}
                     onClick={() => {
                         onMarkCompleted(!status);
                     }}

@@ -1,16 +1,12 @@
 export { MelpSummary } from './MelpSummary/MelpSummary';
 export { DedaCard } from './DedaCard/DedaCard';
-export { DedasGrid } from './DedasGrid/DedasGrid';
-export { DedaActivity } from './DedaActivity/DedaActivity';
-export { DedaNotes } from './DedaNotes/DedaNotes';
-export { DedaReview } from './DedaReview/DedaReview';
 export { PodcastFrame } from './PodcastFrame/PodcastFrame';
 export { ArticleFrame } from './ArticleFrame/ArticleFrame';
 export { VideoFrame } from './VideoFrame/VideoFrame';
-export { DedaQuote } from './DedaQuote/DedaQuote';
 export { HeaderSummary } from './HeaderSummary/HeaderSummary';
 export { InputWithTime } from './InputWithTime/InputWithTime';
 export { InputsWrapper } from './InputsWrapper/InputsWrapper';
+export * from './_deda';
 export * from './_lamp';
 export * from './_hpec';
 export * from './_melpHome';

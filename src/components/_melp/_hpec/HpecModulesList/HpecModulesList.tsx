@@ -67,6 +67,7 @@ export const HpecModulesList: React.FC<HpecModulesListProps> = ({
                 onModuleFirstLesson(activeModule.hpecLessonsCollection.items[0].lessonId);
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [unlockedModules, activeHpecId]);
 
     if (loading || !melpSummary) return <Skeleton.Button active shape="round" block />;

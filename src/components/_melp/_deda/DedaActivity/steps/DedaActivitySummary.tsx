@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import { Flex, Skeleton, Typography } from 'antd';
 import { withDedaActivity } from 'components/HOCs';
 import { SaveDedaInputMutationDedaData } from 'hooks';
-import { getClosestTimeListValue } from 'libs';
 import React, { useCallback, useEffect, useState } from 'react';
 import { DedaInput } from '../../../DedaInput/DedaInput';
 
@@ -49,7 +48,7 @@ const DedaActivitySummaryRaw = ({
             dedaFocus: 0,
         },
     );
-    const [dedaTime, setDedaTime] = useState<number>(getClosestTimeListValue(dedaTimeMin));
+    const [dedaTime, setDedaTime] = useState<number>(dedaTimeMin);
     const [readingTime, setReadingTime] = useState<number>(0);
 
     const handleRateChange = (value: number, key: string) => {

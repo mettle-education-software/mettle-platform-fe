@@ -230,7 +230,11 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
         <ActivityCard>
             <Flex justify={canShowAllSteps ? 'space-between' : 'center'} align="center" gap="1rem">
                 {isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && (
-                    <StopWatch onStop={setDedaTime} />
+                    <StopWatch
+                        onStop={(stopwatchValue) => {
+                            setDedaTime(stopwatchValue);
+                        }}
+                    />
                 )}
                 <BreadCrumbs separator={<ChevronRight style={{ color: 'white', marginTop: '0.25rem' }} />}>
                     {steps.slice(0, 5).map((step, index) => (

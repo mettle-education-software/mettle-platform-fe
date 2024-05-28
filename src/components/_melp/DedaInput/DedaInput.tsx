@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import { Row, Col, Rate, Typography } from 'antd';
 import { Flex } from 'antd';
+import { InputWithTime } from 'components';
 import React, { Dispatch, SetStateAction } from 'react';
 import { InputsWrapper } from '../InputsWrapper/InputsWrapper';
 import { SelectDedaTime } from '../SelectDedaTime/SelectDedaTime';
@@ -125,36 +126,28 @@ export const DedaInput: React.FC<DedaInputProps> = ({
                 />
             </InputsWrapper>
             <InputsWrapper>
-                <Row>
-                    <Col span={16}>
+                <InputWithTime
+                    label={
                         <Text className="color-white" style={{ fontWeight: 700, fontSize: '1.2rem' }}>
                             Enter the <span className="highlight color-secondary">Reading Time</span>
                         </Text>
-                    </Col>
-                    <Col span={8}>
-                        <SelectReadingTime
-                            value={readingTime}
-                            onChange={(readingTimeValue) => {
-                                setReadingTime(readingTimeValue);
-                            }}
-                        />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col span={16}>
+                    }
+                    value={readingTime}
+                    onChange={(readingTimeValue) => {
+                        setReadingTime(readingTimeValue);
+                    }}
+                />
+                <InputWithTime
+                    label={
                         <Text className="color-white" style={{ fontWeight: 700, fontSize: '1.2rem' }}>
                             Enter the <span className="highlight color-secondary">DEDA Time</span>
                         </Text>
-                    </Col>
-                    <Col span={8}>
-                        <SelectDedaTime
-                            value={dedaTime}
-                            onChange={(dedaTimeValue) => {
-                                setDedaTime(dedaTimeValue);
-                            }}
-                        />
-                    </Col>
-                </Row>
+                    }
+                    value={dedaTime}
+                    onChange={(dedaTimeValue) => {
+                        setDedaTime(dedaTimeValue);
+                    }}
+                />
             </InputsWrapper>
         </>
     );

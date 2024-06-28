@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { DedaActivityStatusResponse, FireUser } from 'interfaces';
 import { MelpSummaryResponse } from 'interfaces/melp';
 import { getDayToday } from 'libs';
+import { useAppContext } from 'providers';
 import { melpService } from 'services';
 
 export const useCurrentDayDedaActivityStatus = (melpSummary?: MelpSummaryResponse['data'], user?: FireUser) => {
@@ -15,5 +16,45 @@ export const useCurrentDayDedaActivityStatus = (melpSummary?: MelpSummaryRespons
                 .get<DedaActivityStatusResponse>(`/deda/status/${user?.uid}/${currentWeek}/${currentDay}`)
                 .then(({ data }) => data),
         enabled: !!melpSummary && !!user,
+    });
+};
+
+export const useGetDedaRecording = (week: string, weekDay: string) => {
+    const { user } = useAppContext();
+
+    return useQuery({
+        queryKey: ['get-deda-recording', week, weekDay, user?.uid],
+        queryFn: () =>
+            melpService
+                .get<string>(`/deda/recording/${user?.uid}/${week}/${weekDay}`, {
+                    responseType: 'arraybuffer',
+                })
+                .then(({ data }) => {
+                    const blob = new Blob([data], { type: 'audio/wave' });
+                    const url = URL.createObjectURL(blob);
+                    return url;
+                }),
+    });
+};
+
+export const useSubmitDedaRecordingAudio = () => {
+    return useMutation({
+        mutationFn: ({
+            userUid,
+            week,
+            weekDay,
+            formData,
+        }: {
+            userUid: string;
+            week: string;
+            weekDay: string;
+            formData: FormData;
+        }) =>
+            melpService.post(`/deda/recording/${userUid}/${week}/${weekDay}`, {
+                data: formData,
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            }),
     });
 };

@@ -78,6 +78,10 @@ a {
     background-color: var(--white);
 }
 
+.word-no-break {
+    white-space: nowrap;
+}
+
 /* Ant design style changes below */
 
 /*.ant-btn {*/

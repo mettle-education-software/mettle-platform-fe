@@ -4,12 +4,12 @@ import { AppLayout } from 'components';
 import { withAuthentication } from 'libs';
 import React from 'react';
 
-const Profile = () => {
+const Settings = () => {
     return (
         <AppLayout>
-            <h1>Profile</h1>
+            <h1>Settings</h1>
         </AppLayout>
     );
 };
 
-export default withAuthentication(Profile);
+export default withAuthentication(Settings);

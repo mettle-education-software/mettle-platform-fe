@@ -17,6 +17,7 @@ export type HTTPOptions = {
         throwIfRequested(): void;
     };
     headers?: Record<string, string>;
+    responseType?: 'json' | 'arraybuffer';
 };
 
 export interface HTTPResponse<T> {

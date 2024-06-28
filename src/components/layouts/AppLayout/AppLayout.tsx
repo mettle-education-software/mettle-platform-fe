@@ -1,11 +1,12 @@
 'use client';
 
-import { MenuOutlined, HomeOutlined } from '@ant-design/icons';
+import { MenuOutlined, HomeOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Button, Drawer, Flex, Layout, Menu } from 'antd';
-import { Logo } from 'components';
+import { Logo, NotificationsList } from 'components';
 import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
+import { handleLogout, SMALL_VIEWPORT } from 'libs';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { forwardRef, useEffect, useState } from 'react';
 import { DedaIcon } from '../../icons';
@@ -46,6 +47,11 @@ const PageLayout = styled(Layout)`
     max-height: 100vh;
     width: 100vw;
     max-width: 100vw;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        overflow-y: hidden;
+        max-height: ${window ? window?.innerHeight : 800}px;
+    }
 `;
 
 const ContentLayout = styled(Layout)`
@@ -168,6 +174,26 @@ export const AppLayout = forwardRef<
                             },
                         ],
                     },
+                    {
+                        key: 'settings',
+                        label: 'Settings',
+                        icon: <SettingOutlined />,
+                        onClick: ({ domEvent }) => {
+                            domEvent.preventDefault();
+                            collapseOnMobile();
+                            router.push('/settings');
+                        },
+                    },
+                    {
+                        key: 'logout',
+                        label: 'Logout',
+                        icon: <LogoutOutlined />,
+                        onClick: async ({ domEvent }) => {
+                            domEvent.preventDefault();
+                            collapseOnMobile();
+                            await handleLogout();
+                        },
+                    },
                 ]}
             />
         );
@@ -177,9 +203,10 @@ export const AppLayout = forwardRef<
                 <PageLayout>
                     <Layout>
                         <AppHeader>
-                            <Flex gap="0.5rem">
+                            <Flex gap="0.5rem" align="center" justify="space-between" style={{ width: '100%' }}>
                                 {trigger}
                                 {withMelpSummary && <MelpSummary />}
+                                <NotificationsList />
                             </Flex>
                             <Drawer open={!collapsed} onClose={() => setCollapsed(true)}>
                                 {customMenu}

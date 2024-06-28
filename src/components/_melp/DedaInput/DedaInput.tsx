@@ -4,8 +4,6 @@ import { Flex } from 'antd';
 import { InputWithTime } from 'components';
 import React, { Dispatch, SetStateAction } from 'react';
 import { InputsWrapper } from '../InputsWrapper/InputsWrapper';
-import { SelectDedaTime } from '../SelectDedaTime/SelectDedaTime';
-import { SelectReadingTime } from '../SelectReadingTime/SelectReadingTime';
 
 const { Text } = Typography;
 

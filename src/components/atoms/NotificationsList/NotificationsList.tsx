@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import { Badge, Button, Col, Dropdown, Empty, Flex, Row, Skeleton, Typography } from 'antd';
 import { useGetNotifications, useMarkAsRead, useListenForNotifications } from 'hooks';
 import { Notification } from 'interfaces';
+import { SMALL_VIEWPORT } from 'libs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from 'providers';
@@ -22,6 +23,10 @@ const NotificationDropdown = styled.div`
     align-items: stretch;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     border-radius: 0.8rem;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        width: 80vw;
+    }
 `;
 
 const NotificationElement = styled.div`

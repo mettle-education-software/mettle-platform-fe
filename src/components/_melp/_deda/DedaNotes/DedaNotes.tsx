@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import { BookmarkOutlined, HomeOutlined, PsychologyOutlined } from '@mui/icons-material';
 import { Button, Flex } from 'antd';
 import { MaxWidthContainer } from 'components';
+import { useDeviceSize } from 'hooks';
+import { SMALL_VIEWPORT } from 'libs';
 import React, { useState } from 'react';
 import { Glossary } from './Glossary/Glossary';
 import { Introduction } from './Introduction/Introduction';
@@ -17,6 +19,20 @@ const DedaNotesNav = styled.div`
     position: sticky;
     top: 0;
     z-index: 1;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        background: #eae8e2;
+        display: flex;
+        gap: 0;
+        align-items: center;
+        max-width: 100vw;
+        height: 4rem;
+        padding: 0;
+
+        .button-item {
+            flex-grow: 1;
+        }
+    }
 `;
 
 const DedaNavButton = styled(Button)`
@@ -30,10 +46,37 @@ const DedaNavButton = styled(Button)`
     &.active {
         color: var(--secondary);
     }
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        min-height: 100%;
+        font-size: 0.7rem;
+        color: var(--primary) !important;
+        border-radius: 0 !important;
+        flex: 1;
+        flex-basis: 33.33%;
+        padding: 0 0.5rem;
+        background: #eae8e2;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        &:not(:last-child) {
+            border-right: 1px solid #eae8e2;
+        }
+
+        &.active {
+            color: var(--primary) !important;
+            background: #3c362f26 !important;
+            font-weight: 700;
+        }
+    }
 `;
 
 export const DedaNotes = ({ dedaId }: { dedaId: string }) => {
     const [selectedDedaNotesSection, setSelectedDedaNotesSection] = useState('introduction');
+    const device = useDeviceSize();
+    const isMobile = device === 'mobile';
 
     const contentRenderer: Map<string, React.ReactNode> = new Map([
         ['introduction', <Introduction key="introduction" dedaId={dedaId} />],
@@ -44,34 +87,69 @@ export const DedaNotes = ({ dedaId }: { dedaId: string }) => {
     return (
         <Flex vertical align="center" style={{ width: '100%', flexGrow: 1 }}>
             <DedaNotesNav>
-                <MaxWidthContainer>
-                    <Flex gap="1.5rem">
-                        <DedaNavButton
-                            className={selectedDedaNotesSection === 'introduction' ? 'active' : undefined}
-                            onClick={() => setSelectedDedaNotesSection('introduction')}
-                            icon={<HomeOutlined />}
-                            ghost
-                        >
-                            Introduction
-                        </DedaNavButton>
-                        <DedaNavButton
-                            className={selectedDedaNotesSection === 'glossary' ? 'active' : undefined}
-                            onClick={() => setSelectedDedaNotesSection('glossary')}
-                            icon={<BookmarkOutlined />}
-                            ghost
-                        >
-                            Glossary
-                        </DedaNavButton>
-                        <DedaNavButton
-                            className={selectedDedaNotesSection === 'linknowledge' ? 'active' : undefined}
-                            onClick={() => setSelectedDedaNotesSection('linknowledge')}
-                            icon={<PsychologyOutlined />}
-                            ghost
-                        >
-                            LinKnowledge
-                        </DedaNavButton>
-                    </Flex>
-                </MaxWidthContainer>
+                {!isMobile ? (
+                    <MaxWidthContainer>
+                        <Flex gap="1.5rem">
+                            <DedaNavButton
+                                className={selectedDedaNotesSection === 'introduction' ? 'active' : undefined}
+                                onClick={() => setSelectedDedaNotesSection('introduction')}
+                                icon={<HomeOutlined />}
+                                ghost
+                            >
+                                Introduction
+                            </DedaNavButton>
+                            <DedaNavButton
+                                className={selectedDedaNotesSection === 'glossary' ? 'active' : undefined}
+                                onClick={() => setSelectedDedaNotesSection('glossary')}
+                                icon={<BookmarkOutlined />}
+                                ghost
+                            >
+                                Glossary
+                            </DedaNavButton>
+                            <DedaNavButton
+                                className={selectedDedaNotesSection === 'linknowledge' ? 'active' : undefined}
+                                onClick={() => setSelectedDedaNotesSection('linknowledge')}
+                                icon={<PsychologyOutlined />}
+                                ghost
+                            >
+                                LinKnowledge
+                            </DedaNavButton>
+                        </Flex>
+                    </MaxWidthContainer>
+                ) : (
+                    <>
+                        <div className="button-item">
+                            <DedaNavButton
+                                className={selectedDedaNotesSection === 'introduction' ? 'active' : undefined}
+                                onClick={() => setSelectedDedaNotesSection('introduction')}
+                                icon={<HomeOutlined />}
+                                block
+                            >
+                                Introduction
+                            </DedaNavButton>
+                        </div>
+                        <div className="button-item">
+                            <DedaNavButton
+                                className={selectedDedaNotesSection === 'glossary' ? 'active' : undefined}
+                                onClick={() => setSelectedDedaNotesSection('glossary')}
+                                icon={<BookmarkOutlined />}
+                                block
+                            >
+                                Glossary
+                            </DedaNavButton>
+                        </div>
+                        <div className="button-item">
+                            <DedaNavButton
+                                className={selectedDedaNotesSection === 'linknowledge' ? 'active' : undefined}
+                                onClick={() => setSelectedDedaNotesSection('linknowledge')}
+                                icon={<PsychologyOutlined />}
+                                block
+                            >
+                                LinKnowledge
+                            </DedaNavButton>
+                        </div>
+                    </>
+                )}
             </DedaNotesNav>
             {contentRenderer.get(selectedDedaNotesSection)}
         </Flex>

@@ -4,9 +4,11 @@ import { keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
 import LockIcon from '@mui/icons-material/Lock';
 import { Flex, Typography } from 'antd';
-import { padding } from 'libs';
+import { padding, SMALL_VIEWPORT } from 'libs';
 import React from 'react';
 import { Chip } from '../../atoms/Chip/Chip';
+
+const { Title, Text } = Typography;
 
 const Card = styled.div<{ imgUrl?: string; blocked?: boolean }>`
     background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(0, 0, 0, 0) 100%), url(${(props) => props.imgUrl});
@@ -56,6 +58,25 @@ const Card = styled.div<{ imgUrl?: string; blocked?: boolean }>`
     &:hover {
         box-shadow: -12px 12px 15px 0 rgba(0, 0, 0, 0.2);
     }
+
+    .dot-separator {
+        font-size: 1rem !important;
+        margin: 0 0.8rem;
+    }
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        .card-title {
+            font-size: 1rem;
+        }
+
+        .categories {
+            display: none;
+        }
+
+        .dot-separator {
+            display: none;
+        }
+    }
 `;
 
 const Blocked = styled.div`
@@ -65,13 +86,13 @@ const Blocked = styled.div`
     width: 100%;
     height: 100%;
     z-index: 2;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.35);
     display: flex;
     justify-content: center;
     align-items: center;
 
     .lock {
-        color: #fefdfb;
+        color: rgba(254, 253, 251, 0.32);
         font-size: 5rem;
     }
 `;
@@ -117,19 +138,19 @@ export const DedaCard: React.FC<CardComponentProps> = ({
             )}
             <div>{week && <Chip>{week}</Chip>}</div>
             <Flex vertical gap="12px">
-                <Typography.Title level={2}>{title}</Typography.Title>
-                <Typography.Text className="categories">
+                <Title level={2} className="card-title">
+                    {title}
+                </Title>
+                <Text className="categories">
                     {categories?.map((category, index) => (
                         <React.Fragment key={`${category}-${index}`}>
                             {category}
                             {index < categories.length - 1 && (
-                                <span style={{ color: 'var(--secondary)', margin: '0 0.8rem', fontSize: 10 }}>
-                                    &#9210;
-                                </span>
+                                <span className="color-secondary dot-separator"> • </span>
                             )}
                         </React.Fragment>
                     ))}
-                </Typography.Text>
+                </Text>
             </Flex>
         </Card>
     );

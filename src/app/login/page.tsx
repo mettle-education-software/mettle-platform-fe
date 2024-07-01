@@ -180,7 +180,7 @@ function Login() {
                         </Form.Item>
                         <Row justify="end" align="middle">
                             <Col className="forgot-col" span={12}>
-                                <ForgotPasswordLink href={'/forgot-password'}>Esqueceu a senha?</ForgotPasswordLink>
+                                <ForgotPasswordLink href={'/forgotten-password'}>Esqueceu a senha?</ForgotPasswordLink>
                             </Col>
                         </Row>
                         <LoginButton loading={isSignInLoading} size="large" type="primary" htmlType="submit">

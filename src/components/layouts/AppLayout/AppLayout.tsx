@@ -21,6 +21,10 @@ const AppHeader = styled(Header)`
     justify-content: space-between;
     padding-left: 1rem;
     padding-right: 1rem;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        max-height: 3rem;
+    }
 `;
 
 const LogoWrapper = styled.div`

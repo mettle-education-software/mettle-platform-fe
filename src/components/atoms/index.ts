@@ -10,3 +10,4 @@ export { WidgetCard } from './WidgetCard/WidgetCard';
 export { CourseCard } from './CourseCard/CourseCard';
 export { NotificationsList } from './NotificationsList/NotificationsList';
 export { AudioPlayer } from './AudioPlayer/AudioPlayer';
+export { BackToTopButton } from './BackToTopButton/BackToTopButton';

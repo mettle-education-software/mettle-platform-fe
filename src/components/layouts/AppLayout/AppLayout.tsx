@@ -46,7 +46,7 @@ const Sidebar = styled(Sider)`
     padding: 1rem 1rem;
 `;
 
-const PageLayout = styled(Layout)`
+const PageLayout = styled(Layout)<{ mobileMaxHeight?: number }>`
     height: 100vh;
     max-height: 100vh;
     width: 100vw;
@@ -54,7 +54,7 @@ const PageLayout = styled(Layout)`
 
     @media (max-width: ${SMALL_VIEWPORT}px) {
         overflow-y: hidden;
-        max-height: ${window ? window?.innerHeight : 800}px;
+        max-height: ${({ mobileMaxHeight }) => (mobileMaxHeight ? mobileMaxHeight : 800)}px;
     }
 `;
 
@@ -204,7 +204,7 @@ export const AppLayout = forwardRef<
 
         if (device === 'mobile') {
             return (
-                <PageLayout>
+                <PageLayout mobileMaxHeight={window?.innerHeight}>
                     <Layout>
                         <AppHeader>
                             <Flex gap="0.5rem" align="center" justify="space-between" style={{ width: '100%' }}>

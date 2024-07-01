@@ -8,4 +8,6 @@ export const InputsWrapper = styled.div`
     flex-direction: column;
     align-items: stretch;
     gap: 25px;
+
+    background: red;
 `;

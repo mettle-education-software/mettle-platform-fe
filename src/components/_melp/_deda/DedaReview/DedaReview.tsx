@@ -197,7 +197,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                     </div>
                     <InputsWrapper>
                         <Row gutter={[24, 24]}>
-                            <Col span={8}>
+                            <Col xs={24} span={8}>
                                 <ReviewThumbnail
                                     loading={saveInput.isPending}
                                     dedaId={inputData.reviewInput?.review1.dedaId as string}
@@ -215,7 +215,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                                 />
                             </Col>
                             {inputData.reviewInput?.review2 && (
-                                <Col span={8}>
+                                <Col xs={24} span={8}>
                                     <ReviewThumbnail
                                         loading={saveInput.isPending}
                                         dedaId={inputData.reviewInput.review2.dedaId}
@@ -234,7 +234,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                                 </Col>
                             )}
                             {inputData.reviewInput?.review3 && (
-                                <Col span={8}>
+                                <Col xs={24} span={8}>
                                     <ReviewThumbnail
                                         loading={saveInput.isPending}
                                         dedaId={inputData.reviewInput.review3.dedaId}

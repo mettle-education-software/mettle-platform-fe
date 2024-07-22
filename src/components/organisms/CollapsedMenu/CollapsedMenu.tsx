@@ -15,6 +15,7 @@ const HomeMenu = styled(Link)`
     display: flex;
     gap: 0.75rem;
     padding: 1rem 1rem;
+
     span > svg {
         width: 1.25rem;
         height: 1.25rem;
@@ -27,10 +28,12 @@ const BottomArea = styled.div`
     justify-content: space-between;
     flex: 1 0 0;
     padding: 1rem 1rem;
+
     span > svg {
         width: 1.25rem;
         height: 1.25rem;
     }
+
     div.ant-image > img {
         width: 1.25rem;
         height: 1.25rem;
@@ -50,7 +53,7 @@ function CollapsedMenu() {
             </HomeMenu>
             <BottomArea>
                 <MelpLogo href="/">
-                    <Image src="./melp-ico.svg" alt="MELP" preview={false} />
+                    <Image src="./melp-ico.svg" alt="IMERSO" preview={false} />
                 </MelpLogo>
                 <SettingOutlined />
             </BottomArea>

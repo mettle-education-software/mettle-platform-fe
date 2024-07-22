@@ -69,7 +69,7 @@ const EmbedImage = styled(Image)`
     margin-top: 2rem;
 `;
 
-const renderOptions = (links?: LinkType, justify?: boolean): Options => {
+const renderOptions = (links?: LinkType, justify?: boolean, toString?: boolean): Options => {
     const assetMap = new Map();
 
     links?.assets?.block?.forEach((asset: IAsset) => {
@@ -78,26 +78,35 @@ const renderOptions = (links?: LinkType, justify?: boolean): Options => {
 
     return {
         renderMark: {
-            [MARKS.BOLD]: (text: ReactNode) => <strong>{text}</strong>,
-            [MARKS.ITALIC]: (text: ReactNode) => <em>{text}</em>,
+            [MARKS.BOLD]: (text: ReactNode) => (toString ? `${text} ` : <strong>{text}</strong>),
+            [MARKS.ITALIC]: (text: ReactNode) => (toString ? `${text} ` : <em>{text}</em>),
         },
         renderNode: {
-            [BLOCKS.PARAGRAPH]: (node: Node, children: ReactNode) => (
-                <Paragraph
-                    style={{
-                        whiteSpace: 'break-spaces',
-                        textAlign: justify ? 'justify' : undefined,
-                    }}
-                >
-                    {children}
-                </Paragraph>
-            ),
-            [BLOCKS.HEADING_1]: (node: Node, children: ReactNode) => <Title level={1}>{children}</Title>,
-            [BLOCKS.HEADING_2]: (node: Node, children: ReactNode) => <Title level={2}>{children}</Title>,
-            [BLOCKS.HEADING_3]: (node: Node, children: ReactNode) => <Title level={3}>{children}</Title>,
-            [BLOCKS.HEADING_4]: (node: Node, children: ReactNode) => <Title level={4}>{children}</Title>,
-            [BLOCKS.HEADING_5]: (node: Node, children: ReactNode) => <Title level={5}>{children}</Title>,
-            [BLOCKS.HEADING_6]: (node: Node, children: ReactNode) => <Title level={5}>{children}</Title>,
+            [BLOCKS.PARAGRAPH]: (node: Node, children: ReactNode) =>
+                toString ? (
+                    children
+                ) : (
+                    <Paragraph
+                        style={{
+                            whiteSpace: 'break-spaces',
+                            textAlign: justify ? 'justify' : undefined,
+                        }}
+                    >
+                        {children}
+                    </Paragraph>
+                ),
+            [BLOCKS.HEADING_1]: (node: Node, children: ReactNode) =>
+                toString ? `${children} ` : <Title level={1}>{children}</Title>,
+            [BLOCKS.HEADING_2]: (node: Node, children: ReactNode) =>
+                toString ? `${children} ` : <Title level={2}>{children}</Title>,
+            [BLOCKS.HEADING_3]: (node: Node, children: ReactNode) =>
+                toString ? `${children} ` : <Title level={3}>{children}</Title>,
+            [BLOCKS.HEADING_4]: (node: Node, children: ReactNode) =>
+                toString ? `${children} ` : <Title level={4}>{children}</Title>,
+            [BLOCKS.HEADING_5]: (node: Node, children: ReactNode) =>
+                toString ? `${children} ` : <Title level={5}>{children}</Title>,
+            [BLOCKS.HEADING_6]: (node: Node, children: ReactNode) =>
+                toString ? `${children} ` : <Title level={5}>{children}</Title>,
             [BLOCKS.EMBEDDED_ASSET]: (node: Node) => {
                 const asset = assetMap.get(node.data.target.sys.id);
 
@@ -115,7 +124,7 @@ const renderOptions = (links?: LinkType, justify?: boolean): Options => {
             // },
             [INLINES.HYPERLINK]: (node: Node, children: ReactNode) => (
                 <HyperLink href={node.data.uri} target="_blank">
-                    {children}
+                    toString ? `${children} ` : {children}
                 </HyperLink>
             ),
         },
@@ -124,4 +133,8 @@ const renderOptions = (links?: LinkType, justify?: boolean): Options => {
 
 export const RichTextRenderer = ({ rawContent, links, justify = false }: TextSectionProps) => {
     return <TextWrapper>{documentToReactComponents(rawContent, renderOptions(links, justify))}</TextWrapper>;
+};
+
+export const transformRichTextToString = ({ rawContent, links }: TextSectionProps) => {
+    return documentToReactComponents(rawContent, renderOptions(links, false, true));
 };

@@ -6,7 +6,7 @@ import { InputsWrapper, MaxWidthContainer } from 'components';
 import { ReviewThumbnail } from 'components/_melp/ReviewThumbnail/ReviewThumbnail';
 import { useGetInputData, useSaveInput } from 'hooks';
 import { InputDataDTO } from 'interfaces';
-import { getDayToday } from 'libs';
+import { getDayToday, SMALL_VIEWPORT } from 'libs';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 
@@ -20,6 +20,11 @@ const ReviewContainer = styled.section`
     display: flex;
     align-items: center;
     flex-direction: column;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        overflow-y: auto;
+        max-height: 100%;
+    }
 `;
 
 const NoReviewContainer = styled.div`
@@ -177,7 +182,6 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                                 <Title level={4} className="color-white">
                                     There are no reviews on this week yet.
                                 </Title>
-                                {/*<Text className="color-white"></Text>*/}
                             </div>
                         </NoReviewContainer>
                     </Flex>
@@ -197,7 +201,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                     </div>
                     <InputsWrapper>
                         <Row gutter={[24, 24]}>
-                            <Col span={8}>
+                            <Col xs={24} span={8}>
                                 <ReviewThumbnail
                                     loading={saveInput.isPending}
                                     dedaId={inputData.reviewInput?.review1.dedaId as string}
@@ -215,7 +219,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                                 />
                             </Col>
                             {inputData.reviewInput?.review2 && (
-                                <Col span={8}>
+                                <Col xs={24} span={8}>
                                     <ReviewThumbnail
                                         loading={saveInput.isPending}
                                         dedaId={inputData.reviewInput.review2.dedaId}
@@ -234,7 +238,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                                 </Col>
                             )}
                             {inputData.reviewInput?.review3 && (
-                                <Col span={8}>
+                                <Col xs={24} span={8}>
                                     <ReviewThumbnail
                                         loading={saveInput.isPending}
                                         dedaId={inputData.reviewInput.review3.dedaId}

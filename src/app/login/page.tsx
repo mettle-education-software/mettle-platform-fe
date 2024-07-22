@@ -5,7 +5,14 @@ import styled from '@emotion/styled';
 import { Input, Form, Button, Row, Col, Spin, Flex, Typography } from 'antd';
 import { Logo, Google, Microsoft } from 'components';
 import { useDeviceSize } from 'hooks';
-import { withoutAuthentication, handleLogin, handleGoogleLogin, SMALL_VIEWPORT, handleMicrosoftLogin } from 'libs';
+import {
+    withoutAuthentication,
+    handleLogin,
+    handleGoogleLogin,
+    SMALL_VIEWPORT,
+    handleMicrosoftLogin,
+    padding,
+} from 'libs';
 import Link from 'next/link';
 import React from 'react';
 
@@ -173,7 +180,7 @@ function Login() {
                         </Form.Item>
                         <Row justify="end" align="middle">
                             <Col className="forgot-col" span={12}>
-                                <ForgotPasswordLink href={'/forgot-password'}>Esqueceu a senha?</ForgotPasswordLink>
+                                <ForgotPasswordLink href={'/forgotten-password'}>Esqueceu a senha?</ForgotPasswordLink>
                             </Col>
                         </Row>
                         <LoginButton loading={isSignInLoading} size="large" type="primary" htmlType="submit">
@@ -186,7 +193,7 @@ function Login() {
                 <Flex align="center" gap="1rem">
                     <LineDivider />
                     <div>
-                        <Typography.Text>ou</Typography.Text>
+                        <Typography.Text style={{ wordBreak: 'keep-all' }}>ou</Typography.Text>
                     </div>
                     <LineDivider />
                 </Flex>
@@ -209,7 +216,7 @@ function Login() {
 
     if (deviceSize === 'mobile') {
         return (
-            <Flex vertical align="center" gap={24}>
+            <Flex vertical align="center" gap={24} style={{ paddingBottom: padding.y.md }}>
                 <LogoWrapper>
                     <Logo theme="dark" />
                 </LogoWrapper>

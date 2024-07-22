@@ -124,7 +124,7 @@ export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
                 <HistoryOutlined style={{ marginTop: '0.5rem' }} />{' '}
                 <Title style={{ margin: 0, lineHeight: 0 }} level={4}>
                     {number}
-                    <sup>{reviewProperties[number].order}</sup> Review (
+                    <sup>{reviewProperties[number].order}</sup> Review ({' '}
                     <span style={{ fontWeight: 400 }}>{reviewProperties[number].complement})</span>
                 </Title>
             </Flex>

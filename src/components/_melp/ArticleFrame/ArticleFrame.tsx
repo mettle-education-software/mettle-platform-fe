@@ -1,8 +1,8 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Skeleton, Modal } from 'antd';
-import { useGetMetadata } from 'hooks';
+import { Skeleton, Modal, Drawer } from 'antd';
+import { useDeviceSize, useGetMetadata } from 'hooks';
 import { useEffect, useState } from 'react';
 import { FrameThumbnail } from '../../atoms/FrameThumbnail/FrameThumbnail';
 
@@ -27,6 +27,7 @@ const ArticleFrameContainer = styled.iframe`
 
 export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: string; fullWidth?: boolean }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const device = useDeviceSize();
 
     const handleOk = () => {
         setIsModalOpen(false);
@@ -96,9 +97,29 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
                 if (!isModalOpen) setIsModalOpen(true);
             }}
         >
-            <Dialog open={isModalOpen} onCancel={handleOk} onOk={handleOk} destroyOnClose footer={null} width="70vw">
-                <ArticleFrameContainer allowFullScreen height="100%" src={href} />
-            </Dialog>
+            {device === 'desktop' ? (
+                <Dialog
+                    open={isModalOpen}
+                    onCancel={handleOk}
+                    onOk={handleOk}
+                    destroyOnClose
+                    footer={null}
+                    width="70vw"
+                >
+                    <ArticleFrameContainer allowFullScreen height="100%" src={href} />
+                </Dialog>
+            ) : (
+                <Drawer
+                    open={isModalOpen}
+                    onClose={handleOk}
+                    destroyOnClose
+                    width="100%"
+                    height="100%"
+                    placement="bottom"
+                >
+                    <ArticleFrameContainer allowFullScreen height="100%" src={href} />
+                </Drawer>
+            )}
             <div style={thumbStyle} />
         </FrameThumbnail>
     );

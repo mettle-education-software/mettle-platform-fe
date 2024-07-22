@@ -2,7 +2,6 @@
 
 import { Avatar, Flex, Typography, Dropdown } from 'antd';
 import { handleLogout } from 'libs';
-import { useRouter } from 'next/navigation';
 import { useAppContext } from 'providers';
 import React, { useState } from 'react';
 import { NotificationsList } from '../../atoms';
@@ -11,7 +10,6 @@ import { ArrowDown } from '../../icons';
 const { Text } = Typography;
 
 export const UserMenu = () => {
-    const router = useRouter();
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const { user } = useAppContext();
 
@@ -25,14 +23,6 @@ export const UserMenu = () => {
                 onOpenChange={(open) => setUserMenuOpen(open)}
                 menu={{
                     items: [
-                        {
-                            key: 'profile',
-                            label: 'Perfil',
-                            onClick: ({ domEvent }) => {
-                                domEvent.preventDefault();
-                                router.push('/profile');
-                            },
-                        },
                         {
                             key: 'logout',
                             label: 'Logout',

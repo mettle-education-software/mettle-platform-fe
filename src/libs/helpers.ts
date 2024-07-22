@@ -1,5 +1,5 @@
 export const padNumber = (num: number) => {
-    return num < 10 ? '0' + num : num.toString();
+    return num < 10 ? '0' + num : num?.toString();
 };
 
 export const getWeekDay = () => {

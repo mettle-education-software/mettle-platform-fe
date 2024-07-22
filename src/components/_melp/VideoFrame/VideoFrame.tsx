@@ -2,7 +2,8 @@
 
 import { YoutubeFilled } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Modal } from 'antd';
+import { Modal, Drawer } from 'antd';
+import { useDeviceSize } from 'hooks';
 import { extractYouTubeID } from 'libs';
 import { useState } from 'react';
 import { FrameThumbnail } from '../../atoms/FrameThumbnail/FrameThumbnail';
@@ -58,6 +59,7 @@ export const VideoFrame = ({
     const videoId = extractYouTubeID(videoSrc);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const device = useDeviceSize();
 
     const handleOk = () => {
         setIsModalOpen(false);
@@ -71,14 +73,39 @@ export const VideoFrame = ({
             }}
             fullWidth={fullWidth}
         >
-            <Dialog open={isModalOpen} onCancel={handleOk} onOk={handleOk} destroyOnClose footer={null} width="70vw">
-                <IFrame
-                    title="LinKnowledge video"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    src={`https://www.youtube.com/embed/${videoId}`}
-                />
-            </Dialog>
+            {device === 'desktop' ? (
+                <Dialog
+                    open={isModalOpen}
+                    onCancel={handleOk}
+                    onOk={handleOk}
+                    destroyOnClose
+                    footer={null}
+                    width="70vw"
+                >
+                    <IFrame
+                        title="LinKnowledge video"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        src={`https://www.youtube.com/embed/${videoId}`}
+                    />
+                </Dialog>
+            ) : (
+                <Drawer
+                    open={isModalOpen}
+                    onClose={handleOk}
+                    destroyOnClose
+                    width="100%"
+                    height="100%"
+                    placement="bottom"
+                >
+                    <IFrame
+                        title="LinKnowledge video"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        src={`https://www.youtube.com/embed/${videoId}`}
+                    />
+                </Drawer>
+            )}
             <VideoThumbDisplay
                 style={{
                     background: `url('https://img.youtube.com/vi/${videoId}/maxresdefault.jpg')`,

@@ -5,3 +5,4 @@ export * from './melp/lamp';
 export * from './useGetMetadata';
 export * from './queries/dedaQueries';
 export * from './notifications';
+export * from './recorder';

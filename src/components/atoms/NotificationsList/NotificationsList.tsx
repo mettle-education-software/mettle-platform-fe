@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import { Badge, Button, Col, Dropdown, Empty, Flex, Row, Skeleton, Typography } from 'antd';
 import { useGetNotifications, useMarkAsRead, useListenForNotifications } from 'hooks';
 import { Notification } from 'interfaces';
+import { SMALL_VIEWPORT } from 'libs';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useAppContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 
@@ -22,6 +22,10 @@ const NotificationDropdown = styled.div`
     align-items: stretch;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     border-radius: 0.8rem;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        width: 80vw;
+    }
 `;
 
 const NotificationElement = styled.div`
@@ -56,6 +60,19 @@ const NotificationAvatar = styled.div`
     filter: blendTrans(var(--main-bg));
 `;
 
+const BellIcon = styled(BellOutlined)`
+    font-size: 1.5rem;
+    cursor: pointer;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        font-size: 1.2rem;
+        color: var(--secondary);
+        //border: 2px solid var(--secondary);
+        //border-radius: 25%;
+        //padding: 0.2rem;
+    }
+`;
+
 export const NotificationsList: React.FC = () => {
     const { user } = useAppContext();
 
@@ -79,8 +96,6 @@ export const NotificationsList: React.FC = () => {
     useEffect(() => {
         setUnreads(notifications.filter((notification) => !notification.isRead).length);
     }, [notifications]);
-
-    const router = useRouter();
 
     return (
         <Dropdown
@@ -141,7 +156,7 @@ export const NotificationsList: React.FC = () => {
             }}
         >
             <Badge count={unreads} style={{ display: unreads === 0 ? 'none' : undefined }}>
-                <BellOutlined style={{ fontSize: '1.5rem', cursor: 'pointer' }} />
+                <BellIcon />
             </Badge>
         </Dropdown>
     );

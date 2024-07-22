@@ -7,6 +7,8 @@ import { padNumber, getWeekDay } from 'libs';
 import { useAppContext } from 'providers';
 import React from 'react';
 
+const { Text, Title } = Typography;
+
 const DedaChip = styled(Tag)<{ bg: string }>`
     background: ${({ bg }) => bg};
     border-radius: 40px;
@@ -16,7 +18,7 @@ const DedaChip = styled(Tag)<{ bg: string }>`
 
 const Divider = styled.div`
     width: 1px;
-    height: 8px;
+    height: 10px;
     background: #d8d8d8;
 `;
 
@@ -29,31 +31,35 @@ export const MelpSummary: React.FC = () => {
 
     const currentWeek = melpSummary?.current_deda_week as number;
     const currentDedaName = melpSummary?.currentDedaName as string;
-    const currentDay = `0${new Date().getDay() === 0 ? 7 : new Date().getDay()}`;
+    const currentDay = getWeekDay();
 
     if (device === 'mobile')
         return (
-            <Skeleton loading={isLoading || isFetching} round style={{ width: '15rem' }} active paragraph={false}>
-                <Row align="middle" justify="space-between">
-                    <Col span={18}>
+            <Skeleton loading={isLoading || isFetching} round style={{ width: '100%' }} active paragraph={false}>
+                <Row align="middle" justify="space-between" style={{ width: '100%' }}>
+                    <Col span={16}>
                         <Flex>
                             <DedaChip bg="var(--secondary)">
-                                <Typography.Text strong style={{ color: '#FFFFFF' }}>
+                                <Text strong style={{ color: '#FFFFFF' }}>
                                     DEDA
-                                </Typography.Text>
+                                </Text>
                             </DedaChip>
-                            <Typography.Text strong ellipsis>
-                                Nobel
-                            </Typography.Text>
+                            <Text strong ellipsis>
+                                {melpSummary?.currentDedaName}
+                            </Text>
                         </Flex>
                     </Col>
-                    <Col span={6}>
-                        <Flex gap="0.5rem">
+                    <Col span={8}>
+                        <Flex gap="0.5rem" align="center">
                             <Divider />
-                            <Typography.Text>W</Typography.Text>
-                            <Typography.Text>{padNumber(currentWeek)}</Typography.Text>
-                            <Typography.Text>D</Typography.Text>
-                            <Typography.Text>{currentDay}</Typography.Text>
+                            <Text className="color-secondary" strong>
+                                W
+                            </Text>
+                            <Text className="word-no-break">{padNumber(currentWeek)}</Text>
+                            <Text className="color-secondary" strong>
+                                D
+                            </Text>
+                            <Text className="word-no-break">{currentDay}</Text>
                         </Flex>
                     </Col>
                 </Row>
@@ -64,21 +70,21 @@ export const MelpSummary: React.FC = () => {
         <Skeleton loading={isLoading || isFetching} round style={{ width: '15rem' }} active paragraph={false}>
             <Flex gap={16} justify="flex-start" align="center">
                 <DedaChip bg="var(--secondary)">
-                    <Typography.Title level={5} style={{ color: '#FFFFFF' }}>
+                    <Title level={5} style={{ color: '#FFFFFF' }}>
                         DEDA
-                    </Typography.Title>
+                    </Title>
                 </DedaChip>
-                <Typography.Title level={5}>{currentDedaName}</Typography.Title>
+                <Title level={5}>{currentDedaName}</Title>
                 <Divider />
                 <DedaChip bg="#F2F0EE">
-                    <Typography.Title level={5}>Week</Typography.Title>
+                    <Title level={5}>Week</Title>
                 </DedaChip>
-                <Typography.Text>{currentWeek}</Typography.Text>
+                <Text>{currentWeek}</Text>
                 <Divider />
                 <DedaChip bg="#F2F0EE">
-                    <Typography.Title level={5}>Day</Typography.Title>
+                    <Title level={5}>Day</Title>
                 </DedaChip>
-                <Typography.Text>{currentDay}</Typography.Text>
+                <Text>{currentDay}</Text>
             </Flex>
         </Skeleton>
     );

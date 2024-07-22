@@ -190,7 +190,6 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
 
     const isTodaysDeda = melpSummary?.unlocked_dedas[melpSummary?.unlocked_dedas.length - 1] === dedaId;
     const isTodaysDedaAndNotCompleted = isTodaysDeda && !isTodaysDedaCompleted;
-    const canShowAllSteps = isTodaysDedaAndNotCompleted || ['finish', 'completed'].includes(currentStep);
 
     const dedaSteps = {
         listen: <Listen key="listen" dedaId={dedaId} />,
@@ -228,7 +227,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
 
     return (
         <ActivityCard>
-            <Flex justify={canShowAllSteps ? 'space-between' : 'center'} align="center" gap="1rem">
+            <Flex justify="center" align="center" gap="1rem">
                 {isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && (
                     <StopWatch
                         onStop={(stopwatchValue) => {
@@ -255,21 +254,6 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                         </Breadcrumb.Item>
                     ))}
                 </BreadCrumbs>
-
-                {canShowAllSteps ? (
-                    <Flex align="center" gap="1rem">
-                        <StepChip
-                            type="chip"
-                            stepName="Summary"
-                            status={currentStep === 'finish' ? 'highlighted' : undefined}
-                        />
-                        <StepChip
-                            type="chip"
-                            stepName="LinKnowledge"
-                            status={currentStep === 'completed' ? 'highlighted' : undefined}
-                        />
-                    </Flex>
-                ) : null}
             </Flex>
             {dedaSteps[currentStep as keyof typeof dedaSteps]}
             <Flex justify="flex-end" align="center" gap="1rem">

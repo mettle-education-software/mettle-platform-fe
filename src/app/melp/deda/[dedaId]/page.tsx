@@ -1,14 +1,16 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Flex, Typography } from 'antd';
+import { Flex, Tabs, Typography } from 'antd';
 import { DedaActivity, DedaNotes, DedaQuote, DedaReview, MaxWidthContainer, TabNav } from 'components';
 import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
-import { withAuthentication } from 'libs';
+import { SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
 import React, { useState } from 'react';
+
+const { Title } = Typography;
 
 const HeaderSummary = styled.section<{ imgUrl?: string }>`
     background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43) 15%, rgb(0, 0, 0, 0) 100%),
@@ -30,6 +32,22 @@ const HeaderSummary = styled.section<{ imgUrl?: string }>`
     .activeTab {
         color: var(--secondary) !important;
     }
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        height: 8vh;
+    }
+`;
+
+const MobileNavigationWrapper = styled.div`
+    display: none;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        background: var(--main-bg);
+        display: block;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
 `;
 
 const Content = styled.section`
@@ -47,16 +65,57 @@ const Content = styled.section`
 function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     const device = useDeviceSize();
 
+    const isDesktop = device === 'desktop';
+
     const featuredDedaDataResult = useFeaturedDedaData(dedaId);
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
     const [activeTab, setActiveTab] = useState('dedaNotes');
 
+    const tabItems = [
+        {
+            key: 'dedaNotes',
+            label: (
+                <Title
+                    level={5}
+                    className={activeTab === 'dedaNotes' ? 'activeTab' : undefined}
+                    style={{ color: '#FFFFFF', fontWeight: 400 }}
+                >
+                    DEDA Notes
+                </Title>
+            ),
+        },
+        {
+            key: 'dedaActivity',
+            label: (
+                <Title
+                    level={5}
+                    className={activeTab === 'dedaActivity' ? 'activeTab' : undefined}
+                    style={{ color: '#FFFFFF', fontWeight: 400 }}
+                >
+                    DEDA
+                </Title>
+            ),
+        },
+        {
+            key: 'dedaReview',
+            label: (
+                <Title
+                    level={5}
+                    className={activeTab === 'dedaReview' ? 'activeTab' : undefined}
+                    style={{ color: '#FFFFFF', fontWeight: 400 }}
+                >
+                    Review
+                </Title>
+            ),
+        },
+    ];
+
     return (
         <AppLayout withMelpSummary>
             <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
                 <MaxWidthContainer style={{ marginBottom: '2rem' }}>
-                    {device === 'desktop' && (
+                    {isDesktop && (
                         <Flex justify="space-between">
                             <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
                             <div style={{ flex: 0.55 }}>
@@ -66,54 +125,34 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                     )}
                 </MaxWidthContainer>
 
-                <MaxWidthContainer>
+                {isDesktop && (
+                    <MaxWidthContainer>
+                        <TabNav
+                            type="card"
+                            color="secondary"
+                            activeKey={activeTab}
+                            onChange={setActiveTab}
+                            defaultActiveKey="dedaNotes"
+                            items={tabItems}
+                        />
+                    </MaxWidthContainer>
+                )}
+            </HeaderSummary>
+
+            {!isDesktop && (
+                <MobileNavigationWrapper>
                     <TabNav
+                        tabBarStyle={{ marginBottom: 0 }}
                         type="card"
                         color="secondary"
                         activeKey={activeTab}
                         onChange={setActiveTab}
                         defaultActiveKey="dedaNotes"
-                        items={[
-                            {
-                                key: 'dedaNotes',
-                                label: (
-                                    <Typography.Title
-                                        level={5}
-                                        className={activeTab === 'dedaNotes' ? 'activeTab' : undefined}
-                                        style={{ color: '#FFFFFF', fontWeight: 400 }}
-                                    >
-                                        DEDA Notes
-                                    </Typography.Title>
-                                ),
-                            },
-                            {
-                                key: 'dedaActivity',
-                                label: (
-                                    <Typography.Title
-                                        level={5}
-                                        className={activeTab === 'dedaActivity' ? 'activeTab' : undefined}
-                                        style={{ color: '#FFFFFF', fontWeight: 400 }}
-                                    >
-                                        DEDA
-                                    </Typography.Title>
-                                ),
-                            },
-                            {
-                                key: 'dedaReview',
-                                label: (
-                                    <Typography.Title
-                                        level={5}
-                                        className={activeTab === 'dedaReview' ? 'activeTab' : undefined}
-                                        style={{ color: '#FFFFFF', fontWeight: 400 }}
-                                    >
-                                        Review
-                                    </Typography.Title>
-                                ),
-                            },
-                        ]}
+                        items={tabItems}
                     />
-                </MaxWidthContainer>
-            </HeaderSummary>
+                </MobileNavigationWrapper>
+            )}
+
             <Content>
                 {activeTab === 'dedaNotes' && <DedaNotes dedaId={dedaId} />}
                 {activeTab === 'dedaActivity' && <DedaActivity dedaId={dedaId} />}

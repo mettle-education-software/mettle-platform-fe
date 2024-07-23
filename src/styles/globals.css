@@ -32,6 +32,7 @@ main[data-theme='light'] {
     --white: var(--white);
     /*just testing this*/
     --primary-bg: brown;
+    --border-gray: #f2f0ee;
 }
 
 main[data-theme='dark'] {
@@ -44,6 +45,7 @@ main[data-theme='dark'] {
     --white: var(--white);
     /*just testing this*/
     --primary-bg: brown;
+    --border-gray: #f2f0ee;
 }
 
 * {

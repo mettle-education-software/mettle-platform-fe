@@ -1,6 +1,6 @@
 'use client';
 
-import { MenuOutlined, HomeOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
+import { HomeOutlined, LogoutOutlined, MenuOutlined, SettingOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Button, Drawer, Flex, Layout, Menu } from 'antd';
 import { Logo, NotificationsList } from 'components';
@@ -147,7 +147,7 @@ export const AppLayout = forwardRef<
                     {
                         key: 'melp',
                         icon: <DedaIcon style={{ marginLeft: '-3px' }} />,
-                        label: 'MELP',
+                        label: 'IMERSO',
                         children: [
                             {
                                 key: 'meplHpec',

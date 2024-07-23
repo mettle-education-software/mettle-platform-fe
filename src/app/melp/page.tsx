@@ -1,19 +1,24 @@
 'use client';
 
+import styled from '@emotion/styled';
+import { Col, Row, Typography } from 'antd';
 import {
     AppLayout,
     CanStartDeda,
     DedaFinished,
     DedaPaused,
     DedaStarted,
+    MaxWidthContainer,
     MelpBegin,
     WaitingForDedaStart,
     WeekZero,
 } from 'components';
 import { MelpStatus } from 'interfaces/melp';
 import { withAuthentication } from 'libs';
-import { useMelpContext } from 'providers';
+import { useAppContext, useMelpContext } from 'providers';
 import React from 'react';
+
+const { Title } = Typography;
 
 const renderMelpHome = (melpAccountStatus: MelpStatus) => {
     const melpStatusViews: Map<MelpStatus, React.ReactNode> = new Map([
@@ -29,8 +34,22 @@ const renderMelpHome = (melpAccountStatus: MelpStatus) => {
     return melpStatusViews.get(melpAccountStatus);
 };
 
+const HeaderWelcome = styled.section`
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #302d2a 100%), var(--primary);
+    background-size: cover;
+`;
+
+const MainContent = styled.section`
+    width: 100%;
+    min-height: 100%;
+    background: #312e2b;
+`;
+
 const MelpHome = () => {
     const { melpSummary } = useMelpContext();
+    const { user } = useAppContext();
 
     const melpStatus = melpSummary?.melp_status;
     const daysSinceMelpStart = melpSummary?.days_since_melp_start;
@@ -41,7 +60,25 @@ const MelpHome = () => {
         renderStatus = 'WEEK_ZERO' as MelpStatus;
     }
 
-    return <AppLayout withMelpSummary>{renderMelpHome(renderStatus)}</AppLayout>;
+    return (
+        <AppLayout withMelpSummary>
+            <HeaderWelcome>
+                <MaxWidthContainer>
+                    <Row>
+                        <Col>
+                            <Title level={1} className="color-secondary">
+                                Welcome, {user?.name}.
+                            </Title>
+                        </Col>
+                    </Row>
+                </MaxWidthContainer>
+            </HeaderWelcome>
+
+            <MainContent>
+                <MaxWidthContainer>{renderMelpHome(renderStatus)}</MaxWidthContainer>
+            </MainContent>
+        </AppLayout>
+    );
 };
 
 export default withAuthentication(MelpHome);

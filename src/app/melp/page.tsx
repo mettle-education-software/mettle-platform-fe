@@ -39,12 +39,17 @@ const HeaderWelcome = styled.section`
     padding-bottom: 1.5rem;
     background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #302d2a 100%), var(--primary);
     background-size: cover;
+    display: flex;
+    justify-content: center;
 `;
 
 const MainContent = styled.section`
     width: 100%;
     min-height: 100%;
     background: #312e2b;
+    padding-top: 2rem;
+    display: flex;
+    justify-content: center;
 `;
 
 const MelpHome = () => {

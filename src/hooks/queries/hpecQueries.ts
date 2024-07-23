@@ -10,12 +10,15 @@ const hpecTitlesQuery = gql`
             items {
                 hpecTitle
                 hpecId
+                moduleOrder
                 drippingDayBeforeDedaStart
                 drippingDayAfterDedaStart
                 hpecLessonsCollection {
                     items {
                         lessonId
                         lessonTitle
+                        lessonFeaturedText
+                        lessonVideoEmbedUrl
                     }
                 }
             }

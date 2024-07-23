@@ -1,7 +1,15 @@
 'use client';
 
+import { Col, Row } from 'antd';
+import { ComingHpecs } from 'components';
 import React from 'react';
 
 export const DedaStarted: React.FC = () => {
-    return <div>DEDA started</div>;
+    return (
+        <Row gutter={[16, 16]}>
+            <Col span={24}>
+                <ComingHpecs />
+            </Col>
+        </Row>
+    );
 };

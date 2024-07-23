@@ -20,6 +20,7 @@
     --neutral-text: #00000073;
     --danger: #ff4d4f;
     --main-bg: #2b2b2b;
+    --brown-bg: #3c362f;
 }
 
 main[data-theme='light'] {

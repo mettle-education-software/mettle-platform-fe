@@ -2,6 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Card, Col, Flex, Row, Typography } from 'antd';
+import { Chip } from 'components';
 import { useGetHpecsModules } from 'hooks';
 import Link from 'next/link';
 import React from 'react';
@@ -29,10 +30,17 @@ const ComingNextCarousel = styled.div`
     position: relative;
 `;
 
-const VideoThumbCard = styled(Card)`
+const VideoThumbCard = styled(Card)<{ vimeoId: string }>`
+    height: 100%;
     min-height: 10rem;
     aspect-ratio: 16 / 9;
     border: none;
+    background-image: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #000 100%),
+        url('https://vumbnail.com/${({ vimeoId }) => vimeoId}.jpg');
+    background-position:
+        0 0,
+        0 0;
+    background-repeat: no-repeat, no-repeat;
     background-size: contain;
 `;
 
@@ -42,18 +50,29 @@ const VideoThumbnail: React.FC<{
     description?: string;
     vimeoId: string;
     moduleOrder: number;
-}> = ({ title, link, description, vimeoId }) => {
+}> = ({ title, link, description, vimeoId, moduleOrder }) => {
     return (
         <Flex vertical gap="1rem">
             <Link href={link}>
-                <VideoThumbCard
-                    hoverable
-                    style={{
-                        background: `linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #000 100%), url("https://vumbnail.com/${vimeoId}.jpg") lightgray 0px 0px 100% 100% no-repeat`,
-                    }}
-                ></VideoThumbCard>
+                <VideoThumbCard hoverable vimeoId={vimeoId}>
+                    <Flex vertical style={{ minHeight: '8rem' }} justify="flex-end">
+                        {description ? (
+                            <Flex gap="0.1rem">
+                                <Chip>M{moduleOrder}</Chip>
+                                <Text className="color-white">{title}</Text>
+                            </Flex>
+                        ) : null}
+                    </Flex>
+                </VideoThumbCard>
             </Link>
-            {description ? <Text className="color-white">{description}</Text> : title}
+            {description ? (
+                <Text className="color-white">{description}</Text>
+            ) : (
+                <Flex gap="0.1rem">
+                    <Chip>M{moduleOrder}</Chip>
+                    <Text className="color-white">{title}</Text>
+                </Flex>
+            )}
         </Flex>
     );
 };
@@ -77,7 +96,11 @@ export const ComingHpecs: React.FC<ComingHpecsProps> = ({ withStartHere = false 
                     <StartHere>
                         <Card.Meta
                             style={{ marginBottom: '1rem' }}
-                            title={<Text className="color-secondary">Start here</Text>}
+                            title={
+                                <Title level={4} className="color-secondary">
+                                    Start here
+                                </Title>
+                            }
                         />
                         <VideoThumbnail
                             moduleOrder={lastModule?.moduleOrder}
@@ -97,7 +120,11 @@ export const ComingHpecs: React.FC<ComingHpecsProps> = ({ withStartHere = false 
                     >
                         <Card.Meta
                             style={{ marginBottom: '1rem' }}
-                            title={<Text className="color-secondary">Watch next...</Text>}
+                            title={
+                                <Title level={4} className="color-secondary">
+                                    Watch next...
+                                </Title>
+                            }
                         />
                         <ComingNextCarousel>
                             <Row gutter={[16, 16]} wrap={false}>

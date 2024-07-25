@@ -50,11 +50,6 @@ const Card = styled.div<{ imgUrl?: string; blocked?: boolean }>`
         font-weight: 400;
     }
 
-    & h2 {
-        color: var(--secondary);
-        font-weight: 700;
-    }
-
     &:hover {
         box-shadow: -12px 12px 15px 0 rgba(0, 0, 0, 0.2);
     }
@@ -138,7 +133,7 @@ export const DedaCard: React.FC<CardComponentProps> = ({
             )}
             <div>{week && <Chip>{week}</Chip>}</div>
             <Flex vertical gap="12px">
-                <Title level={2} className="card-title">
+                <Title level={2} className="card-title color-secondary">
                     {title}
                 </Title>
                 <Text className="categories">

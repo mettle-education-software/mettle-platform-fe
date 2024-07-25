@@ -48,6 +48,7 @@ const MainContent = styled.section`
     min-height: 100%;
     background: #312e2b;
     padding-top: 2rem;
+    padding-bottom: 2rem;
     display: flex;
     justify-content: center;
 `;

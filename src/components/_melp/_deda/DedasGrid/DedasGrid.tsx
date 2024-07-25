@@ -1,7 +1,7 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Row, Col, Typography, Flex } from 'antd';
+import { Col, Flex, Row, Typography } from 'antd';
 import { DedaCard } from 'components';
 import { useDeviceSize, useMelpSummary } from 'hooks';
 import { useAllDedasList, useLastDedas, useNextDedas } from 'hooks/queries/dedasLists';

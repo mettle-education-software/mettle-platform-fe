@@ -1,6 +1,6 @@
 'use client';
 
-import { Spin, ConfigProvider, ThemeConfig } from 'antd';
+import { ConfigProvider, Spin, ThemeConfig } from 'antd';
 import { AppProvider, NotificationsProvider, useAppContext } from 'providers';
 import { MelpProvider } from 'providers/MelpProvider';
 import React from 'react';
@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <meta property="og:title" content="Mettle" />
                 <meta property="og:image" content="/mettle.png" />
                 <link rel="apple-touch-icon" href="/mettle.png" />
-                <link rel="stylesheet" href="https://use.typekit.net/ted7yly.css" fetchPriority="low" />
+                {/*<link rel="stylesheet" href="https://use.typekit.net/ted7yly.css" />*/}
             </head>
             <AppProvider>
                 <MelpProvider>

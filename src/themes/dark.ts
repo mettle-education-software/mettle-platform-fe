@@ -1,4 +1,9 @@
 import { ThemeConfig } from 'antd';
+import { Nunito_Sans } from 'next/font/google';
+
+const nunito = Nunito_Sans({
+    subsets: ['latin'],
+});
 
 export const darkTheme: ThemeConfig = {
     token: {
@@ -10,7 +15,7 @@ export const darkTheme: ThemeConfig = {
         // colorBgBase: '#3c362f',
         colorPrimary: '#B89261',
         // colorInfo: '#f2d5b1',
-        fontFamily: '"europa", sans-serif',
+        fontFamily: nunito.style.fontFamily,
     },
     components: {
         Collapse: {

@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Skeleton, Typography } from 'antd';
-import { RichTextRenderer } from 'components';
+import { transformRichTextToString } from 'components/atoms/RichTextRenderer/RichTextRenderer';
 import { useGetDedaQuote } from 'hooks';
 import React from 'react';
 
@@ -32,7 +32,9 @@ export const DedaQuote: React.FC<DedaQuoteProps> = ({ dedaId }) => {
 
     return (
         <QuoteText>
-            <RichTextRenderer rawContent={content?.dedaNotesQuote.json} links={content?.dedaNotesQuote.links} />
+            {transformRichTextToString({
+                rawContent: content?.dedaNotesQuote.json,
+            })}
         </QuoteText>
     );
 };

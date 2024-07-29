@@ -1,13 +1,15 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Flex, Tabs, Typography } from 'antd';
+import { ArrowBackIos } from '@mui/icons-material';
+import { Button, Flex, Typography } from 'antd';
 import { DedaActivity, DedaNotes, DedaQuote, DedaReview, MaxWidthContainer, TabNav } from 'components';
 import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 const { Title } = Typography;
@@ -64,6 +66,7 @@ const Content = styled.section`
 
 function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     const device = useDeviceSize();
+    const router = useRouter();
 
     const isDesktop = device === 'desktop';
 
@@ -117,8 +120,18 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                 <MaxWidthContainer style={{ marginBottom: '2rem' }}>
                     {isDesktop && (
                         <Flex justify="space-between">
-                            <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
-                            <div style={{ flex: 0.55 }}>
+                            <Flex align="center">
+                                <Button
+                                    style={{ border: 'none' }}
+                                    icon={<ArrowBackIos className="color-secondary" />}
+                                    ghost
+                                    onClick={() => {
+                                        router.push('/melp/deda');
+                                    }}
+                                />
+                                <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
+                            </Flex>
+                            <div style={{ flex: 0.3 }}>
                                 <DedaQuote dedaId={dedaId} />
                             </div>
                         </Flex>

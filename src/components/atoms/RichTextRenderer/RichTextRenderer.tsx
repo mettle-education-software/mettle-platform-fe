@@ -1,5 +1,5 @@
 import { documentToReactComponents, Options } from '@contentful/rich-text-react-renderer';
-import { BLOCKS, INLINES, MARKS, Node, Document } from '@contentful/rich-text-types';
+import { BLOCKS, Document, INLINES, MARKS, Node } from '@contentful/rich-text-types';
 import styled from '@emotion/styled';
 import { Typography } from 'antd';
 import { LinkType } from 'interfaces';
@@ -49,7 +49,7 @@ const HyperLink = styled(Link)`
     color: #3030e8;
 
     &::after {
-        content: '\\2197'; /* Unicode code for the up-right arrow */
+        content: ' 🔗'; /* Unicode code for the up-right arrow */
         font-size: inherit;
     }
 

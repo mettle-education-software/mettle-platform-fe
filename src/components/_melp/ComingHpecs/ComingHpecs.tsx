@@ -1,7 +1,7 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Card, Col, Flex, Row, Typography } from 'antd';
+import { Card, Col, Flex, Row, Skeleton, Typography } from 'antd';
 import { Chip } from 'components';
 import { useGetHpecsModules } from 'hooks';
 import Link from 'next/link';
@@ -51,7 +51,8 @@ const VideoThumbnail: React.FC<{
     description?: string;
     vimeoId: string;
     moduleOrder: number;
-}> = ({ title, link, description, vimeoId, moduleOrder }) => {
+    loading?: boolean;
+}> = ({ title, link, description, vimeoId, moduleOrder, loading }) => {
     return (
         <Flex vertical gap="1rem">
             <Link href={link}>
@@ -86,11 +87,18 @@ const VideoThumbnail: React.FC<{
     );
 };
 
-export const ComingHpecs: React.FC<ComingHpecsProps> = ({ withStartHere = false }) => {
-    const { unlockedModules, lockedModules, unlockedLessons, totalLessons, progressCount, loading } =
-        useGetHpecsModules();
+export const ComingHpecs: React.FC<ComingHpecsProps> = () => {
+    const { unlockedModules, loading } = useGetHpecsModules();
 
-    if (loading || unlockedModules.length === 0) return 'loading...';
+    if (loading || unlockedModules.length === 0)
+        return (
+            <Flex gap={24}>
+                <Skeleton.Image active />
+                <Skeleton.Image active />
+                <Skeleton.Image active />
+                <Skeleton.Image active />
+            </Flex>
+        );
 
     const lastModule = unlockedModules[unlockedModules.length - 1];
 

@@ -57,9 +57,15 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
 
     const allDedasResult = useAllDedasList(type !== 'allDedas');
     const sortedAllDedasResult: DedaItem[] = allDedasResult
-        ? (allDedasResult.data?.dedaContentCollection?.items?.toSorted((a, b) => {
-              return Number(a.dedaId.replace(/\D/g, '')) - Number(b.dedaId.replace(/\D/g, ''));
-          }) as DedaItem[])
+        ? (allDedasResult.data?.dedaContentCollection?.items
+              ?.toSorted((a, b) => {
+                  return Number(a.dedaId.replace(/\D/g, '')) - Number(b.dedaId.replace(/\D/g, ''));
+              })
+              .toSorted((a, b) => {
+                  if (unlockedDEDAs.includes(a.dedaId) && !unlockedDEDAs.includes(b.dedaId)) return 1;
+                  if (!unlockedDEDAs.includes(a.dedaId) && unlockedDEDAs.includes(b.dedaId)) return -1;
+                  return 0;
+              }) as DedaItem[])
         : [];
 
     const showSkeleton = isLoading || lastDedasResult.loading || nextDedasResult.loading || allDedasResult.loading;

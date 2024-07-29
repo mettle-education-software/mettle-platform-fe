@@ -124,7 +124,7 @@ const renderOptions = (links?: LinkType, justify?: boolean, toString?: boolean):
             // },
             [INLINES.HYPERLINK]: (node: Node, children: ReactNode) => (
                 <HyperLink href={node.data.uri} target="_blank">
-                    toString ? `${children} ` : {children}
+                    {toString ? `${children} ` : children}
                 </HyperLink>
             ),
         },
@@ -132,7 +132,7 @@ const renderOptions = (links?: LinkType, justify?: boolean, toString?: boolean):
 };
 
 export const RichTextRenderer = ({ rawContent, links, justify = false }: TextSectionProps) => {
-    return <TextWrapper>{documentToReactComponents(rawContent, renderOptions(links, justify))}</TextWrapper>;
+    return <TextWrapper>{documentToReactComponents(rawContent, renderOptions(links, justify, false))}</TextWrapper>;
 };
 
 export const transformRichTextToString = ({ rawContent, links }: TextSectionProps) => {

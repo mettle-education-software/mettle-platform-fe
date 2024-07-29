@@ -61,8 +61,7 @@ const MelpHome = () => {
     const melpStatus = melpSummary?.melp_status;
     const daysSinceMelpStart = melpSummary?.days_since_melp_start;
 
-    let renderStatus: MelpStatus = 'DEDA_FINISHED';
-    // let renderStatus: MelpStatus = melpStatus;
+    let renderStatus: MelpStatus = melpStatus;
 
     if (melpStatus === 'MELP_BEGIN' && daysSinceMelpStart >= 2 && daysSinceMelpStart < 9) {
         renderStatus = 'WEEK_ZERO' as MelpStatus;

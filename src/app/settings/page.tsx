@@ -2,8 +2,8 @@
 
 import styled from '@emotion/styled';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { Button, Card, Col, Flex, Form, Input, Row, Typography } from 'antd';
-import { AppLayout, MaxWidthContainer } from 'components';
+import { Button, Card, Col, Flex, Form, Input, Row, Tabs, Typography } from 'antd';
+import { AppLayout, MaxWidthContainer, TabNav } from 'components';
 import { withAuthentication } from 'libs';
 import { useAppContext } from 'providers';
 import React, { useEffect } from 'react';
@@ -26,7 +26,7 @@ const MainContent = styled.div`
     }
 `;
 
-const Settings = () => {
+const PersonalInformation = () => {
     const [form] = Form.useForm();
 
     const newPassword = Form.useWatch('newPassword', form);
@@ -40,7 +40,88 @@ const Settings = () => {
     const { user } = useAppContext();
 
     const handleSubmit = (values: { fullName: string; newPassword: string; email: string }) => {};
+    return (
+        <>
+            <Card.Meta
+                title="Informações pessoais"
+                description={<Text className="color-secondary">Atualize suas informações aqui</Text>}
+            />
 
+            <div style={{ marginTop: '2rem' }}>
+                <Form form={form} colon={false} onFinish={handleSubmit}>
+                    <Row>
+                        <Col span={24}>
+                            <Row className="row-border">
+                                <Col xs={24} md={6}>
+                                    Nome completo
+                                </Col>
+                                <Col xs={24} md={18}>
+                                    <Form.Item>
+                                        <Input placeholder={user?.name} />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </Col>
+
+                        <Col span={24}>
+                            <Row className="row-border">
+                                <Col xs={24} md={6}>
+                                    E-mail
+                                </Col>
+                                <Col xs={24} md={18}>
+                                    <Form.Item>
+                                        <Input type="email" placeholder={user?.email} />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </Col>
+
+                        <Col span={24}>
+                            <Row className="row-border">
+                                <Col xs={24} md={6}>
+                                    Alterar a senha
+                                </Col>
+                                <Col xs={24} md={18}>
+                                    <Form.Item name="newPassword">
+                                        <Input.Password placeholder="Nova senha" />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </Col>
+
+                        <Col span={24}>
+                            <Row className="row-border">
+                                <Col xs={24} md={6}>
+                                    Insira a nova senha novamente
+                                </Col>
+                                <Col xs={24} md={18}>
+                                    <Form.Item name="newPasswordRepeat">
+                                        <Input.Password
+                                            disabled={!newPassword}
+                                            placeholder="Insira a senha novamente"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </Col>
+
+                        <Col span={24}>
+                            <Row>
+                                <Col>
+                                    <Button htmlType="submit" size="large" type="primary">
+                                        Salvar
+                                    </Button>
+                                </Col>
+                            </Row>
+                        </Col>
+                    </Row>
+                </Form>
+            </div>
+        </>
+    );
+};
+
+const Settings = () => {
     return (
         <AppLayout>
             <MainContent>
@@ -57,83 +138,20 @@ const Settings = () => {
 
                         <Col span={24}>
                             <Card>
-                                <Card.Meta
-                                    title="Informações pessoais"
-                                    description={
-                                        <Text className="color-secondary">Atualize suas informações aqui</Text>
-                                    }
+                                <Tabs
+                                    items={[
+                                        {
+                                            key: 'personal-information',
+                                            label: 'Meu perfil',
+                                            children: <PersonalInformation />,
+                                        },
+                                        {
+                                            key: 'melp-settings',
+                                            label: 'Programa IMERSO',
+                                            children: <div>Programa imerso</div>,
+                                        },
+                                    ]}
                                 />
-
-                                <div style={{ marginTop: '2rem' }}>
-                                    <Form form={form} colon={false} onFinish={handleSubmit}>
-                                        <Row>
-                                            <Col span={24}>
-                                                <Row className="row-border">
-                                                    <Col xs={24} md={6}>
-                                                        Nome completo
-                                                    </Col>
-                                                    <Col xs={24} md={18}>
-                                                        <Form.Item>
-                                                            <Input placeholder={user?.name} />
-                                                        </Form.Item>
-                                                    </Col>
-                                                </Row>
-                                            </Col>
-
-                                            <Col span={24}>
-                                                <Row className="row-border">
-                                                    <Col xs={24} md={6}>
-                                                        E-mail
-                                                    </Col>
-                                                    <Col xs={24} md={18}>
-                                                        <Form.Item>
-                                                            <Input type="email" placeholder={user?.email} />
-                                                        </Form.Item>
-                                                    </Col>
-                                                </Row>
-                                            </Col>
-
-                                            <Col span={24}>
-                                                <Row className="row-border">
-                                                    <Col xs={24} md={6}>
-                                                        Alterar a senha
-                                                    </Col>
-                                                    <Col xs={24} md={18}>
-                                                        <Form.Item name="newPassword">
-                                                            <Input.Password placeholder="Nova senha" />
-                                                        </Form.Item>
-                                                    </Col>
-                                                </Row>
-                                            </Col>
-
-                                            <Col span={24}>
-                                                <Row className="row-border">
-                                                    <Col xs={24} md={6}>
-                                                        Insira a nova senha novamente
-                                                    </Col>
-                                                    <Col xs={24} md={18}>
-                                                        <Form.Item name="newPasswordRepeat">
-                                                            <Input.Password
-                                                                disabled={!newPassword}
-                                                                placeholder="Insira a senha novamente"
-                                                            />
-                                                        </Form.Item>
-                                                    </Col>
-                                                </Row>
-                                            </Col>
-
-                                            <Col span={24}>
-                                                <Row>
-                                                    <Col>
-                                                        <Button htmlType="submit" size="large" type="primary">
-                                                            Salvar
-                                                        </Button>
-                                                    </Col>
-                                                </Row>
-                                            </Col>
-                                        </Row>
-                                    </Form>
-                                </div>
                             </Card>
                         </Col>
                     </Row>

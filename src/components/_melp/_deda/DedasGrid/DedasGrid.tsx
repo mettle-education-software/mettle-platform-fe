@@ -13,6 +13,7 @@ import React from 'react';
 interface DedasGridProps {
     type: 'lastDedas' | 'nextDedas' | 'allDedas';
     onSelectedDeda: (dedaId: string) => void;
+    customTitle?: string;
 }
 
 const Title = styled(Typography.Title)`
@@ -20,7 +21,7 @@ const Title = styled(Typography.Title)`
     font-weight: 500 !important;
 `;
 
-export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) => {
+export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, customTitle }) => {
     const device = useDeviceSize();
 
     const { user } = useAppContext();
@@ -84,7 +85,9 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
     return (
         <Flex style={{ maxWidth: MAX_CONTENT_WIDTH, width: '100%' }} vertical gap="2.25rem">
             <div>
-                <div style={{ width: '100%', marginBottom: '1rem' }}>{titles[type]}</div>
+                <div style={{ width: '100%', marginBottom: '1rem' }}>
+                    {customTitle ? <Title level={4}>{customTitle}</Title> : titles[type]}
+                </div>
 
                 <Row
                     gutter={[

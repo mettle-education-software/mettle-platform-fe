@@ -6,6 +6,7 @@ import { Chip } from 'components';
 import { useGetHpecsModules } from 'hooks';
 import Link from 'next/link';
 import React from 'react';
+import Markdown from 'react-markdown';
 
 const { Text, Title } = Typography;
 
@@ -66,7 +67,15 @@ const VideoThumbnail: React.FC<{
                 </VideoThumbCard>
             </Link>
             {description ? (
-                <Text className="color-white">{description}</Text>
+                <Text className="color-white">
+                    <Markdown
+                        components={{
+                            a: ({ node, ...props }) => <a {...props} target="_blank" rel="noreferrer" />,
+                        }}
+                    >
+                        {description}
+                    </Markdown>
+                </Text>
             ) : (
                 <Flex gap="0.1rem">
                     <Chip>M{moduleOrder}</Chip>

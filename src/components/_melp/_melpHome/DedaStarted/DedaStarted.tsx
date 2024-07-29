@@ -9,10 +9,10 @@ import React from 'react';
 
 const { Text } = Typography;
 
-const SeeRest = styled.button`
+export const SeeRestBtn = styled.button`
     border: none;
     border-radius: 6px;
-    background: linear-gradient(270deg, rgba(0, 0, 0, 0) 0%, #2b2b2b 83.45%);
+    background: linear-gradient(270deg, rgba(0, 0, 0, 0) 0%, #1f1f1f 83.45%);
     display: flex;
     align-items: center;
     height: 21rem;
@@ -26,7 +26,7 @@ export const DedaStarted: React.FC = () => {
     const router = useRouter();
 
     return (
-        <Row gutter={[16, 16]}>
+        <Row gutter={[24, 24]}>
             <Col span={24}>
                 <ComingHpecs />
             </Col>
@@ -41,7 +41,7 @@ export const DedaStarted: React.FC = () => {
                         />
                     </Col>
                     <Col xs={24} md={6}>
-                        <SeeRest
+                        <SeeRestBtn
                             onClick={() => {
                                 router.push('/melp/deda');
                             }}
@@ -49,7 +49,7 @@ export const DedaStarted: React.FC = () => {
                             <Text className="color-white">
                                 See all DEDAs <RightOutlined style={{ marginLeft: '1rem' }} />
                             </Text>
-                        </SeeRest>
+                        </SeeRestBtn>
                     </Col>
                 </Row>
             </Col>

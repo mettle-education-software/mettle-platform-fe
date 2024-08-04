@@ -16,6 +16,8 @@ import {
 import Link from 'next/link';
 import React from 'react';
 
+const { Text } = Typography;
+
 const PageContainer = styled.div`
     max-height: 100vh;
     height: 100vh;
@@ -137,7 +139,7 @@ function Login() {
             <FormContainer>
                 <Spin spinning={isSignInLoading}>
                     <FormHeader>
-                        <span>Plataforma Mettle</span>
+                        <Text>Plataforma Mettle</Text>
                     </FormHeader>
                     <Form
                         layout="vertical"

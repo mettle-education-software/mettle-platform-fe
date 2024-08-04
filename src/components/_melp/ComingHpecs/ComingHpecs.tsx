@@ -29,6 +29,10 @@ const ComingNextCarousel = styled.div`
     overflow-x: auto;
     overflow-y: hidden;
     position: relative;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
 `;
 
 const VideoThumbCard = styled(Card)<{ vimeoId: string }>`

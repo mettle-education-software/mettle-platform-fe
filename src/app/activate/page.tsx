@@ -1,9 +1,7 @@
 'use client';
 
-import { withoutAuthentication } from 'libs';
+import React from 'react';
 
-function ActivateAccount() {
-    return <div>Activate account</div>;
+export default function ActivatePage() {
+    return <div>THIS SHIT IS USELESS</div>;
 }
-
-export default withoutAuthentication(ActivateAccount);

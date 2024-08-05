@@ -2,7 +2,7 @@
 
 import { HomeOutlined, LogoutOutlined, MenuOutlined, SettingOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Button, Drawer, Flex, Layout, Menu } from 'antd';
+import { Button, Drawer, Flex, Layout, Menu, Typography } from 'antd';
 import { Logo, NotificationsList } from 'components';
 import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
@@ -13,6 +13,7 @@ import { DedaIcon } from '../../icons';
 import { UserMenu } from '../../molecules/UserMenu/UserMenu';
 
 const { Header, Content, Sider } = Layout;
+const { Text } = Typography;
 
 const AppHeader = styled(Header)`
     background: var(--tertiary);
@@ -147,7 +148,17 @@ export const AppLayout = forwardRef<
                     {
                         key: 'melp',
                         icon: <DedaIcon style={{ marginLeft: '-3px' }} />,
-                        label: 'IMERSO',
+                        label: (
+                            <Text
+                                style={{ cursor: 'pointer' }}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    router.push('/melp');
+                                }}
+                            >
+                                IMERSO
+                            </Text>
+                        ),
                         children: [
                             {
                                 key: 'meplHpec',

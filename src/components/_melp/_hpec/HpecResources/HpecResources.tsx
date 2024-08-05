@@ -3,6 +3,7 @@
 import { DownloadOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Avatar, Col, Flex, Row, Skeleton, Typography } from 'antd';
+import { useDeviceSize } from 'hooks';
 import { useGetHpecResources } from 'hooks/queries/hpecQueries';
 import { fileTypes, saveFile } from 'libs';
 import React from 'react';
@@ -93,15 +94,15 @@ const StyleResourceCard = styled(ResourceCard)`
 
 export const HpecResources: React.FC<HpecResourcesProps> = ({ lessonId }) => {
     const { data, loading } = useGetHpecResources(lessonId);
-
+    const device = useDeviceSize();
     const filesList = data?.singleLessonCollection?.items[0].lessonResourcesCollection.items;
 
     if (loading || !filesList) return <Skeleton active loading />;
 
     return (
-        <Row gutter={[22, 22]}>
+        <Row gutter={[22, device === 'mobile' ? 8 : 22]}>
             {filesList?.map((file) => (
-                <Col key={file.url}>
+                <Col key={file.url} span={device === 'mobile' ? 24 : undefined}>
                     <StyleResourceCard
                         onClick={() => {
                             saveFile(file.url, file.title, file.contentType as keyof typeof fileTypes);

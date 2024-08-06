@@ -84,6 +84,12 @@ a {
     white-space: nowrap;
 }
 
+/* Global utilities */
+
+.center {
+    text-align: center !important;
+}
+
 /* Ant design style changes below */
 
 /*.ant-btn {*/

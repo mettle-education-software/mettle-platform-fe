@@ -1,8 +1,9 @@
 import { HistoryOutlined, CheckOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Flex, Skeleton, Typography } from 'antd';
-import { useDeda } from 'hooks';
+import { useDeda, useDeviceSize } from 'hooks';
 import { DedaWatchQueryResponse } from 'interfaces';
+import { SMALL_VIEWPORT } from 'libs';
 import React from 'react';
 
 const { Title, Text } = Typography;
@@ -42,6 +43,12 @@ const WeekChip = styled.div`
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        span {
+            font-size: 0.8rem;
+        }
+    }
 `;
 
 const ReviewStatusChip = styled.button`
@@ -71,6 +78,14 @@ const ReviewStatusChip = styled.button`
     &:hover {
         background: rgba(255, 255, 255, 0.4);
     }
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        padding: 0 0.5rem;
+
+        span {
+            font-size: 0.8rem;
+        }
+    }
 `;
 
 interface ReviewThumbnailProps {
@@ -92,6 +107,7 @@ export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
     onMarkCompleted,
     loading = false,
 }) => {
+    const device = useDeviceSize();
     const { data, loading: isWatchLoading } = useDeda<DedaWatchQueryResponse>('deda-watch', dedaId);
 
     if (!data || isWatchLoading) return <Skeleton.Image active />;
@@ -124,7 +140,7 @@ export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
                 <HistoryOutlined style={{ marginTop: '0.5rem' }} />{' '}
                 <Title style={{ margin: 0, lineHeight: 0 }} level={4}>
                     {number}
-                    <sup>{reviewProperties[number].order}</sup> Review ({' '}
+                    <sup>{reviewProperties[number].order}</sup> Review (
                     <span style={{ fontWeight: 400 }}>{reviewProperties[number].complement})</span>
                 </Title>
             </Flex>
@@ -133,8 +149,8 @@ export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
                 <Flex align="center" gap="1rem">
                     <Text style={{ color: '#FFF' }}>{title}</Text>
                     <WeekChip>
-                        <Text strong>Week</Text>
-                        <Text>{week.split('week')[1]}</Text>
+                        <Text strong={device === 'desktop'}>{device === 'mobile' ? 'W' : 'Week'}</Text>
+                        <Text className="word-no-break">{week.split('week')[1]}</Text>
                     </WeekChip>
                 </Flex>
                 <ReviewStatusChip
@@ -144,7 +160,7 @@ export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
                     }}
                     className={status ? 'completed' : 'incomplete'}
                 >
-                    <Text>{status ? 'Completed' : 'Mark as complete'}</Text>
+                    <Text className="word-no-break">{status ? 'Completed' : 'Mark as complete'}</Text>
                     {status && <CheckOutlined />}
                 </ReviewStatusChip>
             </Flex>

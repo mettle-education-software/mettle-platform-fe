@@ -73,7 +73,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     const featuredDedaDataResult = useFeaturedDedaData(dedaId);
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
-    const [activeTab, setActiveTab] = useState('dedaNotes');
+    const [activeTab, setActiveTab] = useState('dedaActivity');
 
     const tabItems = [
         {
@@ -155,6 +155,8 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
             {!isDesktop && (
                 <MobileNavigationWrapper>
                     <TabNav
+                        centered
+                        withoutBottomBorder
                         tabBarStyle={{ marginBottom: 0 }}
                         type="card"
                         color="secondary"

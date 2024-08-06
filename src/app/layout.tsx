@@ -2,6 +2,7 @@
 
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider, Spin, ThemeConfig } from 'antd';
+import { PWABanner } from 'components';
 import { AppProvider, NotificationsProvider, useAppContext } from 'providers';
 import { MelpProvider } from 'providers/MelpProvider';
 import React from 'react';
@@ -18,7 +19,9 @@ const App = ({ children }: { children: React.ReactNode }) => {
             <body>
                 <AntdRegistry>
                     <main data-theme={theme}>
-                        <Spin spinning={isAppLoading}>{children}</Spin>
+                        <Spin spinning={isAppLoading}>
+                            <PWABanner>{children}</PWABanner>
+                        </Spin>
                     </main>
                 </AntdRegistry>
             </body>
@@ -36,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
                 <meta name="apple-mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-                <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
                 <link rel="icon" href="/favicon.ico" />
                 <meta name="description" content="Mettle Backoffice Admin" />
                 <meta property="og:title" content="Mettle" />

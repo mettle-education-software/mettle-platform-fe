@@ -13,17 +13,19 @@ import React, { useEffect, useState } from 'react';
 const { Title, Text } = Typography;
 
 const ReviewContainer = styled.section`
-    background: #2b2b2b;
+    background: var(--main-bg);
     width: 100%;
     height: 100%;
-
+    min-height: 100%;
     display: flex;
     align-items: center;
     flex-direction: column;
 
     @media (max-width: ${SMALL_VIEWPORT}px) {
-        overflow-y: auto;
-        max-height: 100%;
+        padding-top: 1rem;
+        padding-bottom: 2rem;
+        height: unset;
+        min-height: unset;
     }
 `;
 

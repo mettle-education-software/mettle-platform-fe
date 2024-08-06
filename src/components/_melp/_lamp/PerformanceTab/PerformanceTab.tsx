@@ -32,17 +32,17 @@ export const PerformanceTab: React.FC = () => {
     return (
         <PerformanceContainer>
             <Row gutter={[22, 22]} align="stretch">
-                <Col span={8}>
+                <Col xs={24} md={8}>
                     <WidgetCard title="Overall Progress">
                         <OverallGraph />
                     </WidgetCard>
                 </Col>
-                <Col span={16}>
+                <Col xs={24} md={16}>
                     <WidgetCard title="General Weekly Development">
                         <WeeklyDevelopmentGraph />
                     </WidgetCard>
                 </Col>
-                <Col span={24}>
+                <Col xs={24} md={24}>
                     <WidgetCard
                         title="DEDA Statistics"
                         extra={<DedasListSelect onChange={handleWeekChange} value={selectedWeek} />}

@@ -4,7 +4,7 @@ import { CheckCircleFilled, CheckCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { ChevronLeft, ChevronRight, Timer, TimerOff } from '@mui/icons-material';
 import { Breadcrumb, Button, Flex, Typography } from 'antd';
-import { SaveDedaInputMutationDedaData, useSaveDedaInput } from 'hooks';
+import { SaveDedaInputMutationDedaData, useDeviceSize, useSaveDedaInput } from 'hooks';
 import { getDayToday, padNumber } from 'libs';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
@@ -225,36 +225,64 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
 
     const indexOfCurrentStep = steps.indexOf(currentStep);
 
+    const device = useDeviceSize();
+    const isDesktop = device === 'desktop';
+
     return (
         <ActivityCard>
-            <Flex justify="center" align="center" gap="1rem">
-                {isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && (
-                    <StopWatch
-                        onStop={(stopwatchValue) => {
-                            setDedaTime(stopwatchValue);
-                        }}
+            {isDesktop && (
+                <Flex justify="center" align="center" gap="1rem">
+                    {isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && (
+                        <StopWatch
+                            onStop={(stopwatchValue) => {
+                                setDedaTime(stopwatchValue);
+                            }}
+                        />
+                    )}
+                    <BreadCrumbs separator={<ChevronRight style={{ color: 'white', marginTop: '0.25rem' }} />}>
+                        {steps.slice(0, 5).map((step, index) => (
+                            <Breadcrumb.Item key={step}>
+                                <StepChip
+                                    type="step"
+                                    stepName={Steps[step as keyof typeof Steps]}
+                                    status={
+                                        isTodaysDedaCompleted
+                                            ? undefined
+                                            : stepsProgress[step as keyof typeof stepsProgress]
+                                              ? 'completed'
+                                              : indexOfCurrentStep === index
+                                                ? 'active'
+                                                : undefined
+                                    }
+                                />
+                            </Breadcrumb.Item>
+                        ))}
+                    </BreadCrumbs>
+                </Flex>
+            )}
+            {/* Refactor this mobile logic out */}
+            {!isDesktop && (
+                <Flex justify="space-between">
+                    <StepChip
+                        type="chip"
+                        stepName={Steps[currentStep as keyof typeof Steps]}
+                        status={
+                            isTodaysDedaCompleted
+                                ? undefined
+                                : stepsProgress[currentStep as keyof typeof stepsProgress]
+                                  ? 'completed'
+                                  : 'active'
+                        }
                     />
-                )}
-                <BreadCrumbs separator={<ChevronRight style={{ color: 'white', marginTop: '0.25rem' }} />}>
-                    {steps.slice(0, 5).map((step, index) => (
-                        <Breadcrumb.Item key={step}>
-                            <StepChip
-                                type="step"
-                                stepName={Steps[step as keyof typeof Steps]}
-                                status={
-                                    isTodaysDedaCompleted
-                                        ? undefined
-                                        : stepsProgress[step as keyof typeof stepsProgress]
-                                          ? 'completed'
-                                          : indexOfCurrentStep === index
-                                            ? 'active'
-                                            : undefined
-                                }
-                            />
-                        </Breadcrumb.Item>
-                    ))}
-                </BreadCrumbs>
-            </Flex>
+                    {isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && (
+                        <StopWatch
+                            onStop={(stopwatchValue) => {
+                                setDedaTime(stopwatchValue);
+                            }}
+                        />
+                    )}
+                </Flex>
+            )}
             {dedaSteps[currentStep as keyof typeof dedaSteps]}
             <Flex justify="flex-end" align="center" gap="1rem">
                 {currentStep === 'completed' ? (

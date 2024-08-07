@@ -6,7 +6,7 @@ import { Flex, Popover, Typography } from 'antd';
 import { AppLayout, ArrowDown, Chip, MaxWidthContainer, TabNav } from 'components';
 import { PerformanceTab, InputTab, GoalsTab } from 'components';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
-import { padding, withAuthentication } from 'libs';
+import { withAuthentication } from 'libs';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
@@ -29,7 +29,6 @@ const ContentContainer = styled.div`
     display: flex;
     align-items: center;
     flex-direction: column;
-    padding: ${padding.y.sm} ${padding.x.lg};
     position: relative;
 `;
 

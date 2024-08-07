@@ -5,7 +5,8 @@ export enum MelpStatuses {
     DEDA_STARTED = 'DEDA started',
     DEDA_PAUSED = 'DEDA paused',
     DEDA_FINISHED = 'DEDA completed',
-    MELP_SUSPENDED = 'MELP suspended',
+    MELP_SUSPENDED = 'IMERSO suspended',
+    WEEK_ZERO = 'Week zero',
 }
 
 export type MelpStatus = keyof typeof MelpStatuses;

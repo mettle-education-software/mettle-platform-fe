@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     images: {
-        domains: ['images.ctfassets.net', 'via.placeholder.com'],
+        domains: ['images.ctfassets.net', 'via.placeholder.com', 'vumbnail.com'],
     },
     env: {
         FB_API_KEY: process.env.FB_API_KEY,
@@ -18,6 +18,9 @@ const nextConfig = {
     },
     publicRuntimeConfig: {
         SENTRY_DSN: process.env.SENTRY_DSN,
+    },
+    experimental: {
+        serverComponentsExternalPackages: ['antd', 'antd/lib'],
     },
 };
 

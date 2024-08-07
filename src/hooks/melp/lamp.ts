@@ -14,6 +14,7 @@ import { statisticsColors } from 'libs';
 import { useAppContext } from 'providers';
 import { useEffect, useState } from 'react';
 import { lampService } from 'services';
+import { font } from 'themes';
 
 export interface SaveDedaInputMutationDedaData {
     dedaFocus: number;
@@ -113,7 +114,7 @@ export const useSaveDedaInput = () => {
 
 const graphLabelsStyles = {
     colors: '#FFF',
-    fontFamily: 'Europa, sans-serif',
+    fontFamily: font.style.fontFamily,
     fontWeight: 700,
 };
 

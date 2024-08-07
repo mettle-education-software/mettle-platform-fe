@@ -65,7 +65,7 @@ export const DedaStatisticsGraphs: React.FC<DedaStatisticsGraphsProps> = ({ sele
 
     return (
         <Row gutter={[22, 22]} align="stretch">
-            <Col span={9}>
+            <Col xs={24} md={9}>
                 <WhiteTitle level={4}>Weekly</WhiteTitle>
                 <ReactApexChart
                     options={weeklyPerformanceGraph.options}
@@ -75,14 +75,14 @@ export const DedaStatisticsGraphs: React.FC<DedaStatisticsGraphsProps> = ({ sele
                     height="400"
                 />
             </Col>
-            <Col span={15}>
+            <Col xs={24} md={15}>
                 <Row justify="space-between">
                     <Col span={12}>
                         <WhiteTitle level={4}>Daily</WhiteTitle>
                     </Col>
-                    <Col>
+                    <Col span={12}>
                         <Row>
-                            <Col>
+                            <Col xs={12}>
                                 <DailySelectorButton
                                     onClick={() => {
                                         setDailySelectedType('dedaTime');
@@ -92,7 +92,7 @@ export const DedaStatisticsGraphs: React.FC<DedaStatisticsGraphsProps> = ({ sele
                                     <span className="icon">&#8226;</span> DEDA Time
                                 </DailySelectorButton>
                             </Col>
-                            <Col>
+                            <Col xs={12}>
                                 <DailySelectorButton
                                     onClick={() => {
                                         setDailySelectedType('readingTime');

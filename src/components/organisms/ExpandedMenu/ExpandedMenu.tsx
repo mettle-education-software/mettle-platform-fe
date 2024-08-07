@@ -24,6 +24,7 @@ const HomeMenu = styled(Link)`
     display: flex;
     gap: 0.75rem;
     padding: 1rem 1rem;
+
     span > svg {
         width: 1.25rem;
         height: 1.25rem;
@@ -41,6 +42,7 @@ const MelpMenuHeader = styled.div`
     font-weight: var(--h1-font-weight);
     justify-content: space-between;
     padding: 1rem 1rem;
+
     span:last-child {
         cursor: pointer;
     }
@@ -56,10 +58,12 @@ const MelpMenuItem = styled.div`
     display: flex;
     padding: 1rem 1rem;
     gap: 1rem;
+
     span:nth-of-type(2) {
         font-size: 0.625rem;
         cursor: pointer;
     }
+
     span:first-of-type {
         cursor: pointer;
     }
@@ -69,10 +73,12 @@ const Settings = styled.div`
     display: flex;
     gap: 0.75rem;
     cursor: pointer;
+
     span > svg {
         width: 1.25rem;
         height: 1.25rem;
     }
+
     padding: 1rem 1rem;
 `;
 
@@ -99,8 +105,8 @@ function ExpandedSideBar(props: { items: Array<MenuItem> }) {
                 <MelpMenu>
                     <MelpMenuHeader onClick={handleShowMenu}>
                         <Space>
-                            <Image src="/melp-ico.svg" alt="MELP" preview={false} />
-                            <span>MELP</span>
+                            <Image src="/melp-ico.svg" alt="IMERSO" preview={false} />
+                            <span>IMERSO</span>
                         </Space>
                         {showMenu && <DownOutlined />}
                         {!showMenu && <RightOutlined />}

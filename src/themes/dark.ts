@@ -1,4 +1,5 @@
 import { ThemeConfig } from 'antd';
+import { font } from './font';
 
 export const darkTheme: ThemeConfig = {
     token: {
@@ -10,7 +11,7 @@ export const darkTheme: ThemeConfig = {
         // colorBgBase: '#3c362f',
         colorPrimary: '#B89261',
         // colorInfo: '#f2d5b1',
-        fontFamily: '"europa", sans-serif',
+        fontFamily: font.style.fontFamily,
     },
     components: {
         Collapse: {
@@ -25,6 +26,7 @@ export const darkTheme: ThemeConfig = {
             titleMarginTop: 0,
             colorPrimary: '#FFFFFF',
             colorTextSecondary: 'var(--secondary)',
+            fontWeightStrong: 500,
             // fontSize: 'calc(20px + 1vw)' as unknown as number,
         },
         Input: {

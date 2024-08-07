@@ -2,6 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Skeleton } from 'antd';
+import { useDeviceSize } from 'hooks';
 import * as animationData from 'libs/lotties/loading-student.json';
 import React from 'react';
 import Lottie from 'react-lottie';
@@ -31,15 +32,12 @@ const Centralize = styled.div`
 `;
 
 export const LoadingLayout: React.FC = () => {
+    const device = useDeviceSize();
+
+    const lottieSize = device === 'desktop' ? 500 : window.innerWidth - 150;
+
     return (
         <Container>
-            <SidebarSkeleton
-                active
-                style={{
-                    height: '100%',
-                    width: '100%',
-                }}
-            />
             <Centralize>
                 <div>
                     <Lottie
@@ -48,11 +46,11 @@ export const LoadingLayout: React.FC = () => {
                             autoplay: true,
                             animationData: animationData,
                         }}
-                        height={500}
-                        width={500}
+                        height={lottieSize}
+                        width={lottieSize}
                     />
                 </div>
-                <div style={{ width: 500 }}>
+                <div style={{ width: lottieSize }}>
                     <Logo theme="dark" />
                 </div>
             </Centralize>

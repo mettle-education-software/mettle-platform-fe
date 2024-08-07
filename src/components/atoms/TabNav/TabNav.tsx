@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import { Tabs } from 'antd';
 import { MAX_CONTENT_WIDTH } from 'libs';
 
-export const TabNav = styled(Tabs)<{ sticky?: boolean }>`
+export const TabNav = styled(Tabs)<{ sticky?: boolean; withoutBottomBorder?: boolean }>`
     width: 100% !important;
     max-width: ${MAX_CONTENT_WIDTH}px !important;
 
@@ -31,4 +31,12 @@ export const TabNav = styled(Tabs)<{ sticky?: boolean }>`
     .ant-tabs-tab-active .ant-tabs-tab-btn {
         padding: 0 1rem;
     }
+
+    ${({ withoutBottomBorder }) =>
+        withoutBottomBorder
+            ? `
+            .ant-tabs-nav::before {
+                border-bottom: none;
+            }`
+            : ''}
 `;

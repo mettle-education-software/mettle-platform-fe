@@ -86,7 +86,7 @@ function Home() {
                                 <Col xs={24} md={6}>
                                     <CourseCard
                                         imgUrl={'/img/melp-thumb.webp'}
-                                        title="MELP"
+                                        title="IMERSO"
                                         type="Programa"
                                         href="/melp"
                                     />

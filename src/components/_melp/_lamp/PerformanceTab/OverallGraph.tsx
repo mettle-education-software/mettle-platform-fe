@@ -2,8 +2,8 @@
 
 import styled from '@emotion/styled';
 import { Col, Flex, Row, Skeleton, Typography } from 'antd';
-import { useOverallProgress } from 'hooks';
-import { statisticsColors } from 'libs';
+import { useDeviceSize, useOverallProgress } from 'hooks';
+import { SMALL_VIEWPORT, statisticsColors } from 'libs';
 import dynamic from 'next/dynamic';
 import { useAppContext } from 'providers';
 import React from 'react';
@@ -16,16 +16,24 @@ const WhiteTitle = styled(Title)`
     color: #ffffff !important;
     font-weight: 400 !important;
     font-size: 1rem !important;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        font-size: 0.85rem !important;
+    }
 `;
 
 const Legend = ({ value, name, color }: { name: string; color: string; value?: number }) => {
     return (
         <Flex vertical align="center" gap="0.7rem">
             <Flex vertical align="center">
-                <WhiteTitle level={5}>{value?.toFixed(0)}%</WhiteTitle>
+                <WhiteTitle className="word-no-break" level={5}>
+                    {value?.toFixed(0)}%
+                </WhiteTitle>
                 <hr style={{ border: `4px solid ${color}`, borderRadius: '30px', width: '55px' }} />
             </Flex>
-            <WhiteTitle level={5}>{name}</WhiteTitle>
+            <WhiteTitle className="word-no-break" level={5}>
+                {name}
+            </WhiteTitle>
         </Flex>
     );
 };
@@ -33,6 +41,7 @@ const Legend = ({ value, name, color }: { name: string; color: string; value?: n
 export const OverallGraph: React.FC = () => {
     const { user } = useAppContext();
     const { overallGraph, isLoading, overallData } = useOverallProgress(user?.uid);
+    const device = useDeviceSize();
 
     if (isLoading || !overallData || !user) return <Skeleton active loading />;
 
@@ -46,8 +55,8 @@ export const OverallGraph: React.FC = () => {
             <div
                 style={{
                     position: 'absolute',
-                    top: '37.5%',
-                    left: '42%',
+                    top: device === 'mobile' ? '35%' : '37.5%',
+                    left: device === 'mobile' ? '37.5%' : '42%',
                 }}
             >
                 <Flex vertical align="center" gap="0">
@@ -72,7 +81,7 @@ export const OverallGraph: React.FC = () => {
                 series={overallGraph.series}
                 type="radialBar"
                 width="100%"
-                height={400}
+                height={device === 'desktop' ? 400 : 350}
             />
             <Row align="middle" gutter={[40, 40]} justify="center">
                 <Col span={6}>

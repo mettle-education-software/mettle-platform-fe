@@ -42,3 +42,15 @@ export const getClosestTimeListValue: (timeValue: number) => number = (timeValue
 
     return 0;
 };
+
+export const nextMondayDate = () => {
+    const isTodayMonday = new Date().getDay() === 1;
+
+    if (isTodayMonday) return new Date();
+
+    const date = new Date();
+    const day = date.getDay();
+    const diff = 8 - day;
+    date.setDate(date.getDate() + diff);
+    return date;
+};

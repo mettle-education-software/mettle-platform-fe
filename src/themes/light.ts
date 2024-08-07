@@ -1,17 +1,5 @@
 import { ThemeConfig } from 'antd';
-import { Roboto, Lato } from 'next/font/google';
-
-const roboto = Roboto({
-    subsets: ['latin'],
-    display: 'swap',
-    weight: ['100', '300', '400', '500', '700', '900'],
-});
-
-const lato = Lato({
-    subsets: ['latin'],
-    display: 'swap',
-    weight: ['100', '300', '400', '700', '900'],
-});
+import { font } from './font';
 
 export const lightTheme: ThemeConfig = {
     token: {
@@ -25,7 +13,7 @@ export const lightTheme: ThemeConfig = {
         wireframe: false,
         colorBgBase: '#ffffff',
         colorPrimaryActive: '#3c362f',
-        fontFamily: '"europa", sans-serif',
+        fontFamily: font.style.fontFamily,
     },
     components: {
         Menu: {

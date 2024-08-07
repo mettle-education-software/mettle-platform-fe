@@ -20,6 +20,7 @@
     --neutral-text: #00000073;
     --danger: #ff4d4f;
     --main-bg: #2b2b2b;
+    --brown-bg: #3c362f;
 }
 
 main[data-theme='light'] {
@@ -32,6 +33,7 @@ main[data-theme='light'] {
     --white: var(--white);
     /*just testing this*/
     --primary-bg: brown;
+    --border-gray: #f2f0ee;
 }
 
 main[data-theme='dark'] {
@@ -44,6 +46,7 @@ main[data-theme='dark'] {
     --white: var(--white);
     /*just testing this*/
     --primary-bg: brown;
+    --border-gray: #f2f0ee;
 }
 
 * {
@@ -51,7 +54,6 @@ main[data-theme='dark'] {
     padding: 0;
     margin: 0;
     /*white-space: nowrap;*/
-    font-family: 'europa', sans-serif;
 }
 
 html,
@@ -80,6 +82,12 @@ a {
 
 .word-no-break {
     white-space: nowrap;
+}
+
+/* Global utilities */
+
+.center {
+    text-align: center !important;
 }
 
 /* Ant design style changes below */

@@ -13,17 +13,19 @@ import React, { useEffect, useState } from 'react';
 const { Title, Text } = Typography;
 
 const ReviewContainer = styled.section`
-    background: #2b2b2b;
+    background: var(--main-bg);
     width: 100%;
     height: 100%;
-
+    min-height: 100%;
     display: flex;
     align-items: center;
     flex-direction: column;
 
     @media (max-width: ${SMALL_VIEWPORT}px) {
-        overflow-y: auto;
-        max-height: 100%;
+        padding-top: 1rem;
+        padding-bottom: 2rem;
+        height: unset;
+        min-height: unset;
     }
 `;
 
@@ -201,7 +203,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                     </div>
                     <InputsWrapper>
                         <Row gutter={[24, 24]}>
-                            <Col xs={24} span={8}>
+                            <Col xs={24} md={8}>
                                 <ReviewThumbnail
                                     loading={saveInput.isPending}
                                     dedaId={inputData.reviewInput?.review1.dedaId as string}
@@ -219,7 +221,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                                 />
                             </Col>
                             {inputData.reviewInput?.review2 && (
-                                <Col xs={24} span={8}>
+                                <Col xs={24} md={8}>
                                     <ReviewThumbnail
                                         loading={saveInput.isPending}
                                         dedaId={inputData.reviewInput.review2.dedaId}
@@ -238,7 +240,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                                 </Col>
                             )}
                             {inputData.reviewInput?.review3 && (
-                                <Col xs={24} span={8}>
+                                <Col xs={24} md={8}>
                                     <ReviewThumbnail
                                         loading={saveInput.isPending}
                                         dedaId={inputData.reviewInput.review3.dedaId}

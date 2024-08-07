@@ -37,6 +37,7 @@ const GridContent = styled.section`
     align-items: center;
     gap: 3rem;
     border: none;
+    padding-bottom: 2rem;
 
     @media (max-width: ${SMALL_VIEWPORT}px) {
         padding: 0 22px;

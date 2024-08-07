@@ -1,9 +1,10 @@
 'use client';
 
-import { CheckCircleFilled, AimOutlined, HourglassOutlined } from '@ant-design/icons';
+import { CheckCircleFilled, HourglassOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import RotateRightIcon from '@mui/icons-material/RotateRight';
 import { Steps, Typography } from 'antd';
+import { SMALL_VIEWPORT } from 'libs';
 import React from 'react';
 import { MaxWidthContainer } from '../../../atoms';
 import { DedaSteps } from '../DedaActivity/DedaSteps';
@@ -18,6 +19,10 @@ const ActivityWrapper = styled.div`
     flex-direction: column;
     align-items: center;
     flex-grow: 1;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        padding-top: 1rem;
+    }
 `;
 
 const StyledSteps = styled(Steps)`

@@ -2,8 +2,17 @@
 
 import styled from '@emotion/styled';
 import { Col, Flex, Row, Typography } from 'antd';
-import { HpecModulesList, HpecResources, HpecSummary, HpecVideo, MaxWidthContainer, TabNav } from 'components';
+import {
+    HpecMobile,
+    HpecModulesList,
+    HpecResources,
+    HpecSummary,
+    HpecVideo,
+    MaxWidthContainer,
+    TabNav,
+} from 'components';
 import { AppLayout } from 'components/layouts';
+import { useDeviceSize } from 'hooks';
 import { useGetHpecResources } from 'hooks/queries/hpecQueries';
 import { withAuthentication } from 'libs';
 import React, { useState } from 'react';
@@ -31,7 +40,7 @@ const HpecSection = styled.section`
     background: #2b2b2b;
 `;
 
-function HpecContent({ params: { hpecId, lessonId } }: { params: { hpecId: string; lessonId: string } }) {
+function HpecContent({ params: { hpecId, lessonId } }: Readonly<{ params: Record<string, string> }>) {
     const [hpecLessonId, setHpecLessonId] = useState<string>(lessonId);
 
     const { data } = useGetHpecResources(hpecLessonId);
@@ -43,7 +52,7 @@ function HpecContent({ params: { hpecId, lessonId } }: { params: { hpecId: strin
     };
 
     return (
-        <AppLayout withMelpSummary>
+        <>
             <Header>
                 <MaxWidthContainer>
                     <Flex vertical gap="0.2rem">
@@ -94,8 +103,18 @@ function HpecContent({ params: { hpecId, lessonId } }: { params: { hpecId: strin
                     </Row>
                 </MaxWidthContainer>
             </HpecSection>
+        </>
+    );
+}
+
+function Hpec({ params }: Readonly<{ params: Record<string, string> }>) {
+    const device = useDeviceSize();
+
+    return (
+        <AppLayout withMelpSummary>
+            {device === 'mobile' ? <HpecMobile params={params} /> : <HpecContent params={params} />}
         </AppLayout>
     );
 }
 
-export default withAuthentication(HpecContent);
+export default withAuthentication(Hpec);

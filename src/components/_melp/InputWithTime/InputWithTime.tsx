@@ -1,6 +1,6 @@
 import { DownOutlined, UpOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Col, Row, Typography, Modal, Input, Flex, Button } from 'antd';
+import { Button, Col, Flex, Input, Modal, Row, Typography } from 'antd';
 import React, { useEffect, useState } from 'react';
 
 const { Text, Title } = Typography;
@@ -43,15 +43,14 @@ const ClockWrapper = styled.div`
     padding: 5rem 0;
 `;
 
-export const InputWithTime = ({
-    label,
-    value,
-    onChange,
-}: {
-    label: string | React.ReactNode;
+export interface InputWithTimeProps {
+    label?: string | React.ReactNode;
     value: number;
+
     onChange(value: number): void;
-}) => {
+}
+
+export const InputWithTime: React.FC<InputWithTimeProps> = ({ label, value, onChange }) => {
     const [hourValue, setHourValue] = useState<number>(Math.floor(value / 60));
     const [minuteValue, setMinuteValue] = useState<number>(value % 60);
     const [modalOpen, setModalOpen] = useState(false);
@@ -124,7 +123,7 @@ export const InputWithTime = ({
                         showModal();
                     }}
                 />
-                <Modal open={modalOpen} onOk={handleOk} onCancel={handleCancel}>
+                <Modal open={modalOpen} onOk={handleOk} onCancel={handleCancel} title={label}>
                     <ClockWrapper>
                         <Row align="middle" justify="center" gutter={16}>
                             <Col>

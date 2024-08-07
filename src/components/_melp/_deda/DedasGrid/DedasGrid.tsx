@@ -1,7 +1,7 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Row, Col, Typography, Flex } from 'antd';
+import { Col, Flex, Row, Typography } from 'antd';
 import { DedaCard } from 'components';
 import { useDeviceSize, useMelpSummary } from 'hooks';
 import { useAllDedasList, useLastDedas, useNextDedas } from 'hooks/queries/dedasLists';
@@ -13,6 +13,7 @@ import React from 'react';
 interface DedasGridProps {
     type: 'lastDedas' | 'nextDedas' | 'allDedas';
     onSelectedDeda: (dedaId: string) => void;
+    customTitle?: string;
 }
 
 const Title = styled(Typography.Title)`
@@ -20,7 +21,7 @@ const Title = styled(Typography.Title)`
     font-weight: 500 !important;
 `;
 
-export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) => {
+export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, customTitle }) => {
     const device = useDeviceSize();
 
     const { user } = useAppContext();
@@ -56,9 +57,15 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
 
     const allDedasResult = useAllDedasList(type !== 'allDedas');
     const sortedAllDedasResult: DedaItem[] = allDedasResult
-        ? (allDedasResult.data?.dedaContentCollection?.items?.toSorted((a, b) => {
-              return Number(a.dedaId.replace(/\D/g, '')) - Number(b.dedaId.replace(/\D/g, ''));
-          }) as DedaItem[])
+        ? (allDedasResult.data?.dedaContentCollection?.items
+              ?.toSorted((a, b) => {
+                  return Number(a.dedaId.replace(/\D/g, '')) - Number(b.dedaId.replace(/\D/g, ''));
+              })
+              .toSorted((a, b) => {
+                  if (unlockedDEDAs.includes(a.dedaId) && !unlockedDEDAs.includes(b.dedaId)) return -1;
+                  if (!unlockedDEDAs.includes(a.dedaId) && unlockedDEDAs.includes(b.dedaId)) return 1;
+                  return 0;
+              }) as DedaItem[])
         : [];
 
     const showSkeleton = isLoading || lastDedasResult.loading || nextDedasResult.loading || allDedasResult.loading;
@@ -84,7 +91,9 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda }) =>
     return (
         <Flex style={{ maxWidth: MAX_CONTENT_WIDTH, width: '100%' }} vertical gap="2.25rem">
             <div>
-                <div style={{ width: '100%', marginBottom: '1rem' }}>{titles[type]}</div>
+                <div style={{ width: '100%', marginBottom: '1rem' }}>
+                    {customTitle ? <Title level={4}>{customTitle}</Title> : titles[type]}
+                </div>
 
                 <Row
                     gutter={[

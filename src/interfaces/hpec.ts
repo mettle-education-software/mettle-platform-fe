@@ -3,10 +3,13 @@ export interface IHPECLesson {
     drippingDayAfterDedaStart: number;
     hpecId: string;
     hpecTitle: string;
+    moduleOrder: number;
     hpecLessonsCollection: {
         items: {
             lessonId: string;
             lessonTitle: string;
+            lessonFeaturedText: string;
+            lessonVideoEmbedUrl: string;
         }[];
     };
 }

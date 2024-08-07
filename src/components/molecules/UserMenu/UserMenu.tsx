@@ -1,45 +1,23 @@
 'use client';
 
-import { Avatar, Flex, Typography, Dropdown } from 'antd';
-import { handleLogout } from 'libs';
+import { Avatar, Flex, Typography } from 'antd';
 import { useAppContext } from 'providers';
-import React, { useState } from 'react';
+import React from 'react';
 import { NotificationsList } from '../../atoms';
-import { ArrowDown } from '../../icons';
 
 const { Text } = Typography;
 
 export const UserMenu = () => {
-    const [userMenuOpen, setUserMenuOpen] = useState(false);
     const { user } = useAppContext();
 
     return (
         <Flex align="center" gap="1rem">
             <NotificationsList />
 
-            <Dropdown
-                open={userMenuOpen}
-                trigger={['click']}
-                onOpenChange={(open) => setUserMenuOpen(open)}
-                menu={{
-                    items: [
-                        {
-                            key: 'logout',
-                            label: 'Logout',
-                            onClick: ({ domEvent }) => {
-                                domEvent.preventDefault();
-                                handleLogout();
-                            },
-                        },
-                    ],
-                }}
-            >
-                <Flex align="center" gap="1rem" style={{ cursor: 'pointer' }}>
-                    <Avatar src={user?.profileImageSrc}>{user?.name[0]}</Avatar>
-                    <Text>Pedro Filipe</Text>
-                    <ArrowDown className={userMenuOpen ? 'open' : ''} />
-                </Flex>
-            </Dropdown>
+            <Flex align="center" gap="1rem">
+                <Avatar src={user?.profileImageSrc}>{user?.name[0]}</Avatar>
+                <Text>{user?.name}</Text>
+            </Flex>
         </Flex>
     );
 };

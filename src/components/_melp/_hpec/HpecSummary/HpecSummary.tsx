@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import { Skeleton } from 'antd';
 import { RichTextRenderer } from 'components';
 import useGetLessonContent from 'hooks/queries/useGetLessonContent';
+import { SMALL_VIEWPORT } from 'libs';
 import React from 'react';
 
 interface HpecSummaryProps {
@@ -17,6 +18,12 @@ const SummaryReader = styled.article`
     border-radius: 1rem;
     padding: 1rem 8rem;
     overflow-y: auto;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        height: 58vh;
+        aspect-ratio: unset;
+        padding: 0.5rem 1rem;
+    }
 `;
 
 export const HpecSummary: React.FC<HpecSummaryProps> = ({ lessonId }) => {

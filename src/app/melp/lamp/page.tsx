@@ -5,9 +5,8 @@ import styled from '@emotion/styled';
 import { Flex, Popover, Typography } from 'antd';
 import { AppLayout, ArrowDown, Chip, MaxWidthContainer, TabNav } from 'components';
 import { PerformanceTab, InputTab, GoalsTab } from 'components';
-import { useDeviceSize } from 'hooks';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
-import { padding, withAuthentication } from 'libs';
+import { withAuthentication } from 'libs';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
@@ -174,8 +173,6 @@ const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: strin
         ],
     ]);
 
-    const device = useDeviceSize();
-
     return (
         <AppLayout withMelpSummary>
             <Header>
@@ -193,7 +190,6 @@ const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: strin
             <ContentContainer>
                 <MaxWidthContainer style={{ position: 'relative' }}>
                     <TabNav
-                        // centered={device === 'mobile'}
                         sticky
                         activeKey={activeTab}
                         onTabClick={(key) => {

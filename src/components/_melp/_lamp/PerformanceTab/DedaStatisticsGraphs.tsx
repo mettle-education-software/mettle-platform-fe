@@ -80,9 +80,9 @@ export const DedaStatisticsGraphs: React.FC<DedaStatisticsGraphsProps> = ({ sele
                     <Col span={12}>
                         <WhiteTitle level={4}>Daily</WhiteTitle>
                     </Col>
-                    <Col>
+                    <Col span={12}>
                         <Row>
-                            <Col>
+                            <Col xs={12}>
                                 <DailySelectorButton
                                     onClick={() => {
                                         setDailySelectedType('dedaTime');
@@ -92,7 +92,7 @@ export const DedaStatisticsGraphs: React.FC<DedaStatisticsGraphsProps> = ({ sele
                                     <span className="icon">&#8226;</span> DEDA Time
                                 </DailySelectorButton>
                             </Col>
-                            <Col>
+                            <Col xs={12}>
                                 <DailySelectorButton
                                     onClick={() => {
                                         setDailySelectedType('readingTime');

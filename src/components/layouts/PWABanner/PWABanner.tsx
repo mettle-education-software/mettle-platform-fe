@@ -36,14 +36,14 @@ export const PWABanner: React.FC<PWABanner> = ({ children }) => {
     const [deviceOS, setDeviceOS] = useState('');
 
     useEffect(() => {
-        if (window) {
+        if (window && navigator) {
             setIsStandAlone(window.matchMedia('(display-mode: standalone)').matches);
             setIsDeviceMobile(/Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
             setDeviceOS(navigator.userAgent);
         }
     }, []);
 
-    const [tab, setTab] = React.useState<'ios' | 'android'>(deviceOS.includes('Android') ? 'android' : 'ios');
+    const [tab, setTab] = useState<'ios' | 'android'>(deviceOS.includes('Android') ? 'android' : 'ios');
 
     if ((isDeviceMobile && isStandalone && deviceSize === 'mobile') || deviceSize === 'desktop') return children;
 

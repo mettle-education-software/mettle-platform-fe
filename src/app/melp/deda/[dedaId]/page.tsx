@@ -155,7 +155,6 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
             {!isDesktop && (
                 <MobileNavigationWrapper>
                     <TabNav
-                        centered
                         withoutBottomBorder
                         tabBarStyle={{ marginBottom: 0 }}
                         type="card"

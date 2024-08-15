@@ -17,6 +17,7 @@ const ActivityCard = styled.div`
     width: 100%;
     min-height: 314px;
     background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.03);
     border-radius: 0.5rem;
     padding: 1rem;
     display: flex;
@@ -227,6 +228,10 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
 
     const device = useDeviceSize();
     const isDesktop = device === 'desktop';
+
+    if (!isDesktop) {
+        return <></>;
+    }
 
     return (
         <ActivityCard>

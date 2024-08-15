@@ -85,7 +85,7 @@ function Home() {
                             <Row gutter={[16, 16]}>
                                 <Col xs={24} md={6}>
                                     <CourseCard
-                                        imgUrl={'/img/melp-thumb.webp'}
+                                        imgUrl={'/img/imerso_thumb.webp'}
                                         title="IMERSO"
                                         type="Programa"
                                         href="/melp"

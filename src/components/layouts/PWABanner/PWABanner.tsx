@@ -1,10 +1,9 @@
-'use client';
-
 import { AndroidFilled, AppleFilled } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { IosShare } from '@mui/icons-material';
 import { Flex, Tabs, Typography } from 'antd';
 import { Logo, MaxWidthContainer } from 'components';
+import { LoadingLayout } from 'components/layouts/LoadingLayout/LoadingLayout';
 import { useDeviceSize } from 'hooks';
 import { SMALL_VIEWPORT } from 'libs';
 import Image from 'next/image';
@@ -30,10 +29,11 @@ const Container = styled.div`
 
 export const PWABanner: React.FC<PWABanner> = ({ children }) => {
     const deviceSize = useDeviceSize();
+    const [isLoading, setIsLoading] = useState(true);
 
     const [isStandalone, setIsStandAlone] = useState(false);
     const [isDeviceMobile, setIsDeviceMobile] = useState(false);
-    const [deviceOS, setDeviceOS] = useState('');
+    const [deviceOS, setDeviceOS] = useState('ios');
 
     useEffect(() => {
         if (window && navigator) {
@@ -41,9 +41,14 @@ export const PWABanner: React.FC<PWABanner> = ({ children }) => {
             setIsDeviceMobile(/Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
             setDeviceOS(navigator.userAgent);
         }
+        setIsLoading(false);
     }, []);
 
     const [tab, setTab] = useState<'ios' | 'android'>(deviceOS.includes('Android') ? 'android' : 'ios');
+
+    return children;
+
+    if (isLoading) return <LoadingLayout />;
 
     if ((isDeviceMobile && isStandalone && deviceSize === 'mobile') || deviceSize === 'desktop') return children;
 

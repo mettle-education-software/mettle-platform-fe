@@ -3,7 +3,8 @@
 import { CheckCircleFilled, CheckCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { ChevronLeft, ChevronRight, Timer, TimerOff } from '@mui/icons-material';
-import { Breadcrumb, Button, Flex, Typography } from 'antd';
+import { Breadcrumb, Button, Col, Flex, Row, Typography } from 'antd';
+import { DedaNavButton } from 'components';
 import { SaveDedaInputMutationDedaData, useDeviceSize, useSaveDedaInput } from 'hooks';
 import { getDayToday, padNumber } from 'libs';
 import { useRouter } from 'next/navigation';
@@ -89,6 +90,34 @@ const NavButton = styled(Button)`
     background: rgba(243, 236, 228, 0.07);
     color: var(--secondary);
     border: none;
+`;
+
+const MobileNavigationHeaderRow = styled.div`
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #eae8e2;
+    gap: 0;
+    align-items: center;
+    max-width: 100vw;
+    height: 4rem;
+    padding: 0;
+
+    .button-item {
+        flex-grow: 1;
+    }
+`;
+
+const MobileBottomNavigationRow = styled.div`
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    z-index: 1;
+    background: var(--brown-bg);
+    padding: 0.5rem;
 `;
 
 const StepChip = ({
@@ -230,7 +259,101 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     const isDesktop = device === 'desktop';
 
     if (!isDesktop) {
-        return <></>;
+        return (
+            <>
+                <MobileNavigationHeaderRow>
+                    {/* TODO - Maybe have this logic in a .map*/}
+                    <DedaNavButton className={indexOfCurrentStep === 0 ? 'active' : undefined}>Listen</DedaNavButton>
+                    <DedaNavButton
+                        disabled={indexOfCurrentStep < 1}
+                        className={indexOfCurrentStep === 1 ? 'active' : undefined}
+                    >
+                        Read + Record
+                    </DedaNavButton>
+                    <DedaNavButton
+                        disabled={indexOfCurrentStep < 2}
+                        className={indexOfCurrentStep === 2 ? 'active' : undefined}
+                    >
+                        Watch
+                    </DedaNavButton>
+                    <DedaNavButton
+                        disabled={indexOfCurrentStep < 3}
+                        className={indexOfCurrentStep === 3 ? 'active' : undefined}
+                    >
+                        Listen + Read
+                    </DedaNavButton>
+                    <DedaNavButton
+                        disabled={indexOfCurrentStep < 4}
+                        className={indexOfCurrentStep === 4 ? 'active' : undefined}
+                    >
+                        Write
+                    </DedaNavButton>
+                    <DedaNavButton
+                        disabled={indexOfCurrentStep < 5}
+                        className={indexOfCurrentStep === 5 ? 'active' : undefined}
+                    >
+                        Summary
+                    </DedaNavButton>
+                </MobileNavigationHeaderRow>
+                {dedaSteps[currentStep as keyof typeof dedaSteps]}
+                <MobileBottomNavigationRow>
+                    <Row align="middle" gutter={8}>
+                        <Col span={12}>
+                            <Flex justify="flex-end" align="center" gap="0.5rem">
+                                <NavButton
+                                    disabled={currentStep === 'listen'}
+                                    onClick={() => handleStepChange('previous')}
+                                >
+                                    <ChevronLeft />
+                                </NavButton>
+                                <NavButton
+                                    onClick={() => handleStepChange('next')}
+                                    disabled={
+                                        !isTodaysDeda || !isTodaysDedaAndNotCompleted
+                                            ? currentStep === 'write'
+                                            : !stepsProgress[currentStep as keyof typeof stepsProgress]
+                                    }
+                                >
+                                    <ChevronRight />
+                                </NavButton>
+                            </Flex>
+                        </Col>
+                        <Col span={12}>
+                            {!['finish', 'completed'].includes(currentStep) && isTodaysDedaAndNotCompleted && (
+                                <CompleteButton
+                                    block
+                                    type="primary"
+                                    disabled={!!stepsProgress[currentStep as keyof typeof stepsProgress]}
+                                    onClick={() => {
+                                        setStepsProgress((prev) => ({
+                                            ...prev,
+                                            [currentStep]: true,
+                                        }));
+                                        handleStepChange('next');
+                                    }}
+                                >
+                                    {stepsProgress[currentStep as keyof typeof stepsProgress]
+                                        ? 'Step completed 🎉'
+                                        : currentStep === 'write'
+                                          ? 'Finish'
+                                          : 'Complete step'}
+                                </CompleteButton>
+                            )}
+                            {currentStep === 'finish' && (
+                                <CompleteButton
+                                    block
+                                    loading={saveInput.isPending}
+                                    type="primary"
+                                    onClick={handleFinishSave}
+                                >
+                                    Complete DEDA
+                                </CompleteButton>
+                            )}
+                        </Col>
+                    </Row>
+                </MobileBottomNavigationRow>
+            </>
+        );
     }
 
     return (

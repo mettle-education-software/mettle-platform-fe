@@ -22,7 +22,6 @@ const DedaNotesNav = styled.div`
 
     @media (max-width: ${SMALL_VIEWPORT}px) {
         background: #eae8e2;
-        display: flex;
         gap: 0;
         align-items: center;
         max-width: 100vw;

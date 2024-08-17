@@ -78,7 +78,7 @@ const MelpHome = () => {
                             </Chip>
                         </Col>
                         <Col>
-                            <Title level={1} className="color-secondary">
+                            <Title level={3} className="color-secondary">
                                 Welcome, {user?.name}.
                             </Title>
                         </Col>

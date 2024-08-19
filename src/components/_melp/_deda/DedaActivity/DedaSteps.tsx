@@ -9,7 +9,7 @@ import { SaveDedaInputMutationDedaData, useDeviceSize, useSaveDedaInput } from '
 import { getDayToday, padNumber } from 'libs';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { DedaActivitySummary, DedaStepsCompleted, Listen, ListenRead, ReadRecord, Watch, Write } from './steps';
 
 const { Text } = Typography;
@@ -221,8 +221,20 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     const isTodaysDeda = melpSummary?.unlocked_dedas[melpSummary?.unlocked_dedas.length - 1] === dedaId;
     const isTodaysDedaAndNotCompleted = isTodaysDeda && !isTodaysDedaCompleted;
 
+    const [hasPlayStarted, setHasPlayStarted] = useState(false);
+    const handleDedaListenStart = useCallback(() => {
+        setHasPlayStarted(true);
+    }, []);
+
     const dedaSteps = {
-        listen: <Listen key="listen" dedaId={dedaId} />,
+        listen: (
+            <Listen
+                key="listen"
+                dedaId={dedaId}
+                onListenPlay={handleDedaListenStart}
+                isTodaysDedaAndNotCompleted={isTodaysDedaAndNotCompleted}
+            />
+        ),
         readRecord: <ReadRecord key="readRecord" dedaId={dedaId} />,
         watch: <Watch key="watch" dedaId={dedaId} />,
         listenRead: <ListenRead key="listenRead" dedaId={dedaId} />,
@@ -257,6 +269,9 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
 
     const device = useDeviceSize();
     const isDesktop = device === 'desktop';
+
+    const showStopwatch =
+        isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && hasPlayStarted;
 
     if (!isDesktop) {
         return (
@@ -298,7 +313,16 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                 {dedaSteps[currentStep as keyof typeof dedaSteps]}
                 <MobileBottomNavigationRow>
                     <Row align="middle" gutter={8}>
-                        <Col span={12}>
+                        <Col span={8}>
+                            {showStopwatch && (
+                                <StopWatch
+                                    onStop={(stopwatchValue) => {
+                                        setDedaTime(stopwatchValue);
+                                    }}
+                                />
+                            )}
+                        </Col>
+                        <Col span={4}>
                             <Flex justify="flex-end" align="center" gap="0.5rem">
                                 <NavButton
                                     disabled={currentStep === 'listen'}
@@ -323,7 +347,9 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                                 <CompleteButton
                                     block
                                     type="primary"
-                                    disabled={!!stepsProgress[currentStep as keyof typeof stepsProgress]}
+                                    disabled={
+                                        !!stepsProgress[currentStep as keyof typeof stepsProgress] || !hasPlayStarted
+                                    }
                                     onClick={() => {
                                         setStepsProgress((prev) => ({
                                             ...prev,
@@ -360,7 +386,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
         <ActivityCard>
             {isDesktop && (
                 <Flex justify="center" align="center" gap="1rem">
-                    {isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && (
+                    {showStopwatch && (
                         <StopWatch
                             onStop={(stopwatchValue) => {
                                 setDedaTime(stopwatchValue);
@@ -439,7 +465,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                 {!['finish', 'completed'].includes(currentStep) && isTodaysDedaAndNotCompleted && (
                     <CompleteButton
                         type="primary"
-                        disabled={!!stepsProgress[currentStep as keyof typeof stepsProgress]}
+                        disabled={!!stepsProgress[currentStep as keyof typeof stepsProgress] || !hasPlayStarted}
                         onClick={() => {
                             setStepsProgress((prev) => ({
                                 ...prev,

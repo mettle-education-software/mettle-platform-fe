@@ -1,14 +1,20 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Skeleton } from 'antd';
+import { Card, Skeleton, Typography } from 'antd';
 import { useDeda } from 'hooks';
 import { DedaListenQueryResponse } from 'interfaces';
-import React, { useEffect } from 'react';
+import { createSCWidget } from 'libs';
+import React, { useEffect, useState } from 'react';
 import { ListenSoundCloud } from '../../../ListenSoundCloud/ListenSoundCloud';
+
+const { Text } = Typography;
 
 interface ListenProps {
     dedaId: string;
+    isTodaysDedaAndNotCompleted: boolean;
+
+    onListenPlay?(): void;
 }
 
 const ListenFrame = styled.div`
@@ -16,27 +22,40 @@ const ListenFrame = styled.div`
     padding: 1rem;
     border-radius: 0.5rem;
     background: rgba(255, 255, 255, 0.05);
-
-    & #widget > div.mobilePrestitial.g-flex-row-centered.g-box-full.m-enabled {
-        display: none;
-    }
+    position: relative;
 `;
 
-export const Listen: React.FC<ListenProps> = ({ dedaId }) => {
+const StartMessage = styled(Card)`
+    position: absolute;
+    top: 20px;
+    left: 100px;
+    z-index: 10;
+    background: var(--brown-bg);
+    opacity: 90%;
+    border: none;
+`;
+
+export const Listen: React.FC<ListenProps> = ({ dedaId, onListenPlay, isTodaysDedaAndNotCompleted }) => {
     const dedaListenResult = useDeda<DedaListenQueryResponse>('deda-listen', dedaId);
+    const [displayStartMessage, setDisplayStartMessage] = useState(true);
 
     const { loading, data } = dedaListenResult;
 
+    const soundCloudFrameId = 'deda-listen-sc';
+
     useEffect(() => {
-        if (window) {
-            window.onload = () => {
-                document?.querySelector('.playButton.medium')?.addEventListener('click', () => {
-                    alert('play clicked');
-                    console.log('play clicked');
+        if (!!window && !!data) {
+            // @ts-ignore
+            createSCWidget(soundCloudFrameId, (widget) => {
+                widget.bind('play', () => {
+                    if (onListenPlay) {
+                        onListenPlay();
+                    }
+                    widget.unbind('play');
                 });
-            };
+            });
         }
-    }, [loading, data]);
+    }, [data, onListenPlay]);
 
     if (loading || data?.dedaContentCollection?.items?.length === 0) {
         return <Skeleton loading active style={{ height: '10rem', width: '100%' }} />;
@@ -44,7 +63,21 @@ export const Listen: React.FC<ListenProps> = ({ dedaId }) => {
 
     return (
         <ListenFrame>
-            <ListenSoundCloud src={dedaListenResult.data?.dedaContentCollection.items[0].dedaListenSoundCloudLink} />
+            {isTodaysDedaAndNotCompleted && (
+                <StartMessage>
+                    <Text className="color-white">
+                        Clique no PLAY para iniciar o DEDA de hoje. Assim que clicar, o tempo começará a contar. Bons
+                        estudos!
+                    </Text>
+                </StartMessage>
+            )}
+            <ListenSoundCloud
+                id={soundCloudFrameId}
+                src={
+                    dedaListenResult.data?.dedaContentCollection.items[0].dedaListenSoundCloudLink +
+                    '&amp;show_teaser=false'
+                }
+            />
         </ListenFrame>
     );
 };

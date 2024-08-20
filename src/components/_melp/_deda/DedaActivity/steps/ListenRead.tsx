@@ -2,8 +2,8 @@
 
 import styled from '@emotion/styled';
 import { Card, Flex, Skeleton } from 'antd';
-import { RichTextRenderer } from 'components';
-import { useDeda } from 'hooks';
+import { MaxWidthContainer, RichTextRenderer } from 'components';
+import { useDeda, useDeviceSize } from 'hooks';
 import { DedaListenReadQueryResponse } from 'interfaces';
 import React from 'react';
 import { ListenSoundCloud } from '../../../ListenSoundCloud/ListenSoundCloud';
@@ -27,6 +27,22 @@ export const ListenRead: React.FC<ListenReadProps> = ({ dedaId }) => {
     const dedaReadRecordData = dedaListenReadResult.data?.dedaContentCollection?.items[0].dedaReadContent;
     const dedaListenSoundCloudLink =
         dedaListenReadResult.data?.dedaContentCollection?.items[0].dedaListenSoundCloudLink;
+
+    const device = useDeviceSize();
+
+    if (device === 'mobile')
+        return (
+            <Flex justify="center">
+                <MaxWidthContainer style={{ paddingBottom: '5rem', paddingTop: '1rem' }}>
+                    <Flex vertical align="stretch" gap="2rem">
+                        <ListenSoundCloud src={dedaListenSoundCloudLink + '&amp;show_teaser=false'} />
+                        <Skeleton loading={dedaListenReadResult.loading} active style={{ width: '100%' }}>
+                            <RichTextRenderer rawContent={dedaReadRecordData?.json} links={dedaReadRecordData?.links} />
+                        </Skeleton>
+                    </Flex>
+                </MaxWidthContainer>
+            </Flex>
+        );
 
     return (
         <ListenCard>

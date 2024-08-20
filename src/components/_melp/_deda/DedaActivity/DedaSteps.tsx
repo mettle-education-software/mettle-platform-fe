@@ -3,7 +3,7 @@
 import { CheckCircleFilled, CheckCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { ChevronLeft, ChevronRight, Timer, TimerOff } from '@mui/icons-material';
-import { Breadcrumb, Button, Col, Flex, Row, Typography } from 'antd';
+import { Breadcrumb, Button, Col, Flex, Row, Tooltip, Typography } from 'antd';
 import { DedaNavButton } from 'components';
 import { SaveDedaInputMutationDedaData, useDeviceSize, useSaveDedaInput } from 'hooks';
 import { getDayToday, padNumber } from 'libs';
@@ -17,7 +17,6 @@ const { Text } = Typography;
 const ActivityCard = styled.div`
     width: 100%;
     min-height: 314px;
-    background: rgba(255, 255, 255, 0.03);
     background: rgba(255, 255, 255, 0.03);
     border-radius: 0.5rem;
     padding: 1rem;
@@ -89,7 +88,7 @@ const NavButton = styled(Button)`
     align-items: center;
     background: rgba(243, 236, 228, 0.07);
     color: var(--secondary);
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.15);
 `;
 
 const MobileNavigationHeaderRow = styled.div`
@@ -143,7 +142,8 @@ const StepChip = ({
 
 const StopWatch = ({ onStop }: { onStop(duration: number): void }) => {
     const [stopwatch, setStopwatch] = useState(0);
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
+    const [tooltipOpen, setTooltipOpen] = useState(true);
 
     useEffect(() => {
         const interval = setInterval(() => setStopwatch((prev) => prev + 1), 1000);
@@ -153,23 +153,32 @@ const StopWatch = ({ onStop }: { onStop(duration: number): void }) => {
         };
     }, [stopwatch, onStop]);
 
+    useEffect(() => {
+        const tooltipTimeout = setTimeout(() => setTooltipOpen(false), 5000);
+        return () => {
+            clearTimeout(tooltipTimeout);
+        };
+    }, []);
+
     return (
-        <ChipWrapper>
-            <Flex justify="flex-end" align="center" gap="0.6rem">
-                {isOpen && (
-                    <Text className="text">
-                        {padNumber(Math.floor(stopwatch / 3600))}:
-                        {padNumber(Math.floor(stopwatch / 60) - Math.floor(stopwatch / 3600) * 60)}:
-                        {padNumber(stopwatch % 60)}
-                    </Text>
-                )}
-                {isOpen ? (
-                    <Timer style={{ cursor: 'pointer' }} className="icon" onClick={() => setIsOpen(false)} />
-                ) : (
-                    <TimerOff style={{ cursor: 'pointer' }} className="icon" onClick={() => setIsOpen(true)} />
-                )}
-            </Flex>
-        </ChipWrapper>
+        <Tooltip title="Your time has started and it will be tracked" open={tooltipOpen}>
+            <ChipWrapper>
+                <Flex justify="flex-end" align="center" gap="0.6rem">
+                    {isOpen && (
+                        <Text className="text">
+                            {padNumber(Math.floor(stopwatch / 3600))}:
+                            {padNumber(Math.floor(stopwatch / 60) - Math.floor(stopwatch / 3600) * 60)}:
+                            {padNumber(stopwatch % 60)}
+                        </Text>
+                    )}
+                    {isOpen ? (
+                        <Timer style={{ cursor: 'pointer' }} className="icon" onClick={() => setIsOpen(false)} />
+                    ) : (
+                        <TimerOff style={{ cursor: 'pointer' }} className="icon" onClick={() => setIsOpen(true)} />
+                    )}
+                </Flex>
+            </ChipWrapper>
+        </Tooltip>
     );
 };
 
@@ -187,6 +196,8 @@ enum Steps {
 
 export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     const router = useRouter();
+    const device = useDeviceSize();
+    const isDesktop = device === 'desktop';
     const { melpSummary, isTodaysDedaCompleted } = useMelpContext();
     const { user } = useAppContext();
 
@@ -241,9 +252,6 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     };
 
     const indexOfCurrentStep = steps.indexOf(currentStep);
-
-    const device = useDeviceSize();
-    const isDesktop = device === 'desktop';
 
     const showStopwatch =
         isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && hasPlayStarted;
@@ -304,47 +312,53 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                     >
                         Write
                     </DedaNavButton>
-                    <DedaNavButton
-                        disabled={indexOfCurrentStep < 5}
-                        className={indexOfCurrentStep === 5 ? 'active' : undefined}
-                    >
-                        Summary
-                    </DedaNavButton>
+                    {isTodaysDedaAndNotCompleted && (
+                        <DedaNavButton
+                            disabled={indexOfCurrentStep < 5}
+                            className={indexOfCurrentStep === 5 ? 'active' : undefined}
+                        >
+                            Summary
+                        </DedaNavButton>
+                    )}
                 </MobileNavigationHeaderRow>
                 {dedaSteps[currentStep as keyof typeof dedaSteps]}
                 <MobileBottomNavigationRow>
                     <Row align="middle" gutter={8}>
-                        <Col span={8}>
-                            {showStopwatch && (
-                                <StopWatch
-                                    onStop={(stopwatchValue) => {
-                                        setDedaTime(stopwatchValue);
-                                    }}
-                                />
-                            )}
-                        </Col>
-                        <Col span={4}>
-                            <Flex justify="flex-end" align="center" gap="0.5rem">
-                                <NavButton
-                                    disabled={currentStep === 'listen'}
-                                    onClick={() => handleStepChange('previous')}
-                                >
-                                    <ChevronLeft />
-                                </NavButton>
-                                <NavButton
-                                    onClick={() => handleStepChange('next')}
-                                    disabled={
-                                        !isTodaysDeda || !isTodaysDedaAndNotCompleted
-                                            ? currentStep === 'write'
-                                            : !stepsProgress[currentStep as keyof typeof stepsProgress]
-                                    }
-                                >
-                                    <ChevronRight />
-                                </NavButton>
-                            </Flex>
-                        </Col>
-                        <Col span={12}>
-                            {!['finish', 'completed'].includes(currentStep) && isTodaysDedaAndNotCompleted && (
+                        {isTodaysDedaAndNotCompleted && (
+                            <Col span={8}>
+                                {showStopwatch && (
+                                    <StopWatch
+                                        onStop={(stopwatchValue) => {
+                                            setDedaTime(stopwatchValue);
+                                        }}
+                                    />
+                                )}
+                            </Col>
+                        )}
+                        {!['finish', 'completed'].includes(currentStep) && (
+                            <Col span={isTodaysDedaAndNotCompleted ? 4 : 24}>
+                                <Flex justify="flex-end" align="center" gap="0.5rem">
+                                    <NavButton
+                                        disabled={currentStep === 'listen'}
+                                        onClick={() => handleStepChange('previous')}
+                                    >
+                                        <ChevronLeft />
+                                    </NavButton>
+                                    <NavButton
+                                        onClick={() => handleStepChange('next')}
+                                        disabled={
+                                            !isTodaysDeda || !isTodaysDedaAndNotCompleted
+                                                ? currentStep === 'write'
+                                                : !stepsProgress[currentStep as keyof typeof stepsProgress]
+                                        }
+                                    >
+                                        <ChevronRight />
+                                    </NavButton>
+                                </Flex>
+                            </Col>
+                        )}
+                        {!['finish', 'completed'].includes(currentStep) && isTodaysDedaAndNotCompleted && (
+                            <Col span={12}>
                                 <CompleteButton
                                     block
                                     type="primary"
@@ -365,18 +379,21 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                                           ? 'Finish'
                                           : 'Complete step'}
                                 </CompleteButton>
-                            )}
-                            {currentStep === 'finish' && (
-                                <CompleteButton
-                                    block
-                                    loading={saveInput.isPending}
-                                    type="primary"
-                                    onClick={handleFinishSave}
-                                >
-                                    Complete DEDA
-                                </CompleteButton>
-                            )}
-                        </Col>
+                            </Col>
+                        )}
+                        {currentStep === 'finish' && (
+                            <Col span={24}>
+                                <Flex justify="center">
+                                    <CompleteButton
+                                        loading={saveInput.isPending}
+                                        type="primary"
+                                        onClick={handleFinishSave}
+                                    >
+                                        Complete DEDA
+                                    </CompleteButton>
+                                </Flex>
+                            </Col>
+                        )}
                     </Row>
                 </MobileBottomNavigationRow>
             </>

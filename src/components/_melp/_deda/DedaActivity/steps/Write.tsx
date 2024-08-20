@@ -2,8 +2,8 @@
 
 import styled from '@emotion/styled';
 import { Card, Flex, Skeleton } from 'antd';
-import { RichTextRenderer } from 'components';
-import { useDeda } from 'hooks';
+import { MaxWidthContainer, RichTextRenderer } from 'components';
+import { useDeda, useDeviceSize } from 'hooks';
 import { DedaWriteQueryResponse } from 'interfaces';
 import React from 'react';
 
@@ -21,6 +21,7 @@ const ContentCard = styled(Card)`
 `;
 
 export const Write: React.FC<WriteProps> = ({ dedaId }) => {
+    const device = useDeviceSize();
     const dedaWriteResult = useDeda<DedaWriteQueryResponse>('deda-write', dedaId);
 
     const dedaWriteDays = dedaWriteResult.data?.dedaContentCollection?.items[0];
@@ -39,6 +40,20 @@ export const Write: React.FC<WriteProps> = ({ dedaId }) => {
     const weekDay = new Date().getDay();
 
     const currentDayDedaWrite = dedaWriteDays[dedaWriteDaysKeys[weekDay] as keyof typeof dedaWriteDays];
+
+    if (device === 'mobile')
+        return (
+            <Flex justify="center">
+                <MaxWidthContainer style={{ paddingTop: '1rem', paddingBottom: '5rem' }}>
+                    <Skeleton loading={dedaWriteResult.loading} active style={{ width: '100%' }}>
+                        <RichTextRenderer
+                            rawContent={currentDayDedaWrite?.json as any}
+                            links={currentDayDedaWrite?.links}
+                        />
+                    </Skeleton>
+                </MaxWidthContainer>
+            </Flex>
+        );
 
     return (
         <ContentCard>

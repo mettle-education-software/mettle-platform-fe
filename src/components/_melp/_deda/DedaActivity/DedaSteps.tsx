@@ -226,31 +226,6 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
         setHasPlayStarted(true);
     }, []);
 
-    const dedaSteps = {
-        listen: (
-            <Listen
-                key="listen"
-                dedaId={dedaId}
-                onListenPlay={handleDedaListenStart}
-                isTodaysDedaAndNotCompleted={isTodaysDedaAndNotCompleted}
-            />
-        ),
-        readRecord: <ReadRecord key="readRecord" dedaId={dedaId} />,
-        watch: <Watch key="watch" dedaId={dedaId} />,
-        listenRead: <ListenRead key="listenRead" dedaId={dedaId} />,
-        write: <Write key="write" dedaId={dedaId} />,
-        finish: (
-            <DedaActivitySummary
-                defaultDedaTime={dedaTime}
-                onInputs={setInputData}
-                key="finish"
-                isDedaCompleted={!isTodaysDedaAndNotCompleted}
-                loading={saveInput.isPending}
-            />
-        ),
-        completed: <DedaStepsCompleted key="completed" dedaId={dedaId} />,
-    };
-
     const handleStepChange = (direction: 'next' | 'previous') => {
         const currentIndex = steps.indexOf(currentStep);
         const newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
@@ -272,6 +247,32 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
 
     const showStopwatch =
         isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && hasPlayStarted;
+
+    const dedaSteps = {
+        listen: (
+            <Listen
+                key="listen"
+                dedaId={dedaId}
+                onListenPlay={handleDedaListenStart}
+                isTodaysDedaAndNotCompleted={isTodaysDedaAndNotCompleted}
+                dedaOngoing={showStopwatch}
+            />
+        ),
+        readRecord: <ReadRecord key="readRecord" dedaId={dedaId} />,
+        watch: <Watch key="watch" dedaId={dedaId} />,
+        listenRead: <ListenRead key="listenRead" dedaId={dedaId} />,
+        write: <Write key="write" dedaId={dedaId} />,
+        finish: (
+            <DedaActivitySummary
+                defaultDedaTime={dedaTime}
+                onInputs={setInputData}
+                key="finish"
+                isDedaCompleted={!isTodaysDedaAndNotCompleted}
+                loading={saveInput.isPending}
+            />
+        ),
+        completed: <DedaStepsCompleted key="completed" dedaId={dedaId} />,
+    };
 
     if (!isDesktop) {
         return (

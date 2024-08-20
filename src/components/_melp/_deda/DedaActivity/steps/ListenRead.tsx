@@ -33,7 +33,7 @@ export const ListenRead: React.FC<ListenReadProps> = ({ dedaId }) => {
             <Flex justify="center">
                 <MaxTextWidth>
                     <Flex vertical align="stretch" gap="2rem">
-                        <ListenSoundCloud src={dedaListenSoundCloudLink} />
+                        <ListenSoundCloud src={dedaListenSoundCloudLink + '&amp;show_teaser=false'} />
                         <Skeleton loading={dedaListenReadResult.loading} active style={{ width: '100%' }}>
                             <RichTextRenderer rawContent={dedaReadRecordData?.json} links={dedaReadRecordData?.links} />
                         </Skeleton>

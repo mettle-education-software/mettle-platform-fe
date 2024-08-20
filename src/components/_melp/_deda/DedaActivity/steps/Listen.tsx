@@ -8,11 +8,12 @@ import { createSCWidget } from 'libs';
 import React, { useEffect, useState } from 'react';
 import { ListenSoundCloud } from '../../../ListenSoundCloud/ListenSoundCloud';
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 interface ListenProps {
     dedaId: string;
     isTodaysDedaAndNotCompleted: boolean;
+    dedaOngoing: boolean;
 
     onListenPlay?(): void;
 }
@@ -28,15 +29,17 @@ const ListenFrame = styled.div`
 const StartMessage = styled(Card)`
     position: absolute;
     top: 20px;
-    left: 100px;
+    left: 200px;
     z-index: 10;
     background: var(--brown-bg);
     opacity: 90%;
     border: none;
+    max-width: 400px;
 `;
 
-export const Listen: React.FC<ListenProps> = ({ dedaId, onListenPlay, isTodaysDedaAndNotCompleted }) => {
+export const Listen: React.FC<ListenProps> = ({ dedaId, onListenPlay, isTodaysDedaAndNotCompleted, dedaOngoing }) => {
     const dedaListenResult = useDeda<DedaListenQueryResponse>('deda-listen', dedaId);
+
     const [displayStartMessage, setDisplayStartMessage] = useState(true);
 
     const { loading, data } = dedaListenResult;
@@ -50,6 +53,7 @@ export const Listen: React.FC<ListenProps> = ({ dedaId, onListenPlay, isTodaysDe
                 widget.bind('play', () => {
                     if (onListenPlay) {
                         onListenPlay();
+                        setDisplayStartMessage(false);
                     }
                     widget.unbind('play');
                 });
@@ -63,7 +67,7 @@ export const Listen: React.FC<ListenProps> = ({ dedaId, onListenPlay, isTodaysDe
 
     return (
         <ListenFrame>
-            {isTodaysDedaAndNotCompleted && (
+            {isTodaysDedaAndNotCompleted && displayStartMessage && !dedaOngoing && (
                 <StartMessage>
                     <Text className="color-white">
                         Clique no PLAY para iniciar o DEDA de hoje. Assim que clicar, o tempo começará a contar. Bons

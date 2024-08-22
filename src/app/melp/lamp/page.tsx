@@ -2,9 +2,9 @@
 
 import { CloudOutlined, LoadingOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Flex, Popover, Typography } from 'antd';
-import { AppLayout, ArrowDown, Chip, MaxWidthContainer, TabNav } from 'components';
-import { PerformanceTab, InputTab, GoalsTab } from 'components';
+import { Flex, Popover, Tooltip, Typography } from 'antd';
+import { AppLayout, ArrowDown, Chip, GoalsTab, InputTab, MaxWidthContainer, PerformanceTab, TabNav } from 'components';
+import { useDeviceSize } from 'hooks';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
 import { withAuthentication } from 'libs';
 import { useRouter } from 'next/navigation';
@@ -36,17 +36,34 @@ const SaveStatus = ({ isSaving, lastTimeSaved }: { isSaving: boolean; lastTimeSa
     const iconStyle = { fontSize: '1.3rem' };
     const textStyle = { color: '#FFF' };
 
+    const device = useDeviceSize();
+
     if (isSaving) {
         return (
             <Text style={textStyle}>
-                <LoadingOutlined style={iconStyle} /> Saving...
+                <LoadingOutlined style={iconStyle} /> {device === 'desktop' && 'Saving...'}
             </Text>
         );
     }
 
     return (
         <Text style={textStyle}>
-            <CloudOutlined style={iconStyle} /> Saved {lastTimeSaved && `on ${lastTimeSaved.toLocaleString()}`}
+            {device === 'desktop' ? (
+                <>
+                    <CloudOutlined style={iconStyle} /> Saved {lastTimeSaved && `on ${lastTimeSaved.toLocaleString()}`}
+                </>
+            ) : (
+                <Tooltip
+                    title={
+                        <>
+                            <CloudOutlined style={iconStyle} /> Saved{' '}
+                            {lastTimeSaved && `on ${lastTimeSaved.toLocaleString()}`}
+                        </>
+                    }
+                >
+                    <CloudOutlined style={iconStyle} />
+                </Tooltip>
+            )}
         </Text>
     );
 };
@@ -120,9 +137,11 @@ const GoalsPopover = ({
         </Flex>
     );
 
+    const device = useDeviceSize();
+
     return (
         <Flex align="center" gap="1rem">
-            <Text className="color-white">COMPARE LEVELS</Text>
+            {device === 'desktop' && <Text className="color-white">COMPARE LEVELS</Text>}
             <Popover
                 placement="bottomRight"
                 content={content}

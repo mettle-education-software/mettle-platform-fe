@@ -1,7 +1,7 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Row, Col, Typography, Skeleton } from 'antd';
+import { Col, Row, Skeleton, Typography } from 'antd';
 import { useGetWeeklyPerformance } from 'hooks';
 import dynamic from 'next/dynamic';
 import React, { useState } from 'react';
@@ -81,8 +81,8 @@ export const DedaStatisticsGraphs: React.FC<DedaStatisticsGraphsProps> = ({ sele
                         <WhiteTitle level={4}>Daily</WhiteTitle>
                     </Col>
                     <Col span={12}>
-                        <Row>
-                            <Col xs={12}>
+                        <Row gutter={[8, 8]}>
+                            <Col xs={24} md={12}>
                                 <DailySelectorButton
                                     onClick={() => {
                                         setDailySelectedType('dedaTime');
@@ -92,7 +92,7 @@ export const DedaStatisticsGraphs: React.FC<DedaStatisticsGraphsProps> = ({ sele
                                     <span className="icon">&#8226;</span> DEDA Time
                                 </DailySelectorButton>
                             </Col>
-                            <Col xs={12}>
+                            <Col xs={24} md={12}>
                                 <DailySelectorButton
                                     onClick={() => {
                                         setDailySelectedType('readingTime');

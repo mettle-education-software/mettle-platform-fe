@@ -19,6 +19,7 @@ const GoalsWrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    padding-bottom: 2rem;
 `;
 
 const GoalSummaryCard = styled.div`
@@ -101,19 +102,19 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
     return (
         <GoalsWrapper>
             <Row gutter={[22, 22]}>
-                <Col span={12}>
+                <Col xs={24} md={12}>
                     <Flex vertical gap="1rem">
                         <Title className="color-white" level={2}>
                             Understand how your study time will progress over time
                         </Title>
-                        <Text className="color-white">
-                            Lorem ipsum dolor sit amet. In rerum fugit cum nihil asperiores aut cumque dignissimos cum
-                            nihil provident. Et dolores ullam ad itaque consequatur et expedita distinctio At maxime
-                            pariatur? Et ducimus nisi est minus praesentium ut ullam enim aut autem enim?
-                        </Text>
+                        {/*<Text className="color-white">*/}
+                        {/*    Lorem ipsum dolor sit amet. In rerum fugit cum nihil asperiores aut cumque dignissimos cum*/}
+                        {/*    nihil provident. Et dolores ullam ad itaque consequatur et expedita distinctio At maxime*/}
+                        {/*    pariatur? Et ducimus nisi est minus praesentium ut ullam enim aut autem enim?*/}
+                        {/*</Text>*/}
                     </Flex>
                 </Col>
-                <Col span={12}>
+                <Col xs={24} md={12}>
                     <GoalsGraph goalLevel={goalLevel} />
                 </Col>
             </Row>
@@ -139,9 +140,9 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
                                 </Flex>
 
                                 <Row gutter={[22, 22]}>
-                                    <Col span={19}>
+                                    <Col xs={24} md={19}>
                                         <Row gutter={[12, 12]}>
-                                            <Col span={6}>
+                                            <Col xs={24} md={6}>
                                                 <StatisticCard
                                                     title="DEDA"
                                                     value={(goalsData ? goalsData[currentWeek - 1].deda : '') + ' min'}
@@ -149,7 +150,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
                                                     textColor="#F61F64"
                                                 />
                                             </Col>
-                                            <Col span={6}>
+                                            <Col xs={24} md={6}>
                                                 <StatisticCard
                                                     title="Active"
                                                     value={
@@ -159,7 +160,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
                                                     textColor="#6FE71C"
                                                 />
                                             </Col>
-                                            <Col span={6}>
+                                            <Col xs={24} md={6}>
                                                 <StatisticCard
                                                     title="Passive"
                                                     value={
@@ -169,7 +170,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
                                                     textColor="#19ECD5"
                                                 />
                                             </Col>
-                                            <Col span={6}>
+                                            <Col xs={24} md={6}>
                                                 <StatisticCard
                                                     title="Review"
                                                     value={
@@ -181,7 +182,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
                                             </Col>
                                         </Row>
                                     </Col>
-                                    <Col span={5}>
+                                    <Col xs={24} md={5}>
                                         <StatisticCard
                                             title="Total study time"
                                             value={(goalsData ? goalsData[currentWeek - 1].total : '') + ' min'}

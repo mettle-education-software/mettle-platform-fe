@@ -1,9 +1,9 @@
-import { HistoryOutlined, CheckOutlined } from '@ant-design/icons';
+import { CheckOutlined, HistoryOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Flex, Skeleton, Typography } from 'antd';
 import { useDeda, useDeviceSize } from 'hooks';
 import { DedaWatchQueryResponse } from 'interfaces';
-import { SMALL_VIEWPORT } from 'libs';
+import { padNumber, SMALL_VIEWPORT } from 'libs';
 import React from 'react';
 
 const { Title, Text } = Typography;
@@ -150,7 +150,7 @@ export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
                     <Text style={{ color: '#FFF' }}>{title}</Text>
                     <WeekChip>
                         <Text strong={device === 'desktop'}>{device === 'mobile' ? 'W' : 'Week'}</Text>
-                        <Text className="word-no-break">{week.split('week')[1]}</Text>
+                        <Text className="word-no-break">{padNumber(Number(week.split('week')[1]))}</Text>
                     </WeekChip>
                 </Flex>
                 <ReviewStatusChip

@@ -3,7 +3,8 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import AdsClickIcon from '@mui/icons-material/AdsClick';
-import { Flex, Table as AntTable, Typography, TableColumnsType, Tooltip } from 'antd';
+import { Flex, Table as AntTable, TableColumnsType, Tooltip, Typography } from 'antd';
+import { useDeviceSize } from 'hooks';
 import React from 'react';
 
 const { Title } = Typography;
@@ -92,7 +93,8 @@ const Table = styled(AntTable)`
         border-bottom: none !important;
     }
 
-    .ant-table-fixed-header {
+    .ant-table-fixed-header,
+    .ant-table-fixed-header .ant-table-cell {
         background: #37312a !important;
         border: none;
     }
@@ -161,6 +163,8 @@ interface GoalsTableProps {
 }
 
 export const GoalsTable: React.FC<GoalsTableProps> = ({ data, currentWeek }) => {
+    const device = useDeviceSize();
+
     return (
         <TableCard>
             <Flex style={{ padding: '1rem' }} align="center" gap="0.8rem">
@@ -178,6 +182,7 @@ export const GoalsTable: React.FC<GoalsTableProps> = ({ data, currentWeek }) => 
                 pagination={false}
                 scroll={{
                     y: 350,
+                    x: device === 'mobile' ? '100vw' : undefined,
                 }}
             />
         </TableCard>

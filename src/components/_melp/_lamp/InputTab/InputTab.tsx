@@ -59,7 +59,8 @@ interface InputTabProps {
     setLastTimeSaved: Dispatch<SetStateAction<Date | undefined>>;
 }
 
-export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSaved }) => {
+export const InputTab: React.FC<InputTabProps> = (props) => {
+    const { setIsSaving, setLastTimeSaved } = props;
     const { melpSummary } = useMelpContext();
 
     const [inputDataEdit, setInputDataEdit] = useState<InputDataEdit>({} as InputDataEdit);
@@ -219,7 +220,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSave
     }, [saveKey]);
 
     const extraInputSelect = () => (
-        <Flex gap="1rem">
+        <Flex gap="0.5rem" wrap>
             <DedasListSelect
                 value={selectedWeek}
                 onChange={(value) => {
@@ -242,7 +243,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSave
                 <Skeleton active loading paragraph={{ rows: 10 }} />
             ) : (
                 <Row align="top" gutter={[24, 24]}>
-                    <Col span={8}>
+                    <Col xs={24} md={8}>
                         <Flex vertical gap="1rem">
                             <SectionTitle title="DEDA" subtitle="How is the QUALITY of your relationship with DEDA?" />
                             <Flex vertical gap="1rem">
@@ -340,7 +341,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSave
                             </Flex>
                         </Flex>
                     </Col>
-                    <Col span={8}>
+                    <Col xs={24} md={8}>
                         <Flex vertical gap="1rem">
                             <SectionTitle title="Active" subtitle="Input your Active Studying (HH:MM)" />
                             <InputsWrapper>
@@ -402,7 +403,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSave
                             </InputsWrapper>
                         </Flex>
                     </Col>
-                    <Col span={8}>
+                    <Col xs={24} md={8}>
                         <Flex vertical gap="1rem">
                             <SectionTitle title="Passive" subtitle="Input your Passive Studying (HH:MM)" />
                             <InputsWrapper>
@@ -517,7 +518,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSave
                                 />
                                 <InputsWrapper>
                                     <Row gutter={[24, 24]}>
-                                        <Col span={8}>
+                                        <Col xs={24} md={8}>
                                             <ReviewThumbnail
                                                 dedaId={inputData.reviewInput.review1.dedaId}
                                                 number={1}
@@ -534,7 +535,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSave
                                             />
                                         </Col>
                                         {inputData.reviewInput.review2 && (
-                                            <Col span={8}>
+                                            <Col xs={24} md={8}>
                                                 <ReviewThumbnail
                                                     dedaId={inputData.reviewInput.review2.dedaId}
                                                     number={2}
@@ -552,7 +553,7 @@ export const InputTab: React.FC<InputTabProps> = ({ setIsSaving, setLastTimeSave
                                             </Col>
                                         )}
                                         {inputData.reviewInput.review3 && (
-                                            <Col span={8}>
+                                            <Col xs={24} md={8}>
                                                 <ReviewThumbnail
                                                     dedaId={inputData.reviewInput.review3.dedaId}
                                                     number={3}

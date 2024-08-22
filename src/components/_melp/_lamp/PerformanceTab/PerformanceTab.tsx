@@ -1,8 +1,9 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Row, Col } from 'antd';
+import { Col, Row } from 'antd';
 import { WidgetCard } from 'components';
+import { useDeviceSize } from 'hooks';
 import { useMelpContext } from 'providers';
 import React, { useEffect } from 'react';
 import { DedasListSelect } from '../../DedasListSelect/DedasListSelect';
@@ -29,6 +30,8 @@ export const PerformanceTab: React.FC = () => {
         setSelectedWeek(week);
     };
 
+    const device = useDeviceSize();
+
     return (
         <PerformanceContainer>
             <Row gutter={[22, 22]} align="stretch">
@@ -45,8 +48,13 @@ export const PerformanceTab: React.FC = () => {
                 <Col xs={24} md={24}>
                     <WidgetCard
                         title="DEDA Statistics"
-                        extra={<DedasListSelect onChange={handleWeekChange} value={selectedWeek} />}
+                        extra={
+                            device === 'desktop' ? (
+                                <DedasListSelect onChange={handleWeekChange} value={selectedWeek} />
+                            ) : undefined
+                        }
                     >
+                        {device === 'mobile' && <DedasListSelect onChange={handleWeekChange} value={selectedWeek} />}
                         <DedaStatisticsGraphs selectedWeek={selectedWeek} />
                     </WidgetCard>
                 </Col>

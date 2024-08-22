@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
-import { Row, Col, Rate, Typography } from 'antd';
-import { Flex } from 'antd';
+import { Col, Flex, Rate, Row, Typography } from 'antd';
 import { InputWithTime } from 'components';
 import React, { Dispatch, SetStateAction } from 'react';
 import { InputsWrapper } from '../InputsWrapper/InputsWrapper';
@@ -50,11 +49,11 @@ const DedaRateInputWrapper = styled.div`
 export const DedaRateInput: React.FC<DedaRateInputProps> = ({ label, value, onChange }) => (
     <DedaRateInputWrapper>
         <Row>
-            <Col span={14}>
+            <Col xs={12} md={14}>
                 <Text className="input-variable-text">{label}</Text>
             </Col>
-            <Col span={10}>
-                <Flex justify="flex-end">
+            <Col xs={12} md={10}>
+                <Flex justify="flex-end" wrap={false}>
                     <Rate
                         className="ant-rate-star-first"
                         tooltips={dedaRatings}

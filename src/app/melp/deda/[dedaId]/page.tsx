@@ -73,7 +73,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     const featuredDedaDataResult = useFeaturedDedaData(dedaId);
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
-    const [activeTab, setActiveTab] = useState('dedaActivity');
+    const [activeTab, setActiveTab] = useState('dedaNotes');
 
     const tabItems = [
         {
@@ -118,7 +118,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
         <AppLayout withMelpSummary>
             <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
                 <MaxWidthContainer style={{ marginBottom: '2rem' }}>
-                    {isDesktop && (
+                    {isDesktop ? (
                         <Flex justify="space-between">
                             <Flex align="center">
                                 <Button
@@ -134,6 +134,19 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                             <div style={{ flex: 0.3 }}>
                                 <DedaQuote dedaId={dedaId} />
                             </div>
+                        </Flex>
+                    ) : (
+                        <Flex justify="space-between">
+                            <Flex align="center">
+                                <Button
+                                    style={{ border: 'none', marginTop: '2rem' }}
+                                    icon={<ArrowBackIos className="color-white" />}
+                                    ghost
+                                    onClick={() => {
+                                        router.push('/melp/deda');
+                                    }}
+                                />
+                            </Flex>
                         </Flex>
                     )}
                 </MaxWidthContainer>
@@ -155,7 +168,6 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
             {!isDesktop && (
                 <MobileNavigationWrapper>
                     <TabNav
-                        centered
                         withoutBottomBorder
                         tabBarStyle={{ marginBottom: 0 }}
                         type="card"

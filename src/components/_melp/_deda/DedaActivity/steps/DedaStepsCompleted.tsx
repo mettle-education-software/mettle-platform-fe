@@ -2,9 +2,10 @@ import { FileFilled, PlayCircleFilled } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Card, Col, Flex, Row, Skeleton, Typography } from 'antd';
 import { ArticleFrame, VideoFrame } from 'components';
-import { withDedaActivity } from 'components/HOCs';
-import { useGetDedaVideosArticles } from 'hooks';
-import React from 'react';
+import { LoadingLayout } from 'components/layouts/LoadingLayout/LoadingLayout';
+import { useDeviceSize, useGetDedaVideosArticles } from 'hooks';
+import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 
 const { Title, Text } = Typography;
 
@@ -38,6 +39,17 @@ const DedaStepsCompletedRaw = ({ dedaId }: { dedaId: string }) => {
 
     const article = data?.dedaContentCollection.items[0].dedaNotesArticlesLinksCollection.items[todayIndex - 1];
     const video = data?.dedaContentCollection.items[0].dedaNotesVideosLinksCollection.items[todayIndex - 1];
+
+    const router = useRouter();
+    const device = useDeviceSize();
+
+    useEffect(() => {
+        if (device === 'mobile' && !!window) {
+            window.location.reload();
+        }
+    }, [device, router]);
+
+    if (device === 'mobile') return <LoadingLayout />;
 
     return (
         <LinknowledgeContainer>

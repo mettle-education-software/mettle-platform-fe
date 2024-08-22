@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import { Card, Flex } from 'antd';
 import { useDeda } from 'hooks';
 import { DedaWatchQueryResponse } from 'interfaces';
+import { SMALL_VIEWPORT } from 'libs';
 import React from 'react';
 
 interface WatchProps {
@@ -25,6 +26,10 @@ const DedaWatchVideo = styled.iframe`
     border-radius: 1rem;
     width: 50vw;
     aspect-ratio: 16/9;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        width: 85vw;
+    }
 `;
 
 const DedaWatchSkeleton = styled.div`
@@ -43,6 +48,10 @@ const DedaWatchSkeleton = styled.div`
             background: rgba(255, 255, 255, 0.03);
         }
     `} 1s infinite;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        width: 90vw;
+    }
 `;
 
 export const Watch: React.FC<WatchProps> = ({ dedaId }) => {

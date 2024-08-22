@@ -2,8 +2,8 @@
 
 import styled from '@emotion/styled';
 import { Card, Flex, Skeleton } from 'antd';
-import { RichTextRenderer } from 'components';
-import { useDeda } from 'hooks';
+import { MaxWidthContainer, RichTextRenderer } from 'components';
+import { useDeda, useDeviceSize } from 'hooks';
 import { DedaReadRecordQueryResponse } from 'interfaces';
 import React from 'react';
 
@@ -21,9 +21,21 @@ const ReadingCard = styled(Card)`
 `;
 
 export const ReadRecord: React.FC<ReadRecordProps> = ({ dedaId }) => {
+    const device = useDeviceSize();
     const dedaReadRecordResult = useDeda<DedaReadRecordQueryResponse>('deda-read-record', dedaId);
 
     const dedaReadRecordData = dedaReadRecordResult.data?.dedaContentCollection?.items[0].dedaReadContent;
+
+    if (device === 'mobile')
+        return (
+            <Flex justify="center">
+                <MaxWidthContainer style={{ paddingBottom: '5rem', paddingTop: '1rem' }}>
+                    <Skeleton loading={dedaReadRecordResult.loading} active style={{ width: '100%' }}>
+                        <RichTextRenderer rawContent={dedaReadRecordData?.json} links={dedaReadRecordData?.links} />
+                    </Skeleton>
+                </MaxWidthContainer>
+            </Flex>
+        );
 
     return (
         <ReadingCard>

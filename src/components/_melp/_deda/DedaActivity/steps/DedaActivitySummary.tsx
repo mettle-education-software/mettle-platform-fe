@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import { Flex, Skeleton, Typography } from 'antd';
 import { withDedaActivity } from 'components/HOCs';
 import { SaveDedaInputMutationDedaData } from 'hooks';
+import { SMALL_VIEWPORT } from 'libs';
 import React, { useCallback, useEffect, useState } from 'react';
 import { DedaInput } from '../../../DedaInput/DedaInput';
 
@@ -21,6 +22,12 @@ const SummaryWrapper = styled.div`
 
     .text {
         color: #ffffff;
+    }
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        background: var(--main-bg);
+        border-radius: unset;
+        padding-bottom: 5rem;
     }
 `;
 

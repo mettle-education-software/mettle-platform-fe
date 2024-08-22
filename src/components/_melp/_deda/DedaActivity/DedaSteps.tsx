@@ -3,12 +3,13 @@
 import { CheckCircleFilled, CheckCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { ChevronLeft, ChevronRight, Timer, TimerOff } from '@mui/icons-material';
-import { Breadcrumb, Button, Flex, Typography } from 'antd';
+import { Breadcrumb, Button, Col, Flex, Row, Tooltip, Typography } from 'antd';
+import { DedaNavButton } from 'components';
 import { SaveDedaInputMutationDedaData, useDeviceSize, useSaveDedaInput } from 'hooks';
 import { getDayToday, padNumber } from 'libs';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { DedaActivitySummary, DedaStepsCompleted, Listen, ListenRead, ReadRecord, Watch, Write } from './steps';
 
 const { Text } = Typography;
@@ -87,7 +88,35 @@ const NavButton = styled(Button)`
     align-items: center;
     background: rgba(243, 236, 228, 0.07);
     color: var(--secondary);
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+`;
+
+const MobileNavigationHeaderRow = styled.div`
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #eae8e2;
+    gap: 0;
+    align-items: center;
+    max-width: 100vw;
+    height: 4rem;
+    padding: 0;
+
+    .button-item {
+        flex-grow: 1;
+    }
+`;
+
+const MobileBottomNavigationRow = styled.div`
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    z-index: 1;
+    background: var(--brown-bg);
+    padding: 0.5rem;
 `;
 
 const StepChip = ({
@@ -113,7 +142,8 @@ const StepChip = ({
 
 const StopWatch = ({ onStop }: { onStop(duration: number): void }) => {
     const [stopwatch, setStopwatch] = useState(0);
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
+    const [tooltipOpen, setTooltipOpen] = useState(true);
 
     useEffect(() => {
         const interval = setInterval(() => setStopwatch((prev) => prev + 1), 1000);
@@ -123,23 +153,32 @@ const StopWatch = ({ onStop }: { onStop(duration: number): void }) => {
         };
     }, [stopwatch, onStop]);
 
+    useEffect(() => {
+        const tooltipTimeout = setTimeout(() => setTooltipOpen(false), 5000);
+        return () => {
+            clearTimeout(tooltipTimeout);
+        };
+    }, []);
+
     return (
-        <ChipWrapper>
-            <Flex justify="flex-end" align="center" gap="0.6rem">
-                {isOpen && (
-                    <Text className="text">
-                        {padNumber(Math.floor(stopwatch / 3600))}:
-                        {padNumber(Math.floor(stopwatch / 60) - Math.floor(stopwatch / 3600) * 60)}:
-                        {padNumber(stopwatch % 60)}
-                    </Text>
-                )}
-                {isOpen ? (
-                    <Timer style={{ cursor: 'pointer' }} className="icon" onClick={() => setIsOpen(false)} />
-                ) : (
-                    <TimerOff style={{ cursor: 'pointer' }} className="icon" onClick={() => setIsOpen(true)} />
-                )}
-            </Flex>
-        </ChipWrapper>
+        <Tooltip title="Your time has started and it will be tracked" open={tooltipOpen}>
+            <ChipWrapper>
+                <Flex justify="flex-end" align="center" gap="0.6rem">
+                    {isOpen && (
+                        <Text className="text">
+                            {padNumber(Math.floor(stopwatch / 3600))}:
+                            {padNumber(Math.floor(stopwatch / 60) - Math.floor(stopwatch / 3600) * 60)}:
+                            {padNumber(stopwatch % 60)}
+                        </Text>
+                    )}
+                    {isOpen ? (
+                        <Timer style={{ cursor: 'pointer' }} className="icon" onClick={() => setIsOpen(false)} />
+                    ) : (
+                        <TimerOff style={{ cursor: 'pointer' }} className="icon" onClick={() => setIsOpen(true)} />
+                    )}
+                </Flex>
+            </ChipWrapper>
+        </Tooltip>
     );
 };
 
@@ -157,6 +196,8 @@ enum Steps {
 
 export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     const router = useRouter();
+    const device = useDeviceSize();
+    const isDesktop = device === 'desktop';
     const { melpSummary, isTodaysDedaCompleted } = useMelpContext();
     const { user } = useAppContext();
 
@@ -191,23 +232,10 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     const isTodaysDeda = melpSummary?.unlocked_dedas[melpSummary?.unlocked_dedas.length - 1] === dedaId;
     const isTodaysDedaAndNotCompleted = isTodaysDeda && !isTodaysDedaCompleted;
 
-    const dedaSteps = {
-        listen: <Listen key="listen" dedaId={dedaId} />,
-        readRecord: <ReadRecord key="readRecord" dedaId={dedaId} />,
-        watch: <Watch key="watch" dedaId={dedaId} />,
-        listenRead: <ListenRead key="listenRead" dedaId={dedaId} />,
-        write: <Write key="write" dedaId={dedaId} />,
-        finish: (
-            <DedaActivitySummary
-                defaultDedaTime={dedaTime}
-                onInputs={setInputData}
-                key="finish"
-                isDedaCompleted={!isTodaysDedaAndNotCompleted}
-                loading={saveInput.isPending}
-            />
-        ),
-        completed: <DedaStepsCompleted key="completed" dedaId={dedaId} />,
-    };
+    const [hasPlayStarted, setHasPlayStarted] = useState(false);
+    const handleDedaListenStart = useCallback(() => {
+        setHasPlayStarted(true);
+    }, []);
 
     const handleStepChange = (direction: 'next' | 'previous') => {
         const currentIndex = steps.indexOf(currentStep);
@@ -225,14 +253,158 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
 
     const indexOfCurrentStep = steps.indexOf(currentStep);
 
-    const device = useDeviceSize();
-    const isDesktop = device === 'desktop';
+    const showStopwatch =
+        isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && hasPlayStarted;
+
+    const dedaSteps = {
+        listen: (
+            <Listen
+                key="listen"
+                dedaId={dedaId}
+                onListenPlay={handleDedaListenStart}
+                isTodaysDedaAndNotCompleted={isTodaysDedaAndNotCompleted}
+                dedaOngoing={showStopwatch}
+            />
+        ),
+        readRecord: <ReadRecord key="readRecord" dedaId={dedaId} />,
+        watch: <Watch key="watch" dedaId={dedaId} />,
+        listenRead: <ListenRead key="listenRead" dedaId={dedaId} />,
+        write: <Write key="write" dedaId={dedaId} />,
+        finish: (
+            <DedaActivitySummary
+                defaultDedaTime={dedaTime}
+                onInputs={setInputData}
+                key="finish"
+                isDedaCompleted={!isTodaysDedaAndNotCompleted}
+                loading={saveInput.isPending}
+            />
+        ),
+        completed: <DedaStepsCompleted key="completed" dedaId={dedaId} />,
+    };
+
+    if (!isDesktop) {
+        return (
+            <>
+                <MobileNavigationHeaderRow>
+                    {/* TODO - Maybe have this logic in a .map*/}
+                    <DedaNavButton className={indexOfCurrentStep === 0 ? 'active' : undefined}>Listen</DedaNavButton>
+                    <DedaNavButton
+                        disabled={indexOfCurrentStep < 1}
+                        className={indexOfCurrentStep === 1 ? 'active' : undefined}
+                    >
+                        Read + Record
+                    </DedaNavButton>
+                    <DedaNavButton
+                        disabled={indexOfCurrentStep < 2}
+                        className={indexOfCurrentStep === 2 ? 'active' : undefined}
+                    >
+                        Watch
+                    </DedaNavButton>
+                    <DedaNavButton
+                        disabled={indexOfCurrentStep < 3}
+                        className={indexOfCurrentStep === 3 ? 'active' : undefined}
+                    >
+                        Listen + Read
+                    </DedaNavButton>
+                    <DedaNavButton
+                        disabled={indexOfCurrentStep < 4}
+                        className={indexOfCurrentStep === 4 ? 'active' : undefined}
+                    >
+                        Write
+                    </DedaNavButton>
+                    {isTodaysDedaAndNotCompleted && (
+                        <DedaNavButton
+                            disabled={indexOfCurrentStep < 5}
+                            className={indexOfCurrentStep === 5 ? 'active' : undefined}
+                        >
+                            Summary
+                        </DedaNavButton>
+                    )}
+                </MobileNavigationHeaderRow>
+                {dedaSteps[currentStep as keyof typeof dedaSteps]}
+                <MobileBottomNavigationRow>
+                    <Row align="middle" gutter={8}>
+                        {isTodaysDedaAndNotCompleted && (
+                            <Col span={8}>
+                                {showStopwatch && (
+                                    <StopWatch
+                                        onStop={(stopwatchValue) => {
+                                            setDedaTime(stopwatchValue);
+                                        }}
+                                    />
+                                )}
+                            </Col>
+                        )}
+                        {!['finish', 'completed'].includes(currentStep) && (
+                            <Col span={isTodaysDedaAndNotCompleted ? 4 : 24}>
+                                <Flex justify="flex-end" align="center" gap="0.5rem">
+                                    <NavButton
+                                        disabled={currentStep === 'listen'}
+                                        onClick={() => handleStepChange('previous')}
+                                    >
+                                        <ChevronLeft />
+                                    </NavButton>
+                                    <NavButton
+                                        onClick={() => handleStepChange('next')}
+                                        disabled={
+                                            !isTodaysDeda || !isTodaysDedaAndNotCompleted
+                                                ? currentStep === 'write'
+                                                : !stepsProgress[currentStep as keyof typeof stepsProgress]
+                                        }
+                                    >
+                                        <ChevronRight />
+                                    </NavButton>
+                                </Flex>
+                            </Col>
+                        )}
+                        {!['finish', 'completed'].includes(currentStep) && isTodaysDedaAndNotCompleted && (
+                            <Col span={12}>
+                                <CompleteButton
+                                    block
+                                    type="primary"
+                                    disabled={
+                                        !!stepsProgress[currentStep as keyof typeof stepsProgress] || !hasPlayStarted
+                                    }
+                                    onClick={() => {
+                                        setStepsProgress((prev) => ({
+                                            ...prev,
+                                            [currentStep]: true,
+                                        }));
+                                        handleStepChange('next');
+                                    }}
+                                >
+                                    {stepsProgress[currentStep as keyof typeof stepsProgress]
+                                        ? 'Step completed 🎉'
+                                        : currentStep === 'write'
+                                          ? 'Finish'
+                                          : 'Complete step'}
+                                </CompleteButton>
+                            </Col>
+                        )}
+                        {currentStep === 'finish' && (
+                            <Col span={24}>
+                                <Flex justify="center">
+                                    <CompleteButton
+                                        loading={saveInput.isPending}
+                                        type="primary"
+                                        onClick={handleFinishSave}
+                                    >
+                                        Complete DEDA
+                                    </CompleteButton>
+                                </Flex>
+                            </Col>
+                        )}
+                    </Row>
+                </MobileBottomNavigationRow>
+            </>
+        );
+    }
 
     return (
         <ActivityCard>
             {isDesktop && (
                 <Flex justify="center" align="center" gap="1rem">
-                    {isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && (
+                    {showStopwatch && (
                         <StopWatch
                             onStop={(stopwatchValue) => {
                                 setDedaTime(stopwatchValue);
@@ -311,7 +483,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                 {!['finish', 'completed'].includes(currentStep) && isTodaysDedaAndNotCompleted && (
                     <CompleteButton
                         type="primary"
-                        disabled={!!stepsProgress[currentStep as keyof typeof stepsProgress]}
+                        disabled={!!stepsProgress[currentStep as keyof typeof stepsProgress] || !hasPlayStarted}
                         onClick={() => {
                             setStepsProgress((prev) => ({
                                 ...prev,

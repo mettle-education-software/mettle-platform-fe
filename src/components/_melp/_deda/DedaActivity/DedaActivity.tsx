@@ -3,7 +3,8 @@
 import { CheckCircleFilled, HourglassOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import RotateRightIcon from '@mui/icons-material/RotateRight';
-import { Steps, Typography } from 'antd';
+import { Flex, Steps, Typography } from 'antd';
+import { useDeviceSize } from 'hooks';
 import { SMALL_VIEWPORT } from 'libs';
 import React from 'react';
 import { MaxWidthContainer } from '../../../atoms';
@@ -77,6 +78,17 @@ const DayStepper = () => {
 };
 
 export const DedaActivity = ({ dedaId }: { dedaId: string }) => {
+    const device = useDeviceSize();
+    const isMobile = device === 'mobile';
+
+    if (isMobile) {
+        return (
+            <Flex vertical align="center" style={{ width: '100%', flexGrow: 1 }}>
+                <DedaSteps dedaId={dedaId} />
+            </Flex>
+        );
+    }
+
     return (
         <ActivityWrapper>
             <MaxWidthContainer>

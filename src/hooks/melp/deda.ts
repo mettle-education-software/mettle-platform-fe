@@ -15,7 +15,7 @@ export const useCurrentDayDedaActivityStatus = (melpSummary?: MelpSummaryRespons
             melpService
                 .get<DedaActivityStatusResponse>(`/deda/status/${user?.uid}/${currentWeek}/${currentDay}`)
                 .then(({ data }) => data),
-        enabled: !!melpSummary && !!user,
+        enabled: !!melpSummary && !!user && melpSummary?.current_deda_week > 0,
     });
 };
 

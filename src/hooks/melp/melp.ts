@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MelpSummaryResponse } from 'interfaces/melp';
-import { useMelpContext } from 'providers';
+import { useAppContext, useMelpContext, useNotificationsContext } from 'providers';
 import { useEffect, useState } from 'react';
 import { melpService } from 'services';
 
@@ -16,8 +16,10 @@ export const useMelpSummary = (userUid?: string) => {
 export const useStartDeda = () => {
     const queryClient = useQueryClient();
 
+    const { user } = useAppContext();
+
     return useMutation({
-        mutationFn: (userUid: string) => melpService.put(`/deda/${userUid}/start`),
+        mutationFn: () => melpService.put(`/deda/${user?.uid}/start`),
         onSuccess: async () => {
             await queryClient.invalidateQueries({
                 queryKey: ['melp-summary'],
@@ -28,9 +30,10 @@ export const useStartDeda = () => {
 
 export const usePauseDeda = () => {
     const queryClient = useQueryClient();
+    const { user } = useAppContext();
 
     return useMutation({
-        mutationFn: (userUid: string) => melpService.put(`/deda/${userUid}/pause`),
+        mutationFn: () => melpService.put(`/deda/${user?.uid as string}/pause`),
         onSuccess: async () => {
             await queryClient.invalidateQueries({
                 queryKey: ['melp-summary'],
@@ -41,9 +44,10 @@ export const usePauseDeda = () => {
 
 export const useResumeDeda = () => {
     const queryClient = useQueryClient();
+    const { user } = useAppContext();
 
     return useMutation({
-        mutationFn: (userUid: string) => melpService.put(`/deda/${userUid}/resume`),
+        mutationFn: () => melpService.put(`/deda/${user?.uid as string}/resume`),
         onSuccess: async () => {
             await queryClient.invalidateQueries({
                 queryKey: ['melp-summary'],
@@ -54,13 +58,16 @@ export const useResumeDeda = () => {
 
 export const useResetMelp = () => {
     const queryClient = useQueryClient();
+    const { user } = useAppContext();
+    const { showNotification } = useNotificationsContext();
 
     return useMutation({
-        mutationFn: (userUid: string) => melpService.put(`/${userUid}/reset`),
+        mutationFn: () => melpService.put(`/${user?.uid as string}/reset`),
         onSuccess: async () => {
             await queryClient.invalidateQueries({
                 queryKey: ['melp-summary'],
             });
+            showNotification('success', 'A fresh start', 'Você reiniciou o programa IMERSO');
         },
     });
 };

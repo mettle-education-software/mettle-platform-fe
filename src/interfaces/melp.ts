@@ -32,6 +32,8 @@ export interface MelpSummaryResponse {
         user_uuid: string;
         currentDedaName?: string;
         deda_difficulty: DedaDifficulty;
+        remaining_pauses: number;
+        remaining_resets: number;
     };
 }
 

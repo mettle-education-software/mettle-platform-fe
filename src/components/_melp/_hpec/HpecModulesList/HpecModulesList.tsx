@@ -1,5 +1,6 @@
 'use client';
 
+import { DownOutlined, LockOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Collapse, CollapseProps, Flex, Progress, Skeleton, Typography } from 'antd';
 import { useGetHpecsModules } from 'hooks/queries/hpecQueries';
@@ -104,7 +105,7 @@ export const HpecModulesList: React.FC<HpecModulesListProps> = ({
             key: hpec.hpecId,
             label: hpec.hpecTitle,
             style: {
-                background: '#3C362F',
+                background: '#484443',
                 color: '#FFFFFF',
                 borderBottom: '1px solid var(--secondary)',
             },
@@ -141,6 +142,7 @@ export const HpecModulesList: React.FC<HpecModulesListProps> = ({
                 expandIconPosition="end"
                 items={unlockedItems.concat(lockedItems)}
                 accordion
+                expandIcon={({ collapsible }) => (collapsible === 'disabled' ? <LockOutlined /> : <DownOutlined />)}
             />
         </Flex>
     );

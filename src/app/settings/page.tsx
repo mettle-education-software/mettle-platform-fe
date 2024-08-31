@@ -3,10 +3,11 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { Button, Card, Col, Flex, Form, Input, Row, Tabs as AntTabs, Tooltip, Typography } from 'antd';
+import { Button, Card, Col, Flex, Form, Input, Modal, Row, Tabs as AntTabs, Tooltip, Typography } from 'antd';
 import { AppLayout, MaxWidthContainer } from 'components';
+import { usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { withAuthentication } from 'libs';
-import { useAppContext } from 'providers';
+import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect } from 'react';
 
 const { Title, Text } = Typography;
@@ -33,6 +34,139 @@ const Tabs = styled(AntTabs)`
     }
 `;
 
+const SecuritySettings = () => {
+    const [form] = Form.useForm();
+
+    const newPassword = Form.useWatch('newPassword', form);
+
+    useEffect(() => {
+        if (!newPassword) {
+            form.resetFields(['newPasswordRepeat']);
+        }
+    }, [newPassword, form]);
+
+    const updatePassword = useUpdatePassword();
+
+    const handlePasswordChange = ({ newPasswordRepeat }: { newPasswordRepeat: string }) => {
+        updatePassword.mutate(newPasswordRepeat);
+    };
+
+    return (
+        <>
+            <Card.Meta
+                title="Segurança"
+                description={<Text className="color-secondary">Atualize suas informações de segurança</Text>}
+            />
+            <div style={{ marginTop: '2rem' }}>
+                <Form form={form} colon={false} onFinish={handlePasswordChange}>
+                    <Row>
+                        <Col span={24}>
+                            <Row className="row-border">
+                                <Col xs={24} md={6}>
+                                    Alterar a senha
+                                </Col>
+                                <Col xs={24} md={18}>
+                                    <Form.Item
+                                        name="newPassword"
+                                        rules={[
+                                            {
+                                                required: true,
+                                                message: 'Por favor insira uma nova senha',
+                                            },
+                                            {
+                                                min: 8,
+                                                message: 'A senha deve ter pelo menos 6 caracteres',
+                                            },
+                                            {
+                                                validator: async (_, value) => {
+                                                    const validationRegex = new RegExp(
+                                                        /^(?!.*\s)(?=.*[a-zA-Z])(?=.*\d)(?=.*\W).{8,}$/,
+                                                        'g',
+                                                    );
+                                                    if (!validationRegex.test(value)) {
+                                                        return Promise.reject(
+                                                            new Error(
+                                                                'A senha deve ter pelo menos 8 caracteres, 1 letra maiúscula, 1 letra minúscula, 1 número e 1 caractere especial',
+                                                            ),
+                                                        );
+                                                    }
+                                                },
+                                            },
+                                        ]}
+                                    >
+                                        <Input.Password placeholder="Nova senha" />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </Col>
+
+                        <Col span={24}>
+                            <Row className="row-border">
+                                <Col xs={24} md={6}>
+                                    Insira a nova senha novamente
+                                </Col>
+                                <Col xs={24} md={18}>
+                                    <Form.Item
+                                        name="newPasswordRepeat"
+                                        rules={[
+                                            {
+                                                required: true,
+                                                message: 'Por favor insira uma nova senha',
+                                            },
+                                            {
+                                                min: 8,
+                                                message: 'A senha deve ter pelo menos 6 caracteres',
+                                            },
+                                            {
+                                                validator: async (_, value) => {
+                                                    if (value !== newPassword) {
+                                                        return Promise.reject(new Error('As senhas não coincidem'));
+                                                    }
+                                                    const validationRegex = new RegExp(
+                                                        /^(?!.*\s)(?=.*[a-zA-Z])(?=.*\d)(?=.*\W).{8,}$/,
+                                                        'g',
+                                                    );
+                                                    if (!validationRegex.test(value)) {
+                                                        return Promise.reject(
+                                                            new Error(
+                                                                'A senha deve ter pelo menos 8 caracteres, 1 letra maiúscula, 1 letra minúscula, 1 número e 1 caractere especial',
+                                                            ),
+                                                        );
+                                                    }
+                                                },
+                                            },
+                                        ]}
+                                    >
+                                        <Input.Password
+                                            disabled={!newPassword}
+                                            placeholder="Insira a senha novamente"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </Col>
+
+                        <Col span={24}>
+                            <Row>
+                                <Col>
+                                    <Button
+                                        loading={updatePassword.isPending}
+                                        htmlType="submit"
+                                        size="large"
+                                        type="primary"
+                                    >
+                                        Salvar
+                                    </Button>
+                                </Col>
+                            </Row>
+                        </Col>
+                    </Row>
+                </Form>
+            </div>
+        </>
+    );
+};
+
 const PersonalInformation = () => {
     const [form] = Form.useForm();
 
@@ -46,7 +180,7 @@ const PersonalInformation = () => {
 
     const { user } = useAppContext();
 
-    const handleSubmit = (values: { fullName: string; newPassword: string; email: string }) => {};
+    const handleSubmit = ({ email }: { email: string }) => {};
 
     return (
         <>
@@ -65,7 +199,12 @@ const PersonalInformation = () => {
                                 </Col>
                                 <Col xs={24} md={18}>
                                     <Form.Item>
-                                        <Input placeholder={user?.name} />
+                                        <Tooltip
+                                            placement="topLeft"
+                                            title="Para alterar o nome completo, por favor entre em contato com o suporte"
+                                        >
+                                            <Input placeholder={user?.name} disabled />
+                                        </Tooltip>
                                     </Form.Item>
                                 </Col>
                             </Row>
@@ -77,37 +216,26 @@ const PersonalInformation = () => {
                                     E-mail
                                 </Col>
                                 <Col xs={24} md={18}>
-                                    <Form.Item>
-                                        <Input type="email" placeholder={user?.email} />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                        </Col>
-
-                        <Col span={24}>
-                            <Row className="row-border">
-                                <Col xs={24} md={6}>
-                                    Alterar a senha
-                                </Col>
-                                <Col xs={24} md={18}>
-                                    <Form.Item name="newPassword">
-                                        <Input.Password placeholder="Nova senha" />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                        </Col>
-
-                        <Col span={24}>
-                            <Row className="row-border">
-                                <Col xs={24} md={6}>
-                                    Insira a nova senha novamente
-                                </Col>
-                                <Col xs={24} md={18}>
-                                    <Form.Item name="newPasswordRepeat">
-                                        <Input.Password
-                                            disabled={!newPassword}
-                                            placeholder="Insira a senha novamente"
-                                        />
+                                    <Form.Item
+                                        name="email"
+                                        hasFeedback
+                                        rules={[
+                                            {
+                                                type: 'email',
+                                                message: 'Por favor insira um e-mail válido',
+                                            },
+                                            {
+                                                required: true,
+                                                message: 'Por favor insira um e-mail',
+                                            },
+                                        ]}
+                                    >
+                                        <Tooltip
+                                            placement="topLeft"
+                                            title="Para alterar o email, por favor entre em contato com o suporte"
+                                        >
+                                            <Input type="email" placeholder={user?.email} disabled />
+                                        </Tooltip>
                                     </Form.Item>
                                 </Col>
                             </Row>
@@ -130,11 +258,18 @@ const PersonalInformation = () => {
 };
 
 const ImersoSettings = () => {
-    const handleProgramReset = () => {};
+    const programReset = useResetMelp();
+    const pauseDeda = usePauseDeda();
 
-    const handleDedaPause = () => {};
+    const handleProgramReset = () => {
+        programReset.mutate();
+    };
 
-    const handleChangeDifficulty = () => {};
+    const handleDedaPause = () => {
+        pauseDeda.mutate();
+    };
+
+    const { melpSummary } = useMelpContext();
 
     return (
         <>
@@ -155,62 +290,91 @@ const ImersoSettings = () => {
                                         </Tooltip>
                                     </Flex>
                                     <Text type="secondary">
-                                        Você tem <strong>X</strong> chances de reiniciar o programa
+                                        Você tem <strong>{melpSummary.remaining_resets}</strong> chances de reiniciar o
+                                        programa
                                     </Text>
                                 </Flex>
                             </Col>
                             <Col xs={24} md={18}>
-                                <Button onClick={handleProgramReset} type="primary">
+                                <Button
+                                    loading={programReset.isPending}
+                                    onClick={() => {
+                                        Modal.confirm({
+                                            title: 'Atenção!',
+                                            content:
+                                                'Tem certeza que deseja reiniciar? Você perderá todo o seu progresso atual e essa ação não poderá ser revertida.',
+                                            onOk: () => {
+                                                handleProgramReset();
+                                            },
+                                        });
+                                    }}
+                                    type="primary"
+                                >
                                     Reiniciar
                                 </Button>
                             </Col>
                         </Row>
                     </Col>
-                    <Col span={24}>
-                        <Row className="row-border" align="middle">
-                            <Col xs={24} md={6}>
-                                <Flex vertical>
-                                    <Flex gap="0.5rem" align="center">
-                                        <Text>Pausar DEDA</Text>
-                                        <Tooltip title="Você pode pausar o DEDA 3 vezes. Ao pausar, seu progresso não será contabilizado até que você ative novamente.">
-                                            <InfoCircleOutlined />
-                                        </Tooltip>
+                    {melpSummary.melp_status === 'DEDA_STARTED' && (
+                        <Col span={24}>
+                            <Row className="row-border" align="middle">
+                                <Col xs={24} md={6}>
+                                    <Flex vertical>
+                                        <Flex gap="0.5rem" align="center">
+                                            <Text>Pausar DEDA</Text>
+                                            <Tooltip title="Você pode pausar o DEDA 3 vezes. Ao pausar, seu progresso não será contabilizado até que você ative novamente.">
+                                                <InfoCircleOutlined />
+                                            </Tooltip>
+                                        </Flex>
+                                        <Text type="secondary">
+                                            Você tem <strong>{melpSummary.remaining_pauses}</strong> chances de pausar o
+                                            programa
+                                        </Text>
                                     </Flex>
-                                    <Text type="secondary">
-                                        Você tem <strong>X</strong> chances de pausar o programa
-                                    </Text>
-                                </Flex>
-                            </Col>
-                            <Col xs={24} md={18}>
-                                <Button onClick={handleDedaPause} type="primary">
-                                    Pausar
-                                </Button>
-                            </Col>
-                        </Row>
-                    </Col>
-                    <Col span={24}>
-                        <Row className="row-border" align="middle">
-                            <Col xs={24} md={6}>
-                                <Flex vertical>
-                                    <Flex gap="0.5rem" align="center">
-                                        <Text>Alterar a dificuldade</Text>
-                                        <Tooltip title="Ao alterar a dificuldade, o programa será reiniciado e você perderá o seu progresso atual e suas chances de reiniciar.">
-                                            <InfoCircleOutlined />
-                                        </Tooltip>
-                                    </Flex>
-                                    <Text type="secondary">
-                                        A dificuldade atual é: <strong>XXX</strong>. Você tem <strong>X</strong> chances
-                                        de alterar a dificuldade.
-                                    </Text>
-                                </Flex>
-                            </Col>
-                            <Col xs={24} md={18}>
-                                <Button onClick={handleChangeDifficulty} type="primary">
-                                    Selecionar nova dificuldade
-                                </Button>
-                            </Col>
-                        </Row>
-                    </Col>
+                                </Col>
+                                <Col xs={24} md={18}>
+                                    <Button
+                                        onClick={() => {
+                                            Modal.confirm({
+                                                title: 'Atenção!',
+                                                content:
+                                                    'Tem certeza que deseja pausar? Você não poderá despausar até a próxima semana o progresso desta semana será perdido.',
+                                                onOk: () => {
+                                                    handleDedaPause();
+                                                },
+                                            });
+                                        }}
+                                        type="primary"
+                                    >
+                                        Pausar
+                                    </Button>
+                                </Col>
+                            </Row>
+                        </Col>
+                    )}
+                    {/*<Col span={24}>*/}
+                    {/*    <Row className="row-border" align="middle">*/}
+                    {/*        <Col xs={24} md={6}>*/}
+                    {/*            <Flex vertical>*/}
+                    {/*                <Flex gap="0.5rem" align="center">*/}
+                    {/*                    <Text>Alterar a dificuldade</Text>*/}
+                    {/*                    <Tooltip title="Ao alterar a dificuldade, o programa será reiniciado e você perderá o seu progresso atual e suas chances de reiniciar.">*/}
+                    {/*                        <InfoCircleOutlined />*/}
+                    {/*                    </Tooltip>*/}
+                    {/*                </Flex>*/}
+                    {/*                <Text type="secondary">*/}
+                    {/*                    A dificuldade atual é: <strong>XXX</strong>. Você tem <strong>X</strong> chances*/}
+                    {/*                    de alterar a dificuldade.*/}
+                    {/*                </Text>*/}
+                    {/*            </Flex>*/}
+                    {/*        </Col>*/}
+                    {/*        <Col xs={24} md={18}>*/}
+                    {/*            <Button onClick={handleChangeDifficulty} type="primary">*/}
+                    {/*                Selecionar nova dificuldade*/}
+                    {/*            </Button>*/}
+                    {/*        </Col>*/}
+                    {/*    </Row>*/}
+                    {/*</Col>*/}
                 </Row>
             </div>
         </>
@@ -238,14 +402,18 @@ const Settings = () => {
                                     items={[
                                         {
                                             key: 'personal-information',
-                                            label: 'Meu perfil',
+                                            label: 'Dados pessoais',
                                             children: <PersonalInformation />,
+                                        },
+                                        {
+                                            key: 'security-settings',
+                                            label: 'Segurança',
+                                            children: <SecuritySettings />,
                                         },
                                         {
                                             key: 'imerso-settings',
                                             label: 'IMERSO',
                                             children: <ImersoSettings />,
-                                            disabled: true,
                                         },
                                     ]}
                                 />

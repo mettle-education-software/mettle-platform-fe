@@ -11,7 +11,7 @@ class ApiClient implements HTTPClient {
     baseUrl: string | undefined;
     client: AxiosInstance;
 
-    constructor(private serviceName: TServiceName) {
+    constructor(private readonly serviceName: TServiceName) {
         if (TServiceNameList.includes(serviceName)) {
             this.serviceName = serviceName;
             this.baseUrl = mettleApiUrl;

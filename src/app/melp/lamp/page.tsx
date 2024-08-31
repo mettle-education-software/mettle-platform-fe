@@ -176,6 +176,8 @@ const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: strin
 
     const router = useRouter();
 
+    if (!['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(melpSummary?.melp_status)) router.push('/404');
+
     const tabBarExtra = new Map([
         ['performance', undefined],
         ['input', <SaveStatus key="input" isSaving={isSaving} lastTimeSaved={lastTimeInputSaved} />],

@@ -8,6 +8,7 @@ import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
 import { handleLogout, SMALL_VIEWPORT } from 'libs';
 import { usePathname, useRouter } from 'next/navigation';
+import { useMelpContext } from 'providers';
 import React, { forwardRef, useEffect, useState } from 'react';
 import { DedaIcon } from '../../icons';
 import { UserMenu } from '../../molecules/UserMenu/UserMenu';
@@ -112,6 +113,8 @@ export const AppLayout = forwardRef<
         const pathname = usePathname();
         const router = useRouter();
 
+        const { melpSummary } = useMelpContext();
+
         const trigger = (
             <Button
                 ghost
@@ -181,6 +184,10 @@ export const AppLayout = forwardRef<
                             {
                                 key: 'melpLamp',
                                 label: 'LAMP',
+                                disabled: !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(
+                                    melpSummary?.melp_status,
+                                ),
+
                                 onClick: ({ domEvent }) => {
                                     domEvent.preventDefault();
                                     collapseOnMobile();

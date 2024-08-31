@@ -4,7 +4,7 @@ import { UserOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Button, Col, Flex, Form, Input, Row, Typography } from 'antd';
 import { Logo } from 'components';
-import { useDeviceSize } from 'hooks';
+import { useDeviceSize, useRecoverUnauthenticatedPassword } from 'hooks';
 import { padding, SMALL_VIEWPORT, withoutAuthentication } from 'libs';
 import Link from 'next/link';
 import React from 'react';
@@ -115,17 +115,21 @@ const ErrorMessage = styled.span`
     color: red;
 `;
 
-const LineDivider = styled.div`
-    width: 100%;
-    height: 1px;
-    background: var(--primary-bg, #b79060);
-`;
-
 function ForgottenPassword() {
     const [loginError, setLoginError] = React.useState<null | string>(null);
-    const [isSignInLoading, setIsSignInLoading] = React.useState<boolean>(false);
 
     const deviceSize = useDeviceSize();
+
+    const { mutate: recoverPassword, isPending } = useRecoverUnauthenticatedPassword();
+
+    const handleRecoverPassword = async ({ email }: { email: string }) => {
+        recoverPassword(email, {
+            onSuccess: () => {},
+            onError: () => {
+                setLoginError('Ocorreu um erro ao tentar recuperar a senha. Tente novamente mais tarde');
+            },
+        });
+    };
 
     const renderForm = () => (
         <LoginContainer>
@@ -133,7 +137,7 @@ function ForgottenPassword() {
                 <FormHeader>
                     <Text>Recuperação de senha</Text>
                 </FormHeader>
-                <Form layout="vertical" onFinish={(values) => {}}>
+                <Form layout="vertical" onFinish={handleRecoverPassword}>
                     <Form.Item
                         validateDebounce={800}
                         name="email"
@@ -158,7 +162,7 @@ function ForgottenPassword() {
                             <ForgotPasswordLink href="/">Retornar à página de login</ForgotPasswordLink>
                         </Col>
                     </Row>
-                    <LoginButton loading={isSignInLoading} size="large" type="primary" htmlType="submit">
+                    <LoginButton loading={isPending} size="large" type="primary" htmlType="submit">
                         Recuperar senha
                     </LoginButton>
                     {loginError && <ErrorMessage>{loginError}</ErrorMessage>}

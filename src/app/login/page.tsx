@@ -1,18 +1,11 @@
 'use client';
 
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Input, Form, Button, Row, Col, Spin, Flex, Typography } from 'antd';
-import { Logo, Google, Microsoft } from 'components';
+import { Button, Col, Flex, Form, Input, Row, Spin, Typography } from 'antd';
+import { Logo } from 'components';
 import { useDeviceSize } from 'hooks';
-import {
-    withoutAuthentication,
-    handleLogin,
-    handleGoogleLogin,
-    SMALL_VIEWPORT,
-    handleMicrosoftLogin,
-    padding,
-} from 'libs';
+import { handleLogin, padding, SMALL_VIEWPORT, withoutAuthentication } from 'libs';
 import Link from 'next/link';
 import React from 'react';
 
@@ -114,7 +107,7 @@ const ForgotPasswordLink = styled(Link)`
     font-size: 1.2rem;
 
     &:hover {
-        color: var(--tertiary);
+        color: var(--primary);
     }
 `;
 
@@ -192,26 +185,26 @@ function Login() {
                     </Form>
                 </Spin>
 
-                <Flex align="center" gap="1rem">
-                    <LineDivider />
-                    <div>
-                        <Typography.Text style={{ wordBreak: 'keep-all' }}>ou</Typography.Text>
-                    </div>
-                    <LineDivider />
-                </Flex>
+                {/*<Flex align="center" gap="1rem">*/}
+                {/*    <LineDivider />*/}
+                {/*    <div>*/}
+                {/*        <Typography.Text style={{ wordBreak: 'keep-all' }}>ou</Typography.Text>*/}
+                {/*    </div>*/}
+                {/*    <LineDivider />*/}
+                {/*</Flex>*/}
 
-                <Button onClick={handleGoogleLogin} style={{ padding: '0.5rem 1rem', height: '3.5rem' }}>
-                    <Flex style={{ width: '100%' }} align="center" gap="1rem">
-                        <Google />
-                        Continuar com o Google
-                    </Flex>
-                </Button>
-                <Button onClick={handleMicrosoftLogin} style={{ padding: '0.5rem 1rem', height: '3.5rem' }}>
-                    <Flex style={{ width: '100%' }} align="center" gap="1rem">
-                        <Microsoft />
-                        Continuar com a Microsoft
-                    </Flex>
-                </Button>
+                {/*<Button onClick={handleGoogleLogin} style={{ padding: '0.5rem 1rem', height: '3.5rem' }}>*/}
+                {/*    <Flex style={{ width: '100%' }} align="center" gap="1rem">*/}
+                {/*        <Google />*/}
+                {/*        Continuar com o Google*/}
+                {/*    </Flex>*/}
+                {/*</Button>*/}
+                {/*<Button onClick={handleMicrosoftLogin} style={{ padding: '0.5rem 1rem', height: '3.5rem' }}>*/}
+                {/*    <Flex style={{ width: '100%' }} align="center" gap="1rem">*/}
+                {/*        <Microsoft />*/}
+                {/*        Continuar com a Microsoft*/}
+                {/*    </Flex>*/}
+                {/*</Button>*/}
             </FormContainer>
         </LoginContainer>
     );

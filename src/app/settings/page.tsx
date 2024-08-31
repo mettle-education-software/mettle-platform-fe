@@ -113,15 +113,15 @@ const PersonalInformation = () => {
                             </Row>
                         </Col>
 
-                        <Col span={24}>
-                            <Row>
-                                <Col>
-                                    <Button htmlType="submit" size="large" type="primary">
-                                        Salvar
-                                    </Button>
-                                </Col>
-                            </Row>
-                        </Col>
+                        {/*<Col span={24}>*/}
+                        {/*    <Row>*/}
+                        {/*        <Col>*/}
+                        {/*            <Button htmlType="submit" size="large" type="primary">*/}
+                        {/*                Salvar*/}
+                        {/*            </Button>*/}
+                        {/*        </Col>*/}
+                        {/*    </Row>*/}
+                        {/*</Col>*/}
                     </Row>
                 </Form>
             </div>
@@ -245,6 +245,7 @@ const Settings = () => {
                                             key: 'imerso-settings',
                                             label: 'IMERSO',
                                             children: <ImersoSettings />,
+                                            disabled: true,
                                         },
                                     ]}
                                 />

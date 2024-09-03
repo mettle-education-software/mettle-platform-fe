@@ -5,8 +5,17 @@ import { useAppContext, useNotificationsContext } from 'providers';
 import { accountService } from 'services';
 
 export const useRecoverUnauthenticatedPassword = () => {
+    const { showNotification } = useNotificationsContext();
+
     return useMutation({
         mutationFn: (emailAddress: string) => accountService.post('/passwords/v2/forgot', { email: emailAddress }),
+        onSuccess: () => {
+            showNotification(
+                'success',
+                'E-mail enviado!',
+                'Caso sua conta exista, um e-mail foi enviado para você com instruções para recuperar a senha.',
+            );
+        },
     });
 };
 

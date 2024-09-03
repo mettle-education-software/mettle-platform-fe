@@ -180,6 +180,7 @@ export const AppLayout = forwardRef<
                                     collapseOnMobile();
                                     router.push('/melp/deda');
                                 },
+                                disabled: ['MELP_BEGIN', 'MELP_SUSPENDED'].includes(melpSummary?.melp_status),
                             },
                             {
                                 key: 'melpLamp',

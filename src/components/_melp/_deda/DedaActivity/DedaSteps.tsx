@@ -88,7 +88,12 @@ const NavButton = styled(Button)`
     align-items: center;
     background: rgba(243, 236, 228, 0.07);
     color: var(--secondary);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+
+    &[disabled] {
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        color: grey;
+    }
 `;
 
 const MobileNavigationHeaderRow = styled.div`
@@ -252,9 +257,12 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     };
 
     const indexOfCurrentStep = steps.indexOf(currentStep);
-
+    const isNotWeekZero = !['CAN_START_DEDA', 'WEEK_ZERO'].includes(melpSummary.melp_status);
     const showStopwatch =
-        isTodaysDedaAndNotCompleted && !['finish', 'completed'].includes(currentStep) && hasPlayStarted;
+        isTodaysDedaAndNotCompleted &&
+        !['finish', 'completed'].includes(currentStep) &&
+        hasPlayStarted &&
+        isNotWeekZero;
 
     const dedaSteps = {
         listen: (
@@ -470,7 +478,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                             <NavButton
                                 onClick={() => handleStepChange('next')}
                                 disabled={
-                                    !isTodaysDeda || !isTodaysDedaAndNotCompleted
+                                    !isTodaysDeda || !isTodaysDedaAndNotCompleted || !isNotWeekZero
                                         ? currentStep === 'write'
                                         : !stepsProgress[currentStep as keyof typeof stepsProgress]
                                 }
@@ -480,7 +488,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                         </Flex>
                     )
                 )}
-                {!['finish', 'completed'].includes(currentStep) && isTodaysDedaAndNotCompleted && (
+                {!['finish', 'completed'].includes(currentStep) && isTodaysDedaAndNotCompleted && isNotWeekZero && (
                     <CompleteButton
                         type="primary"
                         disabled={!!stepsProgress[currentStep as keyof typeof stepsProgress] || !hasPlayStarted}

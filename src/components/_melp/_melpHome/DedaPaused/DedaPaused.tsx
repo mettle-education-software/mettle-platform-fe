@@ -43,8 +43,13 @@ export const DedaPaused: React.FC = () => {
                             </Text>
                         }
                         action={
-                            <Button onClick={handleDedaResume} size="large" type="primary">
-                                Get back to DEDA
+                            <Button
+                                onClick={handleDedaResume}
+                                loading={resumeDeda.isPending}
+                                size="large"
+                                type="primary"
+                            >
+                                Return to DEDA
                             </Button>
                         }
                     />

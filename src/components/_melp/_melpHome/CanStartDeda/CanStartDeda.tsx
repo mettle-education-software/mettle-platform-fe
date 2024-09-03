@@ -43,7 +43,12 @@ export const CanStartDeda: React.FC = () => {
                             </Text>
                         }
                         action={
-                            <Button onClick={handleConfirmDedaStart} size="large" type="primary">
+                            <Button
+                                onClick={handleConfirmDedaStart}
+                                size="large"
+                                type="primary"
+                                loading={confirmDedaStart.isPending}
+                            >
                                 Confirm DEDA start
                             </Button>
                         }

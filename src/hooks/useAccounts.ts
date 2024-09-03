@@ -11,9 +11,21 @@ export const useRecoverUnauthenticatedPassword = () => {
 };
 
 export const useResetUnauthenticatedPassword = () => {
+    const { showNotification } = useNotificationsContext();
+
     return useMutation({
         mutationFn: (dto: { userUid: string; token: string; newPassword: string }) =>
             accountService.post('/passwords/v2/forgot/reset', dto),
+        onSuccess: () => {
+            showNotification('success', 'Senha atualizada!', 'Senha atualizada com sucesso.');
+        },
+        onError: () => {
+            showNotification(
+                'error',
+                'Erro',
+                'Parece que algo deu errado. Tente recuperar a senha mais uma vez ou tente novamente mais tarde',
+            );
+        },
     });
 };
 
@@ -28,6 +40,7 @@ export const useUpdatePassword = () => {
         onSuccess: async (_, password) => {
             showNotification('success', 'Senha atualizada!', 'Senha atualizada com sucesso.');
             await signInWithEmailAndPassword(auth, userEmail, password);
+            window.location.reload();
         },
         onError: () => {
             showNotification('error', 'Erro', 'Parece que algo deu errado. Tente novamente mais tarde');

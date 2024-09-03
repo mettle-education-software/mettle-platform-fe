@@ -4,6 +4,7 @@ import { ApolloClient, InMemoryCache } from '@apollo/client';
 import { ApolloProvider } from '@apollo/react-hooks';
 import { User } from '@firebase/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+// import { AdminImpersonator } from 'components';
 import { auth } from 'config/firebase';
 import { FireUser } from 'interfaces';
 import React, { useContext, createContext, useState, useEffect, useMemo } from 'react';
@@ -63,7 +64,21 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
     return (
         <QueryClientProvider client={queryClient}>
             <ApolloProvider client={client}>
-                <AppProviderContext.Provider value={value}>{children}</AppProviderContext.Provider>
+                <AppProviderContext.Provider value={value}>
+                    {children}
+                    {/*{user?.roles.includes('METTLE_ADMIN') && (*/}
+                    {/*    <AdminImpersonator*/}
+                    {/*        onOk={(selectedUser) => {*/}
+                    {/*            setUser((previous: User) => ({*/}
+                    {/*                ...previous,*/}
+                    {/*                email: selectedUser.email,*/}
+                    {/*                name: selectedUser.first_name + ' ',*/}
+                    {/*                uid: selectedUser.user_uid,*/}
+                    {/*            }));*/}
+                    {/*        }}*/}
+                    {/*    />*/}
+                    {/*)}*/}
+                </AppProviderContext.Provider>
             </ApolloProvider>
         </QueryClientProvider>
     );

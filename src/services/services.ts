@@ -5,3 +5,5 @@ export const melpService = new ApiClient('melp');
 export const lampService = new ApiClient('lamp');
 
 export const accountService = new ApiClient('accounts');
+
+export const adminService = new ApiClient('admin');

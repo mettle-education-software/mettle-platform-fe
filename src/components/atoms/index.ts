@@ -11,3 +11,4 @@ export { CourseCard } from './CourseCard/CourseCard';
 export { NotificationsList } from './NotificationsList/NotificationsList';
 export { AudioPlayer } from './AudioPlayer/AudioPlayer';
 export { BackToTopButton } from './BackToTopButton/BackToTopButton';
+export { AdminImpersonator } from './AdminImpersonator/AdminImpersonator';

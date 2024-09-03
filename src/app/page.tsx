@@ -50,7 +50,7 @@ const ContinueCard = styled(Card)`
 function Home() {
     const { user } = useAppContext();
 
-    const [firstName] = user ? user.name.split(' ') : [''];
+    const [firstName] = user ? user?.name?.split(' ') : [''];
 
     return (
         <AppLayout>

@@ -8,3 +8,4 @@ export * from './notifications';
 export * from './recorder';
 export * from './queries';
 export * from './useAccounts';
+export * from './useAdmin';

@@ -1,3 +1,5 @@
+import { Rule } from 'rc-field-form/lib/interface';
+
 export const SMALL_VIEWPORT = 560;
 
 export const padding = {
@@ -23,6 +25,29 @@ export const statisticsColors = {
     Passive: '#19ECD5',
     Review: '#F7C034',
 };
+
+export const passwordRules: Rule[] = [
+    {
+        required: true,
+        message: 'Por favor insira uma nova senha',
+    },
+    {
+        min: 8,
+        message: 'A senha deve ter pelo menos 8 caracteres',
+    },
+    {
+        validator: async (_, value) => {
+            const validationRegex = new RegExp(/^(?!.*\s)(?=.*[a-zA-Z])(?=.*\d)(?=.*\W).{8,}$/, 'g');
+            if (!validationRegex.test(value)) {
+                return Promise.reject(
+                    new Error(
+                        'A senha deve ter pelo menos 8 caracteres, 1 letra maiúscula, 1 letra minúscula, 1 número e 1 caractere especial',
+                    ),
+                );
+            }
+        },
+    },
+];
 
 export const readingTimeList = [
     {

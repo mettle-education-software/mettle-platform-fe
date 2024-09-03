@@ -6,7 +6,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { Button, Card, Col, Flex, Form, Input, Modal, Row, Tabs as AntTabs, Tooltip, Typography } from 'antd';
 import { AppLayout, MaxWidthContainer } from 'components';
 import { usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
-import { withAuthentication } from 'libs';
+import { passwordRules, withAuthentication } from 'libs';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect } from 'react';
 
@@ -66,34 +66,7 @@ const SecuritySettings = () => {
                                     Alterar a senha
                                 </Col>
                                 <Col xs={24} md={18}>
-                                    <Form.Item
-                                        name="newPassword"
-                                        rules={[
-                                            {
-                                                required: true,
-                                                message: 'Por favor insira uma nova senha',
-                                            },
-                                            {
-                                                min: 8,
-                                                message: 'A senha deve ter pelo menos 6 caracteres',
-                                            },
-                                            {
-                                                validator: async (_, value) => {
-                                                    const validationRegex = new RegExp(
-                                                        /^(?!.*\s)(?=.*[a-zA-Z])(?=.*\d)(?=.*\W).{8,}$/,
-                                                        'g',
-                                                    );
-                                                    if (!validationRegex.test(value)) {
-                                                        return Promise.reject(
-                                                            new Error(
-                                                                'A senha deve ter pelo menos 8 caracteres, 1 letra maiúscula, 1 letra minúscula, 1 número e 1 caractere especial',
-                                                            ),
-                                                        );
-                                                    }
-                                                },
-                                            },
-                                        ]}
-                                    >
+                                    <Form.Item name="newPassword" rules={passwordRules}>
                                         <Input.Password placeholder="Nova senha" />
                                     </Form.Item>
                                 </Col>
@@ -115,7 +88,7 @@ const SecuritySettings = () => {
                                             },
                                             {
                                                 min: 8,
-                                                message: 'A senha deve ter pelo menos 6 caracteres',
+                                                message: 'A senha deve ter pelo menos 8 caracteres',
                                             },
                                             {
                                                 validator: async (_, value) => {

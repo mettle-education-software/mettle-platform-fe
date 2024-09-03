@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import { Button, Col, Flex, Form, Input, Row, Typography } from 'antd';
 import { Logo } from 'components';
 import { useDeviceSize, useResetUnauthenticatedPassword } from 'hooks';
-import { padding, SMALL_VIEWPORT, withoutAuthentication } from 'libs';
+import { padding, passwordRules, SMALL_VIEWPORT, withoutAuthentication } from 'libs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
@@ -150,22 +150,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ userUid, token }) => {
                     <Text>Recuperação de senha</Text>
                 </FormHeader>
                 <Form layout="vertical" onFinish={handleResetPassword}>
-                    <Form.Item
-                        validateDebounce={800}
-                        name="newPassword"
-                        rules={[
-                            {
-                                required: true,
-                                message: 'Por favor, insira uma senha',
-                            },
-                            // {
-                            //     required: true,
-                            //     type: 'regexp',
-                            //     pattern: new RegExp(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/),
-                            //     message: 'A senha deve conter no mínimo 8 caracteres, uma letra e um número',
-                            // },
-                        ]}
-                    >
+                    <Form.Item validateDebounce={800} name="newPassword" rules={passwordRules}>
                         <Input.Password
                             className="input"
                             size="large"

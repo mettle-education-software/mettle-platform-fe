@@ -104,7 +104,7 @@ export interface OverallPerformanceResponse {
         deda: number;
         active: number;
         passive: number;
-        review: number;
+        review: number | null;
     };
 }
 

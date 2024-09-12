@@ -162,7 +162,12 @@ export const useOverallProgress = (userUid?: string) => {
         if (data) {
             setOverallGraph((previousConfig) => ({
                 ...previousConfig,
-                series: [data.byActivity.deda, data.byActivity.active, data.byActivity.passive, data.byActivity.review],
+                series: [
+                    data.byActivity.deda,
+                    data.byActivity.active,
+                    data.byActivity.passive,
+                    ...(data.byActivity.review ? [data.byActivity.review] : []),
+                ],
             }));
         }
     }, [data]);

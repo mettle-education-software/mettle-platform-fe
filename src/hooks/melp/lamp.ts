@@ -422,7 +422,7 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
                 setDailyPerformanceGraph((previousConfig) => ({
                     series: [
                         {
-                            name: 'DEDA Time',
+                            name: 'DEDA Time (HH:MM)',
                             data: dedaTimeSeries,
                         },
                     ],
@@ -451,7 +451,7 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
                 setDailyPerformanceGraph((previousConfig) => ({
                     series: [
                         {
-                            name: 'Reading Time',
+                            name: 'Reading Time (MM:SS)',
                             data: readingTimeSeries,
                         },
                     ],

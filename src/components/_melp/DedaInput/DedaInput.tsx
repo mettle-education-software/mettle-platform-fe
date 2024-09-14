@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import { Col, Flex, Rate, Row, Typography } from 'antd';
 import { InputWithTime } from 'components';
+import { SMALL_VIEWPORT } from 'libs';
 import React, { Dispatch, SetStateAction } from 'react';
 import { InputsWrapper } from '../InputsWrapper/InputsWrapper';
 
@@ -44,15 +45,21 @@ const DedaRateInputWrapper = styled.div`
     .ant-rate-star-second {
         color: #ffffff;
     }
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        .input-variable-text {
+            font-size: small;
+        }
+    }
 `;
 
 export const DedaRateInput: React.FC<DedaRateInputProps> = ({ label, value, onChange }) => (
     <DedaRateInputWrapper>
         <Row>
-            <Col xs={12} md={14}>
+            <Col xs={11} md={14}>
                 <Text className="input-variable-text">{label}</Text>
             </Col>
-            <Col xs={12} md={10}>
+            <Col xs={13} md={10}>
                 <Flex justify="flex-end" wrap={false}>
                     <Rate
                         className="ant-rate-star-first"
@@ -126,7 +133,7 @@ export const DedaInput: React.FC<DedaInputProps> = ({
                 <InputWithTime
                     label={
                         <Text className="color-white" style={{ fontWeight: 700, fontSize: '1.2rem' }}>
-                            Enter the <span className="highlight color-secondary">Reading Time</span>
+                            Enter the <span className="highlight color-secondary">Reading Time</span> (MM:SS)
                         </Text>
                     }
                     value={readingTime}
@@ -137,7 +144,7 @@ export const DedaInput: React.FC<DedaInputProps> = ({
                 <InputWithTime
                     label={
                         <Text className="color-white" style={{ fontWeight: 700, fontSize: '1.2rem' }}>
-                            Enter the <span className="highlight color-secondary">DEDA Time</span>
+                            Enter the <span className="highlight color-secondary">DEDA Time</span> (HH:MM)
                         </Text>
                     }
                     value={dedaTime}

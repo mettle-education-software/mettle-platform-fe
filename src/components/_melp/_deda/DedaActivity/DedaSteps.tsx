@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import { ChevronLeft, ChevronRight, Timer, TimerOff } from '@mui/icons-material';
 import { Breadcrumb, Button, Col, Flex, Row, Tooltip, Typography } from 'antd';
 import { DedaNavButton } from 'components';
-import { SaveDedaInputMutationDedaData, useDeviceSize, useSaveDedaInput } from 'hooks';
+import { SaveDedaInputMutationDedaData, useConfetti, useDeviceSize, useSaveDedaInput } from 'hooks';
 import { getDayToday, padNumber } from 'libs';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
@@ -71,6 +71,7 @@ const ChipWrapper = styled.div`
 
     .text {
         color: #fff;
+        white-space: nowrap;
     }
 
     .icon {
@@ -221,6 +222,8 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
 
     const saveInput = useSaveDedaInput();
 
+    const { shootStars } = useConfetti();
+
     const handleFinishSave = () => {
         const week = `week${melpSummary.unlocked_dedas.indexOf(dedaId)}`;
         const day = getDayToday();
@@ -229,7 +232,10 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
         saveInput.mutate(
             { userUid, week, day, inputData },
             {
-                onSuccess: () => setCurrentStep('completed'),
+                onSuccess: () => {
+                    setCurrentStep('completed');
+                    shootStars();
+                },
             },
         );
     };

@@ -1,6 +1,7 @@
 import { DownOutlined, UpOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Button, Col, Flex, Input, Modal, Row, Typography } from 'antd';
+import { SMALL_VIEWPORT } from 'libs';
 import React, { useEffect, useState } from 'react';
 
 const { Text, Title } = Typography;
@@ -41,6 +42,17 @@ const TimeInput = styled(Input)`
 
 const ClockWrapper = styled.div`
     padding: 5rem 0;
+`;
+
+const LabelText = styled(Text)`
+    color: #fff;
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 130%;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        font-size: small;
+    }
 `;
 
 export interface InputWithTimeProps {
@@ -113,7 +125,7 @@ export const InputWithTime: React.FC<InputWithTimeProps> = ({ label, value, onCh
     return (
         <Row>
             <Col span={16}>
-                <Text style={{ color: '#FFF', fontWeight: 700, fontSize: '20px', lineHeight: '130%' }}>{label}</Text>
+                <LabelText>{label}</LabelText>
             </Col>
             <Col span={8}>
                 <TimeInputDisplay

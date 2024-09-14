@@ -112,7 +112,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                             xl: 24,
                         },
                     ]}
-                    justify="space-between"
+                    justify={type === 'lastDedas' && sortedLastDedasResult.length < 4 ? 'start' : 'space-between'}
                 >
                     {showSkeleton && (
                         <>

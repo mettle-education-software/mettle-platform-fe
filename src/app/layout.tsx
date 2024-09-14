@@ -46,6 +46,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <meta property="og:image" content="/mettle.png" />
                 <link rel="apple-touch-icon" href="/mettle.png" />
                 <script async src="https://w.soundcloud.com/player/api.js" type="text/javascript" />
+                <script
+                    async
+                    src="https://cdn.jsdelivr.net/npm/@tsparticles/confetti@3.0.3/tsparticles.confetti.bundle.min.js"
+                />
             </head>
             <AppProvider>
                 <MelpProvider>

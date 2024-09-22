@@ -1,6 +1,6 @@
 import { Rule } from 'rc-field-form/lib/interface';
 
-export const SMALL_VIEWPORT = 560;
+export const SMALL_VIEWPORT = 860;
 
 export const padding = {
     x: {

@@ -7,4 +7,10 @@ export const MaxWidthContainer = styled.div`
     width: 100%;
     max-width: calc(${MAX_CONTENT_WIDTH}px + 2rem);
     padding: 0 2rem;
+
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        h4 {
+            font-size: 14px;
+        }
+    }
 `;

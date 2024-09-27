@@ -103,7 +103,13 @@ export const HpecModulesList: React.FC<HpecModulesListProps> = ({
     const lockedItems: CollapseProps['items'] = lockedModules.map((hpec) => {
         return {
             key: hpec.hpecId,
-            label: hpec.hpecTitle,
+            label: (
+                <>
+                    {hpec.hpecTitle}
+                    <br />
+                    <span style={{ fontSize: '12px' }}>{hpec.unlockDate}</span>
+                </>
+            ),
             style: {
                 background: '#484443',
                 color: '#FFFFFF',

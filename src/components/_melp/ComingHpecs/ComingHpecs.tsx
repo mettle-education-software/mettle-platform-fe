@@ -132,37 +132,39 @@ export const ComingHpecs: React.FC<ComingHpecsProps> = () => {
                         />
                     </StartHere>
                 </Col>
-                <Col xs={24} md={18}>
-                    <Card
-                        style={{ background: 'transparent', border: 'none', width: '100%' }}
-                        styles={{
-                            body: { paddingRight: 0 },
-                        }}
-                    >
-                        <Card.Meta
-                            style={{ marginBottom: '1rem' }}
-                            title={
-                                <Title level={4} className="color-secondary">
-                                    Watch next...
-                                </Title>
-                            }
-                        />
-                        <ComingNextCarousel>
-                            <Row gutter={[16, 16]} wrap={false}>
-                                {lastModuleItems?.slice(1)?.map((lesson) => (
-                                    <Col key={lesson.lessonId}>
-                                        <VideoThumbnail
-                                            moduleOrder={lastModule?.moduleOrder}
-                                            title={lesson.lessonTitle}
-                                            link={`/melp/hpec/${lastModule?.hpecId}/${lesson.lessonId}`}
-                                            vimeoId={lesson.lessonVideoEmbedUrl.split('/').pop() as string}
-                                        />
-                                    </Col>
-                                ))}
-                            </Row>
-                        </ComingNextCarousel>
-                    </Card>
-                </Col>
+                {lastModuleItems?.slice(1)?.length > 0 && (
+                    <Col xs={24} md={18}>
+                        <Card
+                            style={{ background: 'transparent', border: 'none', width: '100%' }}
+                            styles={{
+                                body: { paddingRight: 0 },
+                            }}
+                        >
+                            <Card.Meta
+                                style={{ marginBottom: '1rem' }}
+                                title={
+                                    <Title level={4} className="color-secondary">
+                                        Watch next...
+                                    </Title>
+                                }
+                            />
+                            <ComingNextCarousel>
+                                <Row gutter={[16, 16]} wrap={false}>
+                                    {lastModuleItems?.slice(1)?.map((lesson) => (
+                                        <Col key={lesson.lessonId}>
+                                            <VideoThumbnail
+                                                moduleOrder={lastModule?.moduleOrder}
+                                                title={lesson.lessonTitle}
+                                                link={`/melp/hpec/${lastModule?.hpecId}/${lesson.lessonId}`}
+                                                vimeoId={lesson.lessonVideoEmbedUrl.split('/').pop() as string}
+                                            />
+                                        </Col>
+                                    ))}
+                                </Row>
+                            </ComingNextCarousel>
+                        </Card>
+                    </Col>
+                )}
             </Row>
         </ComingHpecsContainer>
     );

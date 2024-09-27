@@ -54,3 +54,11 @@ export const nextMondayDate = () => {
     date.setDate(date.getDate() + diff);
     return date;
 };
+
+export const getUnlockedDate = (currentDay: number, drippingDay: number) => {
+    const today = new Date();
+    const differenceInNumberOfDays = drippingDay - currentDay;
+    today.setDate(today.getDate() + differenceInNumberOfDays);
+
+    return `Unlocks on: ${today.toLocaleDateString('en-US')}`;
+};

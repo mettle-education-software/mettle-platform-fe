@@ -4,6 +4,7 @@ import { CloudOutlined, LoadingOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Flex, Popover, Tooltip, Typography } from 'antd';
 import { AppLayout, ArrowDown, Chip, GoalsTab, InputTab, MaxWidthContainer, PerformanceTab, TabNav } from 'components';
+import { LoadingLayout } from 'components/layouts/LoadingLayout/LoadingLayout';
 import { useDeviceSize } from 'hooks';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
 import { withAuthentication } from 'libs';
@@ -164,7 +165,7 @@ const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: strin
     const [activeTab, setActiveTab] = useState(searchParams?.lampTab ?? 'performance');
     const [lastTimeInputSaved, setLastTimeInputSaved] = useState<Date>();
 
-    const { melpSummary } = useMelpContext();
+    const { melpSummary, isMelpSummaryLoading } = useMelpContext();
 
     const [goalLevel, setGoalLevel] = useState(melpSummary?.deda_difficulty);
 
@@ -176,7 +177,11 @@ const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: strin
 
     const router = useRouter();
 
-    if (!['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(melpSummary?.melp_status)) router.push('/404');
+    if (isMelpSummaryLoading) return <LoadingLayout />;
+
+    // TODO - move this logic to server side rendering
+    if (!!melpSummary && !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(melpSummary?.melp_status))
+        router.push('/404');
 
     const tabBarExtra = new Map([
         ['performance', undefined],

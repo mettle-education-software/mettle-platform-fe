@@ -1,6 +1,7 @@
 import { useQuery } from '@apollo/client';
 import gql from 'graphql-tag';
 import { HpecModulesResponse, HpecResourcesResponse, IHPECLesson } from 'interfaces';
+import { getUnlockedDate } from 'libs';
 import { useMelpContext } from 'providers';
 import { useEffect, useState } from 'react';
 
@@ -38,7 +39,7 @@ export const useGetHpecsModules = () => {
     });
 
     const [unlockedModules, setUnlockedModules] = useState<IHPECLesson[]>([]);
-    const [lockedModules, setLockedModules] = useState<IHPECLesson[]>([]);
+    const [lockedModules, setLockedModules] = useState<({ unlockDate: string } & IHPECLesson)[]>([]);
     const [unlockedLessons, setUnlockedLessons] = useState(0);
     const [totalLessons, setTotalLessons] = useState(0);
 
@@ -51,26 +52,29 @@ export const useGetHpecsModules = () => {
             const currentDedaDay = melpSummary.current_deda_day;
 
             const unlocked: IHPECLesson[] = [];
-            const locked: IHPECLesson[] = [];
+            const locked: ({ unlockDate: string } & IHPECLesson)[] = [];
 
             modulesContentData.hpecContentCollection.items.forEach((hpec) => {
                 if (drippingBeforeDedaStatuses.includes(melpStatus)) {
                     if (daysSinceMelpStart < hpec.drippingDayBeforeDedaStart) {
                         return locked.push({
                             ...hpec,
+                            unlockDate: getUnlockedDate(daysSinceMelpStart, hpec.drippingDayBeforeDedaStart),
                         });
                     }
                     if (!!hpec.drippingDayAfterDedaStart) {
                         return locked.push({
                             ...hpec,
+                            unlockDate: 'Start DEDA first to unlock this module',
                         });
                     }
                 }
 
                 if (melpStatus === 'DEDA_STARTED') {
-                    if (currentDedaDay < hpec.drippingDayBeforeDedaStart) {
+                    if (currentDedaDay < hpec.drippingDayAfterDedaStart) {
                         return locked.push({
                             ...hpec,
+                            unlockDate: getUnlockedDate(currentDedaDay, hpec.drippingDayAfterDedaStart),
                         });
                     }
                 }

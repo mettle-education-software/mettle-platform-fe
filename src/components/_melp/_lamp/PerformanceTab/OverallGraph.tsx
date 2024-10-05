@@ -93,11 +93,11 @@ export const OverallGraph: React.FC = () => {
                 <Col span={6}>
                     <Legend name="PASSIVE" color={statisticsColors.Passive} value={overallData?.byActivity.passive} />
                 </Col>
-                {overallData?.byActivity.review && (
+                {overallData?.byActivity.review ? (
                     <Col span={6}>
                         <Legend name="REVIEW" color={statisticsColors.Review} value={overallData?.byActivity.review} />
                     </Col>
-                )}
+                ) : null}
             </Row>
         </div>
     );

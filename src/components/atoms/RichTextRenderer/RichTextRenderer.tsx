@@ -48,11 +48,6 @@ const HyperLink = styled(Link)`
     font-weight: 700;
     color: #3030e8;
 
-    &::after {
-        content: ' 🔗'; /* Unicode code for the up-right arrow */
-        font-size: inherit;
-    }
-
     &:hover {
         text-decoration: underline;
     }

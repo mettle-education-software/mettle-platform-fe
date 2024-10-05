@@ -3,7 +3,7 @@
 import styled from '@emotion/styled';
 import { Col, Flex, Row, Typography } from 'antd';
 import { DedaCard } from 'components';
-import { useDeviceSize, useMelpSummary } from 'hooks';
+import { useMelpSummary } from 'hooks';
 import { useAllDedasList, useLastDedas, useNextDedas } from 'hooks/queries/dedasLists';
 import { DedaItem } from 'interfaces';
 import { MAX_CONTENT_WIDTH } from 'libs';
@@ -22,8 +22,6 @@ const Title = styled(Typography.Title)`
 `;
 
 export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, customTitle }) => {
-    const device = useDeviceSize();
-
     const { user } = useAppContext();
 
     const { data: melpSummary, isLoading } = useMelpSummary(user?.uid as string);
@@ -147,6 +145,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                             </Col>
                         ))}
                     {type === 'nextDedas' &&
+                        melpSummary?.melp_status !== 'DEDA_FINISHED' &&
                         nextDedasResult.data?.dedaContentCollection.items.map((deda, index) => (
                             <Col xs={12} md={6} key={deda.dedaSlug}>
                                 <DedaCard

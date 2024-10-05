@@ -62,6 +62,10 @@ const Card = styled.div<{ imgUrl?: string; blocked?: boolean }>`
     @media (max-width: ${SMALL_VIEWPORT}px) {
         .card-title {
             font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-clamp: 1;
         }
 
         .categories {

@@ -74,11 +74,12 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                 <strong>Most recent</strong> DEDAs
             </Title>
         ),
-        nextDedas: (
-            <Title level={4}>
-                <strong>Next</strong> DEDAs
-            </Title>
-        ),
+        nextDedas:
+            melpSummary?.melp_status !== 'DEDA_FINISHED' ? (
+                <Title level={4}>
+                    <strong>Next</strong> DEDAs
+                </Title>
+            ) : null,
         allDedas: (
             <Title level={4}>
                 <strong>All</strong> DEDAs

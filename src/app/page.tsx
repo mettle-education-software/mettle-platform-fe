@@ -50,7 +50,7 @@ const ContinueCard = styled(Card)`
 function Home() {
     const { user } = useAppContext();
 
-    const [firstName] = user ? user?.name?.split(' ') : [''];
+    const [firstName] = user?.name ? user.name.split(' ') : [''];
 
     return (
         <AppLayout>
@@ -60,15 +60,14 @@ function Home() {
                         <Row gutter={[16, 16]} justify="space-between">
                             <Col xs={24} md={12}>
                                 <Flex vertical gap="1rem">
-                                    <Title level={4}>👋 Bem vindo, {firstName}!</Title>
+                                    <Title level={4}>👋 Bem vindo(a), {firstName}!</Title>
                                 </Flex>
                             </Col>
                             <Col xs={24} md={12}>
                                 <Text>
-                                    “O trabalho vai preencher uma grande parte da sua vida. A única maneira de ser
-                                    realmente feliz é fazer o que você acredita ser um ótimo trabalho. E o único jeito
-                                    de fazer um ótimo trabalho é amar o que você faz”. Steve Jobs
+                                    &quot;Não ambiciones senão um único direito: o de cumprires o teu dever.&quot;{' '}
                                 </Text>
+                                <Text>(São Josemaria Escrivá — Sulco, 413)</Text>
                             </Col>
                         </Row>
                     </GreetingsCard>

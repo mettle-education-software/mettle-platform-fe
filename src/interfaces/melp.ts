@@ -12,9 +12,9 @@ export enum MelpStatuses {
 export type MelpStatus = keyof typeof MelpStatuses;
 
 export enum DedaDifficulties {
-    EASY = 'Low',
-    MEDIUM = 'Medium',
-    HARD = 'High',
+    EASY = 'Flow',
+    MEDIUM = 'Boost',
+    HARD = 'Turbo',
 }
 
 export type DedaDifficulty = keyof typeof DedaDifficulties;

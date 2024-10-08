@@ -56,3 +56,30 @@ export const useUpdatePassword = () => {
         },
     });
 };
+
+export const useImpersonate = () => {
+    const { showNotification } = useNotificationsContext();
+
+    return useMutation({
+        mutationFn: (userUid: string) => accountService.post(`/impersonate/add/${userUid}`),
+        onSuccess: () => {
+            showNotification('success', 'Usuário alterado!', 'Acessando como outro usuário.');
+            window.location.reload();
+        },
+        onError: (error) => {
+            showNotification('error', 'Erro', error.message || 'Algo deu errado');
+        },
+    });
+};
+
+export const useStopImpersonating = () => {
+    const { showNotification } = useNotificationsContext();
+
+    return useMutation({
+        mutationFn: () => accountService.post('/impersonate/remove'),
+        onSuccess: () => {
+            showNotification('success', 'Usuário alterado!', 'Voltando ao seu usuário.');
+            window.location.reload();
+        },
+    });
+};

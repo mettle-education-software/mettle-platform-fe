@@ -12,6 +12,7 @@ import { useMelpContext } from 'providers';
 import React, { forwardRef, useEffect, useState } from 'react';
 import { DedaIcon } from '../../icons';
 import { UserMenu } from '../../molecules/UserMenu/UserMenu';
+import { AdminActions } from '../AdminActions/AdminActions';
 
 const { Header, Content, Sider } = Layout;
 const { Text } = Typography;
@@ -268,6 +269,9 @@ export const AppLayout = forwardRef<
                 <Layout>
                     <AppHeader>
                         <div>{withMelpSummary && <MelpSummary />}</div>
+                        <div>
+                            <AdminActions />
+                        </div>
                         <div>
                             <UserMenu />
                         </div>

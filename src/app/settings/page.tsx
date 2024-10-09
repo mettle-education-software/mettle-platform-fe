@@ -7,6 +7,8 @@ import { Button, Card, Col, Flex, Form, Input, Modal, Row, Tabs as AntTabs, Tool
 import { AppLayout, MaxWidthContainer } from 'components';
 import { usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { passwordRules, withAuthentication } from 'libs';
+import Head from 'next/head';
+import Script from 'next/script';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect } from 'react';
 
@@ -354,6 +356,31 @@ const ImersoSettings = () => {
     );
 };
 
+const Help = () => {
+    return (
+        <div>
+            <Card.Meta
+                title="Ajuda"
+                description={<Text className="color-secondary">Precisa de ajuda? Entre em contato</Text>}
+            />
+            <div style={{ marginTop: '2rem' }}>
+                <Row>
+                    <Col span={24}>
+                        <Row className="row-border">
+                            <Col xs={12} md={6}>
+                                <Text>Contato</Text>
+                            </Col>
+                            <Col xs={24} md={18}>
+                                <Button href="mailto:hello@mettle.com.br">hello@mettle.com.br</Button>
+                            </Col>
+                        </Row>
+                    </Col>
+                </Row>
+            </div>
+        </div>
+    );
+};
+
 const Settings = () => {
     return (
         <AppLayout>
@@ -387,6 +414,11 @@ const Settings = () => {
                                             key: 'imerso-settings',
                                             label: 'IMERSO',
                                             children: <ImersoSettings />,
+                                        },
+                                        {
+                                            key: 'help',
+                                            label: 'Ajuda',
+                                            children: <Help />,
                                         },
                                     ]}
                                 />

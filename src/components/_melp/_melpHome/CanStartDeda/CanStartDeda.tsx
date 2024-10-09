@@ -1,6 +1,6 @@
 'use client';
 
-import { Col, Row, Typography, Alert, Button, Skeleton } from 'antd';
+import { Col, Row, Typography, Alert, Button, Skeleton, Flex } from 'antd';
 import { ComingHpecs, DedasGrid } from 'components';
 import { useStartDeda } from 'hooks';
 import { nextMondayDate } from 'libs';
@@ -32,25 +32,25 @@ export const CanStartDeda: React.FC = () => {
                         type="info"
                         showIcon
                         message={
-                            <Title level={3} className="color-white">
-                                Hey there!
-                            </Title>
+                            <Flex wrap justify="space-between" gap="1rem">
+                                <Title level={3} className="color-white">
+                                    Hey there!
+                                </Title>
+                                <Button
+                                    onClick={handleConfirmDedaStart}
+                                    size="large"
+                                    type="primary"
+                                    loading={confirmDedaStart.isPending}
+                                >
+                                    Confirm DEDA start
+                                </Button>
+                            </Flex>
                         }
                         description={
                             <Text className="color-white">
                                 You can start already the DEDA program. The next available date is{' '}
                                 <strong>{nextMondayDate().toLocaleDateString()}</strong>
                             </Text>
-                        }
-                        action={
-                            <Button
-                                onClick={handleConfirmDedaStart}
-                                size="large"
-                                type="primary"
-                                loading={confirmDedaStart.isPending}
-                            >
-                                Confirm DEDA start
-                            </Button>
                         }
                     />
                 </Col>

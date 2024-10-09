@@ -1,6 +1,6 @@
 'use client';
 
-import { Alert, Button, Col, Row, Skeleton, Typography } from 'antd';
+import { Alert, Button, Col, Flex, Row, Skeleton, Typography } from 'antd';
 import { ComingHpecs, DedasGrid } from 'components';
 import { useResumeDeda } from 'hooks';
 import { nextMondayDate } from 'libs';
@@ -32,9 +32,19 @@ export const DedaPaused: React.FC = () => {
                         type="info"
                         showIcon
                         message={
-                            <Title level={3} className="color-white">
-                                Feel like getting back to DEDA?
-                            </Title>
+                            <Flex wrap justify="space-between" gap="1rem">
+                                <Title level={3} className="color-white">
+                                    Feel like getting back to DEDA?
+                                </Title>
+                                <Button
+                                    onClick={handleDedaResume}
+                                    loading={resumeDeda.isPending}
+                                    size="large"
+                                    type="primary"
+                                >
+                                    Return to DEDA
+                                </Button>
+                            </Flex>
                         }
                         description={
                             <Text className="color-white">
@@ -42,16 +52,7 @@ export const DedaPaused: React.FC = () => {
                                 <strong>{nextMondayDate().toLocaleDateString()}</strong>
                             </Text>
                         }
-                        action={
-                            <Button
-                                onClick={handleDedaResume}
-                                loading={resumeDeda.isPending}
-                                size="large"
-                                type="primary"
-                            >
-                                Return to DEDA
-                            </Button>
-                        }
+                        banner
                     />
                 </Col>
                 <Col span={24}>

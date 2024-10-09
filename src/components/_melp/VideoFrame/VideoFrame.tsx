@@ -84,7 +84,7 @@ export const VideoFrame = ({
                 >
                     <IFrame
                         title="LinKnowledge video"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                         allowFullScreen
                         src={`https://www.youtube.com/embed/${videoId}`}
                     />
@@ -100,7 +100,7 @@ export const VideoFrame = ({
                 >
                     <IFrame
                         title="LinKnowledge video"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                         allowFullScreen
                         src={`https://www.youtube.com/embed/${videoId}`}
                     />

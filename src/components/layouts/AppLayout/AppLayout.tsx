@@ -3,7 +3,7 @@
 import { HomeOutlined, LogoutOutlined, MenuOutlined, SettingOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Button, Drawer, Flex, Layout, Menu, Typography } from 'antd';
-import { Logo, NotificationsList } from 'components';
+import { Chat, Logo, NotificationsList } from 'components';
 import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
 import { handleLogout, SMALL_VIEWPORT } from 'libs';
@@ -280,6 +280,7 @@ export const AppLayout = forwardRef<
                         <AppContent ref={ref}>{children}</AppContent>
                     </ContentLayout>
                 </Layout>
+                <Chat />
             </PageLayout>
         );
     },

@@ -7,8 +7,6 @@ import { Button, Card, Col, Flex, Form, Input, Modal, Row, Tabs as AntTabs, Tool
 import { AppLayout, MaxWidthContainer } from 'components';
 import { usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { passwordRules, withAuthentication } from 'libs';
-import Head from 'next/head';
-import Script from 'next/script';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect } from 'react';
 

@@ -15,6 +15,9 @@ const nextConfig = {
         METTLE_API_URL: process.env.METTLE_API_URL,
         SENTRY_DSN: process.env.SENTRY_DSN,
         GRAPHQL_URI: process.env.CONTENTFUL_GRAPHQL_URI,
+        TAWK_TO_PROPERTY_ID: process.env.TAWK_TO_PROPERTY_ID,
+        TAWK_TO_WIDGET_ID: process.env.TAWK_TO_WIDGET_ID,
+        TAWK_TO_CHAT_LINK: process.env.TAWK_TO_CHAT_LINK,
     },
     publicRuntimeConfig: {
         SENTRY_DSN: process.env.SENTRY_DSN,

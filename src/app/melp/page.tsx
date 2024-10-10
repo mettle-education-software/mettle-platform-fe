@@ -3,7 +3,6 @@
 import styled from '@emotion/styled';
 import { Col, Row, Typography } from 'antd';
 import {
-    AppLayout,
     CanStartDeda,
     Chip,
     DedaFinished,
@@ -68,7 +67,7 @@ const MelpHome = () => {
     }
 
     return (
-        <AppLayout withMelpSummary>
+        <React.Fragment>
             <HeaderWelcome>
                 <MaxWidthContainer>
                     <Row gutter={[8, 8]}>
@@ -89,7 +88,7 @@ const MelpHome = () => {
             <MainContent>
                 <MaxWidthContainer>{renderMelpHome(renderStatus)}</MaxWidthContainer>
             </MainContent>
-        </AppLayout>
+        </React.Fragment>
     );
 };
 

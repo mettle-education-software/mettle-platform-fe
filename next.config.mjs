@@ -22,9 +22,6 @@ const nextConfig = {
     publicRuntimeConfig: {
         SENTRY_DSN: process.env.SENTRY_DSN,
     },
-    experimental: {
-        serverComponentsExternalPackages: ['antd', 'antd/lib'],
-    },
 };
 
 export default nextConfig;

@@ -3,7 +3,7 @@
 import { Avatar, Flex, Typography } from 'antd';
 import { useAppContext } from 'providers';
 import React from 'react';
-import { NotificationsList } from '../../atoms';
+import { Chat, NotificationsList } from '../../atoms';
 
 const { Text } = Typography;
 
@@ -11,7 +11,9 @@ export const UserMenu = () => {
     const { user } = useAppContext();
 
     return (
-        <Flex align="center" gap="1rem">
+        <Flex align="center" gap="1rem" style={{ paddingRight: '0.8rem' }}>
+            <Chat mode="dropdown" />
+
             <NotificationsList />
 
             <Flex align="center" gap="1rem">

@@ -67,9 +67,6 @@ const BellIcon = styled(BellOutlined)`
     @media (max-width: ${SMALL_VIEWPORT}px) {
         font-size: 1.2rem;
         color: var(--secondary);
-        //border: 2px solid var(--secondary);
-        //border-radius: 25%;
-        //padding: 0.2rem;
     }
 `;
 

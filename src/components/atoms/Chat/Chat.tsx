@@ -2,10 +2,10 @@
 
 import Icon from '@ant-design/icons';
 import { Chatting01Icon } from '@houstonicons/react';
-import TawkMessengerReact from '@tawk.to/tawk-messenger-react';
 import { Dropdown } from 'antd';
+import { useDeviceSize } from 'hooks';
 import { useAppContext } from 'providers';
-import React, { ComponentType, useRef, useState } from 'react';
+import React, { ComponentType, useRef } from 'react';
 
 interface ChatProps {
     mode?: 'dropdown' | 'widget';
@@ -17,15 +17,31 @@ type TawkMessengerRefType = {
     setAttributes: (visitorData: VisitorData, errorHandler: (error: Error) => void) => void;
 };
 
-const chatIframe = () => (
-    <iframe
-        src={process.env.TAWK_TO_CHAT_LINK}
-        style={{ height: '600px', width: '450px', border: 'none', background: 'white', borderRadius: '0.5rem' }}
-    />
-);
+const chatIframe = (device: string) => {
+    const style = {
+        height: '600px',
+        width: '450px',
+        border: 'none',
+        background: 'white',
+        borderRadius: '0.5rem',
+    };
+
+    const mobileStyle = {
+        width: '80vw',
+        height: '90vh',
+    };
+
+    return (
+        <iframe
+            src={process.env.TAWK_TO_CHAT_LINK}
+            style={device === 'mobile' ? { ...style, ...mobileStyle } : style}
+        />
+    );
+};
 
 export const Chat: React.FC<ChatProps> = ({ mode = 'widget' }) => {
     const { user } = useAppContext();
+    const device = useDeviceSize();
 
     const tawkMessengerRef = useRef<TawkMessengerRefType | null>();
 
@@ -56,7 +72,7 @@ export const Chat: React.FC<ChatProps> = ({ mode = 'widget' }) => {
     if (mode === 'dropdown')
         return (
             <div>
-                <Dropdown trigger={['click']} placement="bottomLeft" dropdownRender={chatIframe}>
+                <Dropdown trigger={['click']} placement="bottomLeft" dropdownRender={() => chatIframe(device)}>
                     <Icon style={{ marginTop: '1.5rem' }} component={Chatting01Icon as ComponentType} />
                 </Dropdown>
             </div>

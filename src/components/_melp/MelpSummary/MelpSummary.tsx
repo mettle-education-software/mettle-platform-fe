@@ -37,19 +37,20 @@ export const MelpSummary: React.FC = () => {
         return (
             <Skeleton loading={isLoading || isFetching} round style={{ width: '100%' }} active paragraph={false}>
                 <Row align="middle" justify="space-between" style={{ width: '100%' }}>
-                    <Col span={16}>
+                    <Col span={10}>
                         <Flex>
-                            <DedaChip bg="var(--secondary)">
+                            <DedaChip
+                                bg="var(--secondary)"
+                                className="word-no-break"
+                                style={{ maxWidth: '100%', overflow: 'hidden' }}
+                            >
                                 <Text strong style={{ color: '#FFFFFF' }}>
-                                    DEDA
+                                    {melpSummary?.currentDedaName} everything
                                 </Text>
                             </DedaChip>
-                            <Text strong ellipsis>
-                                {melpSummary?.currentDedaName}
-                            </Text>
                         </Flex>
                     </Col>
-                    <Col span={8}>
+                    <Col span={14}>
                         <Flex gap="0.5rem" align="center">
                             <Divider />
                             <Text className="color-secondary" strong>

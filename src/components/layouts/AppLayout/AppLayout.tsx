@@ -230,7 +230,10 @@ export const AppLayout = forwardRef<
                             <Flex gap="0.5rem" align="center" justify="space-between" style={{ width: '100%' }}>
                                 {trigger}
                                 {withMelpSummary && <MelpSummary />}
-                                <NotificationsList />
+                                <Flex align="center" justify="flex-end" gap="1rem">
+                                    <Chat mode="dropdown" />
+                                    <NotificationsList />
+                                </Flex>
                             </Flex>
                             <Drawer open={!collapsed} onClose={() => setCollapsed(true)}>
                                 {customMenu}

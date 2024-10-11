@@ -3,5 +3,5 @@
 import React from 'react';
 
 export default function ActivatePage() {
-    return <div>THIS SHIT IS USELESS</div>;
+    return <div>Activation goes here</div>;
 }

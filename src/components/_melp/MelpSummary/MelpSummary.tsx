@@ -45,7 +45,7 @@ export const MelpSummary: React.FC = () => {
                                 style={{ maxWidth: '100%', overflow: 'hidden' }}
                             >
                                 <Text strong style={{ color: '#FFFFFF' }}>
-                                    {melpSummary?.currentDedaName} everything
+                                    {melpSummary?.currentDedaName}
                                 </Text>
                             </DedaChip>
                         </Flex>

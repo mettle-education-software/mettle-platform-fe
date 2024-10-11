@@ -119,7 +119,7 @@ export const ComingHpecs: React.FC<ComingHpecsProps> = () => {
                             style={{ marginBottom: '1rem' }}
                             title={
                                 <Title level={4} className="color-secondary">
-                                    Start here
+                                    Watch
                                 </Title>
                             }
                         />
@@ -128,7 +128,6 @@ export const ComingHpecs: React.FC<ComingHpecsProps> = () => {
                             title={firstModuleLesson?.lessonTitle}
                             link={`/melp/hpec/${lastModule?.hpecId}/${firstModuleLesson?.lessonId}`}
                             vimeoId={firstModuleLesson.lessonVideoEmbedUrl.split('/').pop() as string}
-                            description={firstModuleLesson?.lessonFeaturedText}
                         />
                     </StartHere>
                 </Col>
@@ -144,7 +143,7 @@ export const ComingHpecs: React.FC<ComingHpecsProps> = () => {
                                 style={{ marginBottom: '1rem' }}
                                 title={
                                     <Title level={4} className="color-secondary">
-                                        Watch next...
+                                        Next up...
                                     </Title>
                                 }
                             />

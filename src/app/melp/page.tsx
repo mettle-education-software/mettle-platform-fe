@@ -79,7 +79,7 @@ const MelpHome = () => {
                         </Col>
                         <Col>
                             <Title level={3} className="color-secondary">
-                                Welcome, {user?.name}.
+                                Welcome, {user?.name}
                             </Title>
                         </Col>
                     </Row>

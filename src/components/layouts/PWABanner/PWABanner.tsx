@@ -108,6 +108,7 @@ export const PWABanner: React.FC<PWABanner> = ({ children }) => {
                                         </ol>
                                         <div style={{ width: '100%', aspectRatio: '9/16' }}>
                                             <Image
+                                                priority
                                                 style={{ borderRadius: '1rem' }}
                                                 objectFit="contain"
                                                 src="/ios-install-tutorial.gif"

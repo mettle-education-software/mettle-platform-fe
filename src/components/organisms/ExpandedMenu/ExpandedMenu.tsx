@@ -2,7 +2,8 @@
 
 import { DownOutlined, HomeOutlined, InfoCircleOutlined, RightOutlined, SettingOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Image, Space, Tooltip } from 'antd';
+import { Space, Tooltip } from 'antd';
+import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
 
@@ -105,7 +106,7 @@ function ExpandedSideBar(props: { items: Array<MenuItem> }) {
                 <MelpMenu>
                     <MelpMenuHeader onClick={handleShowMenu}>
                         <Space>
-                            <Image src="/melp-ico.svg" alt="IMERSO" preview={false} />
+                            <Image priority src="/melp-ico.svg" alt="IMERSO" />
                             <span>IMERSO</span>
                         </Space>
                         {showMenu && <DownOutlined />}

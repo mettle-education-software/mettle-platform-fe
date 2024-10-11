@@ -20,6 +20,7 @@ export default function NotFound() {
                 style={{ height: '100vh', width: '100%', background: 'var(--main-bg)' }}
             >
                 <Image
+                    priority
                     style={{ marginBottom: -100 }}
                     src="/img/logo_light.svg"
                     height={300}

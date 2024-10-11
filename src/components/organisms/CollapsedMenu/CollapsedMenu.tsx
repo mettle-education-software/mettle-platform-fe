@@ -2,7 +2,7 @@
 
 import { HomeOutlined, SettingOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Image } from 'antd';
+import Image from 'next/image';
 import Link from 'next/link';
 
 const Bar = styled.div`
@@ -53,7 +53,7 @@ function CollapsedMenu() {
             </HomeMenu>
             <BottomArea>
                 <MelpLogo href="/">
-                    <Image src="./melp-ico.svg" alt="IMERSO" preview={false} />
+                    <Image priority src="./melp-ico.svg" alt="IMERSO" />
                 </MelpLogo>
                 <SettingOutlined />
             </BottomArea>

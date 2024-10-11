@@ -27,6 +27,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
                 style={{ height: '100vh', width: '100%', background: 'var(--main-bg)' }}
             >
                 <Image
+                    priority
                     style={{ marginBottom: -100 }}
                     src="/img/logo_light.svg"
                     height={300}

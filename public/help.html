@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Title</title>
+        <script
+            type="text/javascript"
+            id="hs-script-loader"
+            async
+            defer
+            src="//js-na1.hs-scripts.com/19504000.js"
+        ></script>
+        <script type="text/javascript">
+            function onConversationsAPIReady() {
+                console.log(`HubSpot Conversations API: ${window.HubSpotConversations}`);
+            }
+
+            /*
+        configure window.hsConversationsSettings if needed.
+      */
+            window.hsConversationsSettings = {
+                loadImmediately: true,
+                inlineEmbedSelector: '#hubspot-chat',
+                enableWidgetCookieBanner: true,
+                disableAttachment: false,
+            };
+            /*
+       If external API methods are already available, use them.
+      */
+            if (window.HubSpotConversations) {
+                onConversationsAPIReady();
+            } else {
+                /*
+            Otherwise, callbacks can be added to the hsConversationsOnReady on the window object.
+            These callbacks will be called once the external API has been initialized.
+          */
+                window.hsConversationsOnReady = [onConversationsAPIReady];
+            }
+            if (window.HubSpotConversations) {
+                console.log('The api is ready already');
+            } else {
+                window.hsConversationsOnReady = [
+                    () => {
+                        console.log('Now the api is ready');
+                        window.HubSpotConversations.widget.open();
+                    },
+                ];
+            }
+        </script>
+        <style>
+            #hubspot-parent {
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+            }
+
+            #hubspot-conversations-inline-iframe {
+                height: 600px;
+                width: 450px;
+                border: none;
+                border-radius: 1rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="hubspot-parent">
+            <div id="hubspot-chat"></div>
+        </div>
+    </body>
+</html>

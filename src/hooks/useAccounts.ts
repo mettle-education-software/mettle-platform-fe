@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 import { useAppContext, useNotificationsContext } from 'providers';
 import { accountService } from 'services';
 
@@ -80,6 +81,37 @@ export const useStopImpersonating = () => {
         onSuccess: () => {
             showNotification('success', 'Usuário alterado!', 'Voltando ao seu usuário.');
             window.location.reload();
+        },
+    });
+};
+
+export const useCreateFreeAccount = () => {
+    const { showNotification } = useNotificationsContext();
+    const router = useRouter();
+
+    return useMutation({
+        mutationFn: (dto: { firstName: string; lastName: string; email: string; password: string }) =>
+            accountService.post('/free'),
+        onSuccess: () => {
+            router.push('/login');
+        },
+        onError: () => {
+            showNotification('error', 'Erro', 'Parece que algo deu errado. Tente novamente mais tarde');
+        },
+    });
+};
+
+export const useDeleteFreeAccount = () => {
+    const { showNotification } = useNotificationsContext();
+    const router = useRouter();
+
+    return useMutation({
+        mutationFn: (userUid: string) => accountService.delete(`/free/${userUid}`),
+        onSuccess: () => {
+            router.push('/login');
+        },
+        onError: () => {
+            showNotification('error', 'Erro', 'Parece que algo deu errado. Tente novamente mais tarde');
         },
     });
 };

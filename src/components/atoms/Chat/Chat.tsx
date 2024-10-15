@@ -32,10 +32,7 @@ const chatIframe = (device: string) => {
     };
 
     return (
-        <iframe
-            src={process.env.TAWK_TO_CHAT_LINK}
-            style={device === 'mobile' ? { ...style, ...mobileStyle } : style}
-        />
+        <iframe src="/help.html" allowTransparency style={device === 'mobile' ? { ...style, ...mobileStyle } : style} />
     );
 };
 

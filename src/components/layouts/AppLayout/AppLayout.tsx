@@ -3,7 +3,7 @@
 import { HomeOutlined, LogoutOutlined, MenuOutlined, SettingOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Button, Drawer, Flex, Layout, Menu, Typography } from 'antd';
-import { Chat, Logo, NotificationsList } from 'components';
+import { Logo, NotificationsList } from 'components';
 import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
 import { handleLogout, SMALL_VIEWPORT } from 'libs';
@@ -231,7 +231,6 @@ export const AppLayout = forwardRef<
                                 {trigger}
                                 {withMelpSummary && <MelpSummary />}
                                 <Flex align="center" justify="flex-end" gap="1rem">
-                                    <Chat mode="dropdown" />
                                     <NotificationsList />
                                 </Flex>
                             </Flex>
@@ -283,7 +282,6 @@ export const AppLayout = forwardRef<
                         <AppContent ref={ref}>{children}</AppContent>
                     </ContentLayout>
                 </Layout>
-                <Chat />
             </PageLayout>
         );
     },

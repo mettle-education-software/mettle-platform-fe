@@ -12,8 +12,6 @@ export const UserMenu = () => {
 
     return (
         <Flex align="center" gap="1rem" style={{ paddingRight: '0.8rem' }}>
-            <Chat mode="dropdown" />
-
             <NotificationsList />
 
             <Flex align="center" gap="1rem">

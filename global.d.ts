@@ -14,6 +14,16 @@ declare global {
             zIndex?: number;
             scalar?: number;
         }) => void;
+        $chatwoot: {
+            setUser: (
+                uniqueIdentifier: string,
+                user: {
+                    email: string;
+                    name: string;
+                    avatar_url: string;
+                },
+            ) => void;
+        };
     }
 }
 export {};

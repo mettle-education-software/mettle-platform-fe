@@ -4,6 +4,7 @@ import Icon from '@ant-design/icons';
 import { Chatting01Icon } from '@houstonicons/react';
 import { Dropdown } from 'antd';
 import { useDeviceSize } from 'hooks';
+import { useRouter } from 'next/navigation';
 import { useAppContext } from 'providers';
 import React, { ComponentType, useRef } from 'react';
 
@@ -37,52 +38,11 @@ const chatIframe = (device: string) => {
 };
 
 export const Chat: React.FC<ChatProps> = ({ mode = 'widget' }) => {
-    const { user } = useAppContext();
-    const device = useDeviceSize();
+    const router = useRouter();
 
-    const tawkMessengerRef = useRef<TawkMessengerRefType | null>();
-
-    const onTawkLoad = () => {
-        const attributes: VisitorData = {};
-
-        if (user?.name) {
-            attributes.name = user.name;
-        }
-
-        if (user?.email) {
-            attributes.email = user.email;
-        }
-
-        if (user?.uid) {
-            attributes.id = user.uid;
-        }
-
-        if (!user?.name && !user?.email && !user?.uid) {
-            return;
-        }
-
-        tawkMessengerRef.current?.setAttributes(attributes, (error) => {
-            console.error('Error setting TawkTo attributes', error);
-        });
-    };
-
-    if (mode === 'dropdown')
-        return (
-            <div>
-                <Dropdown trigger={['click']} placement="bottomLeft" dropdownRender={() => chatIframe(device)}>
-                    <Icon style={{ marginTop: '1.5rem' }} component={Chatting01Icon as ComponentType} />
-                </Dropdown>
-            </div>
-        );
-
-    return null;
-
-    // return (
-    //     <TawkMessengerReact
-    //         onLoad={onTawkLoad}
-    //         ref={tawkMessengerRef}
-    //         propertyId={process.env.TAWK_TO_PROPERTY_ID}
-    //         widgetId={process.env.TAWK_TO_WIDGET_ID}
-    //     />
-    // );
+    return (
+        <div style={{ cursor: 'pointer' }} onClick={() => router.push('/settings?tab=help')}>
+            <Icon style={{ marginTop: '1.5rem' }} component={Chatting01Icon as ComponentType} />
+        </div>
+    );
 };

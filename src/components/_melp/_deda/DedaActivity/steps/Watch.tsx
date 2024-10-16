@@ -66,5 +66,17 @@ export const Watch: React.FC<WatchProps> = ({ dedaId }) => {
 
     const dedaWatchLink = dedaWatchResult.data?.dedaContentCollection?.items[0].dedaWatchVideoLink;
 
-    return <CardWrapper>{!dedaWatchLink ? <DedaWatchSkeleton /> : <DedaWatchVideo src={dedaWatchLink} />}</CardWrapper>;
+    return (
+        <CardWrapper>
+            {!dedaWatchLink ? (
+                <DedaWatchSkeleton />
+            ) : (
+                <DedaWatchVideo
+                    src={dedaWatchLink}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                    allowFullScreen
+                />
+            )}
+        </CardWrapper>
+    );
 };

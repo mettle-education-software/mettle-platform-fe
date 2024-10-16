@@ -144,7 +144,11 @@ export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
                     <span style={{ fontWeight: 400 }}>{reviewProperties[number].complement})</span>
                 </Title>
             </Flex>
-            <VideoFrame src={dedaUrl} />
+            <VideoFrame
+                src={dedaUrl}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                allowFullScreen
+            />
             <Flex style={{ width: '100%' }} justify="space-between" align="center">
                 <Flex align="center" gap="1rem">
                     <Text style={{ color: '#FFF' }}>{title}</Text>

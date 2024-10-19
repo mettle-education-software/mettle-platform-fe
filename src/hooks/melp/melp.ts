@@ -1,15 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { MettleRoles } from 'interfaces';
 import { MelpSummaryResponse } from 'interfaces/melp';
 import { useAppContext, useMelpContext, useNotificationsContext } from 'providers';
 import { useEffect, useState } from 'react';
 import { melpService } from 'services';
 
 export const useMelpSummary = (userUid?: string) => {
+    const { user } = useAppContext();
+
     return useQuery({
         queryKey: ['melp-summary', userUid],
         queryFn: () =>
             melpService.get<MelpSummaryResponse>(`/v2/${userUid as string}/summary`).then(({ data }) => data.data),
-        enabled: !!userUid,
+        enabled:
+            !!userUid &&
+            [MettleRoles.METTLE_STUDENT, MettleRoles.METTLE_ADMIN].some((role) => user?.roles?.includes(role)),
     });
 };
 

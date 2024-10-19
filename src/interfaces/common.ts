@@ -67,9 +67,18 @@ export interface Notification {
     updatedAt: Timestamp;
 }
 
+export enum MettleRoles {
+    MBM_ADMIN = 'MBM_ADMIN',
+    METTLE_ADMIN = 'METTLE_ADMIN',
+    METTLE_STUDENT = 'METTLE_STUDENT',
+    METTLE_TEACHER = 'METTLE_TEACHER',
+    METTLE_FREE = 'METTLE_FREE',
+    METTLE_PLUS = 'METTLE_PLUS',
+}
+
 export interface FireUser {
     email: string;
-    roles: string[];
+    roles: (keyof typeof MettleRoles)[];
     uid: string;
     businessUuid: string;
     name: string;

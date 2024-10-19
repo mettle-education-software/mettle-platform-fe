@@ -13,6 +13,7 @@ import {
     MelpBegin,
     WaitingForDedaStart,
     WeekZero,
+    withRoles,
 } from 'components';
 import { MelpStatus } from 'interfaces/melp';
 import { withAuthentication } from 'libs';
@@ -93,4 +94,12 @@ const MelpHome = () => {
     );
 };
 
-export default withAuthentication(MelpHome);
+const MelpWithRoles = withRoles(MelpHome, {
+    roles: ['METTLE_STUDENT', 'METTLE_ADMIN'],
+    fallback: {
+        type: 'redirect',
+        to: '/',
+    },
+});
+
+export default withAuthentication(MelpWithRoles);

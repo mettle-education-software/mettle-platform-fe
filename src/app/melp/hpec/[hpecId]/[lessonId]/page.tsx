@@ -10,6 +10,7 @@ import {
     HpecVideo,
     MaxWidthContainer,
     TabNav,
+    withRoles,
 } from 'components';
 import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
@@ -117,4 +118,12 @@ function Hpec({ params }: Readonly<{ params: Record<string, string> }>) {
     );
 }
 
-export default withAuthentication(Hpec);
+const HpecWithRoles = withRoles(Hpec, {
+    roles: ['METTLE_STUDENT', 'METTLE_ADMIN'],
+    fallback: {
+        type: 'redirect',
+        to: '/',
+    },
+});
+
+export default withAuthentication(HpecWithRoles);

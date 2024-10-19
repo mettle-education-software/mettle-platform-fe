@@ -1,6 +1,7 @@
 import { auth, googleProvider, microsoftProvider } from 'config/firebase';
-import { signInWithEmailAndPassword, signInWithPopup, AuthError, AuthErrorCodes } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, AuthError, AuthErrorCodes, AuthProvider } from 'firebase/auth';
 import React from 'react';
+import { accountService } from 'services';
 
 type HandleLoginType = (params: {
     email: string;
@@ -32,9 +33,22 @@ export const handleLogin: HandleLoginType = async ({ email, password, setLoginEr
     }
 };
 
+const handleProviderLogin = async (provider: AuthProvider) => {
+    try {
+        const signInResult = await signInWithPopup(auth, provider);
+        const tokenResponse = (signInResult as unknown as { _tokenResponse: { isNewUser: boolean } })._tokenResponse;
+
+        if (tokenResponse.isNewUser) {
+            await accountService.post(`/free/${signInResult.user.uid}`);
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
 export const handleGoogleLogin = async () => {
     try {
-        await signInWithPopup(auth, googleProvider);
+        await handleProviderLogin(googleProvider);
     } catch (error) {
         console.error(error);
     }
@@ -42,7 +56,7 @@ export const handleGoogleLogin = async () => {
 
 export const handleMicrosoftLogin = async () => {
     try {
-        await signInWithPopup(auth, microsoftProvider);
+        await handleProviderLogin(microsoftProvider);
     } catch (error) {
         console.error(error);
     }

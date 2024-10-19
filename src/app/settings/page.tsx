@@ -4,7 +4,7 @@ import { InfoCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { Button, Card, Col, Flex, Form, Input, Modal, Row, Tabs as AntTabs, Tooltip, Typography } from 'antd';
-import { AppLayout, MaxWidthContainer } from 'components';
+import { AppLayout, MaxWidthContainer, withRoles } from 'components';
 import { usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { passwordRules, withAuthentication } from 'libs';
 import { useAppContext, useMelpContext } from 'providers';
@@ -373,6 +373,28 @@ const Help = () => {
                             </Col>
                         </Row>
                     </Col>
+                    <Col span={24}>
+                        <Row className="row-border">
+                            <Col xs={12} md={24}>
+                                <a
+                                    href="https://mettle.com.br/politica-de-privacidade/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Política de privacidade
+                                </a>
+                            </Col>
+                            <Col xs={24} md={24}>
+                                <a
+                                    href="https://mettle.com.br/termos-de-uso/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Termos de uso
+                                </a>
+                            </Col>
+                        </Row>
+                    </Col>
                 </Row>
             </div>
         </div>
@@ -429,4 +451,12 @@ const Settings = () => {
     );
 };
 
-export default withAuthentication(Settings);
+const SettingsWithRoles = withRoles(Settings, {
+    roles: ['METTLE_STUDENT', 'METTLE_ADMIN'],
+    fallback: {
+        type: 'component',
+        component: <div>Free settings</div>,
+    },
+});
+
+export default withAuthentication(SettingsWithRoles);

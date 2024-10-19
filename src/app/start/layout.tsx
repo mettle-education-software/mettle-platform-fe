@@ -1,11 +1,10 @@
 'use client';
 
-import { AuthenticationLayout } from 'components';
 import { withoutAuthentication } from 'libs';
 import React from 'react';
 
-function LoginLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-    return <AuthenticationLayout>{children}</AuthenticationLayout>;
+function SignupLayout({ children }: { children: React.ReactNode }) {
+    return children;
 }
 
-export default withoutAuthentication(LoginLayout);
+export default withoutAuthentication(SignupLayout);

@@ -3,7 +3,17 @@
 import { CloudOutlined, LoadingOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Flex, Popover, Tooltip, Typography } from 'antd';
-import { AppLayout, ArrowDown, Chip, GoalsTab, InputTab, MaxWidthContainer, PerformanceTab, TabNav } from 'components';
+import {
+    AppLayout,
+    ArrowDown,
+    Chip,
+    GoalsTab,
+    InputTab,
+    MaxWidthContainer,
+    PerformanceTab,
+    TabNav,
+    withRoles,
+} from 'components';
 import { LoadingLayout } from 'components/layouts/LoadingLayout/LoadingLayout';
 import { useDeviceSize } from 'hooks';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
@@ -250,4 +260,12 @@ const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: strin
     );
 };
 
-export default withAuthentication(LampPage);
+const LampWithRoles = withRoles(LampPage, {
+    roles: ['METTLE_STUDENT', 'METTLE_ADMIN'],
+    fallback: {
+        type: 'redirect',
+        to: '/',
+    },
+});
+
+export default withAuthentication(LampWithRoles);

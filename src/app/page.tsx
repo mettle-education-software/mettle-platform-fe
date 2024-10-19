@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Card, Col, Flex, Row, Typography } from 'antd';
-import { AppLayout, CourseCard, MaxWidthContainer } from 'components';
+import { AppLayout, CourseCard, MaxWidthContainer, withRoles, FreeHome } from 'components';
 import { withAuthentication } from 'libs';
 import { useAppContext } from 'providers';
 import React from 'react';
@@ -99,4 +99,12 @@ function Home() {
     );
 }
 
-export default withAuthentication(Home);
+const HomeWithRoles = withRoles(Home, {
+    roles: ['METTLE_STUDENT', 'METTLE_ADMIN'],
+    fallback: {
+        component: <FreeHome />,
+        type: 'component',
+    },
+});
+
+export default withAuthentication(HomeWithRoles);

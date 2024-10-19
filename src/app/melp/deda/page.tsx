@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Button, Flex, Typography } from 'antd';
-import { AppLayout, Chip, DedasGrid, MaxWidthContainer } from 'components';
+import { AppLayout, Chip, DedasGrid, MaxWidthContainer, withRoles } from 'components';
 import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
@@ -112,4 +112,12 @@ function DedaPage() {
     );
 }
 
-export default withAuthentication(DedaPage);
+const DedaPageWithRoles = withRoles(DedaPage, {
+    roles: ['METTLE_STUDENT', 'METTLE_ADMIN'],
+    fallback: {
+        type: 'redirect',
+        to: '/',
+    },
+});
+
+export default withAuthentication(DedaPageWithRoles);

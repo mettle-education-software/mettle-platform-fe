@@ -3,7 +3,7 @@
 import styled from '@emotion/styled';
 import { ArrowBackIos } from '@mui/icons-material';
 import { Button, Flex, Typography } from 'antd';
-import { DedaActivity, DedaNotes, DedaQuote, DedaReview, MaxWidthContainer, TabNav } from 'components';
+import { DedaActivity, DedaNotes, DedaQuote, DedaReview, MaxWidthContainer, TabNav, withRoles } from 'components';
 import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
@@ -189,4 +189,12 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     );
 }
 
-export default withAuthentication(withDedaUnlocked(DedaContent));
+const DedaContentWithRoles = withRoles(DedaContent, {
+    roles: ['METTLE_STUDENT', 'METTLE_ADMIN'],
+    fallback: {
+        type: 'redirect',
+        to: '/',
+    },
+});
+
+export default withAuthentication(withDedaUnlocked(DedaContentWithRoles));

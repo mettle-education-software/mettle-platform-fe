@@ -8,12 +8,14 @@ export const getWeekDay = () => {
     return day === 0 ? '07' : day.toString().padStart(2, '0');
 };
 
-export const getDayToday = () => `day${new Date().getDay() === 0 ? 7 : new Date().getDay()}`;
-
-export const getTodaysWeekDay = () => {
-    const date = new Date();
-    const day = date.getDay();
-    return day === 0 ? 7 : day;
+export const getDayToday = () => {
+    const today = new Date();
+    const brazilTime = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Sao_Paulo',
+        weekday: 'short',
+    }).format(today);
+    const dayNumber = brazilTime === 'Sun' ? 7 : today.getDay() === 0 ? 7 : today.getDay();
+    return `day${dayNumber}`;
 };
 
 export function extractYouTubeID(url: string) {

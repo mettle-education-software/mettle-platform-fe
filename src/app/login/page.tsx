@@ -2,8 +2,9 @@
 
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Button, Col, Form, Input, Row, Spin, Typography } from 'antd';
-import { handleLogin, SMALL_VIEWPORT } from 'libs';
+import { Button, Col, Flex, Form, Input, Row, Spin, Typography } from 'antd';
+// import { Google, Microsoft } from 'components';
+import { handleGoogleLogin, handleLogin, handleMicrosoftLogin, SMALL_VIEWPORT } from 'libs';
 import Link from 'next/link';
 import React from 'react';
 

@@ -38,9 +38,11 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
 
     if (currentDeda) {
         const currentDedaNumber = parseInt(currentDeda.replace(/\D/g, ''));
+        console.log('currentDedaNumber', currentDedaNumber, 'nextDedas', nextDedas);
         for (let i = 1; i <= 4; i++) {
             nextDedas.push(`DEDA${currentDedaNumber + i}`);
         }
+        console.log('nextDedas', nextDedas);
     }
 
     const lastDedasResult = useLastDedas(lastDedas);
@@ -52,6 +54,10 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
     });
 
     const nextDedasResult = useNextDedas(nextDedas);
+
+    const nextDedasItems = nextDedasResult.data?.dedaContentCollection.items?.toSorted((a, b) => {
+        return Number(a.dedaId.replace(/\D/g, '')) - Number(b.dedaId.replace(/\D/g, ''));
+    });
 
     const allDedasResult = useAllDedasList(type !== 'allDedas');
     const sortedAllDedasResult: DedaItem[] = allDedasResult
@@ -147,7 +153,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                         ))}
                     {type === 'nextDedas' &&
                         melpSummary?.melp_status !== 'DEDA_FINISHED' &&
-                        nextDedasResult.data?.dedaContentCollection.items.map((deda, index) => (
+                        nextDedasItems?.map((deda, index) => (
                             <Col xs={12} md={6} key={deda.dedaSlug}>
                                 <DedaCard
                                     dedaId={deda.dedaId}

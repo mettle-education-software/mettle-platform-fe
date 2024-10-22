@@ -3,7 +3,7 @@
 import styled from '@emotion/styled';
 import { Button, Flex, Typography } from 'antd';
 import { AppLayout, Chip, DedasGrid, MaxWidthContainer } from 'components';
-import { useDeviceSize } from 'hooks';
+import { useDeviceSize, useGetCurrentDeda } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { useRouter } from 'next/navigation';
@@ -46,7 +46,9 @@ const GridContent = styled.section`
 export const FreeHome = () => {
     const device = useDeviceSize();
 
-    const featuredDedaDataResult = useFeaturedDedaData('DEDA1');
+    const { data: currentDeda } = useGetCurrentDeda();
+
+    const featuredDedaDataResult = useFeaturedDedaData(currentDeda?.id);
 
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 

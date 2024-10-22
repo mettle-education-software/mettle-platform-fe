@@ -214,3 +214,10 @@ export interface DedaVideosArticlesQueryResponse {
         }[];
     };
 }
+
+export interface CurrentDedaResponse {
+    dbIndex: number;
+    dedaName: string;
+    id: string;
+    number: number;
+}

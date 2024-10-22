@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { DedaActivityStatusResponse, FireUser } from 'interfaces';
+import { CurrentDedaResponse, DedaActivityStatusResponse, FireUser } from 'interfaces';
 import { MelpSummaryResponse } from 'interfaces/melp';
 import { getDayToday } from 'libs';
 import { useAppContext } from 'providers';
@@ -56,5 +56,12 @@ export const useSubmitDedaRecordingAudio = () => {
                     'Content-Type': 'multipart/form-data',
                 },
             }),
+    });
+};
+
+export const useGetCurrentDeda = () => {
+    return useQuery({
+        queryKey: ['get-current-deda'],
+        queryFn: () => melpService.get<CurrentDedaResponse>('/deda/current').then(({ data }) => data),
     });
 };

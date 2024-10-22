@@ -107,7 +107,7 @@ export const useSaveDedaInput = () => {
             });
         },
         onError: (error) => {
-            alert(error.message);
+            throw error;
         },
     });
 };

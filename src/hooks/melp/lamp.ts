@@ -445,7 +445,7 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
             if (dailyView === 'readingTime') {
                 const readingTimeSeries = data.dedaDaily.map((daily) => ({
                     x: daily.weekDay,
-                    y: daily.readingTime,
+                    y: daily.readingTime / 60,
                 }));
 
                 setDailyPerformanceGraph((previousConfig) => ({

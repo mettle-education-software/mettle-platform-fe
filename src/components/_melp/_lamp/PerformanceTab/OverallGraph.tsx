@@ -12,6 +12,15 @@ const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 const { Title } = Typography;
 
+const OverallLabel = styled(Flex)`
+    @media (max-width: ${SMALL_VIEWPORT}px) {
+        .stat-label {
+            font-size: 14px !important;
+            margin-left: 1rem !important;
+        }
+    }
+`;
+
 const WhiteTitle = styled(Title)`
     color: #ffffff !important;
     font-weight: 400 !important;
@@ -59,9 +68,10 @@ export const OverallGraph: React.FC = () => {
                     left: device === 'mobile' ? '37.5%' : '42%',
                 }}
             >
-                <Flex vertical align="center" gap="0">
+                <OverallLabel vertical align="center" gap="0">
                     {overallData && (
                         <Title
+                            className="stat-label"
                             level={5}
                             style={{
                                 color: '#FFF',
@@ -71,10 +81,10 @@ export const OverallGraph: React.FC = () => {
                             {overallData.overallPerformance.toFixed(2)}%
                         </Title>
                     )}
-                    <Title level={5} style={{ color: 'var(--secondary)', margin: 0 }}>
+                    <Title className="stat-label" level={5} style={{ color: 'var(--secondary)', margin: 0 }}>
                         OVERALL
                     </Title>
-                </Flex>
+                </OverallLabel>
             </div>
             <ReactApexChart
                 options={overallGraph.options}

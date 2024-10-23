@@ -270,7 +270,7 @@ export const AppLayout = forwardRef<
                 </Sidebar>
                 <Layout>
                     <AppHeader>
-                        <div>{withMelpSummary && melpSummary.melp_status === 'DEDA_STARTED' && <MelpSummary />}</div>
+                        <div>{withMelpSummary && melpSummary?.melp_status === 'DEDA_STARTED' && <MelpSummary />}</div>
                         <div>
                             <AdminActions />
                         </div>

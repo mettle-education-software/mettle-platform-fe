@@ -34,14 +34,13 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
 
     const lastDedas =
         unlockedDEDAs.length < 4
-            ? unlockedDEDAs
+            ? unlockedDEDAs.toReversed()
             : unlockedDEDAs.slice(unlockedDEDAs.length - 4, unlockedDEDAs.length).reverse();
 
     let nextDedas: string[] = [];
 
     if (currentDeda) {
         const currentDedaNumber = parseInt(currentDeda.replace(/\D/g, ''));
-        console.log('currentDedaNumber', currentDedaNumber, 'nextDedas', nextDedas);
         for (let i = 1; i <= 4; i++) {
             nextDedas.push(`DEDA${currentDedaNumber + i}`);
         }

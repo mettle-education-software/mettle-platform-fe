@@ -419,6 +419,9 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
                     y: daily.dedaTime,
                 }));
 
+                const maximumDedaTimeValue = Math.max(...data.dedaDaily.map((daily) => daily.dedaTime));
+                const DEFAULT_DEDA_TIME_MAX = 60;
+
                 setDailyPerformanceGraph((previousConfig) => ({
                     series: [
                         {
@@ -430,7 +433,10 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
                         ...previousConfig.options,
                         yaxis: {
                             ...previousConfig.options.yaxis,
-                            max: 70,
+                            max:
+                                maximumDedaTimeValue > DEFAULT_DEDA_TIME_MAX
+                                    ? maximumDedaTimeValue + 10
+                                    : DEFAULT_DEDA_TIME_MAX,
                             labels: {
                                 style: graphLabelsStyles,
                                 formatter: (value) => {
@@ -448,6 +454,9 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
                     y: daily.readingTime / 60,
                 }));
 
+                const maxReadingTime = Math.max(...data.dedaDaily.map((daily) => daily.readingTime / 60));
+                const DEFAULT_READING_TIME_MAX = 10;
+
                 setDailyPerformanceGraph((previousConfig) => ({
                     series: [
                         {
@@ -459,7 +468,10 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
                         ...previousConfig.options,
                         yaxis: {
                             ...previousConfig.options.yaxis,
-                            max: 15,
+                            max:
+                                maxReadingTime > DEFAULT_READING_TIME_MAX
+                                    ? maxReadingTime + 10
+                                    : DEFAULT_READING_TIME_MAX,
                             labels: {
                                 style: graphLabelsStyles,
                                 formatter: (value) => {

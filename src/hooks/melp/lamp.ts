@@ -430,7 +430,7 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
                         ...previousConfig.options,
                         yaxis: {
                             ...previousConfig.options.yaxis,
-                            max: 100,
+                            max: 70,
                             labels: {
                                 style: graphLabelsStyles,
                                 formatter: (value) => {
@@ -459,7 +459,7 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
                         ...previousConfig.options,
                         yaxis: {
                             ...previousConfig.options.yaxis,
-                            max: 30,
+                            max: 15,
                             labels: {
                                 style: graphLabelsStyles,
                                 formatter: (value) => {

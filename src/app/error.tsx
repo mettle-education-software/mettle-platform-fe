@@ -14,7 +14,6 @@ const ErrorContainer = styled.div`
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     useEffect(() => {
-        // Log the error to an error reporting service
         console.error(error);
     }, [error]);
 
@@ -41,7 +40,14 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
                             Ops!
                         </Typography.Title>
                     }
-                    subTitle={<Typography.Text style={{ color: '#FFF' }}>Sorry, something went wrong.</Typography.Text>}
+                    subTitle={
+                        <Flex vertical>
+                            <Typography.Text style={{ color: '#FFF' }}>Parece que algo deu errado.</Typography.Text>
+                            <Typography.Text style={{ color: '#FFF' }}>
+                                Detalhes do erro: {error.message}
+                            </Typography.Text>
+                        </Flex>
+                    }
                     extra={
                         <Button type="primary" onClick={reset}>
                             Try again

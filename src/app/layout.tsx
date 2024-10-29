@@ -38,7 +38,8 @@ const App = ({ children }: { children: React.ReactNode }) => {
           `}
                 </Script>
                 <Script id="chatwool">
-                    {`(function(d,t) {
+                    {`window.chatwootSettings = {"position":"left","type":"expanded_bubble","launcherTitle":"Ajuda?"};
+                   (function(d,t) {
         var BASE_URL="https://support.mettle.com.br";
         var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
         g.src=BASE_URL+"/packs/js/sdk.js";

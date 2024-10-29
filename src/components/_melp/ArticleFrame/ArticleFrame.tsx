@@ -59,15 +59,19 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
 
     useEffect(() => {
         if (metadata?.image) {
-            fetch(metadata.image).then((response) => {
-                if (response.status === 200) {
-                    setThumbStyle((previous) => ({
-                        ...previous,
-                        backgroundImage: `url(${metadata.image})`,
-                        backgroundSize: 'contain',
-                    }));
-                }
-            });
+            fetch(metadata.image)
+                .then((response) => {
+                    if (response.status === 200) {
+                        setThumbStyle((previous) => ({
+                            ...previous,
+                            backgroundImage: `url(${metadata.image})`,
+                            backgroundSize: 'contain',
+                        }));
+                    }
+                })
+                .catch((error) => {
+                    console.log('Fetch image error', error);
+                });
         }
     }, [metadata?.image]);
 

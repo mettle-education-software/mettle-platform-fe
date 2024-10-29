@@ -57,17 +57,18 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
 
     const nextDedasResult = useNextDedas(nextDedas);
 
-    const nextDedasItems = nextDedasResult.data?.dedaContentCollection.items?.toSorted((a, b) => {
+    const nextDedasItems = nextDedasResult.data?.dedaContentCollection.items?.slice()?.sort((a, b) => {
         return Number(a.dedaId.replace(/\D/g, '')) - Number(b.dedaId.replace(/\D/g, ''));
     });
 
     const allDedasResult = useAllDedasList(type !== 'allDedas');
     const sortedAllDedasResult: DedaItem[] = allDedasResult
         ? (allDedasResult.data?.dedaContentCollection?.items
-              ?.toSorted((a, b) => {
+              ?.slice()
+              ?.sort((a, b) => {
                   return Number(a.dedaId.replace(/\D/g, '')) - Number(b.dedaId.replace(/\D/g, ''));
               })
-              ?.toSorted((a, b) => {
+              ?.sort((a, b) => {
                   if (unlockedDEDAs.includes(a.dedaId) && !unlockedDEDAs.includes(b.dedaId)) return -1;
                   if (!unlockedDEDAs.includes(a.dedaId) && unlockedDEDAs.includes(b.dedaId)) return 1;
                   return 0;

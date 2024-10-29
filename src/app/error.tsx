@@ -2,6 +2,7 @@
 
 // Error components must be Client Components
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/nextjs';
 import { Flex, Result, Button, Typography } from 'antd';
 import Image from 'next/image';
 import { useEffect } from 'react';
@@ -14,6 +15,7 @@ const ErrorContainer = styled.div`
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     useEffect(() => {
+        Sentry.captureException(error);
         console.error(error);
     }, [error]);
 

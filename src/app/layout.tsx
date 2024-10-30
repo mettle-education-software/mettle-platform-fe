@@ -38,21 +38,21 @@ const App = ({ children }: { children: React.ReactNode }) => {
           `}
                 </Script>
                 <Script id="chatwool">
-                    {`window.chatwootSettings = {"position":"left","type":"expanded_bubble","launcherTitle":"Ajuda?"};
-                   (function(d,t) {
-        var BASE_URL="https://support.mettle.com.br";
-        var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-        g.src=BASE_URL+"/packs/js/sdk.js";
-        g.defer = true;
-        g.async = true;
-        s.parentNode.insertBefore(g,s);
-        g.onload=function(){
-          window.chatwootSDK.run({
-            websiteToken: 'aKgMwccYpuZtD9m2211P57JH',
-            baseUrl: BASE_URL
-          })
-        }
-      })(document,"script");`}
+                    {`window.chatwootSettings = {"position":"left","type":"standard","launcherTitle":""};
+                                   (function(d,t) {
+                        var BASE_URL="https://support.mettle.com.br";
+                        var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+                        g.src=BASE_URL+"/packs/js/sdk.js";
+                        g.defer = true;
+                        g.async = true;
+                        s.parentNode.insertBefore(g,s);
+                        g.onload=function(){
+                          window.chatwootSDK.run({
+                            websiteToken: 'aKgMwccYpuZtD9m2211P57JH',
+                            baseUrl: BASE_URL
+                          })
+                        }
+                      })(document,"script");`}
                 </Script>
                 <AntdRegistry>
                     <main data-theme={theme}>

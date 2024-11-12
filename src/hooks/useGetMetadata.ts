@@ -1,13 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
+import ApiClient from 'services/ApiClient';
+
+const apiClient = new ApiClient('/api/metadata');
 
 export const useGetMetadata = (url: string) => {
     return useQuery({
-        queryKey: ['metadata', url],
+        queryKey: ['link-metadata', url],
         queryFn: () =>
-            fetch(`/api/metadata?url=${url}`)
-                .then((res) => res.json())
-                .then((data) => data),
-        enabled: !!url,
-        retry: false,
+            apiClient
+                .get<{
+                    canEmbed: boolean;
+                    reason?: string;
+                    image?: string;
+                }>('/', { params: { url } })
+                .then(({ data }) => data),
+        staleTime: 300000,
+        refetchOnWindowFocus: false,
     });
 };

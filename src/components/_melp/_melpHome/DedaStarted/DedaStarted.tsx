@@ -36,14 +36,14 @@ export const DedaStarted: React.FC = () => {
                         <DedasGrid
                             type="lastDedas"
                             onSelectedDeda={(dedaId) => {
-                                router.push(`/melp/deda/${dedaId}`);
+                                router.push(`/imerso/deda/${dedaId}`);
                             }}
                         />
                     </Col>
                     <Col xs={24} md={6}>
                         <SeeRestBtn
                             onClick={() => {
-                                router.push('/melp/deda');
+                                router.push('/imerso/deda');
                             }}
                         >
                             <Text className="color-white">

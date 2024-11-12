@@ -18,7 +18,7 @@ export const WeekZero: React.FC = () => {
                     customTitle="DEDA week zero"
                     type="lastDedas"
                     onSelectedDeda={(dedaId) => {
-                        router.push(`/melp/deda/${dedaId}`);
+                        router.push(`/imerso/deda/${dedaId}`);
                     }}
                 />
             </Col>

@@ -256,7 +256,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
         if (newStep === 'finish' && !isTodaysDedaAndNotCompleted) {
             handleFinishSave();
         } else if (newStep === 'completed') {
-            router.push('/melp/deda');
+            router.push('/imerso/deda');
         } else {
             setCurrentStep(newStep);
         }
@@ -472,7 +472,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
             {dedaSteps[currentStep as keyof typeof dedaSteps]}
             <Flex justify="flex-end" align="center" gap="1rem">
                 {currentStep === 'completed' ? (
-                    <CompleteButton type="primary" href="/melp/deda">
+                    <CompleteButton type="primary" href="/imerso/deda">
                         Go back
                     </CompleteButton>
                 ) : (

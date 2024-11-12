@@ -5,7 +5,7 @@ import { Button, Flex, Typography } from 'antd';
 import { AppLayout, Chip, DedasGrid, MaxWidthContainer } from 'components';
 import { useDeviceSize, useGetCurrentDeda } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
-import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
+import { padding, SMALL_VIEWPORT } from 'libs';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -54,7 +54,7 @@ export const FreeHome = () => {
 
     const router = useRouter();
 
-    const handleSelectedDeda = (dedaId: string) => router.push(`/melp/deda/${dedaId}`);
+    const handleSelectedDeda = (dedaId: string) => router.push(`/imerso/deda/${dedaId}`);
 
     return (
         <AppLayout>
@@ -77,7 +77,7 @@ export const FreeHome = () => {
                             </Flex>
                             <Button
                                 style={{ borderRadius: 36, fontSize: 20, height: 40 }}
-                                href={`/melp/deda/${featuredDeda?.dedaId}`}
+                                href={`/imerso/deda/${featuredDeda?.dedaId}`}
                                 type="primary"
                             >
                                 Go to DEDA

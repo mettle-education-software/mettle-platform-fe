@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MettleRoles } from 'interfaces';
 import { MelpSummaryResponse } from 'interfaces/melp';
 import { useAppContext, useMelpContext, useNotificationsContext } from 'providers';
@@ -9,7 +9,7 @@ export const useMelpSummary = (userUid?: string) => {
     const { user } = useAppContext();
 
     return useQuery({
-        queryKey: ['melp-summary', userUid],
+        queryKey: ['imerso-summary', userUid],
         queryFn: () =>
             melpService.get<MelpSummaryResponse>(`/v2/${userUid as string}/summary`).then(({ data }) => data.data),
         enabled:
@@ -27,7 +27,7 @@ export const useStartDeda = () => {
         mutationFn: () => melpService.put(`/deda/${user?.uid}/start`),
         onSuccess: async () => {
             await queryClient.invalidateQueries({
-                queryKey: ['melp-summary'],
+                queryKey: ['imerso-summary'],
             });
         },
     });
@@ -41,7 +41,7 @@ export const usePauseDeda = () => {
         mutationFn: () => melpService.put(`/deda/${user?.uid as string}/pause`),
         onSuccess: async () => {
             await queryClient.invalidateQueries({
-                queryKey: ['melp-summary'],
+                queryKey: ['imerso-summary'],
             });
         },
     });
@@ -55,7 +55,7 @@ export const useResumeDeda = () => {
         mutationFn: () => melpService.put(`/deda/${user?.uid as string}/resume`),
         onSuccess: async () => {
             await queryClient.invalidateQueries({
-                queryKey: ['melp-summary'],
+                queryKey: ['imerso-summary'],
             });
         },
     });
@@ -70,7 +70,7 @@ export const useResetMelp = () => {
         mutationFn: () => melpService.put(`/${user?.uid as string}/reset`),
         onSuccess: async () => {
             await queryClient.invalidateQueries({
-                queryKey: ['melp-summary'],
+                queryKey: ['imerso-summary'],
             });
             showNotification('success', 'A fresh start', 'Você reiniciou o programa IMERSO');
         },

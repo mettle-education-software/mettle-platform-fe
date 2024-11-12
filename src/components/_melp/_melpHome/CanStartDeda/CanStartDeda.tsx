@@ -1,6 +1,6 @@
 'use client';
 
-import { Col, Row, Typography, Alert, Button, Skeleton, Flex } from 'antd';
+import { Alert, Button, Col, Flex, Row, Skeleton, Typography } from 'antd';
 import { ComingHpecs, DedasGrid } from 'components';
 import { useStartDeda } from 'hooks';
 import { nextMondayDate } from 'libs';
@@ -62,7 +62,7 @@ export const CanStartDeda: React.FC = () => {
                         customTitle="DEDA week zero"
                         type="lastDedas"
                         onSelectedDeda={(dedaId) => {
-                            router.push(`/melp/deda/${dedaId}`);
+                            router.push(`/imerso/deda/${dedaId}`);
                         }}
                     />
                 </Col>

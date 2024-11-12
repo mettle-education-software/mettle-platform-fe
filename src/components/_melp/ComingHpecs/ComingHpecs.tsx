@@ -126,7 +126,7 @@ export const ComingHpecs: React.FC<ComingHpecsProps> = () => {
                         <VideoThumbnail
                             moduleOrder={lastModule?.moduleOrder}
                             title={firstModuleLesson?.lessonTitle}
-                            link={`/melp/hpec/${lastModule?.hpecId}/${firstModuleLesson?.lessonId}`}
+                            link={`/imerso/hpec/${lastModule?.hpecId}/${firstModuleLesson?.lessonId}`}
                             vimeoId={firstModuleLesson.lessonVideoEmbedUrl.split('/').pop() as string}
                         />
                     </StartHere>
@@ -154,7 +154,7 @@ export const ComingHpecs: React.FC<ComingHpecsProps> = () => {
                                             <VideoThumbnail
                                                 moduleOrder={lastModule?.moduleOrder}
                                                 title={lesson.lessonTitle}
-                                                link={`/melp/hpec/${lastModule?.hpecId}/${lesson.lessonId}`}
+                                                link={`/imerso/hpec/${lastModule?.hpecId}/${lesson.lessonId}`}
                                                 vimeoId={lesson.lessonVideoEmbedUrl.split('/').pop() as string}
                                             />
                                         </Col>

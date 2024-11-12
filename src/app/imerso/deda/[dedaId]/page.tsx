@@ -126,7 +126,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                                     icon={<ArrowBackIos className="color-secondary" />}
                                     ghost
                                     onClick={() => {
-                                        router.push('/melp/deda');
+                                        router.push('/imerso/deda');
                                     }}
                                 />
                                 <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
@@ -143,7 +143,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                                     icon={<ArrowBackIos className="color-white" />}
                                     ghost
                                     onClick={() => {
-                                        router.push('/melp/deda');
+                                        router.push('/imerso/deda');
                                     }}
                                 />
                             </Flex>

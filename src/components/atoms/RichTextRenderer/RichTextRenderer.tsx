@@ -119,7 +119,7 @@ const renderOptions = (links?: LinkType, justify?: boolean, toString?: boolean):
             // },
             [INLINES.HYPERLINK]: (node: Node, children: ReactNode) => (
                 <HyperLink href={node.data.uri} target="_blank">
-                    {toString ? `${children} ` : children}
+                    {toString ? `${children}` : children}
                 </HyperLink>
             ),
         },

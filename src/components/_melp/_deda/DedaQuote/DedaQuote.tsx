@@ -19,6 +19,11 @@ const QuoteText = styled(Text)`
         color: #ffffff;
         white-space: break-spaces;
     }
+
+    a {
+        color: #ffffff !important;
+        font-weight: 400 !important;
+    }
 `;
 
 export const DedaQuote: React.FC<DedaQuoteProps> = ({ dedaId }) => {

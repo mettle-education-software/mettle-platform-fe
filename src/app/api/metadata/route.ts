@@ -12,14 +12,33 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const response = await axios.get(url).catch((error) => error);
+        const response = await axios.get(url, { validateStatus: null }).catch((error) => error);
+        const xFrameOptions = response.headers['x-frame-options'];
 
         if (response.status !== 200) {
             return Response.error();
         }
 
         const metadata = extractMetadata(response.data);
-        return Response.json(metadata);
+
+        if (xFrameOptions && (xFrameOptions.toLowerCase() === 'deny' || xFrameOptions.toLowerCase() === 'sameorigin')) {
+            return new Response(
+                JSON.stringify({
+                    canEmbed: false,
+                    reason: 'X-Frame-Options header prevents embedding',
+                    ...metadata,
+                }),
+                {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                },
+            );
+        }
+
+        return new Response(JSON.stringify({ canEmbed: true, ...metadata }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        });
     } catch (error) {
         console.error(error);
         throw error;

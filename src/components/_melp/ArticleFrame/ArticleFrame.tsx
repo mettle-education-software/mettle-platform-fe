@@ -1,7 +1,7 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Skeleton, Modal, Drawer } from 'antd';
+import { Drawer, Modal, Skeleton } from 'antd';
 import { useDeviceSize, useGetMetadata } from 'hooks';
 import { useEffect, useState } from 'react';
 import { FrameThumbnail } from '../../atoms/FrameThumbnail/FrameThumbnail';
@@ -39,23 +39,15 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
         borderRadius: 6,
         width: '100%',
         aspectRatio: '16 / 9',
-        backgroundImage: `url("/mettle.png")`,
+        backgroundImage: `url("/img/thumb_articles_deda_linknowledge.webp")`,
         backgroundSize: 'contain',
         backgroundPosition: 'center',
     });
     const [shouldOpenExternal, setShouldOpenExternal] = useState(true);
 
     useEffect(() => {
-        fetch(href)
-            .then((response) => {
-                if (response.status === 200) {
-                    setShouldOpenExternal(false);
-                }
-            })
-            .catch((error) => {
-                console.error('Error fetching href', error);
-            });
-    }, [href]);
+        setShouldOpenExternal(!metadata?.canEmbed || false);
+    }, [metadata]);
 
     useEffect(() => {
         if (metadata?.image) {
@@ -64,8 +56,6 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
                     if (response.status === 200) {
                         setThumbStyle((previous) => ({
                             ...previous,
-                            backgroundImage: `url(${metadata.image})`,
-                            backgroundSize: 'contain',
                         }));
                     }
                 })
@@ -74,6 +64,8 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
                 });
         }
     }, [metadata?.image]);
+
+    const [isContentLoading, setIsContentLoading] = useState(true);
 
     if (isLoading)
         return (
@@ -97,6 +89,7 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
                     window.open(href, '_blank');
                     return;
                 }
+                setIsContentLoading(true);
 
                 if (!isModalOpen) setIsModalOpen(true);
             }}
@@ -110,7 +103,15 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
                     footer={null}
                     width="70vw"
                 >
-                    <ArticleFrameContainer allowFullScreen height="100%" src={href} />
+                    <Skeleton style={{ paddingLeft: '1rem', paddingRight: '1rem' }} active loading={isContentLoading} />
+                    <ArticleFrameContainer
+                        allowFullScreen
+                        height="100%"
+                        src={href}
+                        onLoad={() => {
+                            setIsContentLoading(false);
+                        }}
+                    />
                 </Dialog>
             ) : (
                 <Drawer
@@ -121,7 +122,15 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
                     height="100%"
                     placement="bottom"
                 >
-                    <ArticleFrameContainer allowFullScreen height="100%" src={href} />
+                    <Skeleton style={{ paddingLeft: '1rem', paddingRight: '1rem' }} active loading={isContentLoading} />
+                    <ArticleFrameContainer
+                        allowFullScreen
+                        height="100%"
+                        src={href}
+                        onLoad={() => {
+                            setIsContentLoading(false);
+                        }}
+                    />
                 </Drawer>
             )}
             <div style={thumbStyle} />

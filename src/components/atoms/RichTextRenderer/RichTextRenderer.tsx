@@ -73,8 +73,8 @@ const renderOptions = (links?: LinkType, justify?: boolean, toString?: boolean):
 
     return {
         renderMark: {
-            [MARKS.BOLD]: (text: ReactNode) => (toString ? `${text} ` : <strong>{text}</strong>),
-            [MARKS.ITALIC]: (text: ReactNode) => (toString ? `${text} ` : <em>{text}</em>),
+            [MARKS.BOLD]: (text: ReactNode) => (toString ? `${text}` : <strong>{text}</strong>),
+            [MARKS.ITALIC]: (text: ReactNode) => (toString ? `${text}` : <em>{text}</em>),
         },
         renderNode: {
             [BLOCKS.PARAGRAPH]: (node: Node, children: ReactNode) =>
@@ -91,17 +91,17 @@ const renderOptions = (links?: LinkType, justify?: boolean, toString?: boolean):
                     </Paragraph>
                 ),
             [BLOCKS.HEADING_1]: (node: Node, children: ReactNode) =>
-                toString ? `${children} ` : <Title level={1}>{children}</Title>,
+                toString ? `${children}` : <Title level={1}>{children}</Title>,
             [BLOCKS.HEADING_2]: (node: Node, children: ReactNode) =>
-                toString ? `${children} ` : <Title level={2}>{children}</Title>,
+                toString ? `${children}` : <Title level={2}>{children}</Title>,
             [BLOCKS.HEADING_3]: (node: Node, children: ReactNode) =>
-                toString ? `${children} ` : <Title level={3}>{children}</Title>,
+                toString ? `${children}` : <Title level={3}>{children}</Title>,
             [BLOCKS.HEADING_4]: (node: Node, children: ReactNode) =>
-                toString ? `${children} ` : <Title level={4}>{children}</Title>,
+                toString ? `${children}` : <Title level={4}>{children}</Title>,
             [BLOCKS.HEADING_5]: (node: Node, children: ReactNode) =>
-                toString ? `${children} ` : <Title level={5}>{children}</Title>,
+                toString ? `${children}` : <Title level={5}>{children}</Title>,
             [BLOCKS.HEADING_6]: (node: Node, children: ReactNode) =>
-                toString ? `${children} ` : <Title level={5}>{children}</Title>,
+                toString ? `${children}` : <Title level={5}>{children}</Title>,
             [BLOCKS.EMBEDDED_ASSET]: (node: Node) => {
                 const asset = assetMap.get(node.data.target.sys.id);
 

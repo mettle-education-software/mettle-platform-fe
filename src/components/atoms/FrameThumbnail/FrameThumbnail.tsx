@@ -32,7 +32,7 @@ export const FrameThumbnail: React.FC<{
         <FrameThumbnailContainer onClick={onThumbClick}>
             <ThumbnailWrapper fullWidth={fullWidth}>{children}</ThumbnailWrapper>
             <Typography.Title
-                ellipsis={{ rows: 3 }}
+                ellipsis={{ rows: 2 }}
                 className="color-white"
                 style={{
                     whiteSpace: 'break-spaces',

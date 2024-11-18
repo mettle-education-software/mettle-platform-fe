@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import { ArrowBackIos, ArrowForwardIos } from '@mui/icons-material';
 import { Button, Card as AntCard, Flex, Skeleton, Typography } from 'antd';
 import { ArticleFrame, MaxWidthContainer, VideoFrame } from 'components';
-import { useDeviceSize } from 'hooks';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaNotesQueryResponse } from 'interfaces';
 import { padding, SMALL_VIEWPORT } from 'libs';
@@ -121,8 +120,11 @@ const CarouselCard = ({
     );
 };
 
+const CarouselTitle = styled(Typography.Title)`
+    font-weight: 500 !important;
+`;
+
 export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
-    const device = useDeviceSize();
     const dedaNotesResult = useDeda<DedaNotesQueryResponse>('deda-notes', dedaId);
     const dedaNotesContent = useMemo(() => dedaNotesResult?.data?.dedaContentCollection?.items[0], [dedaNotesResult]);
 
@@ -151,9 +153,9 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                 <MainFlexColumn vertical align="stretch" gap="1.5rem">
                     <CarouselCard
                         title={
-                            <Typography.Title level={4}>
+                            <CarouselTitle level={4}>
                                 <FileTextFilled /> Articles
-                            </Typography.Title>
+                            </CarouselTitle>
                         }
                     >
                         <ArticlesRow>
@@ -166,9 +168,9 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                     </CarouselCard>
                     <CarouselCard
                         title={
-                            <Typography.Title level={4}>
+                            <CarouselTitle level={4}>
                                 <PlayCircleFilled /> Videos
-                            </Typography.Title>
+                            </CarouselTitle>
                         }
                     >
                         <ArticlesRow>
@@ -182,9 +184,9 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                     <CarouselCard
                         hideScroll
                         title={
-                            <Typography.Title level={4}>
+                            <CarouselTitle level={4}>
                                 <SpotifyFilled /> Podcasts
-                            </Typography.Title>
+                            </CarouselTitle>
                         }
                     >
                         <PodcastRow>

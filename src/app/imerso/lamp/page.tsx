@@ -229,7 +229,7 @@ const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: strin
                         sticky
                         activeKey={activeTab}
                         onTabClick={(key) => {
-                            router.replace(`/melp/lamp?lampTab=${key}`);
+                            router.replace(`/imerso/lamp?lampTab=${key}`);
                             setActiveTab(key);
                         }}
                         tabBarExtraContent={tabBarExtra.get(activeTab)}

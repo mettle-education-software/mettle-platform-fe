@@ -62,7 +62,7 @@ export const DedaPaused: React.FC = () => {
                     <DedasGrid
                         type="lastDedas"
                         onSelectedDeda={(dedaId) => {
-                            router.push(`/melp/deda/${dedaId}`);
+                            router.push(`/imerso/deda/${dedaId}`);
                         }}
                     />
                 </Col>

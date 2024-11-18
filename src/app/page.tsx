@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Card, Col, Flex, Row, Typography } from 'antd';
-import { AppLayout, CourseCard, MaxWidthContainer, withRoles, FreeHome } from 'components';
+import { AppLayout, CourseCard, FreeHome, MaxWidthContainer, withRoles } from 'components';
 import { withAuthentication } from 'libs';
 import { useAppContext } from 'providers';
 import React from 'react';
@@ -87,7 +87,7 @@ function Home() {
                                         imgUrl={'/img/imerso_thumb.webp'}
                                         title="IMERSO"
                                         type="Programa"
-                                        href="/melp"
+                                        href="/imerso"
                                     />
                                 </Col>
                             </Row>

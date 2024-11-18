@@ -86,8 +86,8 @@ export const HpecModulesList: React.FC<HpecModulesListProps> = ({
             children: hpec.hpecLessonsCollection.items.map((lesson) => (
                 <Link
                     key={lesson.lessonId}
-                    href={'/melp/hpec/[hpecId]/[lessonId]'}
-                    as={`/melp/hpec/${hpec.hpecId}/${lesson.lessonId}`}
+                    href={'/imerso/hpec/[hpecId]/[lessonId]'}
+                    as={`/imerso/hpec/${hpec.hpecId}/${lesson.lessonId}`}
                     shallow
                 >
                     <LessonLink className={lesson.lessonId === activeLessonId ? 'active' : ''}>

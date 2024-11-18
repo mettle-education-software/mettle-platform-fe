@@ -150,14 +150,14 @@ export const AppLayout = forwardRef<
                         },
                     },
                     {
-                        key: 'melp',
+                        key: 'imerso',
                         icon: <DedaIcon style={{ marginLeft: '-3px' }} />,
                         label: (
                             <Text
                                 style={{ cursor: 'pointer' }}
                                 onClick={(event) => {
                                     event.stopPropagation();
-                                    router.push('/melp');
+                                    router.push('/imerso');
                                 }}
                             >
                                 IMERSO
@@ -170,7 +170,7 @@ export const AppLayout = forwardRef<
                                 onClick: ({ domEvent }) => {
                                     domEvent.preventDefault();
                                     collapseOnMobile();
-                                    router.push('/melp/hpec/HPEC1/welcome');
+                                    router.push('/imerso/hpec/HPEC1/welcome');
                                 },
                             },
                             {
@@ -179,7 +179,7 @@ export const AppLayout = forwardRef<
                                 onClick: ({ domEvent }) => {
                                     domEvent.preventDefault();
                                     collapseOnMobile();
-                                    router.push('/melp/deda');
+                                    router.push('/imerso/deda');
                                 },
                                 disabled: ['MELP_BEGIN', 'MELP_SUSPENDED'].includes(melpSummary?.melp_status),
                             },
@@ -193,7 +193,7 @@ export const AppLayout = forwardRef<
                                 onClick: ({ domEvent }) => {
                                     domEvent.preventDefault();
                                     collapseOnMobile();
-                                    router.push('/melp/lamp');
+                                    router.push('/imerso/lamp');
                                 },
                             },
                         ],

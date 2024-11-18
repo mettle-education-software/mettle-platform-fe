@@ -65,7 +65,7 @@ function DedaPage() {
 
     const router = useRouter();
 
-    const handleSelectedDeda = (dedaId: string) => router.push(`/melp/deda/${dedaId}`);
+    const handleSelectedDeda = (dedaId: string) => router.push(`/imerso/deda/${dedaId}`);
 
     return (
         <AppLayout withMelpSummary>
@@ -88,7 +88,7 @@ function DedaPage() {
                             </Flex>
                             <Button
                                 style={{ borderRadius: 36, fontSize: 20, height: 40 }}
-                                href={`/melp/deda/${featuredDeda?.dedaId}`}
+                                href={`/imerso/deda/${featuredDeda?.dedaId}`}
                                 type="primary"
                             >
                                 Go to DEDA

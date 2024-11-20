@@ -34,7 +34,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
 
     const lastDedas =
         unlockedDEDAs.length < 4
-            ? unlockedDEDAs.toReversed()
+            ? unlockedDEDAs.reverse()
             : unlockedDEDAs.slice(unlockedDEDAs.length - 4, unlockedDEDAs.length).reverse();
 
     let nextDedas: string[] = [];

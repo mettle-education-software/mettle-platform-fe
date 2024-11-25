@@ -80,7 +80,7 @@ const MelpHome = () => {
                         </Col>
                         <Col>
                             <Title level={3} className="color-secondary">
-                                Welcome, {user?.name}
+                                Welcome, {user?.name.split(' ')[0]}
                             </Title>
                         </Col>
                     </Row>

@@ -90,6 +90,10 @@ a {
     text-align: center !important;
 }
 
+.full-width {
+    width: 100%;
+}
+
 /* Ant design style changes below */
 
 /*.ant-btn {*/

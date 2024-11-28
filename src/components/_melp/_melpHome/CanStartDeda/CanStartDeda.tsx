@@ -2,7 +2,7 @@
 
 import { Alert, Button, Col, Flex, Row, Skeleton, Typography, Modal, Select } from 'antd';
 import { ComingHpecs, DedasGrid } from 'components';
-import { useGetGoalByLevel, useStartDeda } from 'hooks';
+import { useStartDeda } from 'hooks';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
 import { nextMondayDate } from 'libs';
 import { useRouter } from 'next/navigation';
@@ -18,8 +18,6 @@ export const CanStartDeda: React.FC = () => {
     const [isDifficultyConfirmationOpen, setIsDifficultyConfirmationOpen] = useState(false);
     const [selectedDifficultyLevel, setSelectedDifficultyLevel] = useState<DedaDifficulty>('MEDIUM');
 
-    const { data: goalLevels, isLoading: goalsLoading } = useGetGoalByLevel(selectedDifficultyLevel);
-
     const confirmDedaStart = useStartDeda();
 
     const handleConfirmDedaStart = () => {
@@ -33,26 +31,32 @@ export const CanStartDeda: React.FC = () => {
         );
     };
 
+    const levelTexts: Record<DedaDifficulty, React.ReactNode> = {
+        EASY: 'A gradual pace, reaching 3 hours/day (1 hour 15 minutes active, 1 hour 45 minutes passive) within 10 months (41 weeks).',
+        MEDIUM: 'A moderate pace, reaching 4 hours/day (1 hour 30 minutes active, 2 hours 30 minutes passive) within 8 months (33 weeks).',
+        HARD: 'An accelerated pace, reaching 5 hours/day (2 hours active, 3 hours passive) within 6 months (25 weeks).',
+    };
+
     return (
         <Skeleton loading={isAppLoading} active>
             <Modal
                 maskClosable
                 destroyOnClose
-                title={
-                    <Title level={5}>
-                        Selecione o nível de dificuldade que você deseja configurar para começar o DEDA.
-                    </Title>
-                }
+                title={<Text>Understand how your study time will progress over time</Text>}
                 open={isDifficultyConfirmationOpen}
                 onOk={handleConfirmDedaStart}
+                okButtonProps={{
+                    loading: confirmDedaStart.isPending,
+                }}
                 onCancel={() => setIsDifficultyConfirmationOpen(false)}
-                okText={`Iniciar com ${DedaDifficulties[selectedDifficultyLevel]}`}
+                okText={`Confirm ${DedaDifficulties[selectedDifficultyLevel]}`}
+                cancelText="Cancel"
             >
-                <Row gutter={24} style={{ paddingTop: '1.5rem', paddingBottom: '1rem' }}>
-                    <Col span={12}>
+                <Row gutter={[24, 24]} style={{ paddingTop: '1.5rem', paddingBottom: '1rem' }}>
+                    <Col span={24}>
                         <Row gutter={6}>
                             <Col span={24}>
-                                <Text>Nível de dificuldade</Text>
+                                <Text>Select the intensity</Text>
                             </Col>
                             <Col span={24}>
                                 <Select
@@ -67,17 +71,32 @@ export const CanStartDeda: React.FC = () => {
                             </Col>
                         </Row>
                     </Col>
-                    <Col span={12}>
+                    <Col span={24}>
                         <Row>
                             <Col span={24}>
-                                <Skeleton paragraph active loading={goalsLoading}>
+                                <Flex
+                                    vertical
+                                    gap="1rem"
+                                    className="full-width"
+                                    style={{ paddingLeft: 8, paddingRight: 8 }}
+                                >
                                     <Text>
-                                        Nesta dificuldade, você começará com uma meta de{' '}
-                                        <strong>{goalLevels ? goalLevels[0]?.total : ''} (HH:MM) por dia</strong> e
-                                        chegará a{' '}
-                                        <strong>{goalLevels ? goalLevels[100]?.total : ''} (HH:MM) por dia</strong>
+                                        The intensity level you select determines how quickly you’ll reach your daily
+                                        targets and, ultimately, achieve your goal of English fluency:
                                     </Text>
-                                </Skeleton>
+                                    <Text>
+                                        <strong>{DedaDifficulties[selectedDifficultyLevel]}: </strong>
+                                        {levelTexts[selectedDifficultyLevel as DedaDifficulty]}
+                                    </Text>
+                                    <Text>
+                                        These targets help you structure your routine effectively, ensuring steady
+                                        progress based on your commitment level.
+                                    </Text>
+                                    <Text>
+                                        Note: You can only select your intensity level at the start of the program or
+                                        when restarting it using one of your reset options.
+                                    </Text>
+                                </Flex>
                             </Col>
                         </Row>
                     </Col>

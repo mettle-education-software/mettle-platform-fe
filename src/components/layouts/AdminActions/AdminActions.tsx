@@ -3,7 +3,7 @@
 import { Button, Card, Col, Flex, Modal, Row, Select, Typography } from 'antd';
 import { useGetMettleUsers, useImpersonate, useStopImpersonating } from 'hooks';
 import { useAppContext } from 'providers';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { debounce } from 'ts-debounce';
 
 const { Title } = Typography;

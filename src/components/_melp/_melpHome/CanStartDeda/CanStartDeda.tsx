@@ -42,7 +42,7 @@ export const CanStartDeda: React.FC = () => {
             <Modal
                 maskClosable
                 destroyOnClose
-                title={<Text>Understand how your study time will progress over time</Text>}
+                title={<Text>Choose your intensity level:</Text>}
                 open={isDifficultyConfirmationOpen}
                 onOk={handleConfirmDedaStart}
                 okButtonProps={{
@@ -56,7 +56,7 @@ export const CanStartDeda: React.FC = () => {
                     <Col span={24}>
                         <Row gutter={6}>
                             <Col span={24}>
-                                <Text>Select the intensity</Text>
+                                <Text>Intensity level options</Text>
                             </Col>
                             <Col span={24}>
                                 <Select

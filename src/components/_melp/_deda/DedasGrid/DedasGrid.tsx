@@ -34,7 +34,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
 
     const lastDedas =
         unlockedDEDAs.length < 4
-            ? unlockedDEDAs.reverse()
+            ? unlockedDEDAs.slice(0).reverse()
             : unlockedDEDAs.slice(unlockedDEDAs.length - 4, unlockedDEDAs.length).reverse();
 
     let nextDedas: string[] = [];
@@ -44,7 +44,6 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
         for (let i = 1; i <= 4; i++) {
             nextDedas.push(`DEDA${currentDedaNumber + i}`);
         }
-        console.log('nextDedas', nextDedas);
     }
 
     const lastDedasResult = useLastDedas(lastDedas);

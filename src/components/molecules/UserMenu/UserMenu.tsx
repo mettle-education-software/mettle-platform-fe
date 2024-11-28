@@ -16,7 +16,7 @@ export const UserMenu = () => {
 
             <Flex align="center" gap="1rem">
                 <Avatar src={user?.profileImageSrc}>{user?.name[0]}</Avatar>
-                <Text>{user?.name}</Text>
+                <Text>{user?.name.split(' ')[0]}</Text>
             </Flex>
         </Flex>
     );

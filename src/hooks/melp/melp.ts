@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MettleRoles } from 'interfaces';
-import { MelpSummaryResponse } from 'interfaces/melp';
+import { DedaDifficulty, MelpSummaryResponse } from 'interfaces/melp';
 import { useAppContext, useMelpContext, useNotificationsContext } from 'providers';
 import { useEffect, useState } from 'react';
 import { melpService } from 'services';
@@ -22,13 +22,18 @@ export const useStartDeda = () => {
     const queryClient = useQueryClient();
 
     const { user } = useAppContext();
+    const { showNotification } = useNotificationsContext();
 
     return useMutation({
-        mutationFn: () => melpService.put(`/deda/${user?.uid}/start`),
+        mutationFn: ({ userGoalLevel }: { userGoalLevel?: DedaDifficulty }) =>
+            melpService.put(`/deda/${user?.uid}/start`, { userGoalLevel }),
         onSuccess: async () => {
             await queryClient.invalidateQueries({
                 queryKey: ['imerso-summary'],
             });
+        },
+        onError: (error) => {
+            showNotification('error', 'Error', error.message);
         },
     });
 };

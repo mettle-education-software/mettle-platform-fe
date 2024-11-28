@@ -22,6 +22,7 @@ export const useStartDeda = () => {
     const queryClient = useQueryClient();
 
     const { user } = useAppContext();
+    const { showNotification } = useNotificationsContext();
 
     return useMutation({
         mutationFn: ({ userGoalLevel }: { userGoalLevel?: DedaDifficulty }) =>
@@ -30,6 +31,9 @@ export const useStartDeda = () => {
             await queryClient.invalidateQueries({
                 queryKey: ['imerso-summary'],
             });
+        },
+        onError: (error) => {
+            showNotification('error', 'Error', error.message);
         },
     });
 };

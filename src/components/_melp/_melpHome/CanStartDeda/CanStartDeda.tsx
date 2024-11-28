@@ -84,7 +84,7 @@ export const CanStartDeda: React.FC = () => {
                                         The intensity level you select determines how quickly you’ll reach your daily
                                         targets and, ultimately, achieve your goal of English fluency:
                                     </Text>
-                                    <Text>
+                                    <Text style={{ backgroundColor: 'yellow' }}>
                                         <strong>{DedaDifficulties[selectedDifficultyLevel]}: </strong>
                                         {levelTexts[selectedDifficultyLevel as DedaDifficulty]}
                                     </Text>

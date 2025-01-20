@@ -28,6 +28,7 @@ export interface HpecModulesResponse {
 export interface HpecResourcesResponse {
     singleLessonCollection: {
         items: {
+            lessonTitle: string;
             lessonResourcesCollection: {
                 items: {
                     url: string;

@@ -26,7 +26,7 @@ const SummaryReader = styled.article`
     }
 `;
 
-export const HpecSummary: React.FC<HpecSummaryProps> = ({ lessonId }) => {
+export const LessonSummary: React.FC<HpecSummaryProps> = ({ lessonId }) => {
     const { data, loading } = useGetLessonContent(lessonId);
 
     if (loading) return <Skeleton active loading />;

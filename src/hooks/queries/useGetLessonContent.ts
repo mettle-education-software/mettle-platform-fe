@@ -43,6 +43,15 @@ interface LessonResponse {
                 json: any;
                 links: LinkType;
             };
+            lessonResourcesCollection: {
+                items: {
+                    url: string;
+                    title: string;
+                    fileName: string;
+                    contentType: string;
+                    size: number;
+                }[];
+            };
         }[];
     };
 }

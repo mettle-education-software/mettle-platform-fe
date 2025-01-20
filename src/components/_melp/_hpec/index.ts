@@ -1,5 +1,5 @@
 export { HpecModulesList } from './HpecModulesList/HpecModulesList';
-export { HpecVideo } from './HpecVideo/HpecVideo';
-export { HpecSummary } from './HpecSummary/HpecSummary';
-export { HpecResources } from './HpecResources/HpecResources';
+export { LessonVideo } from './HpecVideo/LessonVideo';
+export { LessonSummary } from './HpecSummary/LessonSummary';
+export { LessonResources } from './HpecResources/LessonResources';
 export { HpecNavigationMobile } from './HpecNavigationMobile/HpecNavigationMobile';

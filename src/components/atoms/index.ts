@@ -12,3 +12,5 @@ export { NotificationsList } from './NotificationsList/NotificationsList';
 export { AudioPlayer } from './AudioPlayer/AudioPlayer';
 export { BackToTopButton } from './BackToTopButton/BackToTopButton';
 export { Chat } from './Chat/Chat';
+export { CourseModulesList } from './CourseModulesList/CourseModulesList';
+export { MobileLessonNavigation } from './MobileLessonNavigation/MobileLessonNavigation';

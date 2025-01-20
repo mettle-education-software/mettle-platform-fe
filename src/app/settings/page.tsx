@@ -402,6 +402,10 @@ const Help = () => {
 };
 
 const Settings = () => {
+    const { user } = useAppContext();
+
+    const isUserImerso = !!user && user.roles.includes('METTLE_STUDENT');
+
     return (
         <AppLayout>
             <MainContent>
@@ -430,11 +434,15 @@ const Settings = () => {
                                             label: 'Segurança',
                                             children: <SecuritySettings />,
                                         },
-                                        {
-                                            key: 'imerso-settings',
-                                            label: 'IMERSO',
-                                            children: <ImersoSettings />,
-                                        },
+                                        ...(isUserImerso
+                                            ? [
+                                                  {
+                                                      key: 'imerso-settings',
+                                                      label: 'IMERSO',
+                                                      children: <ImersoSettings />,
+                                                  },
+                                              ]
+                                            : []),
                                         {
                                             key: 'help',
                                             label: 'Ajuda',

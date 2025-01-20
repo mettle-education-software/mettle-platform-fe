@@ -10,3 +10,4 @@ export * from './queries';
 export * from './useAccounts';
 export * from './useAdmin';
 export * from './useConfetti';
+export * from './queries/useCourses';

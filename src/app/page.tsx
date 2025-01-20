@@ -52,6 +52,8 @@ function Home() {
 
     const [firstName] = user?.name ? user.name.split(' ') : [''];
 
+    console.log('env', process.env.VERCEL_ENV, process.env.NODE_ENV);
+
     return (
         <AppLayout>
             <Content>

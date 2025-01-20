@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import { Col, Flex, Row, Typography } from 'antd';
 import {
     AppLayout,
-    withRoles,
     MaxWidthContainer,
     LoadingLayout,
     LessonVideo,

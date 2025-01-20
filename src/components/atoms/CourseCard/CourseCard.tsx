@@ -54,7 +54,15 @@ export const CourseCard: React.FC<CourseCardProps> = ({ title, type, href, imgUr
         title={
             <CardThumb imgUrl={imgUrl}>
                 <div className="card-type-row">
-                    <div className="card-type">{isLocked ? <Lock /> : <Text>{type}</Text>}</div>
+                    <div className="card-type">
+                        {isLocked ? (
+                            <Text>
+                                {type} <Lock />
+                            </Text>
+                        ) : (
+                            <Text>{type}</Text>
+                        )}
+                    </div>
                 </div>
             </CardThumb>
         }

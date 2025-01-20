@@ -162,12 +162,4 @@ const Lesson: React.FC<LessonProps> = ({ params: { courseSlug, lessonId } }) => 
     );
 };
 
-const LessonWithRoles = withRoles(Lesson, {
-    roles: ['METTLE_ADMIN', 'METTLE_STUDENT'],
-    fallback: {
-        type: 'redirect',
-        to: '/',
-    },
-});
-
-export default withAuthentication(LessonWithRoles);
+export default withAuthentication(Lesson);

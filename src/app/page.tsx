@@ -90,12 +90,4 @@ function Home() {
     );
 }
 
-const HomeWithRoles = withRoles(Home, {
-    roles: ['METTLE_STUDENT', 'METTLE_ADMIN'],
-    fallback: {
-        component: <FreeHome />,
-        type: 'component',
-    },
-});
-
-export default withAuthentication(HomeWithRoles);
+export default withAuthentication(Home);

@@ -43,7 +43,7 @@ export const MettleCoursesList: React.FC = () => {
                     imgUrl={'/img/imerso_thumb.webp'}
                     title="IMERSO"
                     type="Programa"
-                    href={isImersoLocked ? 'https://mettle.com.br' : '/imerso'}
+                    href={isImersoLocked ? 'https://mettle.com.br/imerso' : '/imerso'}
                     isLocked={isImersoLocked}
                 />
             </Col>

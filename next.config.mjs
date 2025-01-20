@@ -20,6 +20,7 @@ const nextConfig = {
         TAWK_TO_PROPERTY_ID: process.env.TAWK_TO_PROPERTY_ID,
         TAWK_TO_WIDGET_ID: process.env.TAWK_TO_WIDGET_ID,
         TAWK_TO_CHAT_LINK: process.env.TAWK_TO_CHAT_LINK,
+        VERCEL_ENV: process.env.VERCEL_ENV,
     },
     publicRuntimeConfig: {
         SENTRY_DSN: process.env.SENTRY_DSN,

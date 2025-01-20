@@ -4,7 +4,7 @@ import { CourseCollectionResponse, CourseDetailsResponse } from 'interfaces';
 
 const coursesQuery = gql`
     query {
-        courseCollection(order: [sys_publishedAt_DESC], where: { isTestProduct: true }) {
+        courseCollection(order: [sys_publishedAt_DESC], where: { isTestProduct: ${process.env.NODE_ENV !== 'production'} }) {
             items {
                 courseSlug
                 courseTitle

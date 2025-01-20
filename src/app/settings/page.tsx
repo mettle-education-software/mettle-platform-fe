@@ -4,7 +4,7 @@ import { InfoCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { Button, Card, Col, Flex, Form, Input, Modal, Row, Tabs as AntTabs, Tooltip, Typography } from 'antd';
-import { AppLayout, MaxWidthContainer, withRoles } from 'components';
+import { AppLayout, MaxWidthContainer } from 'components';
 import { usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { passwordRules, withAuthentication } from 'libs';
 import { useAppContext, useMelpContext } from 'providers';
@@ -402,6 +402,10 @@ const Help = () => {
 };
 
 const Settings = () => {
+    const { user } = useAppContext();
+
+    const isUserImerso = !!user && user.roles.includes('METTLE_STUDENT');
+
     return (
         <AppLayout>
             <MainContent>
@@ -430,11 +434,15 @@ const Settings = () => {
                                             label: 'Segurança',
                                             children: <SecuritySettings />,
                                         },
-                                        {
-                                            key: 'imerso-settings',
-                                            label: 'IMERSO',
-                                            children: <ImersoSettings />,
-                                        },
+                                        ...(isUserImerso
+                                            ? [
+                                                  {
+                                                      key: 'imerso-settings',
+                                                      label: 'IMERSO',
+                                                      children: <ImersoSettings />,
+                                                  },
+                                              ]
+                                            : []),
                                         {
                                             key: 'help',
                                             label: 'Ajuda',
@@ -451,12 +459,12 @@ const Settings = () => {
     );
 };
 
-const SettingsWithRoles = withRoles(Settings, {
-    roles: ['METTLE_STUDENT', 'METTLE_ADMIN'],
-    fallback: {
-        type: 'component',
-        component: <div>Free settings</div>,
-    },
-});
+// const SettingsWithRoles = withRoles(Settings, {
+//     roles: ['METTLE_STUDENT', 'METTLE_ADMIN'],
+//     fallback: {
+//         type: 'component',
+//         component: <div>Free settings</div>,
+//     },
+// });
 
-export default withAuthentication(SettingsWithRoles);
+export default withAuthentication(Settings);

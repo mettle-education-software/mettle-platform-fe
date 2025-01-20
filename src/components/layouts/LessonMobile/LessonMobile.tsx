@@ -4,19 +4,21 @@ import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Col, Drawer, Flex, Row, Typography } from 'antd';
 import {
-    HpecModulesList,
     MobileLessonNavigation,
     LessonResources,
     LessonSummary,
     LessonVideo,
     MaxWidthContainer,
+    CourseModulesList,
 } from 'components';
 import { useGetHpecResources } from 'hooks';
+import useGetModulesList from 'hooks/queries/useGetModulesList';
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 const { Title, Text } = Typography;
 
-interface HpecMobileProps {
+interface LessonMobileProps {
     params: Record<string, string>;
 }
 
@@ -44,12 +46,30 @@ const LessonTabButton = styled.button`
     font-size: 1rem;
 `;
 
-const LessonView = ({ onChangeView, lessonId }: { onChangeView(): void; lessonId: string }) => {
+const LessonView = ({
+    onChangeView,
+    lessonId,
+    courseSlug,
+}: {
+    onChangeView(): void;
+    lessonId: string;
+    courseSlug: string;
+}) => {
     const [lessonTab, setLessonTab] = useState<'video' | 'summary' | 'resources'>('video');
 
     const { data } = useGetHpecResources(lessonId);
 
     const withoutResources = data?.singleLessonCollection?.items[0].lessonResourcesCollection.items.length === 0;
+
+    const { data: courseData } = useGetModulesList(courseSlug);
+
+    const modulesList = courseData?.courseCollection.items[0]?.courseModulesCollection?.items;
+
+    const lessonsList = modulesList ? modulesList.map((module) => module.lessonsCollection.items).flat() : [];
+
+    const lessonIndex = lessonsList.findIndex((lesson: Record<string, string>) => lesson.lessonId === lessonId);
+
+    const router = useRouter();
 
     const videoTab = () => (
         <Row gutter={[16, 24]}>
@@ -140,34 +160,41 @@ const LessonView = ({ onChangeView, lessonId }: { onChangeView(): void; lessonId
                         onChangeView();
                         setLessonTab('video');
                     }}
-                    onNext={() => null}
-                    onPrevious={() => null}
-                    firstItem={false}
-                    lastItem={false}
+                    onNext={() => {
+                        const nextLesson = lessonsList[lessonIndex + 1].lessonId;
+                        router.push(`/course/${courseSlug}/${nextLesson}`);
+                    }}
+                    onPrevious={() => {
+                        const previousLesson = lessonsList[lessonIndex - 1].lessonId;
+                        router.push(`/course/${courseSlug}/${previousLesson}`);
+                    }}
+                    firstItem={lessonIndex === 0}
+                    lastItem={lessonIndex === lessonsList.length - 1}
                 />
             </div>
         </>
     );
 };
 
-export const HpecMobile: React.FC<HpecMobileProps> = ({ params: { lessonId, hpecId } }) => {
+export const LessonMobile: React.FC<LessonMobileProps> = ({ params: { lessonId, moduleId, courseSlug } }) => {
     const [viewMode, setViewMode] = useState<'list' | 'lesson'>('lesson');
 
-    const [hpecLessonId, setHpecLessonId] = useState<string>(lessonId);
+    const [activeLessonId, setActiveLessonId] = useState<string>(lessonId);
 
     const onModuleFirstLesson = (firsLessonId: string) => {
         if (lessonId === 'first-lesson') {
-            setHpecLessonId(firsLessonId);
+            setActiveLessonId(firsLessonId);
         }
     };
 
     return (
         <Content>
             <LessonView
-                lessonId={hpecLessonId}
+                lessonId={activeLessonId}
                 onChangeView={() => {
                     setViewMode('list');
                 }}
+                courseSlug={courseSlug}
             />
             <Drawer
                 open={viewMode === 'list'}
@@ -177,9 +204,10 @@ export const HpecMobile: React.FC<HpecMobileProps> = ({ params: { lessonId, hpec
                 size="large"
                 style={{ background: 'var(--main-bg)' }}
             >
-                <HpecModulesList
-                    activeLessonId={hpecLessonId}
-                    activeHpecId={hpecId}
+                <CourseModulesList
+                    activeLessonId={activeLessonId}
+                    courseSlug={courseSlug}
+                    activeModuleId={moduleId}
                     onModuleFirstLesson={onModuleFirstLesson}
                 />
             </Drawer>

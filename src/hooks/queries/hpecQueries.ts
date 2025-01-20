@@ -120,6 +120,7 @@ const hpecResourcesQuery = gql`
     query HpecResources($lessonId: String) {
         singleLessonCollection(where: { lessonId: $lessonId }, limit: 1) {
             items {
+                lessonTitle
                 lessonResourcesCollection {
                     items {
                         url

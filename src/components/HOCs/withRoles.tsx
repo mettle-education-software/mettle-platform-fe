@@ -1,13 +1,12 @@
 'use client';
 
 import { LoadingLayout } from 'components';
-import { MettleRoles } from 'interfaces';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from 'providers';
 import React from 'react';
 
 interface Config {
-    roles: (keyof typeof MettleRoles)[];
+    roles: string[];
     fallback: {
         type: 'redirect' | 'component';
         to?: string;
@@ -15,7 +14,7 @@ interface Config {
     };
 }
 
-export function withRoles<P extends object>(Component: React.ComponentType<P>, config: Config): React.FC<P> {
+export function withRoles<P extends object>(Component: React.FC<P>, config: Config): React.FC<P> {
     const WithRoles: React.FC<P> = (props: P) => {
         const { roles, fallback } = config;
 
@@ -28,7 +27,7 @@ export function withRoles<P extends object>(Component: React.ComponentType<P>, c
 
         if (!hasPermission) {
             if (fallback.type === 'redirect') {
-                router.push(fallback.to || '/403');
+                router.push(fallback.to ?? '/403');
                 return;
             }
             return fallback.component || null;

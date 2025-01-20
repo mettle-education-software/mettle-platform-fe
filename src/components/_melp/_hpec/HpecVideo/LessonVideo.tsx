@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import { Skeleton, Typography } from 'antd';
 import { useDeviceSize } from 'hooks';
 import useGetLessonContent from 'hooks/queries/useGetLessonContent';
-import { padNumber, SMALL_VIEWPORT } from 'libs';
+import { SMALL_VIEWPORT } from 'libs';
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 
@@ -12,6 +12,7 @@ const { Title } = Typography;
 
 interface HpecVideoProps {
     lessonId: string;
+    onEmptyVideo?: () => void;
 }
 
 const VideoWrapper = styled.div`
@@ -41,13 +42,17 @@ const Markdown = styled(ReactMarkdown)`
     }
 `;
 
-export const HpecVideo: React.FC<HpecVideoProps> = ({ lessonId }) => {
+export const LessonVideo: React.FC<HpecVideoProps> = ({ lessonId, onEmptyVideo }) => {
     const { data, loading } = useGetLessonContent(lessonId);
     const device = useDeviceSize();
 
     if (loading || !data) return <Skeleton active loading />;
 
     const lesson = data.singleLessonCollection.items[0];
+
+    if (!lesson.lessonVideoEmbedUrl && onEmptyVideo) {
+        onEmptyVideo();
+    }
 
     return (
         <VideoWrapper>
@@ -58,8 +63,6 @@ export const HpecVideo: React.FC<HpecVideoProps> = ({ lessonId }) => {
                     {lesson.lessonTitle}
                 </Title>
             )}
-
-            <Markdown>{lesson.lessonFeaturedText}</Markdown>
         </VideoWrapper>
     );
 };

@@ -8,7 +8,7 @@ import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
 import { handleLogout, SMALL_VIEWPORT } from 'libs';
 import { usePathname, useRouter } from 'next/navigation';
-import { useMelpContext } from 'providers';
+import { useAppContext, useMelpContext } from 'providers';
 import React, { forwardRef, useEffect, useState } from 'react';
 import { DedaIcon } from '../../icons';
 import { UserMenu } from '../../molecules/UserMenu/UserMenu';
@@ -115,6 +115,7 @@ export const AppLayout = forwardRef<
         const router = useRouter();
 
         const { melpSummary } = useMelpContext();
+        const { user } = useAppContext();
 
         const trigger = (
             <Button
@@ -142,65 +143,71 @@ export const AppLayout = forwardRef<
                     {
                         key: 'home',
                         icon: <HomeOutlined />,
-                        label: 'Home',
+                        label: 'Início',
                         onClick: ({ domEvent }) => {
                             domEvent.preventDefault();
                             collapseOnMobile();
                             router.push('/');
                         },
                     },
-                    {
-                        key: 'imerso',
-                        icon: <DedaIcon style={{ marginLeft: '-3px' }} />,
-                        label: (
-                            <Text
-                                style={{ cursor: 'pointer' }}
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    router.push('/imerso');
-                                }}
-                            >
-                                IMERSO
-                            </Text>
-                        ),
-                        children: [
-                            {
-                                key: 'meplHpec',
-                                label: 'HPEC',
-                                onClick: ({ domEvent }) => {
-                                    domEvent.preventDefault();
-                                    collapseOnMobile();
-                                    router.push('/imerso/hpec/HPEC1/welcome');
-                                },
-                            },
-                            {
-                                key: 'melpDeda',
-                                label: 'DEDA',
-                                onClick: ({ domEvent }) => {
-                                    domEvent.preventDefault();
-                                    collapseOnMobile();
-                                    router.push('/imerso/deda');
-                                },
-                                disabled: ['MELP_BEGIN', 'MELP_SUSPENDED'].includes(melpSummary?.melp_status),
-                            },
-                            {
-                                key: 'melpLamp',
-                                label: 'LAMP',
-                                disabled: !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(
-                                    melpSummary?.melp_status,
-                                ),
-
-                                onClick: ({ domEvent }) => {
-                                    domEvent.preventDefault();
-                                    collapseOnMobile();
-                                    router.push('/imerso/lamp');
-                                },
-                            },
-                        ],
-                    },
+                    ...(user?.roles.includes('METTLE_STUDENT')
+                        ? [
+                              {
+                                  key: 'imerso',
+                                  icon: <DedaIcon style={{ marginLeft: '-3px' }} />,
+                                  label: (
+                                      <Text
+                                          style={{ cursor: 'pointer' }}
+                                          onClick={(event) => {
+                                              event.stopPropagation();
+                                              router.push('/imerso');
+                                          }}
+                                      >
+                                          IMERSO
+                                      </Text>
+                                  ),
+                                  children: [
+                                      {
+                                          key: 'meplHpec',
+                                          label: 'HPEC',
+                                          // @ts-ignore
+                                          onClick: ({ domEvent }) => {
+                                              domEvent.preventDefault();
+                                              collapseOnMobile();
+                                              router.push('/imerso/hpec/HPEC1/welcome');
+                                          },
+                                      },
+                                      {
+                                          key: 'melpDeda',
+                                          label: 'DEDA',
+                                          // @ts-ignore
+                                          onClick: ({ domEvent }) => {
+                                              domEvent.preventDefault();
+                                              collapseOnMobile();
+                                              router.push('/imerso/deda');
+                                          },
+                                          disabled: ['MELP_BEGIN', 'MELP_SUSPENDED'].includes(melpSummary?.melp_status),
+                                      },
+                                      {
+                                          key: 'melpLamp',
+                                          label: 'LAMP',
+                                          disabled: !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(
+                                              melpSummary?.melp_status,
+                                          ),
+                                          // @ts-ignore
+                                          onClick: ({ domEvent }) => {
+                                              domEvent.preventDefault();
+                                              collapseOnMobile();
+                                              router.push('/imerso/lamp');
+                                          },
+                                      },
+                                  ],
+                              },
+                          ]
+                        : []),
                     {
                         key: 'settings',
-                        label: 'Settings',
+                        label: 'Ajustes',
                         icon: <SettingOutlined />,
                         onClick: ({ domEvent }) => {
                             domEvent.preventDefault();
@@ -210,12 +217,12 @@ export const AppLayout = forwardRef<
                     },
                     {
                         key: 'logout',
-                        label: 'Logout',
+                        label: 'Log out',
                         icon: <LogoutOutlined />,
-                        onClick: async ({ domEvent }) => {
+                        onClick: ({ domEvent }) => {
                             domEvent.preventDefault();
                             collapseOnMobile();
-                            await handleLogout();
+                            handleLogout();
                         },
                     },
                 ]}

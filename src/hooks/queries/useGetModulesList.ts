@@ -29,11 +29,35 @@ const modulesListQuery = gql`
     }
 `;
 
-const useGetModulesList = (courseSlug?: string) => {
-    return useQuery(modulesListQuery, {
+const useGetModulesList = (courseSlug: string) => {
+    return useQuery<
+        {
+            courseCollection: {
+                items: {
+                    courseModulesCollection: {
+                        items: {
+                            moduleId: string;
+                            moduleName: string;
+                            lessonsCollection: {
+                                items: {
+                                    lessonId: string;
+                                    lessonTitle: string;
+                                    lessonFeaturedText: string;
+                                }[];
+                            };
+                        }[];
+                    };
+                }[];
+            };
+        },
+        {
+            courseSlug: string;
+        }
+    >(modulesListQuery, {
         variables: {
             courseSlug,
         },
+        skip: !courseSlug,
     });
 };
 

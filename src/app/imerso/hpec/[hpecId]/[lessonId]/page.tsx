@@ -5,9 +5,9 @@ import { Col, Flex, Row, Typography } from 'antd';
 import {
     HpecMobile,
     HpecModulesList,
-    HpecResources,
-    HpecSummary,
-    HpecVideo,
+    LessonResources,
+    LessonSummary,
+    LessonVideo,
     MaxWidthContainer,
     TabNav,
     withRoles,
@@ -83,17 +83,17 @@ function HpecContent({ params: { hpecId, lessonId } }: Readonly<{ params: Record
                                     {
                                         key: 'video',
                                         label: 'Video',
-                                        children: <HpecVideo lessonId={hpecLessonId} />,
+                                        children: <LessonVideo lessonId={hpecLessonId} />,
                                     },
                                     {
                                         key: 'summary',
                                         label: 'Summary',
-                                        children: <HpecSummary lessonId={hpecLessonId} />,
+                                        children: <LessonSummary lessonId={hpecLessonId} />,
                                     },
                                     {
                                         key: 'resources',
                                         label: 'Resources',
-                                        children: <HpecResources lessonId={hpecLessonId} />,
+                                        children: <LessonResources lessonId={hpecLessonId} />,
                                         disabled:
                                             data?.singleLessonCollection?.items[0].lessonResourcesCollection.items
                                                 .length === 0,

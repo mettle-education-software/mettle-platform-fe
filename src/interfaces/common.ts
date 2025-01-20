@@ -78,7 +78,7 @@ export enum MettleRoles {
 
 export interface FireUser {
     email: string;
-    roles: (keyof typeof MettleRoles)[];
+    roles: string;
     uid: string;
     businessUuid: string;
     name: string;

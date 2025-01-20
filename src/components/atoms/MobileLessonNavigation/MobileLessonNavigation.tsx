@@ -30,7 +30,7 @@ const GridIcon = styled(AppsRoundedIcon)`
     color: var(--secondary);
 `;
 
-interface HpecNavigationMobileProps {
+interface MobileLessonNavigationProps {
     onChangeView(): void;
 
     onPrevious(): void;
@@ -41,7 +41,7 @@ interface HpecNavigationMobileProps {
     firstItem: boolean;
 }
 
-export const HpecNavigationMobile: React.FC<HpecNavigationMobileProps> = ({
+export const MobileLessonNavigation: React.FC<MobileLessonNavigationProps> = ({
     onChangeView,
     onPrevious,
     onNext,

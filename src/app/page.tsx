@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Card, Col, Flex, Row, Typography } from 'antd';
-import { AppLayout, CourseCard, FreeHome, MaxWidthContainer, withRoles } from 'components';
+import { AppLayout, FreeHome, MaxWidthContainer, MettleCoursesList, withRoles } from 'components';
 import { withAuthentication } from 'libs';
 import { useAppContext } from 'providers';
 import React from 'react';
@@ -81,16 +81,7 @@ function Home() {
                                 <Text style={{ fontWeight: 400 }}>Navegue entre os cursos disponíveis para você</Text>
                             </Flex>
 
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} md={6}>
-                                    <CourseCard
-                                        imgUrl={'/img/imerso_thumb.webp'}
-                                        title="IMERSO"
-                                        type="Programa"
-                                        href="/imerso"
-                                    />
-                                </Col>
-                            </Row>
+                            <MettleCoursesList />
                         </Flex>
                     </ContinueCard>
                 </MaxWidthContainer>

@@ -24,7 +24,7 @@ const LogoContainer = styled.div`
     flex-direction: column;
     background:
         linear-gradient(0deg, rgba(60, 54, 47, 0.69) 0%, rgba(60, 54, 47, 0.69) 100%),
-        url('/img/woman_bg.jpeg') lightgray 50% / cover no-repeat;
+        url('/img/deda-grid-bg.png') lightgray 50% / cover no-repeat;
 `;
 
 const LogoWrapper = styled.div`

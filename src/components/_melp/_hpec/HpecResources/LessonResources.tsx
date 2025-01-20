@@ -8,7 +8,7 @@ import { useGetHpecResources } from 'hooks/queries/hpecQueries';
 import { fileTypes, saveFile } from 'libs';
 import React from 'react';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 interface HpecResourcesProps {
     lessonId: string;
@@ -92,7 +92,7 @@ const StyleResourceCard = styled(ResourceCard)`
     }
 `;
 
-export const HpecResources: React.FC<HpecResourcesProps> = ({ lessonId }) => {
+export const LessonResources: React.FC<HpecResourcesProps> = ({ lessonId }) => {
     const { data, loading } = useGetHpecResources(lessonId);
     const device = useDeviceSize();
     const filesList = data?.singleLessonCollection?.items[0].lessonResourcesCollection.items;

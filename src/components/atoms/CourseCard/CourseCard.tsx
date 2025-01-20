@@ -1,5 +1,6 @@
 'use client';
 
+import Lock from '@ant-design/icons/LockFilled';
 import styled from '@emotion/styled';
 import { Card, Button, Flex, Typography } from 'antd';
 import React from 'react';
@@ -11,10 +12,12 @@ interface CourseCardProps {
     type: string;
     href: string;
     imgUrl: string;
+    isLocked?: boolean;
 }
 
 const StyledCard = styled(Card)`
     box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.07);
+    min-height: 100%;
 
     .ant-card-head {
         padding: 0;
@@ -46,23 +49,21 @@ const CardThumb = styled.div<{ imgUrl: string }>`
     }
 `;
 
-export const CourseCard: React.FC<CourseCardProps> = ({ title, type, href, imgUrl }) => (
+export const CourseCard: React.FC<CourseCardProps> = ({ title, type, href, imgUrl, isLocked }) => (
     <StyledCard
         title={
             <CardThumb imgUrl={imgUrl}>
                 <div className="card-type-row">
-                    <div className="card-type">
-                        <Text>{type}</Text>
-                    </div>
+                    <div className="card-type">{isLocked ? <Lock /> : <Text>{type}</Text>}</div>
                 </div>
             </CardThumb>
         }
     >
-        <Flex vertical gap="1rem">
+        <Flex vertical gap="1rem" justify="space-between">
             <Title level={5}>{title}</Title>
 
-            <Button type="primary" block href={href}>
-                Acessar
+            <Button type={isLocked ? 'default' : 'primary'} block href={href}>
+                {isLocked ? 'Desbloquear' : 'Acessar'}
             </Button>
         </Flex>
     </StyledCard>

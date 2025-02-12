@@ -27,6 +27,11 @@ const lessonContentQuery = gql`
                         }
                     }
                 }
+                lessonResourcesCollection {
+                    items {
+                        url
+                    }
+                }
             }
         }
     }

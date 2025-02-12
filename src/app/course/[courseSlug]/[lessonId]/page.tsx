@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 import { Col, Flex, Row, Typography } from 'antd';
 import {
     AppLayout,
-    MaxWidthContainer,
-    LoadingLayout,
-    LessonVideo,
-    LessonSummary,
-    LessonResources,
-    TabNav,
     CourseModulesList,
     LessonMobile,
+    LessonResources,
+    LessonSummary,
+    LessonVideo,
+    LoadingLayout,
+    MaxWidthContainer,
+    TabNav,
 } from 'components';
 import { useDeviceSize, useGetCourseDetails } from 'hooks';
 import useGetLessonContent from 'hooks/queries/useGetLessonContent';
@@ -148,8 +148,7 @@ const Lesson: React.FC<LessonProps> = ({ params: { courseSlug, lessonId } }) => 
                                         children: <LessonResources lessonId={lessonId} />,
                                         disabled:
                                             lessonData?.singleLessonCollection?.items[0].lessonResourcesCollection
-                                                ?.items.length === 0 ||
-                                            !lessonData?.singleLessonCollection?.items[0].lessonResourcesCollection,
+                                                ?.items?.length === 0,
                                     },
                                 ]}
                             />

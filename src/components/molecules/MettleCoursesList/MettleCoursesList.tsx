@@ -43,7 +43,11 @@ export const MettleCoursesList: React.FC = () => {
                     imgUrl={'/img/imerso_thumb.webp'}
                     title="IMERSO"
                     type="Programa"
-                    href={isImersoLocked ? 'https://mettle.com.br/imerso' : '/imerso'}
+                    href={
+                        isImersoLocked
+                            ? 'https://mettle.com.br/imerso?utm_medium=organic&utm_source=plataforma&utm_campaign=imerso'
+                            : '/imerso'
+                    }
                     isLocked={isImersoLocked}
                 />
             </Col>

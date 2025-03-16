@@ -24,7 +24,7 @@ interface TextSectionProps {
 const TextWrapper = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.3rem;
     align-items: flex-start;
 
     & > * {

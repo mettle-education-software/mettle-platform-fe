@@ -112,7 +112,15 @@ export const DedaNotes = ({ dedaId }: { dedaId: string }) => {
                     </>
                 )}
             </DedaNotesNav>
-            {contentRenderer.get(selectedDedaNotesSection)}
+            <MaxWidthContainer
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                }}
+            >
+                {contentRenderer.get(selectedDedaNotesSection)}
+            </MaxWidthContainer>
         </Flex>
     );
 };

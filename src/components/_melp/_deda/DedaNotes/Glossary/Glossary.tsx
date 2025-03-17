@@ -34,10 +34,18 @@ export const Glossary = ({ dedaId }: { dedaId: string }) => {
 
     return (
         <div style={{ maxWidth: `${MAX_CONTENT_WIDTH - 120}px`, marginTop: '40px' }}>
-            <RichTextRenderer
-                rawContent={dedaNotesContent.dedaNotesGlossaryContent?.json}
-                links={dedaNotesContent.dedaNotesGlossaryContent?.links}
-            />
+            <MaxWidthContainer
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                }}
+            >
+                <RichTextRenderer
+                    rawContent={dedaNotesContent.dedaNotesGlossaryContent?.json}
+                    links={dedaNotesContent.dedaNotesGlossaryContent?.links}
+                />
+            </MaxWidthContainer>
         </div>
     );
 };

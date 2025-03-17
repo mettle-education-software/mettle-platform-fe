@@ -32,10 +32,18 @@ export const Introduction = ({ dedaId }: { dedaId: string }) => {
 
     return (
         <div style={{ maxWidth: `${MAX_CONTENT_WIDTH - 120}px`, marginTop: '40px', marginBottom: '40px' }}>
-            <RichTextRenderer
-                rawContent={dedaNotesContent.dedaNotesIntroductionContent?.json}
-                links={dedaNotesContent.dedaNotesIntroductionContent?.links}
-            />
+            <MaxWidthContainer
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                }}
+            >
+                <RichTextRenderer
+                    rawContent={dedaNotesContent.dedaNotesIntroductionContent?.json}
+                    links={dedaNotesContent.dedaNotesIntroductionContent?.links}
+                />
+            </MaxWidthContainer>
         </div>
     );
 };

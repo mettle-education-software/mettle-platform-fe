@@ -22,6 +22,14 @@ const App = ({ children }: { children: React.ReactNode }) => {
                 name: user.name,
                 avatar_url: user.profileImageSrc as string,
             });
+
+            if (window?.clarity) {
+                try {
+                    window.clarity('identify', user.uid, user.email);
+                } catch (error) {
+                    console.error('Browser does not support clarity');
+                }
+            }
         }
     }, [user]);
 

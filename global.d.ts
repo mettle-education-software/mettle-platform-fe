@@ -24,6 +24,7 @@ declare global {
                 },
             ) => void;
         };
+        clarity?: (command: string, email: string, uuid: string) => void;
     }
 }
 export {};

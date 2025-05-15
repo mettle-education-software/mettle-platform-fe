@@ -1,6 +1,7 @@
 'use client';
 
 import { AntdRegistry } from '@ant-design/nextjs-registry';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider, Spin, ThemeConfig } from 'antd';
 import { PWABanner } from 'components';
 import Script from 'next/script';
@@ -9,6 +10,8 @@ import { MelpProvider } from 'providers/MelpProvider';
 import React, { useEffect } from 'react';
 import { darkTheme, lightTheme } from 'themes';
 import '../styles/globals.css';
+
+const queryClient = new QueryClient();
 
 const App = ({ children }: { children: React.ReactNode }) => {
     const { theme, isAppLoading, user } = useAppContext();
@@ -22,6 +25,14 @@ const App = ({ children }: { children: React.ReactNode }) => {
                 name: user.name,
                 avatar_url: user.profileImageSrc as string,
             });
+
+            if (window?.clarity) {
+                try {
+                    window.clarity('identify', user.uid, user.email);
+                } catch (error) {
+                    console.error('Browser does not support clarity');
+                }
+            }
         }
     }, [user]);
 
@@ -88,13 +99,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     src="https://cdn.jsdelivr.net/npm/@tsparticles/confetti@3.0.3/tsparticles.confetti.bundle.min.js"
                 />
             </head>
-            <AppProvider>
-                <MelpProvider>
-                    <NotificationsProvider>
-                        <App>{children}</App>
-                    </NotificationsProvider>
-                </MelpProvider>
-            </AppProvider>
+            <QueryClientProvider client={queryClient}>
+                <AppProvider>
+                    <MelpProvider>
+                        <NotificationsProvider>
+                            <App>{children}</App>
+                        </NotificationsProvider>
+                    </MelpProvider>
+                </AppProvider>
+            </QueryClientProvider>
         </html>
     );
 }

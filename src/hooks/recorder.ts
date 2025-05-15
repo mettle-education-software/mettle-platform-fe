@@ -41,7 +41,6 @@ export const useRecorder: () => [
         if (recorder === null) {
             if (isRecording) {
                 requestRecorder().then((mediaRecorder) => {
-                    console.log('seting recorder', mediaRecorder);
                     setRecorder(mediaRecorder);
                 }, console.error);
             }

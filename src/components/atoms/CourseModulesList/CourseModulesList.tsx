@@ -77,7 +77,6 @@ export const CourseModulesList: React.FC<CourseModulesListProps> = ({
             },
             collapsible: 'header',
             children: module.lessonsCollection.items.map((lesson) => {
-                console.log('module lesson render', lesson);
                 return (
                     <Link
                         key={lesson.lessonId}

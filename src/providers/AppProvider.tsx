@@ -2,9 +2,9 @@
 
 import { ApolloClient, InMemoryCache } from '@apollo/client';
 import { ApolloProvider } from '@apollo/react-hooks';
-import { User } from '@firebase/auth';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { NextFn } from '@firebase/util';
 import { auth } from 'config/firebase';
+import { useFirstLoginEvent } from 'hooks/useEvents';
 import { FireUser } from 'interfaces';
 import React, { useContext, createContext, useState, useEffect, useMemo } from 'react';
 
@@ -23,8 +23,6 @@ const client = new ApolloClient({
     cache: new InMemoryCache(),
 });
 
-const queryClient = new QueryClient();
-
 const AppProviderContext = createContext<IProviderContext>({} as IProviderContext);
 
 export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
@@ -32,10 +30,14 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
     const [user, setUser] = useState<any>(null);
     const [isAppLoading, setIsAppLoading] = useState<boolean>(false);
 
-    const handleUserTokenChange = async (user: User | null) => {
+    const { mutate: sendFirstLoginEvent } = useFirstLoginEvent();
+
+    const handleUserTokenChange: NextFn<any> = async (user) => {
         if (user) {
             const token = await user.getIdTokenResult(true);
             const { claims } = token;
+
+            sendFirstLoginEvent({ email: claims.email });
 
             const splitName = (claims?.name as string).split(' ');
 
@@ -48,7 +50,7 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
                 roles: claims.roles,
                 uid: claims.user_id,
                 businessUuid: claims.businessUuid,
-                profileImageSrc: user.photoURL || null,
+                profileImageSrc: user.photoURL ?? null,
             };
 
             if (impersonating && (claims.expires as number) > Date.now()) {
@@ -80,11 +82,9 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
     const value = useMemo(() => ({ theme, user, isAppLoading }), [theme, user, isAppLoading]);
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <ApolloProvider client={client}>
-                <AppProviderContext.Provider value={value}>{children}</AppProviderContext.Provider>
-            </ApolloProvider>
-        </QueryClientProvider>
+        <ApolloProvider client={client}>
+            <AppProviderContext.Provider value={value}>{children}</AppProviderContext.Provider>
+        </ApolloProvider>
     );
 };
 

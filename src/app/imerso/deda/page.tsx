@@ -49,6 +49,11 @@ function DedaPage() {
 
     const { melpSummary } = useMelpContext();
 
+    const blockedDEDAs = useMemo(
+        () => ['MELP_BEGIN', 'MELP_SUSPENDED'].includes(melpSummary?.melp_status),
+        [melpSummary],
+    );
+
     const [selectedDeda, setSelectedDeda] = useState<string>();
 
     const unlockedDEDAs = useMemo(() => melpSummary?.unlocked_dedas ?? [], [melpSummary]);
@@ -70,42 +75,44 @@ function DedaPage() {
     return (
         <AppLayout withMelpSummary>
             <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
-                <MaxWidthContainer>
-                    {device === 'desktop' && (
-                        <Flex align="flex-end" justify="space-between">
-                            <Flex vertical gap="0.8rem">
-                                <Chip
-                                    bgColor="rgba(183, 144, 96, 0.3)"
-                                    style={{ border: 'none', paddingLeft: 18, paddingRight: 18 }}
-                                >
-                                    <Title level={5} style={{ color: '#FFFFFF' }}>
-                                        Current DEDA
+                {!blockedDEDAs && (
+                    <MaxWidthContainer>
+                        {device === 'desktop' && (
+                            <Flex align="flex-end" justify="space-between">
+                                <Flex vertical gap="0.8rem">
+                                    <Chip
+                                        bgColor="rgba(183, 144, 96, 0.3)"
+                                        style={{ border: 'none', paddingLeft: 18, paddingRight: 18 }}
+                                    >
+                                        <Title level={5} style={{ color: '#FFFFFF' }}>
+                                            Current DEDA
+                                        </Title>
+                                    </Chip>
+                                    <Title level={1} className="color-secondary">
+                                        {featuredDeda?.dedaTitle}
                                     </Title>
-                                </Chip>
-                                <Title level={1} className="color-secondary">
-                                    {featuredDeda?.dedaTitle}
-                                </Title>
+                                </Flex>
+                                <Button
+                                    style={{ borderRadius: 36, fontSize: 20, height: 40 }}
+                                    href={`/imerso/deda/${featuredDeda?.dedaId}`}
+                                    type="primary"
+                                >
+                                    Go to DEDA
+                                </Button>
                             </Flex>
-                            <Button
-                                style={{ borderRadius: 36, fontSize: 20, height: 40 }}
-                                href={`/imerso/deda/${featuredDeda?.dedaId}`}
-                                type="primary"
-                            >
-                                Go to DEDA
-                            </Button>
-                        </Flex>
-                    )}
-                </MaxWidthContainer>
+                        )}
+                    </MaxWidthContainer>
+                )}
             </HeaderSummary>
             <GridContent>
                 <MaxWidthContainer>
-                    <DedasGrid type="lastDedas" onSelectedDeda={handleSelectedDeda} />
+                    <DedasGrid blockedDEDAs={blockedDEDAs} type="lastDedas" onSelectedDeda={handleSelectedDeda} />
                 </MaxWidthContainer>
                 <MaxWidthContainer>
-                    <DedasGrid type="nextDedas" onSelectedDeda={handleSelectedDeda} />
+                    <DedasGrid blockedDEDAs={blockedDEDAs} type="nextDedas" onSelectedDeda={handleSelectedDeda} />
                 </MaxWidthContainer>
                 <MaxWidthContainer>
-                    <DedasGrid type="allDedas" onSelectedDeda={handleSelectedDeda} />
+                    <DedasGrid blockedDEDAs={blockedDEDAs} type="allDedas" onSelectedDeda={handleSelectedDeda} />
                 </MaxWidthContainer>
             </GridContent>
         </AppLayout>

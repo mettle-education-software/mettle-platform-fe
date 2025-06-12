@@ -217,7 +217,7 @@ export const AppLayout = forwardRef<
                     },
                     {
                         key: 'logout',
-                        label: 'Log out',
+                        label: 'Sair',
                         icon: <LogoutOutlined />,
                         onClick: ({ domEvent }) => {
                             domEvent.preventDefault();

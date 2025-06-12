@@ -82,7 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="pt" suppressHydrationWarning={true}>
             <head>
-                <GoogleTagManager gtmId="GTM-KQF8NQS8" />
+                {process.env.NODE_ENV === 'production' ? <GoogleTagManager gtmId="GTM-KQF8NQS8" /> : null}
                 <title>Plataforma Mettle</title>
                 <link rel="manifest" href="/manifest.json" />
                 <meta name="theme-color" content="#3b3630" />

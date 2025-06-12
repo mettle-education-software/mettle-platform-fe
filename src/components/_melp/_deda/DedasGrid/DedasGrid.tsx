@@ -14,6 +14,7 @@ interface DedasGridProps {
     type: 'lastDedas' | 'nextDedas' | 'allDedas';
     onSelectedDeda: (dedaId: string) => void;
     customTitle?: string;
+    blockedDEDAs?: boolean;
 }
 
 const Title = styled(Typography.Title)`
@@ -21,14 +22,14 @@ const Title = styled(Typography.Title)`
     font-weight: 500 !important;
 `;
 
-export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, customTitle }) => {
+export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, customTitle, blockedDEDAs }) => {
     const { user } = useAppContext();
 
     const { data: melpSummary, isLoading } = useMelpSummary(user?.uid as string);
 
     const currentWeek = melpSummary?.current_deda_week;
 
-    const unlockedDEDAs = melpSummary?.unlocked_dedas ?? [];
+    const unlockedDEDAs = !!melpSummary?.unlocked_dedas && !blockedDEDAs ? melpSummary?.unlocked_dedas : [];
 
     const currentDeda = unlockedDEDAs[unlockedDEDAs.length - 1];
 
@@ -77,13 +78,13 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
     const showSkeleton = isLoading || lastDedasResult.loading || nextDedasResult.loading || allDedasResult.loading;
 
     const titles: { [key in DedasGridProps['type']]: React.ReactNode } = {
-        lastDedas: (
+        lastDedas: unlockedDEDAs.length > 0 && (
             <Title level={4}>
                 <strong>Most recent</strong> DEDAs
             </Title>
         ),
         nextDedas:
-            melpSummary?.melp_status !== 'DEDA_FINISHED' ? (
+            unlockedDEDAs.length > 0 && melpSummary?.melp_status !== 'DEDA_FINISHED' ? (
                 <Title level={4}>
                     <strong>Next</strong> DEDAs
                 </Title>

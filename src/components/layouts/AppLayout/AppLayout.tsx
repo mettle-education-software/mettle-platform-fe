@@ -186,7 +186,7 @@ export const AppLayout = forwardRef<
                                               collapseOnMobile();
                                               router.push('/imerso/deda');
                                           },
-                                          disabled: ['MELP_BEGIN', 'MELP_SUSPENDED'].includes(melpSummary?.melp_status),
+                                          disabled: ['MELP_SUSPENDED'].includes(melpSummary?.melp_status),
                                       },
                                       {
                                           key: 'melpLamp',

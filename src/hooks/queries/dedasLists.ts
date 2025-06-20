@@ -32,7 +32,7 @@ const nextDedasQuery = gql`
 
 const allDedasQuery = gql`
     query AllDedas {
-        dedaContentCollection(order: [dedaId_ASC]) {
+        dedaContentCollection(order: [dedaId_ASC], limit: 200) {
             ${items}
         }
     }

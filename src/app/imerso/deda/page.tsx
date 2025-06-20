@@ -49,10 +49,9 @@ function DedaPage() {
 
     const { melpSummary } = useMelpContext();
 
-    const blockedDEDAs = useMemo(
-        () => ['MELP_BEGIN', 'MELP_SUSPENDED'].includes(melpSummary?.melp_status),
-        [melpSummary],
-    );
+    const blockedDEDAs =
+        useMemo(() => ['MELP_SUSPENDED'].includes(melpSummary?.melp_status), [melpSummary]) ||
+        melpSummary?.days_since_melp_start < 2;
 
     const [selectedDeda, setSelectedDeda] = useState<string>();
 
@@ -75,7 +74,7 @@ function DedaPage() {
     return (
         <AppLayout withMelpSummary>
             <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
-                {!blockedDEDAs && (
+                {!blockedDEDAs ? (
                     <MaxWidthContainer>
                         {device === 'desktop' && (
                             <Flex align="flex-end" justify="space-between">
@@ -102,6 +101,8 @@ function DedaPage() {
                             </Flex>
                         )}
                     </MaxWidthContainer>
+                ) : (
+                    <div style={{ height: '5rem' }} />
                 )}
             </HeaderSummary>
             <GridContent>

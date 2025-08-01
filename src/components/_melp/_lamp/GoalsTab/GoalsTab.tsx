@@ -11,7 +11,7 @@ import { DedaDifficulty } from 'interfaces/melp';
 import { useMelpContext } from 'providers';
 import React from 'react';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 const GoalsWrapper = styled.div`
     margin-top: 5px;
@@ -103,15 +103,36 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
         <GoalsWrapper>
             <Row gutter={[22, 22]}>
                 <Col xs={24} md={12}>
-                    <Flex vertical gap="1rem">
-                        <Title className="color-white" level={2}>
-                            Understand how your study time will progress over time
-                        </Title>
-                        {/*<Text className="color-white">*/}
-                        {/*    Lorem ipsum dolor sit amet. In rerum fugit cum nihil asperiores aut cumque dignissimos cum*/}
-                        {/*    nihil provident. Et dolores ullam ad itaque consequatur et expedita distinctio At maxime*/}
-                        {/*    pariatur? Et ducimus nisi est minus praesentium ut ullam enim aut autem enim?*/}
-                        {/*</Text>*/}
+                    <Flex vertical gap="0.2rem">
+                        <Paragraph className="color-white">
+                            See how your daily and weekly study goals evolve over time. The intensity level you select
+                            determines how quickly you’ll reach your daily targets and, ultimately, achieve your goal of
+                            English fluency:
+                        </Paragraph>
+                        <Paragraph className="color-white">
+                            <ul>
+                                <li>
+                                    <strong>FLOW:</strong> A gradual pace, reaching 3 hours/day (1 hour 15 minutes
+                                    active, 1 hour 45 minutes passive) within 10 months (41 weeks).
+                                </li>
+                                <li>
+                                    <strong>BOOST:</strong> A moderate pace, reaching 4 hours/day (1 hour 30 minutes
+                                    active, 2 hours 30 minutes passive) within 8 months (33 weeks).
+                                </li>
+                                <li>
+                                    <strong>TURBO:</strong> An accelerated pace, reaching 5 hours/day (2 hours active, 3
+                                    hours passive) within 6 months (25 weeks).
+                                </li>
+                            </ul>
+                        </Paragraph>
+                        <Paragraph className="color-white">
+                            These targets help you structure your routine effectively, ensuring steady progress based on
+                            your commitment level.
+                        </Paragraph>
+                        <Paragraph className="color-white">
+                            <strong>Note:</strong> You can only select your intensity level at the start of the program
+                            or when restarting it using one of your reset options.
+                        </Paragraph>
                     </Flex>
                 </Col>
                 <Col xs={24} md={12}>
@@ -127,16 +148,17 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
                                 <Flex align="center" gap="0.8rem">
                                     <AdsClickIcon className="color-white" />
                                     <Title className="color-white" level={5}>
-                                        This is your daily goal on this week{' '}
+                                        This is your daily goal for this week (Week{' '}
                                         {currentWeek < 10
-                                            ? `00${currentWeek}`
+                                            ? `0${currentWeek}`
                                             : currentWeek >= 10 && currentWeek < 100
-                                              ? `0${currentWeek}`
+                                              ? `${currentWeek}`
                                               : currentWeek}
+                                        )
                                     </Title>
-                                    <Tooltip title="This is your daily goal on this week">
-                                        <InfoCircleOutlined style={{ cursor: 'pointer' }} className="color-white" />
-                                    </Tooltip>
+                                    {/*<Tooltip title="This is your daily goal for this week">*/}
+                                    {/*    <InfoCircleOutlined style={{ cursor: 'pointer' }} className="color-white" />*/}
+                                    {/*</Tooltip>*/}
                                 </Flex>
 
                                 <Row gutter={[22, 22]}>

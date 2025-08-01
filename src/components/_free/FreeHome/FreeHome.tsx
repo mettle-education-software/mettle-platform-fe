@@ -80,7 +80,7 @@ export const FreeHome = () => {
                                 href={`/imerso/deda/${featuredDeda?.dedaId}`}
                                 type="primary"
                             >
-                                Go to DEDA
+                                Open DEDA
                             </Button>
                         </Flex>
                     )}

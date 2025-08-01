@@ -152,7 +152,7 @@ const GoalsPopover = ({
 
     return (
         <Flex align="center" gap="1rem">
-            {device === 'desktop' && <Text className="color-white">COMPARE LEVELS</Text>}
+            {device === 'desktop' && <Text className="color-white">Compare levels</Text>}
             <Popover
                 placement="bottomRight"
                 content={content}

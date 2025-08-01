@@ -46,7 +46,7 @@ const ClockWrapper = styled.div`
 
 const LabelText = styled(Text)`
     color: #fff;
-    font-weight: 700;
+    font-weight: normal;
     font-size: 20px;
     line-height: 130%;
 

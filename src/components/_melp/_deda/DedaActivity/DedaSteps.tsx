@@ -167,7 +167,7 @@ const StopWatch = ({ onStop }: { onStop(duration: number): void }) => {
     }, []);
 
     return (
-        <Tooltip title="Your time has started and it will be tracked" open={tooltipOpen}>
+        <Tooltip title="Your time has started and is now being tracked." open={tooltipOpen}>
             <ChipWrapper>
                 <Flex justify="flex-end" align="center" gap="0.6rem">
                     {isOpen && (

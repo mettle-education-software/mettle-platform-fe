@@ -243,7 +243,7 @@ export const useGeneralWeeklyDevelopment = (userUid?: string) => {
                 ...previousConfig,
                 series: [
                     {
-                        name: 'General Weekly Development',
+                        name: 'Weekly Progress',
                         data: data[1],
                     },
                 ],

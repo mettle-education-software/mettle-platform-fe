@@ -41,13 +41,13 @@ export const PerformanceTab: React.FC = () => {
                     </WidgetCard>
                 </Col>
                 <Col xs={24} md={16}>
-                    <WidgetCard title="General Weekly Development">
+                    <WidgetCard title="Weekly Progress">
                         <WeeklyDevelopmentGraph />
                     </WidgetCard>
                 </Col>
                 <Col xs={24} md={24}>
                     <WidgetCard
-                        title="DEDA Statistics"
+                        title="DEDA Stats"
                         extra={
                             device === 'desktop' ? (
                                 <DedasListSelect onChange={handleWeekChange} value={selectedWeek} />

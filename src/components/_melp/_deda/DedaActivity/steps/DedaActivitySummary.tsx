@@ -85,7 +85,7 @@ const DedaActivitySummaryRaw = ({
                     <Flex vertical gap="1rem">
                         <Flex vertical align="center" gap="0.5rem">
                             <Title className="text" level={4}>
-                                How is the QUALITY of your relationship to DEDA?
+                                Rate the quality of your DEDA study session today.
                             </Title>
                             <Text className="text">
                                 (From 1 to 5, score the quality of each of the five variables for the day.)

@@ -238,14 +238,14 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
     );
 
     return (
-        <WidgetCard title="Pick your DEDA date" extra={extraInputSelect()}>
+        <WidgetCard title="Select your DEDA date" extra={extraInputSelect()}>
             {isInputLoading || !inputData ? (
                 <Skeleton active loading paragraph={{ rows: 10 }} />
             ) : (
                 <Row align="top" gutter={[24, 24]}>
                     <Col xs={24} md={8}>
                         <Flex vertical gap="1rem">
-                            <SectionTitle title="DEDA" subtitle="How is the QUALITY of your relationship with DEDA?" />
+                            <SectionTitle title="DEDA" subtitle="Rate the quality of your DEDA study session today." />
                             <Flex vertical gap="1rem">
                                 <InputsWrapper>
                                     <DedaRateInput
@@ -344,7 +344,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                     </Col>
                     <Col xs={24} md={8}>
                         <Flex vertical gap="1rem">
-                            <SectionTitle title="Active" subtitle="Input your Active Studying (HH:MM)" />
+                            <SectionTitle title="Active" subtitle="Enter your Active Study Time (HH:MM)" />
                             <InputsWrapper>
                                 <InputWithTime
                                     label="Book"
@@ -406,7 +406,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                     </Col>
                     <Col xs={24} md={8}>
                         <Flex vertical gap="1rem">
-                            <SectionTitle title="Passive" subtitle="Input your Passive Studying (HH:MM)" />
+                            <SectionTitle title="Passive" subtitle="Enter your Passive Study Time (HH:MM)" />
                             <InputsWrapper>
                                 <InputWithTime
                                     label="Audiobook"
@@ -513,10 +513,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                     {inputData.reviewInput && (
                         <Col span={24}>
                             <Flex vertical gap="1rem">
-                                <SectionTitle
-                                    title="Review"
-                                    subtitle="Mark the reviews as completed as you finish them"
-                                />
+                                <SectionTitle title="Review" subtitle="Mark each review as completed when done." />
                                 <InputsWrapper>
                                     <Row gutter={[24, 24]}>
                                         <Col xs={24} md={8}>

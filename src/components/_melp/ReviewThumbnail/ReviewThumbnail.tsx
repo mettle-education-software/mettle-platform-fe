@@ -164,7 +164,7 @@ export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
                     }}
                     className={status ? 'completed' : 'incomplete'}
                 >
-                    <Text className="word-no-break">{status ? 'Completed' : 'Mark as complete'}</Text>
+                    <Text className="word-no-break">{status ? 'Completed' : 'Mark as Completed'}</Text>
                     {status && <CheckOutlined />}
                 </ReviewStatusChip>
             </Flex>

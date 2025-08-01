@@ -25,7 +25,7 @@ const DedaRateInputWrapper = styled.div`
     .input-variable-text {
         font-size: 20px;
         font-style: normal;
-        font-weight: 700;
+        font-weight: normal;
         line-height: 130%;
         color: #ffffff;
     }

@@ -12,6 +12,7 @@ const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false })
 const GraphWrapper = styled.div`
     width: 100%;
     height: 100%;
+    max-height: 50%;
 `;
 
 interface GoalsGraphProps {

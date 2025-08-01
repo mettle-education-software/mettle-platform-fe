@@ -64,8 +64,8 @@ export const OverallGraph: React.FC = () => {
             <div
                 style={{
                     position: 'absolute',
-                    top: device === 'mobile' ? '35%' : '37.5%',
-                    left: device === 'mobile' ? '37.5%' : '42%',
+                    top: device === 'mobile' ? '35%' : '39.5%',
+                    left: device === 'mobile' ? '37.5%' : '43.5%',
                 }}
             >
                 <OverallLabel vertical align="center" gap="0">
@@ -78,12 +78,14 @@ export const OverallGraph: React.FC = () => {
                                 margin: 0,
                             }}
                         >
-                            {overallData.overallPerformance.toFixed(2)}%
+                            {new Intl.NumberFormat('en-US', {
+                                minimumIntegerDigits: 2,
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                            }).format(overallData.overallPerformance)}
+                            %
                         </Title>
                     )}
-                    <Title className="stat-label" level={5} style={{ color: 'var(--secondary)', margin: 0 }}>
-                        OVERALL
-                    </Title>
                 </OverallLabel>
             </div>
             <ReactApexChart

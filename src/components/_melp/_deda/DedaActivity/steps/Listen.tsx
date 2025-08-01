@@ -70,8 +70,7 @@ export const Listen: React.FC<ListenProps> = ({ dedaId, onListenPlay, isTodaysDe
             {isTodaysDedaAndNotCompleted && displayStartMessage && !dedaOngoing && (
                 <StartMessage>
                     <Text className="color-white">
-                        Clique no PLAY para iniciar o DEDA de hoje. Assim que clicar, o tempo começará a contar. Bons
-                        estudos!
+                        Click PLAY to start today&apos;s DEDA. Once you click, the timer will begin.
                     </Text>
                 </StartMessage>
             )}

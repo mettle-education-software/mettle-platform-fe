@@ -175,14 +175,14 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                     <Flex vertical gap="1rem">
                         <div>
                             <Title className="color-white" style={{ fontWeight: 500 }} level={4}>
-                                Here are your reviews for this week
+                                Your weekly reviews
                             </Title>
-                            <Text className="color-white">(Mark the reviews as completed as you finish them)</Text>
+                            <Text className="color-white">(Mark each review as completed when done).</Text>
                         </div>
                         <NoReviewContainer>
                             <div>
                                 <Title level={4} className="color-white">
-                                    There are no reviews on this week yet.
+                                    No reviews available at this stage of the program. Keep progressing to unlock them!
                                 </Title>
                             </div>
                         </NoReviewContainer>
@@ -197,9 +197,9 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                 <Flex vertical gap="1rem">
                     <div>
                         <Title className="color-white" style={{ fontWeight: 500 }} level={4}>
-                            Here are your reviews for this week
+                            Your weekly reviews
                         </Title>
-                        <Text className="color-white">(Mark the reviews as completed as you finish them)</Text>
+                        <Text className="color-white">(Mark each review as completed when done).</Text>
                     </div>
                     <InputsWrapper>
                         <Row gutter={[24, 24]}>

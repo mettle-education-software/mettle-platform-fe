@@ -170,11 +170,11 @@ export const GoalsTable: React.FC<GoalsTableProps> = ({ data, currentWeek }) => 
             <Flex style={{ padding: '1rem' }} align="center" gap="0.8rem">
                 <AdsClickIcon className="color-white" />
                 <Title className="color-white" level={5}>
-                    Check your weekly goal, until 41 weeks
+                    Check your weekly study goals over time.
                 </Title>
-                <Tooltip title="After week 41, the goals remain the same until the end of the program.">
-                    <InfoCircleOutlined style={{ cursor: 'pointer' }} className="color-white" />
-                </Tooltip>
+                {/*<Tooltip title="After week 41, the goals remain the same until the end of the program.">*/}
+                {/*    <InfoCircleOutlined style={{ cursor: 'pointer' }} className="color-white" />*/}
+                {/*</Tooltip>*/}
             </Flex>
             <Table
                 dataSource={data}

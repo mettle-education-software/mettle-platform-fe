@@ -62,5 +62,5 @@ export const getUnlockedDate = (currentDay: number, drippingDay: number) => {
     const differenceInNumberOfDays = drippingDay - currentDay;
     today.setDate(today.getDate() + differenceInNumberOfDays);
 
-    return `Unlocks on: ${today.toLocaleDateString('en-US')}`;
+    return `Available on: ${today.toLocaleDateString('en-US')}`;
 };

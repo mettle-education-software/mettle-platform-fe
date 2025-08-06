@@ -114,17 +114,18 @@ const goalTableColumns: (currentWeek: number) => TableColumnsType = (currentWeek
         render: (value, { week }) => <CellContent isCurrent={currentWeek === week}>{value}</CellContent>,
     },
     {
-        title: <TitleCell>ACTIVE</TitleCell>,
-        dataIndex: 'active',
-        key: 'active',
-        render: (value, { week }) => <CellContent isCurrent={currentWeek === week}>{value}</CellContent>,
-    },
-    {
         title: <TitleCell>REVIEW</TitleCell>,
         dataIndex: 'review',
         key: 'review',
         render: (value, { week }) => <CellContent isCurrent={currentWeek === week}>{value}</CellContent>,
     },
+    {
+        title: <TitleCell>ACTIVE</TitleCell>,
+        dataIndex: 'active',
+        key: 'active',
+        render: (value, { week }) => <CellContent isCurrent={currentWeek === week}>{value}</CellContent>,
+    },
+
     {
         title: <TitleCell>PASSIVE</TitleCell>,
         dataIndex: 'passive',
@@ -136,16 +137,6 @@ const goalTableColumns: (currentWeek: number) => TableColumnsType = (currentWeek
         dataIndex: 'total',
         key: 'total',
         render: (value, { week }) => <CellContent isCurrent={currentWeek === week}>{value}</CellContent>,
-    },
-    {
-        title: <TitleCell>TOTAL ACTIVE</TitleCell>,
-        dataIndex: 'totalActive',
-        key: 'totalActive',
-        render: (value, { week }) => (
-            <CellContent isLast isCurrent={currentWeek === week}>
-                {value}
-            </CellContent>
-        ),
     },
 ];
 

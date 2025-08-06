@@ -65,7 +65,7 @@ export const useGetHpecsModules = () => {
                     if (!!hpec.drippingDayAfterDedaStart) {
                         return locked.push({
                             ...hpec,
-                            unlockDate: 'Start DEDA first to unlock this module',
+                            unlockDate: 'Start DEDA to unlock this module',
                         });
                     }
                 }

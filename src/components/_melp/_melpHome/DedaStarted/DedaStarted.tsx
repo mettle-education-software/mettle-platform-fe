@@ -47,7 +47,7 @@ export const DedaStarted: React.FC = () => {
                             }}
                         >
                             <Text className="color-white">
-                                See all DEDAs <RightOutlined style={{ marginLeft: '1rem' }} />
+                                Explore all DEDAs <RightOutlined style={{ marginLeft: '1rem' }} />
                             </Text>
                         </SeeRestBtn>
                     </Col>

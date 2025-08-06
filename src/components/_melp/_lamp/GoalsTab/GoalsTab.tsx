@@ -174,6 +174,16 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
                                             </Col>
                                             <Col xs={24} md={6}>
                                                 <StatisticCard
+                                                    title="Review"
+                                                    value={
+                                                        (goalsData ? goalsData[currentWeek - 1].review : '') + ' min'
+                                                    }
+                                                    color="#423C2E"
+                                                    textColor="#F7C034"
+                                                />
+                                            </Col>
+                                            <Col xs={24} md={6}>
+                                                <StatisticCard
                                                     title="Active"
                                                     value={
                                                         (goalsData ? goalsData[currentWeek - 1].active : '') + ' min'
@@ -190,16 +200,6 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
                                                     }
                                                     color="#205550"
                                                     textColor="#19ECD5"
-                                                />
-                                            </Col>
-                                            <Col xs={24} md={6}>
-                                                <StatisticCard
-                                                    title="Review"
-                                                    value={
-                                                        (goalsData ? goalsData[currentWeek - 1].review : '') + ' min'
-                                                    }
-                                                    color="#423C2E"
-                                                    textColor="#F7C034"
                                                 />
                                             </Col>
                                         </Row>

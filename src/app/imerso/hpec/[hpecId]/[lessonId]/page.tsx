@@ -61,7 +61,7 @@ function HpecContent({ params: { hpecId, lessonId } }: Readonly<{ params: Record
                             HPEC
                         </Title>
                         <Title level={4} className="color-white" style={{ fontWeight: 400 }}>
-                            This is your personal coach. Go ahead!
+                            High-Performance English Coaching
                         </Title>
                     </Flex>
                 </MaxWidthContainer>

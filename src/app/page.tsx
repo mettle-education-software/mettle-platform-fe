@@ -60,7 +60,7 @@ function Home() {
                         <Row gutter={[16, 16]} justify="space-between">
                             <Col xs={24} md={12}>
                                 <Flex vertical gap="1rem">
-                                    <Title level={4}>👋 Bem vindo(a), {firstName}!</Title>
+                                    <Title level={4}>👋 Olá, {firstName}!</Title>
                                 </Flex>
                             </Col>
                             <Col xs={24} md={12}>
@@ -77,8 +77,8 @@ function Home() {
                     <ContinueCard>
                         <Flex vertical gap="1.5rem">
                             <Flex vertical gap="0.2rem">
-                                <Title level={4}>Continue estudando</Title>
-                                <Text style={{ fontWeight: 400 }}>Navegue entre os cursos disponíveis para você</Text>
+                                <Title level={4}>Continue aprendendo...</Title>
+                                <Text style={{ fontWeight: 400 }}>Acesse os cursos disponíveis para você.</Text>
                             </Flex>
 
                             <MettleCoursesList />

@@ -24,11 +24,12 @@ interface TextSectionProps {
 const TextWrapper = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 1.15rem;
     align-items: flex-start;
 
     & > * {
         text-align: justify;
+        margin-bottom: 0 !important;
     }
 
     & > h1 {

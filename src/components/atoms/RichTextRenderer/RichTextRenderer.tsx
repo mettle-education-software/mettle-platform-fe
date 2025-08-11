@@ -32,6 +32,16 @@ const TextWrapper = styled.div`
         margin-bottom: 0 !important;
     }
 
+    li,
+    ul,
+    ol {
+        margin-bottom: 0 !important;
+    }
+
+    .ant-typography {
+        margin-bottom: 1rem !important;
+    }
+
     & > h1 {
         font-size: 3.2rem;
     }
@@ -91,6 +101,9 @@ const renderOptions = (links?: LinkType, justify?: boolean, toString?: boolean):
                         {children}
                     </Paragraph>
                 ),
+            [BLOCKS.UL_LIST]: (node: Node, children: ReactNode) =>
+                toString ? `${children}` : <ul style={{ listStyleType: 'disc', margin: 0 }}>{children}</ul>,
+            [BLOCKS.OL_LIST]: (node: Node, children: ReactNode) => (toString ? `${children}` : <ul>{children}</ul>),
             [BLOCKS.HEADING_1]: (node: Node, children: ReactNode) =>
                 toString ? `${children}` : <Title level={1}>{children}</Title>,
             [BLOCKS.HEADING_2]: (node: Node, children: ReactNode) =>

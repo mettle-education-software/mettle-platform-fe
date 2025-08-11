@@ -414,10 +414,45 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
             }));
 
             if (dailyView === 'dedaTime') {
-                const dedaTimeSeries = data.dedaDaily.map((daily) => ({
+                const responseDedaTimeSeries = data.dedaDaily.map((daily) => ({
                     x: daily.weekDay,
                     y: daily.dedaTime,
                 }));
+
+                const dedaTimeSeries = [
+                    {
+                        x: 'D01',
+                        y: 0,
+                    },
+                    {
+                        x: 'D02',
+                        y: 0,
+                    },
+                    {
+                        x: 'D03',
+                        y: 0,
+                    },
+                    {
+                        x: 'D04',
+                        y: 0,
+                    },
+                    {
+                        x: 'D05',
+                        y: 0,
+                    },
+                    {
+                        x: 'D06',
+                        y: 0,
+                    },
+                    {
+                        x: 'D07',
+                        y: 0,
+                    },
+                ];
+
+                responseDedaTimeSeries.forEach((daily, index) => {
+                    dedaTimeSeries[index] = daily;
+                });
 
                 const maximumDedaTimeValue = Math.max(...data.dedaDaily.map((daily) => daily.dedaTime));
                 const DEFAULT_DEDA_TIME_MAX = 60;
@@ -449,10 +484,45 @@ export const useGetWeeklyPerformance = (dailyView: 'dedaTime' | 'readingTime', w
             }
 
             if (dailyView === 'readingTime') {
-                const readingTimeSeries = data.dedaDaily.map((daily) => ({
+                const responseReadingTimeSeries = data.dedaDaily.map((daily) => ({
                     x: daily.weekDay,
                     y: daily.readingTime / 60,
                 }));
+
+                const readingTimeSeries = [
+                    {
+                        x: 'D01',
+                        y: 0,
+                    },
+                    {
+                        x: 'D02',
+                        y: 0,
+                    },
+                    {
+                        x: 'D03',
+                        y: 0,
+                    },
+                    {
+                        x: 'D04',
+                        y: 0,
+                    },
+                    {
+                        x: 'D05',
+                        y: 0,
+                    },
+                    {
+                        x: 'D06',
+                        y: 0,
+                    },
+                    {
+                        x: 'D07',
+                        y: 0,
+                    },
+                ];
+
+                responseReadingTimeSeries.forEach((daily, index) => {
+                    readingTimeSeries[index] = daily;
+                });
 
                 const maxReadingTime = Math.max(...data.dedaDaily.map((daily) => daily.readingTime / 60));
                 const DEFAULT_READING_TIME_MAX = 10;

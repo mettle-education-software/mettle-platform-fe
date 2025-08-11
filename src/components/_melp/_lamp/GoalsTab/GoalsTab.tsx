@@ -105,23 +105,25 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
                 <Col xs={24} md={12}>
                     <Flex vertical gap="0.2rem">
                         <Paragraph className="color-white">
-                            See how your daily and weekly study goals evolve over time. The intensity level you select
-                            determines how quickly you’ll reach your daily targets and, ultimately, achieve your goal of
-                            English fluency:
+                            See how your daily and weekly study goals evolve over time. The{' '}
+                            <span style={{ color: '#B89261' }}>intensity level</span> you select determines how quickly
+                            you’ll reach your daily targets and, ultimately, achieve your goal of English fluency:
                         </Paragraph>
                         <Paragraph className="color-white">
-                            <ul>
+                            <ul style={{ marginBottom: '-2px' }}>
                                 <li>
-                                    <strong>FLOW:</strong> A gradual pace, reaching 3 hours/day (1 hour 15 minutes
-                                    active, 1 hour 45 minutes passive) within 10 months (41 weeks).
+                                    <strong style={{ color: '#B89261' }}>FLOW:</strong> A gradual pace, reaching 3
+                                    hours/day (1 hour 15 minutes active, 1 hour 45 minutes passive) within 10 months (41
+                                    weeks).
                                 </li>
                                 <li>
-                                    <strong>BOOST:</strong> A moderate pace, reaching 4 hours/day (1 hour 30 minutes
-                                    active, 2 hours 30 minutes passive) within 8 months (33 weeks).
+                                    <strong style={{ color: '#B89261' }}>BOOST:</strong> A moderate pace, reaching 4
+                                    hours/day (1 hour 30 minutes active, 2 hours 30 minutes passive) within 8 months (33
+                                    weeks).
                                 </li>
                                 <li>
-                                    <strong>TURBO:</strong> An accelerated pace, reaching 5 hours/day (2 hours active, 3
-                                    hours passive) within 6 months (25 weeks).
+                                    <strong style={{ color: '#B89261' }}>TURBO:</strong> An accelerated pace, reaching 5
+                                    hours/day (2 hours active, 3 hours passive) within 6 months (25 weeks).
                                 </li>
                             </ul>
                         </Paragraph>
@@ -130,8 +132,9 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
                             your commitment level.
                         </Paragraph>
                         <Paragraph className="color-white">
-                            <strong>Note:</strong> You can only select your intensity level at the start of the program
-                            or when restarting it using one of your reset options.
+                            <strong>Note:</strong> You can only select your{' '}
+                            <span style={{ color: '#B89261' }}>intensity level</span> at the start of the program or
+                            when restarting it using one of your reset options.
                         </Paragraph>
                     </Flex>
                 </Col>
@@ -206,7 +209,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({ goalLevel }) => {
                                     </Col>
                                     <Col xs={24} md={5}>
                                         <StatisticCard
-                                            title="Total study time"
+                                            title="Total"
                                             value={(goalsData ? goalsData[currentWeek - 1].total : '') + ' min'}
                                             isHighlight
                                         />

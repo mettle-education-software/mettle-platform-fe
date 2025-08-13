@@ -16,7 +16,7 @@ export const CanStartDeda: React.FC = () => {
     const { isAppLoading } = useAppContext();
 
     const [isDifficultyConfirmationOpen, setIsDifficultyConfirmationOpen] = useState(false);
-    const [selectedDifficultyLevel, setSelectedDifficultyLevel] = useState<DedaDifficulty>('MEDIUM');
+    const [selectedDifficultyLevel, setSelectedDifficultyLevel] = useState<DedaDifficulty>('EASY');
 
     const confirmDedaStart = useStartDeda();
 

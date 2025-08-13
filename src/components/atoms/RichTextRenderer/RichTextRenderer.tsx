@@ -39,7 +39,7 @@ const TextWrapper = styled.div`
     }
 
     .ant-typography {
-        margin-bottom: 1rem !important;
+        margin-bottom: 0 !important;
     }
 
     & > h1 {

@@ -3,6 +3,7 @@
 import { ApolloClient, InMemoryCache } from '@apollo/client';
 import { ApolloProvider } from '@apollo/react-hooks';
 import { NextFn } from '@firebase/util';
+import * as Sentry from '@sentry/nextjs';
 import { auth } from 'config/firebase';
 import { useFirstLoginEvent } from 'hooks/useEvents';
 import { FireUser } from 'interfaces';
@@ -52,6 +53,10 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
                 businessUuid: claims.businessUuid,
                 profileImageSrc: user.photoURL ?? null,
             };
+
+            Sentry.setUser({
+                id: contextUser.uid,
+            });
 
             if (impersonating && (claims.expires as number) > Date.now()) {
                 // @ts-ignore

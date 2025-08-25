@@ -347,7 +347,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                             <SectionTitle title="Active" subtitle="Enter your Active Study Time (HH:MM)" />
                             <InputsWrapper>
                                 <InputWithTime
-                                    label="Books"
+                                    label="Book"
                                     value={inputDataEdit.activeBook}
                                     onChange={(value) => {
                                         setInputDataEdit((previousData) => ({
@@ -391,7 +391,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     }}
                                 />
                                 <InputWithTime
-                                    label="Other Contents"
+                                    label="Other Content"
                                     value={inputDataEdit.activeOthers}
                                     onChange={(value) => {
                                         setInputDataEdit((previousData) => ({
@@ -442,7 +442,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     }}
                                 />
                                 <InputWithTime
-                                    label="Podcasts"
+                                    label="Podcast"
                                     value={inputDataEdit.passivePodcast}
                                     onChange={(value) => {
                                         setInputDataEdit((previousData) => ({
@@ -453,7 +453,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     }}
                                 />
                                 <InputWithTime
-                                    label="Audiobooks"
+                                    label="Audiobook"
                                     value={inputDataEdit.passiveAudiobook}
                                     onChange={(value) => {
                                         setInputDataEdit((previousData) => ({
@@ -464,7 +464,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     }}
                                 />
                                 <InputWithTime
-                                    label="Movies/Docs"
+                                    label="Movie/Doc"
                                     value={inputDataEdit.passiveMovieDoc}
                                     onChange={(value) => {
                                         setInputDataEdit((previousData) => ({
@@ -475,7 +475,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     }}
                                 />
                                 <InputWithTime
-                                    label="News/Shows"
+                                    label="News/Show"
                                     value={inputDataEdit.passiveNewsShows}
                                     onChange={(value) => {
                                         setInputDataEdit((previousData) => ({
@@ -486,7 +486,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     }}
                                 />
                                 <InputWithTime
-                                    label="Conversations"
+                                    label="Conversation"
                                     value={inputDataEdit.passiveConversation}
                                     onChange={(value) => {
                                         setInputDataEdit((previousData) => ({
@@ -497,7 +497,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     }}
                                 />
                                 <InputWithTime
-                                    label="Other Contents"
+                                    label="Other Content"
                                     value={inputDataEdit.passiveOthers}
                                     onChange={(value) => {
                                         setInputDataEdit((previousData) => ({

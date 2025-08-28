@@ -309,7 +309,6 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     <InputWithTime
                                         label={
                                             <>
-                                                Enter the{' '}
                                                 <span style={{ color: 'var(--secondary)' }}>Reading Time</span> (MM:SS)
                                             </>
                                         }
@@ -325,8 +324,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     <InputWithTime
                                         label={
                                             <>
-                                                Enter the <span style={{ color: 'var(--secondary)' }}>DEDA Time</span>{' '}
-                                                (HH:MM)
+                                                <span style={{ color: 'var(--secondary)' }}>DEDA Time</span> (HH:MM)
                                             </>
                                         }
                                         value={inputDataEdit.dedaTime}

@@ -133,7 +133,7 @@ export const DedaInput: React.FC<DedaInputProps> = ({
                 <InputWithTime
                     label={
                         <Text className="color-white" style={{ fontWeight: 700, fontSize: '1.2rem' }}>
-                            Enter the <span className="highlight color-secondary">Reading Time</span> (MM:SS)
+                            <span className="highlight color-secondary">Reading Time</span> (MM:SS)
                         </Text>
                     }
                     value={readingTime}
@@ -144,7 +144,7 @@ export const DedaInput: React.FC<DedaInputProps> = ({
                 <InputWithTime
                     label={
                         <Text className="color-white" style={{ fontWeight: 700, fontSize: '1.2rem' }}>
-                            Enter the <span className="highlight color-secondary">DEDA Time</span> (HH:MM)
+                            <span className="highlight color-secondary">DEDA Time</span> (HH:MM)
                         </Text>
                     }
                     value={dedaTime}

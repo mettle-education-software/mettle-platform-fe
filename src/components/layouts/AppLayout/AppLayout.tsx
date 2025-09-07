@@ -154,7 +154,15 @@ export const AppLayout = forwardRef<
                         ? [
                               {
                                   key: 'imerso',
-                                  icon: <DedaIcon style={{ marginLeft: '-3px' }} />,
+                                  icon: (
+                                      <DedaIcon
+                                          style={{ marginLeft: '-3px' }}
+                                          onClick={(event) => {
+                                              event.stopPropagation();
+                                              router.push('/imerso');
+                                          }}
+                                      />
+                                  ),
                                   label: (
                                       <Text
                                           style={{ cursor: 'pointer' }}

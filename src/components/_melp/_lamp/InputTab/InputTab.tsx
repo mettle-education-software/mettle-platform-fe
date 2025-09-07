@@ -309,7 +309,6 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     <InputWithTime
                                         label={
                                             <>
-                                                Enter the{' '}
                                                 <span style={{ color: 'var(--secondary)' }}>Reading Time</span> (MM:SS)
                                             </>
                                         }
@@ -325,8 +324,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     <InputWithTime
                                         label={
                                             <>
-                                                Enter the <span style={{ color: 'var(--secondary)' }}>DEDA Time</span>{' '}
-                                                (HH:MM)
+                                                <span style={{ color: 'var(--secondary)' }}>DEDA Time</span> (HH:MM)
                                             </>
                                         }
                                         value={inputDataEdit.dedaTime}
@@ -358,39 +356,6 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     }}
                                 />
                                 <InputWithTime
-                                    label="Deda Notes"
-                                    value={inputDataEdit.activeDedaNotes}
-                                    onChange={(value) => {
-                                        setInputDataEdit((previousData) => ({
-                                            ...previousData,
-                                            activeDedaNotes: value,
-                                        }));
-                                        setSaveKey(getSaveKey('activeDedaNotes'));
-                                    }}
-                                />
-                                <InputWithTime
-                                    label="Mooc"
-                                    value={inputDataEdit.activeMooc}
-                                    onChange={(value) => {
-                                        setInputDataEdit((previousData) => ({
-                                            ...previousData,
-                                            activeMooc: value,
-                                        }));
-                                        setSaveKey(getSaveKey('activeMooc'));
-                                    }}
-                                />
-                                <InputWithTime
-                                    label="Others"
-                                    value={inputDataEdit.activeOthers}
-                                    onChange={(value) => {
-                                        setInputDataEdit((previousData) => ({
-                                            ...previousData,
-                                            activeOthers: value,
-                                        }));
-                                        setSaveKey(getSaveKey('activeOthers'));
-                                    }}
-                                />
-                                <InputWithTime
                                     label="Review"
                                     value={inputDataEdit.activeReview}
                                     onChange={(value) => {
@@ -401,6 +366,39 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                         setSaveKey(getSaveKey('activeReview'));
                                     }}
                                 />
+                                <InputWithTime
+                                    label="DEDA Notes"
+                                    value={inputDataEdit.activeDedaNotes}
+                                    onChange={(value) => {
+                                        setInputDataEdit((previousData) => ({
+                                            ...previousData,
+                                            activeDedaNotes: value,
+                                        }));
+                                        setSaveKey(getSaveKey('activeDedaNotes'));
+                                    }}
+                                />
+                                <InputWithTime
+                                    label="Fundamentals"
+                                    value={inputDataEdit.activeMooc}
+                                    onChange={(value) => {
+                                        setInputDataEdit((previousData) => ({
+                                            ...previousData,
+                                            activeMooc: value,
+                                        }));
+                                        setSaveKey(getSaveKey('activeMooc'));
+                                    }}
+                                />
+                                <InputWithTime
+                                    label="Other Content"
+                                    value={inputDataEdit.activeOthers}
+                                    onChange={(value) => {
+                                        setInputDataEdit((previousData) => ({
+                                            ...previousData,
+                                            activeOthers: value,
+                                        }));
+                                        setSaveKey(getSaveKey('activeOthers'));
+                                    }}
+                                />
                             </InputsWrapper>
                         </Flex>
                     </Col>
@@ -409,69 +407,14 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                             <SectionTitle title="Passive" subtitle="Enter your Passive Study Time (HH:MM)" />
                             <InputsWrapper>
                                 <InputWithTime
-                                    label="Audiobook"
-                                    value={inputDataEdit.passiveAudiobook}
+                                    label="TED"
+                                    value={inputDataEdit.passiveTed}
                                     onChange={(value) => {
                                         setInputDataEdit((previousData) => ({
                                             ...previousData,
-                                            passiveAudiobook: value,
+                                            passiveTed: value,
                                         }));
-                                        setSaveKey(getSaveKey('passiveAudiobook'));
-                                    }}
-                                />
-                                <InputWithTime
-                                    label="Conversation"
-                                    value={inputDataEdit.passiveConversation}
-                                    onChange={(value) => {
-                                        setInputDataEdit((previousData) => ({
-                                            ...previousData,
-                                            passiveConversation: value,
-                                        }));
-                                        setSaveKey(getSaveKey('passiveConversation'));
-                                    }}
-                                />
-                                <InputWithTime
-                                    label="Movie/Doc"
-                                    value={inputDataEdit.passiveMovieDoc}
-                                    onChange={(value) => {
-                                        setInputDataEdit((previousData) => ({
-                                            ...previousData,
-                                            passiveMovieDoc: value,
-                                        }));
-                                        setSaveKey(getSaveKey('passiveMovieDoc'));
-                                    }}
-                                />
-                                <InputWithTime
-                                    label="News Shows"
-                                    value={inputDataEdit.passiveNewsShows}
-                                    onChange={(value) => {
-                                        setInputDataEdit((previousData) => ({
-                                            ...previousData,
-                                            passiveNewsShows: value,
-                                        }));
-                                        setSaveKey(getSaveKey('passiveNewsShows'));
-                                    }}
-                                />
-                                <InputWithTime
-                                    label="Others"
-                                    value={inputDataEdit.passiveOthers}
-                                    onChange={(value) => {
-                                        setInputDataEdit((previousData) => ({
-                                            ...previousData,
-                                            passiveOthers: value,
-                                        }));
-                                        setSaveKey(getSaveKey('passiveOthers'));
-                                    }}
-                                />
-                                <InputWithTime
-                                    label="Podcast"
-                                    value={inputDataEdit.passivePodcast}
-                                    onChange={(value) => {
-                                        setInputDataEdit((previousData) => ({
-                                            ...previousData,
-                                            passivePodcast: value,
-                                        }));
-                                        setSaveKey(getSaveKey('passivePodcast'));
+                                        setSaveKey(getSaveKey('passiveTed'));
                                     }}
                                 />
                                 <InputWithTime
@@ -486,18 +429,7 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                     }}
                                 />
                                 <InputWithTime
-                                    label="TED"
-                                    value={inputDataEdit.passiveTed}
-                                    onChange={(value) => {
-                                        setInputDataEdit((previousData) => ({
-                                            ...previousData,
-                                            passiveTed: value,
-                                        }));
-                                        setSaveKey(getSaveKey('passiveTed'));
-                                    }}
-                                />
-                                <InputWithTime
-                                    label="Youtube"
+                                    label="YouTube"
                                     value={inputDataEdit.passiveYoutube}
                                     onChange={(value) => {
                                         setInputDataEdit((previousData) => ({
@@ -505,6 +437,72 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
                                             passiveYoutube: value,
                                         }));
                                         setSaveKey(getSaveKey('passiveYoutube'));
+                                    }}
+                                />
+                                <InputWithTime
+                                    label="Podcast"
+                                    value={inputDataEdit.passivePodcast}
+                                    onChange={(value) => {
+                                        setInputDataEdit((previousData) => ({
+                                            ...previousData,
+                                            passivePodcast: value,
+                                        }));
+                                        setSaveKey(getSaveKey('passivePodcast'));
+                                    }}
+                                />
+                                <InputWithTime
+                                    label="Audiobook"
+                                    value={inputDataEdit.passiveAudiobook}
+                                    onChange={(value) => {
+                                        setInputDataEdit((previousData) => ({
+                                            ...previousData,
+                                            passiveAudiobook: value,
+                                        }));
+                                        setSaveKey(getSaveKey('passiveAudiobook'));
+                                    }}
+                                />
+                                <InputWithTime
+                                    label="Movie/Doc"
+                                    value={inputDataEdit.passiveMovieDoc}
+                                    onChange={(value) => {
+                                        setInputDataEdit((previousData) => ({
+                                            ...previousData,
+                                            passiveMovieDoc: value,
+                                        }));
+                                        setSaveKey(getSaveKey('passiveMovieDoc'));
+                                    }}
+                                />
+                                <InputWithTime
+                                    label="News/Show"
+                                    value={inputDataEdit.passiveNewsShows}
+                                    onChange={(value) => {
+                                        setInputDataEdit((previousData) => ({
+                                            ...previousData,
+                                            passiveNewsShows: value,
+                                        }));
+                                        setSaveKey(getSaveKey('passiveNewsShows'));
+                                    }}
+                                />
+                                <InputWithTime
+                                    label="Conversation"
+                                    value={inputDataEdit.passiveConversation}
+                                    onChange={(value) => {
+                                        setInputDataEdit((previousData) => ({
+                                            ...previousData,
+                                            passiveConversation: value,
+                                        }));
+                                        setSaveKey(getSaveKey('passiveConversation'));
+                                    }}
+                                />
+                                <InputWithTime
+                                    label="Other Content"
+                                    value={inputDataEdit.passiveOthers}
+                                    onChange={(value) => {
+                                        setInputDataEdit((previousData) => ({
+                                            ...previousData,
+                                            passiveOthers: value,
+                                        }));
+                                        setSaveKey(getSaveKey('passiveOthers'));
                                     }}
                                 />
                             </InputsWrapper>

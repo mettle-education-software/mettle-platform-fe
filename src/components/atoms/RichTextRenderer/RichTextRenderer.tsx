@@ -36,6 +36,7 @@ const TextWrapper = styled.div`
     ul,
     ol {
         margin-bottom: 0 !important;
+        margin-left: 1.5rem;
     }
 
     .ant-typography {

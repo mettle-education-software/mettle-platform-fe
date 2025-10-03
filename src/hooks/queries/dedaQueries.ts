@@ -106,6 +106,9 @@ const dedaListenQuery = gql`
     query DedaListen($dedaId: String) {
         dedaContentCollection(where: { dedaId: $dedaId }, limit: 1) {
             items {
+                dedaListenAudioMedia {
+                    url
+                }
                 dedaListenSoundCloudLink
             }
         }

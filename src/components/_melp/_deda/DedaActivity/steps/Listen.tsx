@@ -2,6 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Card, Skeleton, Typography } from 'antd';
+import { AudioPlayer } from 'components';
 import { useDeda } from 'hooks';
 import { DedaListenQueryResponse } from 'interfaces';
 import { createSCWidget } from 'libs';
@@ -67,6 +68,7 @@ export const Listen: React.FC<ListenProps> = ({ dedaId, onListenPlay, isTodaysDe
 
     return (
         <ListenFrame>
+            <AudioPlayer audioURL={data?.dedaContentCollection?.items[0]?.dedaListenAudioMedia?.url ?? ''} />
             {isTodaysDedaAndNotCompleted && displayStartMessage && !dedaOngoing && (
                 <StartMessage>
                     <Text className="color-white">
@@ -74,13 +76,13 @@ export const Listen: React.FC<ListenProps> = ({ dedaId, onListenPlay, isTodaysDe
                     </Text>
                 </StartMessage>
             )}
-            <ListenSoundCloud
-                id={soundCloudFrameId}
-                src={
-                    dedaListenResult.data?.dedaContentCollection.items[0].dedaListenSoundCloudLink +
-                    '&amp;show_teaser=false'
-                }
-            />
+            {/*<ListenSoundCloud*/}
+            {/*    id={soundCloudFrameId}*/}
+            {/*    src={*/}
+            {/*        dedaListenResult.data?.dedaContentCollection.items[0].dedaListenSoundCloudLink +*/}
+            {/*        '&amp;show_teaser=false'*/}
+            {/*    }*/}
+            {/*/>*/}
         </ListenFrame>
     );
 };

@@ -4,7 +4,7 @@ import { Typography } from 'antd';
 import React from 'react';
 import { AudioPlayer as RawAudioPlayer } from 'react-audio-play';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 type AudioPlayerProps = Readonly<{
     audioURL: string;
@@ -42,10 +42,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioURL, onPlayStart,
     return (
         <PlayerWrapper>
             <CoverImage src={coverSrc} />
-            <Flex gap="1rem" align="start" vertical style={{ width: '100%' }}>
-                <Title level={4} style={{ marginBottom: '0 !important', marginTop: '1rem' }}>
-                    {title}
-                </Title>
+            <Flex gap="0" align="start" vertical style={{ width: '100%' }}>
+                <div>
+                    <Title level={4} style={{ marginBottom: '0 !important', marginTop: '1rem' }}>
+                        {title}
+                    </Title>
+                    <Text type="secondary" style={{ marginBottom: '0 !important' }}>
+                        Programa Imerso | DEDA
+                    </Text>
+                </div>
                 <RawAudioPlayer
                     width="100%"
                     style={{ height: '5rem', boxShadow: 'none', border: 'none', padding: '0.2rem' }}

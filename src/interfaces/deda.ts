@@ -142,6 +142,10 @@ export type DedaListenQueryResponse = DedaContentCollection<{
     dedaListenAudioMedia: {
         url: string;
     };
+    dedaTitle: string;
+    dedaFeaturedImage: {
+        url: string;
+    };
 }>;
 
 export type DedaReadRecordQueryResponse = DedaContentCollection<{
@@ -157,6 +161,13 @@ export type DedaWatchQueryResponse = DedaContentCollection<{
 
 export type DedaListenReadQueryResponse = DedaContentCollection<{
     dedaListenSoundCloudLink: string;
+    dedaListenAudioMedia: {
+        url: string;
+    };
+    dedaTitle: string;
+    dedaFeaturedImage: {
+        url: string;
+    };
     dedaReadContent: {
         json: any;
         links: LinkType;

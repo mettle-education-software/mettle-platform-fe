@@ -110,6 +110,10 @@ const dedaListenQuery = gql`
                     url
                 }
                 dedaListenSoundCloudLink
+                dedaTitle
+                dedaFeaturedImage {
+                    url
+                }
             }
         }
     }
@@ -172,6 +176,14 @@ const dedaListenReadQuery = gql`
                             }
                         }
                     }
+                }
+                dedaListenSoundCloudLink
+                dedaListenAudioMedia {
+                    url
+                }
+                dedaTitle
+                dedaFeaturedImage {
+                    url
                 }
             }
         }

@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Card, Flex, Skeleton } from 'antd';
-import { MaxWidthContainer, RichTextRenderer } from 'components';
+import { AudioPlayer, MaxWidthContainer, RichTextRenderer } from 'components';
 import { useDeda, useDeviceSize } from 'hooks';
 import { DedaListenReadQueryResponse } from 'interfaces';
 import React from 'react';
@@ -35,7 +35,16 @@ export const ListenRead: React.FC<ListenReadProps> = ({ dedaId }) => {
             <Flex justify="center">
                 <MaxWidthContainer style={{ paddingBottom: '5rem', paddingTop: '1rem' }}>
                     <Flex vertical align="stretch" gap="2rem">
-                        <ListenSoundCloud src={dedaListenSoundCloudLink + '&amp;show_teaser=false'} />
+                        <AudioPlayer
+                            title={dedaListenReadResult.data?.dedaContentCollection?.items[0]?.dedaTitle ?? 'Listen'}
+                            coverSrc={
+                                dedaListenReadResult.data?.dedaContentCollection?.items[0]?.dedaFeaturedImage?.url ?? ''
+                            }
+                            audioURL={
+                                dedaListenReadResult.data?.dedaContentCollection?.items[0]?.dedaListenAudioMedia?.url ??
+                                ''
+                            }
+                        />
                         <Skeleton loading={dedaListenReadResult.loading} active style={{ width: '100%' }}>
                             <RichTextRenderer rawContent={dedaReadRecordData?.json} links={dedaReadRecordData?.links} />
                         </Skeleton>
@@ -49,7 +58,21 @@ export const ListenRead: React.FC<ListenReadProps> = ({ dedaId }) => {
             <Flex justify="center">
                 <MaxTextWidth>
                     <Flex vertical align="stretch" gap="2rem">
-                        <ListenSoundCloud src={dedaListenSoundCloudLink + '&amp;show_teaser=false'} />
+                        {!dedaListenReadResult.loading && (
+                            <AudioPlayer
+                                title={
+                                    dedaListenReadResult.data?.dedaContentCollection?.items[0]?.dedaTitle ?? 'Listen'
+                                }
+                                coverSrc={
+                                    dedaListenReadResult.data?.dedaContentCollection?.items[0]?.dedaFeaturedImage
+                                        ?.url ?? ''
+                                }
+                                audioURL={
+                                    dedaListenReadResult.data?.dedaContentCollection?.items[0]?.dedaListenAudioMedia
+                                        ?.url ?? ''
+                                }
+                            />
+                        )}
                         <Skeleton loading={dedaListenReadResult.loading} active style={{ width: '100%' }}>
                             <RichTextRenderer rawContent={dedaReadRecordData?.json} links={dedaReadRecordData?.links} />
                         </Skeleton>

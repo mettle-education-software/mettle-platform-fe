@@ -8,8 +8,7 @@ import useGetLessonContent from 'hooks/queries/useGetLessonContent';
 import { useProductEventsSender } from 'hooks/useEvents';
 import { SMALL_VIEWPORT } from 'libs';
 import { useAppContext } from 'providers';
-import React, { useRef, useCallback, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
+import React, { useRef, useEffect } from 'react';
 
 const { Title } = Typography;
 
@@ -34,18 +33,6 @@ const VideoIFrame = styled.iframe`
     }
 `;
 
-const Markdown = styled(ReactMarkdown)`
-    margin-top: 1rem;
-    color: white;
-    font-size: 1.5rem;
-    font-weight: 400;
-
-    @media (max-width: ${SMALL_VIEWPORT}px) {
-        margin-top: 0.5rem;
-        font-size: 0.8rem;
-    }
-`;
-
 export const LessonVideo: React.FC<LessonVideoProps> = ({ lessonId, onEmptyVideo }) => {
     const { data, loading } = useGetLessonContent(lessonId);
     const { user } = useAppContext();
@@ -58,7 +45,7 @@ export const LessonVideo: React.FC<LessonVideoProps> = ({ lessonId, onEmptyVideo
     useEffect(() => {
         const sendMilestone = async (milestone: number) => {
             sendMilestoneEvent({
-                productId: lessonId as string,
+                productId: lessonId,
                 dto: {
                     userEmail: user?.email as string,
                     userFirstName: user?.name as string,
@@ -72,7 +59,7 @@ export const LessonVideo: React.FC<LessonVideoProps> = ({ lessonId, onEmptyVideo
 
         const player = new Player(iframeRef.current);
 
-        const milestones = [25, 50, 75, 90, 98];
+        const milestones = [25, 50, 75, 90, 95, 100];
         const triggeredMilestones = new Set<number>();
 
         const onTimeUpdate = async (data: { percent: number }) => {
@@ -91,6 +78,7 @@ export const LessonVideo: React.FC<LessonVideoProps> = ({ lessonId, onEmptyVideo
         return () => {
             player.off('timeupdate', onTimeUpdate);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [iframeRef.current, user]);
 
     if (loading || !data) return <Skeleton active loading />;

@@ -7,6 +7,7 @@ export { HeaderSummary } from './HeaderSummary/HeaderSummary';
 export { InputWithTime } from './InputWithTime/InputWithTime';
 export { InputsWrapper } from './InputsWrapper/InputsWrapper';
 export { ComingHpecs } from './ComingHpecs/ComingHpecs';
+export { SectionTitle } from './SectionTitle/SectionTitle';
 export * from './_deda';
 export * from './_lamp';
 export * from './_hpec';

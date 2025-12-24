@@ -9,8 +9,9 @@ const { Text } = Typography;
 
 interface DedaRateInputProps {
     label: string;
-    value: number;
-    onChange: (value: number) => void;
+    value: number | string;
+    onChange?: (value: number) => void;
+    displayMode?: boolean;
 }
 
 const dedaRatings = ['Terrible', 'Bad', 'Normal', 'Good', 'Wonderful'];
@@ -53,7 +54,7 @@ const DedaRateInputWrapper = styled.div`
     }
 `;
 
-export const DedaRateInput: React.FC<DedaRateInputProps> = ({ label, value, onChange }) => (
+export const DedaRateInput: React.FC<DedaRateInputProps> = ({ label, value, onChange, displayMode = false }) => (
     <DedaRateInputWrapper>
         <Row>
             <Col xs={11} md={14}>
@@ -61,12 +62,18 @@ export const DedaRateInput: React.FC<DedaRateInputProps> = ({ label, value, onCh
             </Col>
             <Col xs={13} md={10}>
                 <Flex justify="flex-end" wrap={false}>
-                    <Rate
-                        className="ant-rate-star-first"
-                        tooltips={dedaRatings}
-                        onChange={(value) => onChange(value)}
-                        value={value}
-                    />
+                    {displayMode ? (
+                        <Text className="input-variable-text" style={{ color: 'var(--secondary)' }}>
+                            {value}
+                        </Text>
+                    ) : (
+                        <Rate
+                            className="ant-rate-star-first"
+                            tooltips={dedaRatings}
+                            onChange={(value) => onChange?.(value)}
+                            value={Number(value)}
+                        />
+                    )}
                 </Flex>
             </Col>
         </Row>

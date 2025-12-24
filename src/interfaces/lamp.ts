@@ -153,3 +153,58 @@ export type GoalTableDataResponse = {
         }[];
     };
 };
+
+export interface OverallStatsReportResponse {
+    data: {
+        dedaAverages: {
+            dedaFocusAvg: string;
+            dedaPredPlaceAvg: string;
+            dedaStepsAvg: string;
+            dedaStateBeingAvg: string;
+            dedaStateMindAvg: string;
+            dedaTimeSum: string;
+            readingTimeSum: string;
+        };
+        activeStudyTotals: {
+            bookSum: string;
+            dedaNotesSum: string;
+            moocSum: string;
+            othersSum: string;
+            reviewSum: string;
+        };
+        passiveStudyTotals: {
+            audiobookSum: string;
+            conversationSum: string;
+            movieDocSum: string;
+            newsShowsSum: string;
+            othersSum: string;
+            podcastSum: string;
+            seriesSum: string;
+            tedSum: string;
+            youtubeSum: string;
+        };
+    };
+}
+
+export enum OverallStatsEnum {
+    dedaFocusAvg = 'Focus',
+    dedaPredPlaceAvg = 'Predetermined Place/Time',
+    dedaStepsAvg = 'Five Steps (DEEP)',
+    dedaStateBeingAvg = 'State of Being',
+    dedaStateMindAvg = 'State of Mind',
+    dedaTimeSum = 'DEDA Time',
+    readingTimeSum = 'Reading Time',
+    bookSum = 'Book',
+    dedaNotesSum = 'DEDA Notes',
+    moocSum = 'MOOC',
+    othersSum = 'Others',
+    reviewSum = 'Review',
+    audiobookSum = 'Audiobook',
+    conversationSum = 'Conversation',
+    movieDocSum = 'Movie/Documentary',
+    newsShowsSum = 'News/Shows',
+    podcastSum = 'Podcast',
+    seriesSum = 'Series',
+    tedSum = 'TED',
+    youtubeSum = 'YouTube',
+}

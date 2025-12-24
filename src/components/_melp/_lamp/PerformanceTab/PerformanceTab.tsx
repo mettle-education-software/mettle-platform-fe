@@ -2,13 +2,14 @@
 
 import styled from '@emotion/styled';
 import { Col, Row } from 'antd';
-import { WidgetCard } from 'components';
+import { Select, WidgetCard } from 'components';
 import { useDeviceSize } from 'hooks';
 import { useMelpContext } from 'providers';
 import React, { useEffect } from 'react';
 import { DedasListSelect } from '../../DedasListSelect/DedasListSelect';
 import { DedaStatisticsGraphs } from './DedaStatisticsGraphs';
 import { OverallGraph } from './OverallGraph';
+import { OverallStatsReport } from './OverallStatsReport';
 import { WeeklyDevelopmentGraph } from './WeeklyDevelopmentGraph';
 
 const PerformanceContainer = styled.section`
@@ -16,9 +17,29 @@ const PerformanceContainer = styled.section`
     padding-bottom: 10rem;
 `;
 
+const SortBy = ({
+    reportsSortedBy,
+    setReportsSortedBy,
+}: {
+    reportsSortedBy: 'ASC' | 'DESC' | undefined;
+    setReportsSortedBy: (value: 'ASC' | 'DESC' | undefined) => void;
+}) => (
+    <Select
+        label="Sort by"
+        options={[
+            { label: 'Default order', value: 'none' },
+            { label: 'From higher to lower', value: 'DESC' },
+            { label: 'From lower to higher', value: 'ASC' },
+        ]}
+        onChange={(value) => setReportsSortedBy(value === 'none' ? undefined : (value as 'ASC' | 'DESC'))}
+        value={reportsSortedBy === undefined ? 'none' : reportsSortedBy}
+    />
+);
+
 export const PerformanceTab: React.FC = () => {
     const { melpSummary } = useMelpContext();
     const [selectedWeek, setSelectedWeek] = React.useState<string>();
+    const [reportsSortedBy, setReportsSortedBy] = React.useState<'ASC' | 'DESC' | undefined>(undefined);
 
     useEffect(() => {
         if (melpSummary?.current_deda_week) {
@@ -56,6 +77,21 @@ export const PerformanceTab: React.FC = () => {
                     >
                         {device === 'mobile' && <DedasListSelect onChange={handleWeekChange} value={selectedWeek} />}
                         <DedaStatisticsGraphs selectedWeek={selectedWeek} />
+                    </WidgetCard>
+                </Col>
+                <Col xs={24} md={24}>
+                    <WidgetCard
+                        title="Overall Stats"
+                        extra={
+                            device === 'desktop' ? (
+                                <SortBy reportsSortedBy={reportsSortedBy} setReportsSortedBy={setReportsSortedBy} />
+                            ) : undefined
+                        }
+                    >
+                        {device === 'mobile' && (
+                            <SortBy reportsSortedBy={reportsSortedBy} setReportsSortedBy={setReportsSortedBy} />
+                        )}
+                        <OverallStatsReport sortBy={reportsSortedBy} />
                     </WidgetCard>
                 </Col>
             </Row>

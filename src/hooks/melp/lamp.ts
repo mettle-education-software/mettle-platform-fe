@@ -6,6 +6,7 @@ import {
     InputDataDTO,
     InputDataResponse,
     OverallPerformanceResponse,
+    OverallStatsReportResponse,
     WeeklyPerformanceResponse,
     WeeklyStatisticsResponse,
 } from 'interfaces';
@@ -727,4 +728,20 @@ export const useGoalGraphOptions = (level?: DedaDifficulty) => {
         isGraphLoading,
         goalGraph,
     };
+};
+
+export const useGetOverallStatsReport = (sortBy?: 'ASC' | 'DESC') => {
+    const { user } = useAppContext();
+
+    return useQuery({
+        enabled: !!user?.uid,
+        queryKey: ['get-overall-stats-report', user?.uid, sortBy],
+        queryFn: () =>
+            lampService
+                .get<OverallStatsReportResponse>(
+                    `/performance/${user?.uid}/report`,
+                    sortBy ? { params: { sort: sortBy } } : undefined,
+                )
+                .then(({ data }) => data.data),
+    });
 };

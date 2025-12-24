@@ -14,3 +14,4 @@ export { BackToTopButton } from './BackToTopButton/BackToTopButton';
 export { Chat } from './Chat/Chat';
 export { CourseModulesList } from './CourseModulesList/CourseModulesList';
 export { MobileLessonNavigation } from './MobileLessonNavigation/MobileLessonNavigation';
+export { Select } from './Select/Select';

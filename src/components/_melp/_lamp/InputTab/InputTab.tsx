@@ -13,19 +13,7 @@ import { getDayToday } from 'libs';
 import { useMelpContext } from 'providers';
 import React, { Dispatch, SetStateAction, useCallback, useEffect, useState } from 'react';
 import { InputWithTime } from '../../InputWithTime/InputWithTime';
-
-const { Title, Text } = Typography;
-
-const SectionTitle = ({ title, subtitle }: { title: string; subtitle: string }) => {
-    return (
-        <div>
-            <Title style={{ color: 'var(--secondary)', fontWeight: 500 }} level={4}>
-                {title}
-            </Title>
-            <Text style={{ color: '#FFF' }}>{subtitle}</Text>
-        </div>
-    );
-};
+import { SectionTitle } from '../../SectionTitle/SectionTitle';
 
 interface InputDataEdit {
     dedaPredPlace: number;

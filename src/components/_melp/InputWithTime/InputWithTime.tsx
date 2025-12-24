@@ -58,11 +58,12 @@ const LabelText = styled(Text)`
 export interface InputWithTimeProps {
     label?: string | React.ReactNode;
     value: number;
+    displayValueOnly?: string;
 
-    onChange(value: number): void;
+    onChange?(value: number): void;
 }
 
-export const InputWithTime: React.FC<InputWithTimeProps> = ({ label, value, onChange }) => {
+export const InputWithTime: React.FC<InputWithTimeProps> = ({ label, value, onChange, displayValueOnly }) => {
     const [hourValue, setHourValue] = useState<number>(Math.floor(value / 60));
     const [minuteValue, setMinuteValue] = useState<number>(value % 60);
     const [modalOpen, setModalOpen] = useState(false);
@@ -80,7 +81,7 @@ export const InputWithTime: React.FC<InputWithTimeProps> = ({ label, value, onCh
 
     const handleOk = () => {
         setModalOpen(false);
-        onChange(hourValue * 60 + minuteValue);
+        onChange?.(hourValue * 60 + minuteValue);
     };
 
     const handleCancel = () => {
@@ -128,13 +129,19 @@ export const InputWithTime: React.FC<InputWithTimeProps> = ({ label, value, onCh
                 <LabelText>{label}</LabelText>
             </Col>
             <Col span={8}>
-                <TimeInputDisplay
-                    id="time-display"
-                    value={`${hourValue.toString().padStart(2, '0')}:${minuteValue.toString().padStart(2, '0')}`}
-                    onClick={() => {
-                        showModal();
-                    }}
-                />
+                {displayValueOnly ? (
+                    <Flex justify="flex-end" align="center">
+                        <LabelText style={{ color: 'var(--secondary)' }}>{displayValueOnly}</LabelText>
+                    </Flex>
+                ) : (
+                    <TimeInputDisplay
+                        id="time-display"
+                        value={`${hourValue.toString().padStart(2, '0')}:${minuteValue.toString().padStart(2, '0')}`}
+                        onClick={() => {
+                            showModal();
+                        }}
+                    />
+                )}
                 <Modal open={modalOpen} onOk={handleOk} onCancel={handleCancel} title={label}>
                     <ClockWrapper>
                         <Row align="middle" justify="center" gutter={16}>

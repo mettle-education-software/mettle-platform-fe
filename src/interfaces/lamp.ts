@@ -202,7 +202,7 @@ export enum OverallStatsEnum {
     audiobookSum = 'Audiobook',
     conversationSum = 'Conversation',
     movieDocSum = 'Movie/Doc',
-    newsShowsSum = 'News/Shows',
+    newsShowsSum = 'News/Show',
     podcastSum = 'Podcast',
     seriesSum = 'Series',
     tedSum = 'TED',

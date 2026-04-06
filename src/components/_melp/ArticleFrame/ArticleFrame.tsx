@@ -1,8 +1,8 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Drawer, Modal, Skeleton } from 'antd';
-import { useDeviceSize, useGetMetadata } from 'hooks';
+import { Drawer, Modal, Skeleton, Typography } from 'antd';
+import { useDeviceSize, useGetMetadata, useGetReadableArticle } from 'hooks';
 import { useEffect, useState } from 'react';
 import { FrameThumbnail } from '../../atoms/FrameThumbnail/FrameThumbnail';
 
@@ -19,10 +19,58 @@ const Dialog = styled(Modal)`
     }
 `;
 
-const ArticleFrameContainer = styled.iframe`
-    width: 100%;
-    min-height: 100% !important;
-    border: none;
+const ArticleFrameContainer = styled.div`
+    height: 100%;
+    max-height: 100%;
+    padding: 0 1.5rem 1.5rem;
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        color: #141414;
+        line-height: 1.25;
+        margin: 1.5rem 0 0.75rem;
+    }
+
+    p,
+    li,
+    blockquote,
+    figcaption {
+        color: #434343;
+        font-size: 1rem;
+        line-height: 1.75;
+    }
+
+    img,
+    video {
+        border-radius: 6px;
+        display: block;
+        height: auto;
+        margin: 1rem auto;
+        max-width: 100%;
+    }
+
+    a {
+        color: #1677ff;
+    }
+
+    blockquote {
+        border-left: 3px solid #d9d9d9;
+        margin: 1.25rem 0;
+        padding-left: 1rem;
+    }
+
+    pre,
+    code {
+        white-space: pre-wrap;
+    }
+`;
+
+const ArticleHeader = styled.div`
+    padding: 0 1.5rem 1rem;
 `;
 
 export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: string; fullWidth?: boolean }) => {
@@ -34,6 +82,12 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
     };
 
     const { data: metadata, isError, isLoading } = useGetMetadata(href);
+    const {
+        data: article,
+        isLoading: isArticleLoading,
+        isFetching: isArticleFetching,
+        isError: isArticleError,
+    } = useGetReadableArticle(href, isModalOpen);
 
     const [thumbStyle, setThumbStyle] = useState({
         borderRadius: 6,
@@ -43,11 +97,6 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
         backgroundSize: 'contain',
         backgroundPosition: 'center',
     });
-    const [shouldOpenExternal, setShouldOpenExternal] = useState(true);
-
-    useEffect(() => {
-        setShouldOpenExternal(!metadata?.canEmbed || false);
-    }, [metadata]);
 
     useEffect(() => {
         if (metadata?.image) {
@@ -65,8 +114,6 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
         }
     }, [metadata?.image]);
 
-    const [isContentLoading, setIsContentLoading] = useState(true);
-
     if (isLoading)
         return (
             <Skeleton.Image
@@ -80,16 +127,55 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
             />
         );
 
+    const articleBody = (
+        <>
+            <Skeleton
+                style={{ paddingLeft: '1rem', paddingRight: '1rem' }}
+                active
+                loading={isArticleLoading || isArticleFetching}
+            />
+            {!isArticleLoading && !isArticleFetching && (
+                <div style={{ maxHeight: '100%', overflowY: 'auto', padding: '0.8rem' }}>
+                    <ArticleHeader>
+                        <Typography.Title level={3} style={{ marginBottom: article?.excerpt ? '0.5rem' : 0 }}>
+                            {article?.title || title}
+                        </Typography.Title>
+                        {article?.excerpt ? (
+                            <Typography.Paragraph
+                                type="secondary"
+                                style={{ marginBottom: article?.byline ? '0.5rem' : 0 }}
+                            >
+                                {article.excerpt}
+                            </Typography.Paragraph>
+                        ) : null}
+                        {article?.byline ? <Typography.Text type="secondary">{article.byline}</Typography.Text> : null}
+                        {isArticleError ? (
+                            <Typography.Paragraph type="secondary" style={{ marginTop: '1rem', marginBottom: 0 }}>
+                                Unable to load a readable version of this article.{' '}
+                                <a href={href} rel="noreferrer" target="_blank">
+                                    Open original article
+                                </a>
+                                .
+                            </Typography.Paragraph>
+                        ) : null}
+                    </ArticleHeader>
+                    {article?.content ? (
+                        <ArticleFrameContainer dangerouslySetInnerHTML={{ __html: article.content }} />
+                    ) : null}
+                </div>
+            )}
+        </>
+    );
+
     return (
         <FrameThumbnail
             fullWidth={fullWidth}
             title={title}
             onThumbClick={() => {
-                if (isError || shouldOpenExternal) {
+                if (isError) {
                     window.open(href, '_blank');
                     return;
                 }
-                setIsContentLoading(true);
 
                 if (!isModalOpen) setIsModalOpen(true);
             }}
@@ -103,15 +189,7 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
                     footer={null}
                     width="70vw"
                 >
-                    <Skeleton style={{ paddingLeft: '1rem', paddingRight: '1rem' }} active loading={isContentLoading} />
-                    <ArticleFrameContainer
-                        allowFullScreen
-                        height="100%"
-                        src={href}
-                        onLoad={() => {
-                            setIsContentLoading(false);
-                        }}
-                    />
+                    {articleBody}
                 </Dialog>
             ) : (
                 <Drawer
@@ -122,15 +200,7 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
                     height="100%"
                     placement="bottom"
                 >
-                    <Skeleton style={{ paddingLeft: '1rem', paddingRight: '1rem' }} active loading={isContentLoading} />
-                    <ArticleFrameContainer
-                        allowFullScreen
-                        height="100%"
-                        src={href}
-                        onLoad={() => {
-                            setIsContentLoading(false);
-                        }}
-                    />
+                    {articleBody}
                 </Drawer>
             )}
             <div style={thumbStyle} />

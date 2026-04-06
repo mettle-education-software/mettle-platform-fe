@@ -3,6 +3,7 @@ export * from './melp/melp';
 export * from './melp/deda';
 export * from './melp/lamp';
 export * from './useGetMetadata';
+export * from './useGetReadableArticle';
 export * from './queries/dedaQueries';
 export * from './notifications';
 export * from './recorder';

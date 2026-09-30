@@ -58,11 +58,15 @@ export const MettleArticles = ({
             {articles.map((article) => {
                 const image = article.imagesCollection.items[0];
                 return (
-                    <ArticleCard key={article.day} href={linKnowledgeArticlePath(deda.dedaSlug, article.day)}>
+                    <ArticleCard
+                        key={article.day}
+                        href={linKnowledgeArticlePath(deda.dedaSlug, article.day)}
+                        aria-label={`Day ${article.day}: ${article.title}`}
+                    >
                         {image && (
                             <Image
                                 src={image.url}
-                                alt={image.description ?? ''}
+                                alt={image.description || article.title}
                                 width={image.width}
                                 height={image.height}
                             />

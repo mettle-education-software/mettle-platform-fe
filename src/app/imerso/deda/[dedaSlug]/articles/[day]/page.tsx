@@ -93,14 +93,23 @@ const Paper = styled.article`
 const renderOptions: Options = {
     renderNode: {
         [INLINES.HYPERLINK]: (_node, children) => <>{children}</>,
+        [INLINES.ENTRY_HYPERLINK]: (_node, children) => <>{children}</>,
+        [INLINES.ASSET_HYPERLINK]: (_node, children) => <>{children}</>,
+        [INLINES.RESOURCE_HYPERLINK]: (_node, children) => <>{children}</>,
         [BLOCKS.HR]: () => <hr />,
     },
 };
 
-const ArticleImage = ({ image }: { image?: LinKnowledgeArticle['imagesCollection']['items'][number] }) =>
+const ArticleImage = ({
+    image,
+    fallbackAlt,
+}: {
+    image?: LinKnowledgeArticle['imagesCollection']['items'][number];
+    fallbackAlt: string;
+}) =>
     image ? (
         <figure>
-            <Image src={image.url} alt={image.description ?? ''} width={image.width} height={image.height} />
+            <Image src={image.url} alt={image.description || fallbackAlt} width={image.width} height={image.height} />
         </figure>
     ) : null;
 
@@ -155,9 +164,9 @@ function LinKnowledgeReader({ params: { dedaId, day } }: { params: { dedaId: str
                         {editionDate && ` · ${editionDate}`} · {readingMinutes(article.wordCount)} min read
                     </Typography.Text>
 
-                    <ArticleImage image={imageTop} />
+                    <ArticleImage image={imageTop} fallbackAlt={article.title} />
                     {renderBody(firstHalf)}
-                    <ArticleImage image={imageMiddle} />
+                    <ArticleImage image={imageMiddle} fallbackAlt={article.title} />
                     {renderBody(secondHalf)}
 
                     <Flex justify="space-between" gap="1rem" style={{ marginTop: '2.5rem' }}>

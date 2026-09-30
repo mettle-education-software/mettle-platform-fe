@@ -10,6 +10,7 @@ import { DedaNotesQueryResponse } from 'interfaces';
 import { padding, SMALL_VIEWPORT } from 'libs';
 import React, { useMemo, useRef } from 'react';
 import { PodcastFrame } from '../../../PodcastFrame/PodcastFrame';
+import { MettleArticles } from './MettleArticles';
 
 const LinKnowledgeContainer = styled.div`
     background: #2b2b2b;
@@ -151,6 +152,19 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
         <LinKnowledgeContainer>
             <MaxWidthContainer>
                 <MainFlexColumn vertical align="stretch" gap="1.5rem">
+                    <MettleArticles dedaId={dedaId}>
+                        {(row) => (
+                            <CarouselCard
+                                title={
+                                    <CarouselTitle level={4}>
+                                        <FileTextFilled /> Articles
+                                    </CarouselTitle>
+                                }
+                            >
+                                {row}
+                            </CarouselCard>
+                        )}
+                    </MettleArticles>
                     <CarouselCard
                         title={
                             <CarouselTitle level={4}>

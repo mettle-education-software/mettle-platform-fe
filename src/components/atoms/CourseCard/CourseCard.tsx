@@ -13,6 +13,9 @@ interface CourseCardProps {
     href: string;
     imgUrl: string;
     isLocked?: boolean;
+    // Acesso expirado: selo no card e o botão abre o CTA de renovação (onClick) em vez de navegar.
+    isExpired?: boolean;
+    onClick?: () => void;
 }
 
 const StyledCard = styled(Card)`
@@ -49,13 +52,17 @@ const CardThumb = styled.div<{ imgUrl: string }>`
     }
 `;
 
-export const CourseCard: React.FC<CourseCardProps> = ({ title, type, href, imgUrl, isLocked }) => (
+export const CourseCard: React.FC<CourseCardProps> = ({ title, type, href, imgUrl, isLocked, isExpired, onClick }) => (
     <StyledCard
         title={
             <CardThumb imgUrl={imgUrl}>
                 <div className="card-type-row">
                     <div className="card-type">
-                        {isLocked ? (
+                        {isExpired ? (
+                            <Text>
+                                Acesso expirado <Lock />
+                            </Text>
+                        ) : isLocked ? (
                             <Text>
                                 {type} <Lock />
                             </Text>
@@ -70,9 +77,15 @@ export const CourseCard: React.FC<CourseCardProps> = ({ title, type, href, imgUr
         <Flex vertical gap="1rem" justify="space-between">
             <Title level={5}>{title}</Title>
 
-            <Button type={isLocked ? 'default' : 'primary'} block href={href}>
-                {isLocked ? 'Desbloquear' : 'Acessar'}
-            </Button>
+            {isExpired ? (
+                <Button type="primary" block onClick={onClick}>
+                    Renovar acesso
+                </Button>
+            ) : (
+                <Button type={isLocked ? 'default' : 'primary'} block href={href}>
+                    {isLocked ? 'Desbloquear' : 'Acessar'}
+                </Button>
+            )}
         </Flex>
     </StyledCard>
 );

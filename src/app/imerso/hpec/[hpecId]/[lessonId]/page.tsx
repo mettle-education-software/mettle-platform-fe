@@ -16,6 +16,8 @@ import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
 import { useGetHpecResources } from 'hooks/queries/hpecQueries';
 import { withAuthentication } from 'libs';
+import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { AccessCtaBlock, useProductAccess } from 'providers';
 import React, { useState } from 'react';
 
 const { Title } = Typography;
@@ -43,6 +45,7 @@ const HpecSection = styled.section`
 
 function HpecContent({ params: { hpecId, lessonId } }: Readonly<{ params: Record<string, string> }>) {
     const [hpecLessonId, setHpecLessonId] = useState<string>(lessonId);
+    const imersoLocked = useProductAccess().access(IMERSO_PRODUCT).state === 'expired';
 
     const { data } = useGetHpecResources(hpecLessonId);
 
@@ -83,17 +86,29 @@ function HpecContent({ params: { hpecId, lessonId } }: Readonly<{ params: Record
                                     {
                                         key: 'video',
                                         label: 'Video',
-                                        children: <LessonVideo lessonId={hpecLessonId} />,
+                                        children: imersoLocked ? (
+                                            <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />
+                                        ) : (
+                                            <LessonVideo lessonId={hpecLessonId} />
+                                        ),
                                     },
                                     {
                                         key: 'summary',
                                         label: 'Summary',
-                                        children: <LessonSummary lessonId={hpecLessonId} />,
+                                        children: imersoLocked ? (
+                                            <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />
+                                        ) : (
+                                            <LessonSummary lessonId={hpecLessonId} />
+                                        ),
                                     },
                                     {
                                         key: 'resources',
                                         label: 'Resources',
-                                        children: <LessonResources lessonId={hpecLessonId} />,
+                                        children: imersoLocked ? (
+                                            <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />
+                                        ) : (
+                                            <LessonResources lessonId={hpecLessonId} />
+                                        ),
                                         disabled:
                                             data?.singleLessonCollection?.items[0].lessonResourcesCollection.items
                                                 .length === 0,

@@ -47,6 +47,7 @@ export const DedaFinished: React.FC = () => {
                     </Col>
                     <Col xs={24} md={6}>
                         <SeeRestBtn
+                            data-access-allow
                             onClick={() => {
                                 router.push('/imerso/deda');
                             }}

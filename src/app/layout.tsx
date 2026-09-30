@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider, Spin, ThemeConfig } from 'antd';
 import { PWABanner } from 'components';
 import Script from 'next/script';
-import { AppProvider, NotificationsProvider, useAppContext } from 'providers';
+import { AccessCtaModal, AccessProvider, AppProvider, NotificationsProvider, useAppContext } from 'providers';
 import { MelpProvider } from 'providers/MelpProvider';
 import React, { useEffect } from 'react';
 import { darkTheme, lightTheme } from 'themes';
@@ -71,6 +71,7 @@ const App = ({ children }: { children: React.ReactNode }) => {
                         <Spin spinning={isAppLoading}>
                             <PWABanner>{children}</PWABanner>
                         </Spin>
+                        <AccessCtaModal />
                     </main>
                 </AntdRegistry>
             </body>
@@ -103,11 +104,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </head>
             <QueryClientProvider client={queryClient}>
                 <AppProvider>
-                    <MelpProvider>
-                        <NotificationsProvider>
-                            <App>{children}</App>
-                        </NotificationsProvider>
-                    </MelpProvider>
+                    <AccessProvider>
+                        <MelpProvider>
+                            <NotificationsProvider>
+                                <App>{children}</App>
+                            </NotificationsProvider>
+                        </MelpProvider>
+                    </AccessProvider>
                 </AppProvider>
             </QueryClientProvider>
         </html>

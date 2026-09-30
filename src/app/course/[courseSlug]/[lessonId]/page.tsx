@@ -17,7 +17,7 @@ import { useDeviceSize, useGetCourseDetails } from 'hooks';
 import useGetLessonContent from 'hooks/queries/useGetLessonContent';
 import { withAuthentication } from 'libs';
 import { useRouter } from 'next/navigation';
-import { useAppContext } from 'providers';
+import { AccessCtaBlock, useAppContext, useProductAccess } from 'providers';
 import React, { useState } from 'react';
 
 const { Title } = Typography;
@@ -53,6 +53,7 @@ const Lesson: React.FC<LessonProps> = ({ params: { courseSlug, lessonId } }) => 
 
     const router = useRouter();
     const { user } = useAppContext();
+    const { access } = useProductAccess();
     const [emptyVideo, setEmptyVideo] = useState(false);
     const device = useDeviceSize();
 
@@ -60,14 +61,27 @@ const Lesson: React.FC<LessonProps> = ({ params: { courseSlug, lessonId } }) => 
 
     if (lessonError || courseError) throw new Error(lessonError?.message ?? courseError?.message);
 
+    const course = courseDetails?.courseCollection?.items[0];
+    const courseState = course ? access(course.coursePurchaseId).state : 'none';
+
     // temporary solution for permission to access
-    if (
-        !!user &&
-        !!courseDetails &&
-        !user?.roles.includes(courseDetails?.courseCollection?.items[0]?.coursePurchaseId)
-    ) {
+    if (!!user && !!course && courseState === 'none') {
         router.push('/403');
         return null;
+    }
+
+    if (!!course && courseState === 'expired') {
+        return (
+            <AppLayout>
+                <AccessCtaBlock
+                    target={{
+                        product: course.coursePurchaseId,
+                        name: course.courseTitle,
+                        renewUrl: course.paymentCheckout,
+                    }}
+                />
+            </AppLayout>
+        );
     }
 
     const lesson = lessonData?.singleLessonCollection?.items[0];

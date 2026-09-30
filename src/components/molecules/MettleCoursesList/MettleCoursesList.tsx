@@ -2,12 +2,13 @@
 
 import { Row, Col, Skeleton } from 'antd';
 import { useGetCourses } from 'hooks';
-import { useAppContext } from 'providers';
+import { IMERSO_PRODUCT, IMERSO_SALES_URL } from 'libs/productAccess';
+import { useProductAccess } from 'providers';
 import React from 'react';
 import { CourseCard } from '../../atoms';
 
 export const MettleCoursesList: React.FC = () => {
-    const { user } = useAppContext();
+    const { access, openCta } = useProductAccess();
     const { data, loading, error } = useGetCourses();
 
     if (loading) {
@@ -34,7 +35,8 @@ export const MettleCoursesList: React.FC = () => {
 
     const courseList = data?.courseCollection.items;
 
-    const isImersoLocked = !user || !user?.roles.includes('METTLE_STUDENT');
+    const imersoState = access(IMERSO_PRODUCT).state;
+    const isImersoLocked = imersoState === 'none';
 
     return (
         <Row gutter={[16, 16]}>
@@ -43,22 +45,22 @@ export const MettleCoursesList: React.FC = () => {
                     imgUrl={'/img/imerso_thumb.webp'}
                     title="IMERSO"
                     type="Programa"
-                    href={
-                        isImersoLocked
-                            ? 'https://mettle.com.br/imerso?utm_medium=organic&utm_source=plataforma&utm_campaign=imerso'
-                            : '/imerso'
-                    }
+                    href={isImersoLocked ? IMERSO_SALES_URL : '/imerso'}
                     isLocked={isImersoLocked}
+                    isExpired={imersoState === 'expired'}
+                    onClick={() => openCta({ product: IMERSO_PRODUCT })}
                 />
             </Col>
             {courseList
                 ?.slice()
                 ?.sort((course) => {
-                    const isLocked = !user?.roles.includes(course?.coursePurchaseId);
+                    const state = access(course?.coursePurchaseId).state;
+                    const isLocked = state === 'none';
                     return isLocked ? 1 : -1;
                 })
                 ?.map((course) => {
-                    const isLocked = !user?.roles.includes(course?.coursePurchaseId);
+                    const state = access(course?.coursePurchaseId).state;
+                    const isLocked = state === 'none';
 
                     const href = isLocked
                         ? course.paymentCheckout
@@ -74,6 +76,14 @@ export const MettleCoursesList: React.FC = () => {
                                 type={course.courseCategory}
                                 href={href}
                                 isLocked={isLocked}
+                                isExpired={state === 'expired'}
+                                onClick={() =>
+                                    openCta({
+                                        product: course.coursePurchaseId,
+                                        name: course.courseTitle,
+                                        renewUrl: course.paymentCheckout,
+                                    })
+                                }
                             />
                         </Col>
                     );

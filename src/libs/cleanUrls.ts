@@ -6,6 +6,16 @@ export const HPEC_ID_PATTERN = /^HPEC\d+$/;
 export const dedaPath = (dedaSlug: string) => `/imerso/deda/${dedaSlug}`;
 export const hpecLessonPath = (lessonId: string) => `/imerso/hpec/${lessonId}`;
 
+// Entrada do HPEC (menu lateral): resolve sem depender da consulta de módulos.
+export const HPEC_WELCOME_LESSON = 'welcome';
+export const HPEC_WELCOME_MODULE = 'HPEC1';
+
+type HpecModuleLessons = { hpecId: string; hpecLessonsCollection: { items: { lessonId: string }[] } };
+
+export const hpecIdOfLesson = (lessonId: string, modules?: HpecModuleLessons[]) =>
+    modules?.find((hpec) => hpec.hpecLessonsCollection.items.some((lesson) => lesson.lessonId === lessonId))?.hpecId ??
+    (lessonId === HPEC_WELCOME_LESSON ? HPEC_WELCOME_MODULE : undefined);
+
 export type LegacyLookups = {
     dedaSlugOf: (dedaId: string) => Promise<string | null>;
     firstLessonOf: (hpecId: string) => Promise<string | null>;

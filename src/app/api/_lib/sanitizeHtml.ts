@@ -28,6 +28,7 @@ const ALLOWED_TAGS = new Set([
     'h6',
     'hr',
     'i',
+    'img',
     'ins',
     'kbd',
     'li',
@@ -71,9 +72,7 @@ const DROP_WITH_CONTENT = new Set([
     'noscript',
     'svg',
     'math',
-    'img',
     'image',
-    'picture',
     'video',
     'audio',
     'source',
@@ -88,6 +87,7 @@ const ALLOWED_ATTRS: Record<string, Set<string>> = {
     th: new Set(['colspan', 'rowspan', 'scope']),
     time: new Set(['datetime']),
     ol: new Set(['start']),
+    img: new Set(['src', 'alt', 'width', 'height']),
 };
 const SAFE_HREF = /^(https?:|mailto:)/i;
 
@@ -108,6 +108,12 @@ export const sanitizeHtml = (html: string) => {
             [...el.attributes].forEach(({ name }) => {
                 if (!ALLOWED_ATTRS['*'].has(name) && !ALLOWED_ATTRS[tag]?.has(name)) el.removeAttribute(name);
             });
+            if (tag === 'img') {
+                // Só imagem https (o Readability já resolve URLs relativas contra a página).
+                if (!/^https:\/\//i.test(el.getAttribute('src') ?? '')) return el.remove();
+                el.setAttribute('loading', 'lazy');
+                el.setAttribute('referrerpolicy', 'no-referrer');
+            }
             if (tag === 'a') {
                 // Remove espaços/controles que navegadores ignoram (ex.: "java\tscript:").
                 const href = (el.getAttribute('href') ?? '').replace(/[\u0000- ]/g, '');

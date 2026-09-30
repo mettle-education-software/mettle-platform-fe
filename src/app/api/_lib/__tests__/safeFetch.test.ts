@@ -63,9 +63,15 @@ describe('sanitizeHtml (XSS)', () => {
                 '<a href="javascript:alert(1)">a</a><a href=" java\tscript:alert(1)">b</a>' +
                 '<a href="data:text/html,<script>alert(1)</script>">c</a>' +
                 '<svg><script>alert(1)</script></svg><iframe src="https://evil"></iframe>' +
-                '<custom-el><em>texto</em></custom-el><a href="https://example.com">ok</a>',
+                '<custom-el><em>texto</em></custom-el><a href="https://example.com">ok</a>' +
+                '<picture><source srcset="https://x/a.webp"><img src="https://x/a.jpg" alt="A" onload="x()"></picture>' +
+                '<img src="http://x/b.jpg"><img src="data:image/png;base64,AAA">',
         );
-        expect(html).not.toMatch(/script|onerror|onclick|javascript|data:|<svg|<iframe|<img|style=/i);
+        expect(html).not.toMatch(
+            /script|onerror|onclick|onload|javascript|data:|<svg|<iframe|<source|<picture|http:\/\/|style=/i,
+        );
+        expect(html).toContain('<img src="https://x/a.jpg" alt="A" loading="lazy" referrerpolicy="no-referrer">');
+        expect(html.match(/<img/g)).toHaveLength(1);
         expect(html).toContain('<p>Olá <b>mundo</b></p>');
         expect(html).toContain('<em>texto</em>');
         expect(html).toContain(

@@ -55,7 +55,7 @@ export const useGetNotifications = (userUid: string) => {
         queryKey: ['get-notifications', userUid],
         queryFn: async () => {
             const notificationsRef = collection(firestore, `/notifications/${userUid}/userNotifications`);
-            const q = query(notificationsRef, orderBy('createdAt', 'desc'), limit(20));
+            const q = query(notificationsRef, orderBy('createdAt', 'desc'), limit(5));
             const docSnap = await getDocs(q);
 
             return docSnap.docs.map((doc) => doc.data() as Notification);

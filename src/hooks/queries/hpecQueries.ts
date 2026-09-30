@@ -143,3 +143,12 @@ export const useGetHpecResources = (lessonId: string) =>
         fetchPolicy: 'cache-first',
         skip: lessonId === 'first-lesson',
     });
+
+// lessonId é único entre os módulos (conferido no Contentful em 30-Set-2026), então a URL leva só a aula.
+export const useHpecIdOfLesson = (lessonId: string) => {
+    const { data, loading } = useQuery<HpecModulesResponse>(hpecTitlesQuery, { fetchPolicy: 'cache-first' });
+    const hpecId = data?.hpecContentCollection.items.find((hpec) =>
+        hpec.hpecLessonsCollection.items.some((lesson) => lesson.lessonId === lessonId),
+    )?.hpecId;
+    return { hpecId, loading };
+};

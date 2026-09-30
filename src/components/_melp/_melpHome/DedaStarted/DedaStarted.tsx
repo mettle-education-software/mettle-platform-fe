@@ -4,6 +4,7 @@ import { RightOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Col, Row, Typography } from 'antd';
 import { ComingHpecs, DedasGrid } from 'components';
+import { dedaPath } from 'libs/cleanUrls';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -35,8 +36,8 @@ export const DedaStarted: React.FC = () => {
                     <Col xs={24} md={18}>
                         <DedasGrid
                             type="lastDedas"
-                            onSelectedDeda={(dedaId) => {
-                                router.push(`/imerso/deda/${dedaId}`);
+                            onSelectedDeda={(dedaSlug) => {
+                                router.push(dedaPath(dedaSlug));
                             }}
                         />
                     </Col>

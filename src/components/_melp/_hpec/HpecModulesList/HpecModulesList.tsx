@@ -4,6 +4,7 @@ import { DownOutlined, LockOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Collapse, CollapseProps, Flex, Progress, Skeleton, Typography } from 'antd';
 import { useGetHpecsModules } from 'hooks/queries/hpecQueries';
+import { hpecLessonPath } from 'libs/cleanUrls';
 import Link from 'next/link';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
@@ -84,12 +85,7 @@ export const HpecModulesList: React.FC<HpecModulesListProps> = ({
             },
             collapsible: 'header',
             children: hpec.hpecLessonsCollection.items.map((lesson) => (
-                <Link
-                    key={lesson.lessonId}
-                    href={'/imerso/hpec/[hpecId]/[lessonId]'}
-                    as={`/imerso/hpec/${hpec.hpecId}/${lesson.lessonId}`}
-                    shallow
-                >
+                <Link key={lesson.lessonId} href={hpecLessonPath(lesson.lessonId)} shallow>
                     <LessonLink className={lesson.lessonId === activeLessonId ? 'active' : ''}>
                         <Title level={5} className="color-white" style={{ fontWeight: 400 }}>
                             {lesson.lessonTitle}

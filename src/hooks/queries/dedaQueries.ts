@@ -427,3 +427,17 @@ export const useGetDedaVideosArticles = (dedaId: string) => {
         fetchPolicy: 'cache-first',
     });
 };
+
+export const useDedaIdBySlug = (dedaSlug: string, skip = false) =>
+    useQuery<{ dedaContentCollection: { items: { dedaId: string }[] } }>(
+        gql`
+            query DedaIdBySlug($dedaSlug: String) {
+                dedaContentCollection(where: { dedaSlug: $dedaSlug }, limit: 1) {
+                    items {
+                        dedaId
+                    }
+                }
+            }
+        `,
+        { variables: { dedaSlug }, skip: skip || !dedaSlug, fetchPolicy: 'cache-first' },
+    );

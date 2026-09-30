@@ -5,6 +5,7 @@ import { ComingHpecs, DedasGrid } from 'components';
 import { useStartDeda } from 'hooks';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
 import { nextMondayDate } from 'libs';
+import { dedaPath } from 'libs/cleanUrls';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from 'providers';
 import React, { useState } from 'react';
@@ -141,8 +142,8 @@ export const CanStartDeda: React.FC = () => {
                     <DedasGrid
                         customTitle="DEDA week zero"
                         type="lastDedas"
-                        onSelectedDeda={(dedaId) => {
-                            router.push(`/imerso/deda/${dedaId}`);
+                        onSelectedDeda={(dedaSlug) => {
+                            router.push(dedaPath(dedaSlug));
                         }}
                     />
                 </Col>

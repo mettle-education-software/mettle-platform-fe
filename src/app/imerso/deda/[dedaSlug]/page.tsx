@@ -200,7 +200,6 @@ const DedaContentWithRoles = withRoles(DedaContent, {
 
 // A URL leva o dedaSlug (ex.: /imerso/deda/london); daqui para dentro tudo segue com o dedaId.
 // eslint-disable-next-line react/display-name
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const withDedaSlug = (Component: any) => (props: { params: { dedaSlug: string } }) => {
     const { dedaSlug } = props.params;
     const isLegacyId = DEDA_ID_PATTERN.test(dedaSlug);

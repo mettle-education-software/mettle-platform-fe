@@ -3,7 +3,7 @@
 import { BellOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Badge, Button, Col, Dropdown, Empty, Flex, Row, Skeleton, Typography } from 'antd';
-import { useGetNotifications, useMarkAsRead, useListenForNotifications } from 'hooks';
+import { useGetNotifications, useGetUnreadNotificationsCount, useMarkAsRead, useListenForNotifications } from 'hooks';
 import { Notification } from 'interfaces';
 import { SMALL_VIEWPORT } from 'libs';
 import Link from 'next/link';
@@ -80,6 +80,7 @@ export const NotificationsList: React.FC = () => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
 
     const { data: notificationsData, isLoading } = useGetNotifications(user?.uid as string);
+    const { data: unreadCount = 0 } = useGetUnreadNotificationsCount(user?.uid as string);
     const markRead = useMarkAsRead(user?.uid as string);
 
     useEffect(() => {
@@ -87,12 +88,6 @@ export const NotificationsList: React.FC = () => {
             setNotifications(notificationsData);
         }
     }, [notificationsData]);
-
-    const [unreads, setUnreads] = useState(0);
-
-    useEffect(() => {
-        setUnreads(notifications.filter((notification) => !notification.isRead).length);
-    }, [notifications]);
 
     return (
         <Dropdown
@@ -152,7 +147,7 @@ export const NotificationsList: React.FC = () => {
                 );
             }}
         >
-            <Badge count={unreads} style={{ display: unreads === 0 ? 'none' : undefined }}>
+            <Badge count={unreadCount} style={{ display: unreadCount === 0 ? 'none' : undefined }}>
                 <BellIcon />
             </Badge>
         </Dropdown>

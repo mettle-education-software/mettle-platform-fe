@@ -9,6 +9,26 @@ export const formatTime = (seconds: number) => {
     return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
 };
 
+/** Posição dentro do episódio: nunca negativa; limitada à duração quando ela é conhecida. */
+export const clampPosition = (seconds: number, duration: number) => {
+    const value = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+    return duration > 0 ? Math.min(value, duration) : value;
+};
+
+type SeekableAudio = { readyState: number; duration: number; currentTime: number };
+
+/**
+ * Seek único para antes e depois dos metadados: com metadados, move o <audio>; sem eles, só
+ * posiciona (o play começa dali). Nos dois casos devolve a posição, que deve ser lembrada e salva.
+ */
+export const applySeek = (audio: SeekableAudio | null, seconds: number, duration: number) => {
+    if (audio && audio.readyState >= 1) {
+        audio.currentTime = clampPosition(seconds, duration || audio.duration || 0);
+        return audio.currentTime;
+    }
+    return clampPosition(seconds, duration);
+};
+
 type PositionStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 const positionKey = (episodeKey: string) => `mettle:podcast-position:${episodeKey}`;

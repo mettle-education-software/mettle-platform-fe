@@ -7,9 +7,6 @@ import { coverBackground, formatTime, nextRate, podcastCardColor } from 'libs/po
 import React from 'react';
 import { BACK_SECONDS, FORWARD_SECONDS, usePodcastPlayback } from './usePodcastPlayback';
 
-// Telas de toque e até tablet: alvos de toque com pelo menos 44px.
-const TOUCH = '@media (pointer: coarse), (max-width: 1024px)';
-
 const Card = styled.div`
     position: relative;
     display: flex;
@@ -110,8 +107,9 @@ const Controls = styled.div`
 // Trilha preenchida até a posição atual (--progress é um número calculado no componente).
 const Progress = styled.input`
     width: 100%;
-    height: 24px;
-    margin: 0;
+    /* área de toque de 44px; a trilha visível tem 4px */
+    height: 44px;
+    margin: -10px 0;
     appearance: none;
     -webkit-appearance: none;
     border-radius: 999px;
@@ -123,10 +121,6 @@ const Progress = styled.input`
             rgba(255, 255, 255, 0.3) var(--progress, 0%) 100%
         )
         center / 100% 4px no-repeat;
-
-    ${TOUCH} {
-        height: 44px;
-    }
 
     &::-webkit-slider-thumb {
         -webkit-appearance: none;
@@ -183,7 +177,11 @@ const SmallButton = styled.button`
     gap: 0.2rem;
     font-size: 12px;
     font-weight: 600;
-    padding: 0.15rem 0.45rem;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 0 0.6rem;
+    box-sizing: border-box;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.15);
 
@@ -194,14 +192,6 @@ const SmallButton = styled.button`
     &:disabled {
         opacity: 0.5;
         cursor: default;
-    }
-
-    ${TOUCH} {
-        min-width: 44px;
-        min-height: 44px;
-        justify-content: center;
-        padding: 0 0.6rem;
-        box-sizing: border-box;
     }
 `;
 
@@ -219,8 +209,7 @@ const ERROR_MESSAGE = 'Não foi possível carregar este episódio.';
 /** Card de episódio no estilo Spotify, com player inline (sem popup). */
 export const PodcastCard = ({ episode }: { episode: PodcastEpisode }) => {
     const playback = usePodcastPlayback(episode);
-    const { status, playing, started, current, duration, rate, title } = playback;
-    const ready = status === 'ready';
+    const { status, playing, current, duration, rate, title } = playback;
 
     return (
         <Card
@@ -243,55 +232,50 @@ export const PodcastCard = ({ episode }: { episode: PodcastEpisode }) => {
             {status === 'error' ? (
                 <Meta>{ERROR_MESSAGE}</Meta>
             ) : (
-                started && (
-                    <Controls>
-                        <Progress
-                            type="range"
-                            min={0}
-                            max={Math.max(duration, 1)}
-                            step={1}
-                            value={current}
-                            style={
-                                {
-                                    '--progress': `${duration ? (Math.min(current, duration) / duration) * 100 : 0}%`,
-                                } as React.CSSProperties
-                            }
-                            disabled={!ready}
-                            aria-label="Playback position"
-                            aria-valuetext={`${formatTime(current)} of ${formatTime(duration)}`}
-                            onChange={(event) => playback.seekTo(Number(event.target.value))}
-                        />
-                        <Times>
-                            <span>{formatTime(current)}</span>
-                            <span>{formatTime(duration)}</span>
-                        </Times>
-                        <Buttons>
-                            <SmallButton
-                                type="button"
-                                aria-label={`Back ${BACK_SECONDS} seconds`}
-                                disabled={!ready}
-                                onClick={() => playback.seekTo(current - BACK_SECONDS)}
-                            >
-                                <UndoOutlined /> {BACK_SECONDS}
-                            </SmallButton>
-                            <SmallButton
-                                type="button"
-                                aria-label={`Forward ${FORWARD_SECONDS} seconds`}
-                                disabled={!ready}
-                                onClick={() => playback.seekTo(current + FORWARD_SECONDS)}
-                            >
-                                <RedoOutlined /> {FORWARD_SECONDS}
-                            </SmallButton>
-                            <SmallButton
-                                type="button"
-                                aria-label={`Playback speed ${rate}×. Change to ${nextRate(rate)}×`}
-                                onClick={playback.cycleRate}
-                            >
-                                {rate}×
-                            </SmallButton>
-                        </Buttons>
-                    </Controls>
-                )
+                <Controls>
+                    <Progress
+                        type="range"
+                        min={0}
+                        max={Math.max(duration, 1)}
+                        step={1}
+                        value={current}
+                        style={
+                            {
+                                '--progress': `${duration ? (Math.min(current, duration) / duration) * 100 : 0}%`,
+                            } as React.CSSProperties
+                        }
+                        aria-label="Playback position"
+                        aria-valuetext={`${formatTime(current)} of ${formatTime(duration)}`}
+                        onChange={(event) => playback.seekTo(Number(event.target.value))}
+                    />
+                    <Times>
+                        <span>{formatTime(current)}</span>
+                        <span>{formatTime(duration)}</span>
+                    </Times>
+                    <Buttons>
+                        <SmallButton
+                            type="button"
+                            aria-label={`Back ${BACK_SECONDS} seconds`}
+                            onClick={() => playback.seekTo(current - BACK_SECONDS)}
+                        >
+                            <UndoOutlined /> {BACK_SECONDS}
+                        </SmallButton>
+                        <SmallButton
+                            type="button"
+                            aria-label={`Forward ${FORWARD_SECONDS} seconds`}
+                            onClick={() => playback.seekTo(current + FORWARD_SECONDS)}
+                        >
+                            <RedoOutlined /> {FORWARD_SECONDS}
+                        </SmallButton>
+                        <SmallButton
+                            type="button"
+                            aria-label={`Playback speed ${rate}×. Change to ${nextRate(rate)}×`}
+                            onClick={playback.cycleRate}
+                        >
+                            {rate}×
+                        </SmallButton>
+                    </Buttons>
+                </Controls>
             )}
 
             {status !== 'error' && (

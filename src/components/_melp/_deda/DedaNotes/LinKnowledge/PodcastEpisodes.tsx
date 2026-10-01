@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { usePodcastEpisodes, PodcastEpisode } from 'hooks/queries/dedaQueries';
-import { coverBackground } from 'libs/podcast';
+import { cleanEpisodeTitle, coverBackground } from 'libs/podcast';
 import React, { useId, useState } from 'react';
 import { ArticleReaderModal } from '../../../ArticleFrame/ArticleFrame';
 import { LinKnowledgeCard, LinKnowledgeCardsRow } from './LinKnowledgeCard';
@@ -48,7 +48,7 @@ export const PodcastEpisodes = ({ dedaId, fallback }: { dedaId: string; fallback
                     <LinKnowledgeCard
                         key={item.audioUrl}
                         meta={item.showName || 'Podcast'}
-                        title={item.title}
+                        title={cleanEpisodeTitle(item.title)}
                         image={
                             coverBackground(item.coverImageUrl) ? (
                                 <CoverArt src={item.coverImageUrl as string} />
@@ -61,7 +61,7 @@ export const PodcastEpisodes = ({ dedaId, fallback }: { dedaId: string; fallback
             <ArticleReaderModal
                 open={!!episode}
                 onClose={() => setOpen(null)}
-                title={episode?.title ?? ''}
+                title={episode ? cleanEpisodeTitle(episode.title) : ''}
                 labelledBy={titleId}
             >
                 {episode && <PodcastPlayer key={episode.audioUrl} episode={episode} titleId={titleId} />}

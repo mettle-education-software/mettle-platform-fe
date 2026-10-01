@@ -4,10 +4,21 @@ import { LoadingOutlined, PauseOutlined, CaretRightFilled, RedoOutlined, UndoOut
 import styled from '@emotion/styled';
 import { Typography } from 'antd';
 import { PodcastEpisode } from 'hooks/queries/dedaQueries';
-import { coverBackground, formatTime, loadPosition, playerKeyAction, savePosition } from 'libs/podcast';
+import {
+    cleanEpisodeTitle,
+    coverBackground,
+    formatTime,
+    loadPosition,
+    loadRate,
+    nextRate,
+    playerKeyAction,
+    savePosition,
+    saveRate,
+} from 'libs/podcast';
 import React, { useEffect, useRef, useState } from 'react';
 
-const RATES = [0.75, 1, 1.25, 1.5];
+// Cor de destaque da Plataforma (a mesma do "Day N" dos cards); fallback caso a variável falte no portal.
+const ACCENT = 'var(--secondary, #b89261)';
 const BACK_SECONDS = 15;
 const FORWARD_SECONDS = 30;
 
@@ -36,10 +47,48 @@ const Cover = styled.div`
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
 `;
 
+// Trilha preenchida até a posição atual (--progress é um número nosso, calculado no componente).
 const Progress = styled.input`
     width: 100%;
-    accent-color: var(--secondary);
+    height: 6px;
+    margin: 0.5rem 0;
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: 999px;
     cursor: pointer;
+    accent-color: ${ACCENT};
+    background: linear-gradient(to right, ${ACCENT} 0 var(--progress, 0%), #e0dcd7 var(--progress, 0%) 100%);
+
+    &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: ${ACCENT};
+        border: none;
+    }
+
+    &::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: ${ACCENT};
+        border: none;
+    }
+
+    &::-moz-range-track {
+        background: transparent;
+    }
+
+    &:focus-visible {
+        outline: 2px solid ${ACCENT};
+        outline-offset: 4px;
+    }
+
+    &:disabled {
+        cursor: default;
+        opacity: 0.5;
+    }
 `;
 
 const Times = styled.div`
@@ -75,7 +124,7 @@ const IconButton = styled.button`
     }
 
     &:focus-visible {
-        outline: 2px solid var(--secondary);
+        outline: 2px solid ${ACCENT};
     }
 
     &:disabled {
@@ -88,7 +137,7 @@ const PlayButton = styled(IconButton)`
     width: 4rem;
     height: 4rem;
     justify-content: center;
-    background: var(--secondary);
+    background: ${ACCENT};
     color: #ffffff;
     font-size: 1.75rem;
 
@@ -97,18 +146,22 @@ const PlayButton = styled(IconButton)`
     }
 `;
 
-const RateButton = styled.button<{ active: boolean }>`
+const RateButton = styled.button`
     all: unset;
     cursor: pointer;
-    font-size: 12px;
+    min-width: 3.25rem;
+    text-align: center;
+    font-size: 13px;
     font-weight: 600;
-    padding: 0.2rem 0.6rem;
+    padding: 0.25rem 0.75rem;
     border-radius: 999px;
-    color: ${({ active }) => (active ? '#ffffff' : '#595959')};
-    background: ${({ active }) => (active ? 'var(--secondary)' : 'rgba(0, 0, 0, 0.06)')};
+    color: #ffffff;
+    background: ${ACCENT};
+    font-variant-numeric: tabular-nums;
 
     &:focus-visible {
-        outline: 2px solid var(--secondary);
+        outline: 2px solid ${ACCENT};
+        outline-offset: 2px;
     }
 `;
 
@@ -121,9 +174,10 @@ export const PodcastPlayer = ({ episode, titleId }: { episode: PodcastEpisode; t
     const [playing, setPlaying] = useState(false);
     const [current, setCurrent] = useState(0);
     const [duration, setDuration] = useState(episode.durationSeconds ?? 0);
-    const [rate, setRate] = useState(1);
+    const [rate, setRate] = useState(loadRate);
 
     const key = episode.audioUrl;
+    const title = cleanEpisodeTitle(episode.title);
 
     useEffect(() => {
         wrapperRef.current?.focus();
@@ -147,7 +201,8 @@ export const PodcastPlayer = ({ episode, titleId }: { episode: PodcastEpisode; t
     const toggle = () => {
         const audio = audioRef.current;
         if (!audio || status === 'error') return;
-        if (audio.paused) audio.play().catch(() => setStatus('error'));
+        // Só formato/fonte inválidos viram erro; bloqueio ou interrupção do play não.
+        if (audio.paused) audio.play().catch((error) => error?.name === 'NotSupportedError' && setStatus('error'));
         else audio.pause();
     };
 
@@ -165,13 +220,13 @@ export const PodcastPlayer = ({ episode, titleId }: { episode: PodcastEpisode; t
                 <Cover
                     style={{ backgroundImage: coverBackground(episode.coverImageUrl) }}
                     role="img"
-                    aria-label={episode.showName || episode.title}
+                    aria-label={episode.showName || title}
                 />
                 <div>
                     {episode.showName && (
                         <Typography.Text
                             style={{
-                                color: 'var(--secondary)',
+                                color: ACCENT,
                                 fontSize: 12,
                                 letterSpacing: 1,
                                 textTransform: 'uppercase',
@@ -181,7 +236,7 @@ export const PodcastPlayer = ({ episode, titleId }: { episode: PodcastEpisode; t
                         </Typography.Text>
                     )}
                     <Typography.Title id={titleId} level={3} style={{ margin: '0.25rem 0 0' }}>
-                        {episode.title}
+                        {title}
                     </Typography.Title>
                 </div>
 
@@ -197,6 +252,9 @@ export const PodcastPlayer = ({ episode, titleId }: { episode: PodcastEpisode; t
                         setCurrent(audio.currentTime);
                         audio.playbackRate = rate;
                         setStatus('ready');
+                        // Autoplay: o clique no card é o gesto do usuário. Se o navegador bloquear,
+                        // fica o botão play normal, sem erro (falha real de mídia chega pelo onError).
+                        audio.play().catch(() => undefined);
                     }}
                     onTimeUpdate={(event) => {
                         const { currentTime, duration: total } = event.currentTarget;
@@ -230,6 +288,11 @@ export const PodcastPlayer = ({ episode, titleId }: { episode: PodcastEpisode; t
                             max={Math.max(duration, 1)}
                             step={1}
                             value={current}
+                            style={
+                                {
+                                    '--progress': `${duration ? (Math.min(current, duration) / duration) * 100 : 0}%`,
+                                } as React.CSSProperties
+                            }
                             disabled={status !== 'ready'}
                             aria-label="Playback position"
                             aria-valuetext={`${formatTime(current)} of ${formatTime(duration)}`}
@@ -275,22 +338,18 @@ export const PodcastPlayer = ({ episode, titleId }: { episode: PodcastEpisode; t
                             </IconButton>
                         </Controls>
 
-                        <div role="group" aria-label="Playback speed" style={{ display: 'flex', gap: '0.5rem' }}>
-                            {RATES.map((value) => (
-                                <RateButton
-                                    key={value}
-                                    type="button"
-                                    active={rate === value}
-                                    aria-pressed={rate === value}
-                                    onClick={() => {
-                                        setRate(value);
-                                        if (audioRef.current) audioRef.current.playbackRate = value;
-                                    }}
-                                >
-                                    {value}×
-                                </RateButton>
-                            ))}
-                        </div>
+                        <RateButton
+                            type="button"
+                            aria-label={`Playback speed ${rate}×. Change to ${nextRate(rate)}×`}
+                            onClick={() => {
+                                const value = nextRate(rate);
+                                setRate(value);
+                                saveRate(value);
+                                if (audioRef.current) audioRef.current.playbackRate = value;
+                            }}
+                        >
+                            {rate}×
+                        </RateButton>
                     </>
                 )}
             </Column>

@@ -85,3 +85,32 @@ export const playerKeyAction = (key: string, target: KeyTarget): 'toggle' | 'bac
     if (key === 'ArrowRight') return 'forward';
     return null;
 };
+
+// Velocidades: 1× a 3× em passos de 0,25; um botão só, que cicla.
+export const PLAYBACK_RATES = [1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3];
+const RATE_KEY = 'mettle:podcast-rate';
+
+export const nextRate = (rate: number) => PLAYBACK_RATES[(PLAYBACK_RATES.indexOf(rate) + 1) % PLAYBACK_RATES.length];
+
+export const loadRate = (storage = defaultStorage()) => {
+    try {
+        const value = Number(storage?.getItem(RATE_KEY));
+        return PLAYBACK_RATES.includes(value) ? value : 1;
+    } catch {
+        return 1;
+    }
+};
+
+export const saveRate = (rate: number, storage = defaultStorage()) => {
+    try {
+        storage?.setItem(RATE_KEY, String(rate));
+    } catch {
+        // sem persistência: vale só nesta sessão
+    }
+};
+
+// Numeração no começo do título ("99. ", "#093 ", "E232 ", "Episode 98 ", "Ep. 12 - "). Número sem
+// marcador nem pontuação ("10 Things…") fica. Rede de segurança: os dados também são limpos.
+const EPISODE_NUMBER = /^\s*(?:(?:episode\s*|ep\.?\s*|e(?=\d)|#\s*)\d+\s*[.:)\-–—|]?\s*|\d+\s*[.:)\-–—|]\s*)/i;
+
+export const cleanEpisodeTitle = (title: string) => title.replace(EPISODE_NUMBER, '').trim() || title.trim();

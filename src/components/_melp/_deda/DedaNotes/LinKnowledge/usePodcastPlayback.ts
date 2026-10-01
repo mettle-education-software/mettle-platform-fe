@@ -108,9 +108,10 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
             if (controller.onPlay()) setAnnouncement(playbackAnnouncement('play', title) as string);
         },
         onPause: (event) => {
-            controller.onPause();
+            // Pausa causada por nós (outro episódio começou, onPlay obsoleto) não é anunciada.
+            const announce = controller.onPause();
             const message = playbackAnnouncement('pause', title, event.currentTarget.ended);
-            if (message) setAnnouncement(message);
+            if (announce && message) setAnnouncement(message);
             savePosition(key, event.currentTarget.currentTime, event.currentTarget.duration);
         },
         onEnded: () => {

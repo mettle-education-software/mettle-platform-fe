@@ -261,7 +261,16 @@ export const createPlaybackController = ({
     let requested = -1; // geração do pedido de play em vigor (-1 = nenhum)
     let pending = false;
 
+    let suppressPause = false; // a próxima pausa foi causada por nós (troca de episódio, onPlay obsoleto, desmontagem)
+
     const hasMetadata = () => (getAudio()?.readyState ?? 0) >= 1;
+    // Pausa silenciosa: o evento `pause` que ela gera não é anunciado ao leitor de tela.
+    const silentPause = () => {
+        const audio = getAudio();
+        if (!audio || audio.paused) return;
+        suppressPause = true;
+        audio.pause();
+    };
     const invalidate = () => {
         generation += 1;
         requested = -1;
@@ -270,9 +279,10 @@ export const createPlaybackController = ({
         return wasPending;
     };
     // Parar: invalida ANTES de pausar, para nenhum callback em voo da tentativa atual valer.
-    const stop = () => {
+    const stop = (silent: boolean) => {
         if (invalidate()) dispatch({ type: 'PLAY_CANCELLED', hasMetadata: hasMetadata() });
-        getAudio()?.pause();
+        if (silent) silentPause();
+        else getAudio()?.pause();
     };
 
     return {
@@ -280,11 +290,12 @@ export const createPlaybackController = ({
         toggle() {
             const audio = getAudio();
             if (!audio) return;
-            if (pending || !audio.paused) return stop();
+            if (pending || !audio.paused) return stop(false);
             const attempt = (generation += 1);
             requested = attempt;
             pending = true;
-            coordinator.claim(id, stop);
+            // Outro episódio começou: para este em silêncio (o anúncio é do outro).
+            coordinator.claim(id, () => stop(true));
             dispatch({ type: 'PLAY_REQUEST' });
             audio.play().then(
                 () => {
@@ -306,16 +317,19 @@ export const createPlaybackController = ({
         /** Evento `play` do <audio>; false = tentativa obsoleta (o áudio é pausado e nada é anunciado). */
         onPlay() {
             if (requested !== generation) {
-                getAudio()?.pause();
+                silentPause();
                 return false;
             }
             dispatch({ type: 'PLAYING' });
             return true;
         },
-        /** Evento `pause` do <audio> (inclui pausa externa, ex. controles do sistema). */
+        /** Evento `pause` do <audio> (inclui pausa externa); true = anunciar (pausa do usuário, não nossa). */
         onPause() {
+            const announce = !suppressPause;
+            suppressPause = false;
             invalidate();
             dispatch({ type: 'PAUSE' });
+            return announce;
         },
         onEnded() {
             invalidate();
@@ -326,7 +340,7 @@ export const createPlaybackController = ({
         dispose() {
             invalidate();
             coordinator.release(id);
-            getAudio()?.pause();
+            silentPause();
         },
     };
 };

@@ -12,8 +12,6 @@ export const GENRE_LABELS: Record<string, string> = {
 
 export const readingMinutes = (wordCount?: number | null) => Math.max(1, Math.round((wordCount ?? 0) / 200));
 
-export const linKnowledgeArticlePath = (dedaSlug: string, day: number) => `/imerso/deda/${dedaSlug}/articles/${day}`;
-
 export const formatEditionDate = (date?: string | null) =>
     date
         ? new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(

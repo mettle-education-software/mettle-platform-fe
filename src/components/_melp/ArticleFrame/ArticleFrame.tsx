@@ -3,7 +3,7 @@
 import styled from '@emotion/styled';
 import { Drawer, Modal, Skeleton, Typography } from 'antd';
 import { useDeviceSize, useGetMetadata, useGetReadableArticle } from 'hooks';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FrameThumbnail } from '../../atoms/FrameThumbnail/FrameThumbnail';
 
 const Dialog = styled(Modal)`
@@ -73,9 +73,31 @@ const ArticleHeader = styled.div`
     padding: 0 1.5rem 1rem;
 `;
 
+/** Popup de leitura do LinKnowledge: modal no desktop, tela cheia no mobile. */
+export const ArticleReaderModal = ({
+    open,
+    onClose,
+    children,
+}: {
+    open: boolean;
+    onClose(): void;
+    children: React.ReactNode;
+}) => {
+    const device = useDeviceSize();
+
+    return device === 'desktop' ? (
+        <Dialog open={open} onCancel={onClose} onOk={onClose} destroyOnClose footer={null} width="70vw">
+            {children}
+        </Dialog>
+    ) : (
+        <Drawer open={open} onClose={onClose} destroyOnClose width="100%" height="100%" placement="bottom">
+            {children}
+        </Drawer>
+    );
+};
+
 export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: string; fullWidth?: boolean }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const device = useDeviceSize();
 
     const handleOk = () => {
         setIsModalOpen(false);
@@ -180,29 +202,9 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
                 if (!isModalOpen) setIsModalOpen(true);
             }}
         >
-            {device === 'desktop' ? (
-                <Dialog
-                    open={isModalOpen}
-                    onCancel={handleOk}
-                    onOk={handleOk}
-                    destroyOnClose
-                    footer={null}
-                    width="70vw"
-                >
-                    {articleBody}
-                </Dialog>
-            ) : (
-                <Drawer
-                    open={isModalOpen}
-                    onClose={handleOk}
-                    destroyOnClose
-                    width="100%"
-                    height="100%"
-                    placement="bottom"
-                >
-                    {articleBody}
-                </Drawer>
-            )}
+            <ArticleReaderModal open={isModalOpen} onClose={handleOk}>
+                {articleBody}
+            </ArticleReaderModal>
             <div style={thumbStyle} />
         </FrameThumbnail>
     );

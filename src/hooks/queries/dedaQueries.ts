@@ -483,27 +483,6 @@ const linKnowledgeArticleFields = `
 
 // Consulta separada de propósito: enquanto o campo novo não existir no ambiente do Contentful
 // (hoje só no `testing`), ela falha sozinha e a seção simplesmente não aparece.
-export const useDedaLinKnowledgeArticles = (dedaId: string) =>
-    useQuery<LinKnowledgeResponse>(
-        gql`
-            query DedaLinKnowledgeArticles($dedaId: String) {
-                dedaContentCollection(where: { dedaId: $dedaId }, limit: 1) {
-                    items {
-                        dedaId
-                        dedaSlug
-                        dedaTitle
-                        dedaLinKnowledgeArticlesCollection(limit: 7) {
-                            items {
-                                ${linKnowledgeArticleFields}
-                            }
-                        }
-                    }
-                }
-            }
-        `,
-        { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
-    );
-
 export const useLinKnowledgeEdition = (dedaId: string) =>
     useQuery<LinKnowledgeResponse>(
         gql`

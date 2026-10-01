@@ -1,14 +1,16 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { Flex, Typography } from 'antd';
-import { useDedaLinKnowledgeArticles } from 'hooks/queries/dedaQueries';
-import { GENRE_LABELS, linKnowledgeArticlePath, readingMinutes } from 'libs/linknowledge';
+import { Typography } from 'antd';
+import { LinKnowledgeArticle, useLinKnowledgeEdition } from 'hooks/queries/dedaQueries';
+import { GENRE_LABELS } from 'libs/linknowledge';
 import Image from 'next/image';
-import Link from 'next/link';
-import React from 'react';
+import React, { useState } from 'react';
+import { ArticleReaderModal } from '../../../ArticleFrame/ArticleFrame';
+import { MettleArticleReader } from './MettleArticleReader';
 
-const ArticleCard = styled(Link)`
+const ArticleCard = styled.button`
+    all: unset;
     display: flex;
     flex-direction: column;
     width: 16rem;
@@ -17,15 +19,21 @@ const ArticleCard = styled(Link)`
     overflow: hidden;
     background: rgba(255, 255, 255, 0.05);
     color: #ffffff;
+    cursor: pointer;
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
         background: rgba(255, 255, 255, 0.1);
-        color: #ffffff;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--secondary);
     }
 
     img {
         width: 100%;
-        height: 9rem;
+        height: auto;
+        aspect-ratio: 16 / 9;
         object-fit: cover;
     }
 `;
@@ -37,7 +45,7 @@ const CardText = styled.div`
     gap: 0.35rem;
 `;
 
-/** Os 7 artigos do Mettle Editor; sem a seção no Contentful, não renderiza nada. */
+/** Os 7 artigos do Mettle Editor, lidos no mesmo popup dos links do LinKnowledge; sem a seção no Contentful, não renderiza nada. */
 export const MettleArticles = ({
     dedaId,
     children,
@@ -45,46 +53,60 @@ export const MettleArticles = ({
     dedaId: string;
     children: (row: React.ReactNode) => React.ReactNode;
 }) => {
-    const { data } = useDedaLinKnowledgeArticles(dedaId);
-    const deda = data?.dedaContentCollection.items[0];
-    const articles = (deda?.dedaLinKnowledgeArticlesCollection?.items ?? [])
-        .filter((article): article is NonNullable<typeof article> => !!article)
+    const { data } = useLinKnowledgeEdition(dedaId);
+    const [openDay, setOpenDay] = useState<number | null>(null);
+    const articles = (data?.dedaContentCollection.items[0]?.dedaLinKnowledgeArticlesCollection?.items ?? [])
+        .filter((article): article is LinKnowledgeArticle => !!article)
         .sort((a, b) => a.day - b.day);
 
-    if (!deda || articles.length === 0) return null;
+    if (articles.length === 0) return null;
 
-    return children(
-        <Flex gap="1rem" style={{ paddingBottom: '1rem' }}>
-            {articles.map((article) => {
-                const image = article.imagesCollection.items[0];
-                return (
-                    <ArticleCard
-                        key={article.day}
-                        href={linKnowledgeArticlePath(deda.dedaSlug, article.day)}
-                        aria-label={`Day ${article.day}: ${article.title}`}
-                    >
-                        {image && (
-                            <Image
-                                src={image.url}
-                                alt={image.description || article.title}
-                                width={image.width}
-                                height={image.height}
-                            />
-                        )}
-                        <CardText>
-                            <Typography.Text style={{ color: 'var(--secondary)', fontSize: 12 }}>
-                                Day {article.day} · {GENRE_LABELS[article.genre] ?? article.genre}
-                            </Typography.Text>
-                            <Typography.Text strong style={{ color: '#FFFFFF', fontSize: 16 }}>
-                                {article.title}
-                            </Typography.Text>
-                            <Typography.Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>
-                                {readingMinutes(article.wordCount)} min read
-                            </Typography.Text>
-                        </CardText>
-                    </ArticleCard>
-                );
-            })}
-        </Flex>,
+    const index = articles.findIndex((article) => article.day === openDay);
+
+    return (
+        <>
+            {children(
+                <div style={{ display: 'flex', gap: '1rem', paddingBottom: '1rem' }}>
+                    {articles.map((article) => {
+                        const image = article.imagesCollection.items[0];
+                        return (
+                            <ArticleCard
+                                key={article.day}
+                                type="button"
+                                aria-label={`Day ${article.day}: ${article.title}`}
+                                onClick={() => setOpenDay(article.day)}
+                            >
+                                {image && (
+                                    <Image
+                                        src={image.url}
+                                        alt={image.description || article.title}
+                                        width={image.width}
+                                        height={image.height}
+                                    />
+                                )}
+                                <CardText>
+                                    <Typography.Text style={{ color: 'var(--secondary)', fontSize: 12 }}>
+                                        Day {article.day} · {GENRE_LABELS[article.genre] ?? article.genre}
+                                    </Typography.Text>
+                                    <Typography.Text strong style={{ color: '#FFFFFF', fontSize: 16 }}>
+                                        {article.title}
+                                    </Typography.Text>
+                                </CardText>
+                            </ArticleCard>
+                        );
+                    })}
+                </div>,
+            )}
+            <ArticleReaderModal open={index >= 0} onClose={() => setOpenDay(null)}>
+                {index >= 0 && (
+                    <MettleArticleReader
+                        article={articles[index]}
+                        previous={articles[index - 1]}
+                        next={articles[index + 1]}
+                        onNavigate={setOpenDay}
+                    />
+                )}
+            </ArticleReaderModal>
+        </>
     );
 };

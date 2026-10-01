@@ -157,7 +157,7 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                             <CarouselCard
                                 title={
                                     <CarouselTitle level={4}>
-                                        <FileTextFilled /> Articles
+                                        <FileTextFilled /> Mettle Editor
                                     </CarouselTitle>
                                 }
                             >

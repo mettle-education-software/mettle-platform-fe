@@ -3,9 +3,8 @@
 import styled from '@emotion/styled';
 import { Button, Flex, Typography } from 'antd';
 import { AppLayout, Chip, DedasGrid, MaxWidthContainer } from 'components';
-import { DedaHeaderBackdrop } from 'components/_melp/_deda/DedaHeaderBackdrop/DedaHeaderBackdrop';
 import { useDeviceSize, useGetCurrentDeda } from 'hooks';
-import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
+import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { useRouter } from 'next/navigation';
@@ -13,14 +12,11 @@ import React from 'react';
 
 const { Title } = Typography;
 
-const HEADER_GRADIENT = 'linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43, 0.7) 100%)';
-
-const HeaderSummary = styled.section`
-    background-color: #2b2b2b;
-    /* conteúdo acima do fundo (<DedaHeaderBackdrop>) */
-    & > :not([data-deda-backdrop]) {
-        position: relative;
-    }
+const HeaderSummary = styled.section<{ imgUrl?: string }>`
+    background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43, 0.7) 100%), url(${({ imgUrl }) => imgUrl}),
+        #2b2b2b;
+    background-size: cover;
+    background-position: center;
     width: 100%;
     padding: 1.8rem 0;
     display: flex;
@@ -54,8 +50,6 @@ export const FreeHome = () => {
     const { data: currentDeda } = useGetCurrentDeda();
 
     const featuredDedaDataResult = useFeaturedDedaData(currentDeda?.id);
-    // Cabeçalho: imagem própria (dedaHeaderImage) ou, sem ela, a do card como antes.
-    const headerImage = useDedaHeaderImage(currentDeda?.id);
 
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
@@ -65,11 +59,7 @@ export const FreeHome = () => {
 
     return (
         <AppLayout>
-            <HeaderSummary>
-                <DedaHeaderBackdrop
-                    imageUrl={headerImage ?? featuredDeda?.dedaFeaturedImage.url}
-                    gradient={HEADER_GRADIENT}
-                />
+            <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
                 <MaxWidthContainer>
                     {device === 'desktop' && (
                         <Flex align="flex-end" justify="space-between">

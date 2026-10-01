@@ -179,4 +179,71 @@ describe('createPlaybackController', () => {
         expect(a.audio.pause).not.toHaveBeenCalled();
         expect(a.controller.onPause()).toBe(true);
     });
+
+    it('erro durante a reprodução: invalida, libera o coordenador e é terminal', async () => {
+        const coordinator = createPlaybackCoordinator();
+        const a = setup('a', coordinator);
+        a.controller.toggle();
+        a.audio.calls[0].resolve();
+        await flush();
+        expect(a.controller.onPlay()).toBe(true);
+        expect(coordinator.activeId()).toBe('a');
+
+        a.controller.onError();
+        expect(coordinator.activeId()).toBeNull();
+        expect(a.actions[a.actions.length - 1]).toBe('MEDIA_ERROR');
+
+        // depois do erro: clique não toca, onPlay tardio é rejeitado e pausado
+        a.controller.toggle();
+        expect(a.audio.play).toHaveBeenCalledTimes(1);
+        a.audio.paused = false;
+        expect(a.controller.onPlay()).toBe(false);
+        expect(a.actions.filter((t) => t === 'PLAYING')).toHaveLength(1);
+    });
+
+    it('erro com play() pendente: rejeição tardia ignorada e coordenador livre', async () => {
+        const coordinator = createPlaybackCoordinator();
+        const a = setup('a', coordinator);
+        const b = setup('b', coordinator);
+        a.controller.toggle();
+        a.controller.onError();
+        expect(coordinator.activeId()).toBeNull();
+        a.audio.calls[0].reject(Object.assign(new Error('x'), { name: 'NotSupportedError' }));
+        await flush();
+        expect(a.actions).toEqual(['PLAY_REQUEST', 'MEDIA_ERROR']);
+
+        // outro episódio toca normalmente e A (em erro) não é pausado de novo
+        b.controller.toggle();
+        expect(coordinator.activeId()).toBe('b');
+        expect(a.audio.pause).not.toHaveBeenCalled();
+    });
+
+    it('rejeição fatal (NotSupportedError) também é terminal', async () => {
+        const coordinator = createPlaybackCoordinator();
+        const a = setup('a', coordinator);
+        a.controller.toggle();
+        a.audio.calls[0].reject(Object.assign(new Error('x'), { name: 'NotSupportedError' }));
+        await flush();
+        expect(coordinator.activeId()).toBeNull();
+        a.controller.toggle();
+        expect(a.audio.play).toHaveBeenCalledTimes(1);
+    });
+
+    it('pausa do usuário libera o coordenador; pausa por troca não libera o novo dono', async () => {
+        const coordinator = createPlaybackCoordinator();
+        const a = setup('a', coordinator);
+        const b = setup('b', coordinator);
+        a.controller.toggle();
+        a.audio.calls[0].resolve();
+        await flush();
+        a.controller.onPlay();
+        a.controller.toggle(); // usuário pausa A
+        expect(a.controller.onPause()).toBe(true);
+        expect(coordinator.activeId()).toBeNull();
+
+        a.controller.toggle(); // A toca de novo
+        b.controller.toggle(); // B assume
+        a.controller.onPause(); // pausa de A chega depois que B já é o dono
+        expect(coordinator.activeId()).toBe('b');
+    });
 });

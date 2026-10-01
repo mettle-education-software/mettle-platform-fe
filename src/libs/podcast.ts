@@ -243,8 +243,9 @@ type AudioLike = { paused: boolean; readyState: number; play(): Promise<void>; p
 
 /**
  * Tentativas de play com geração: cada pedido de play ganha um número; pausa, cancelamento,
- * troca de episódio (pelo coordenador), fim e desmontagem invalidam a geração. Resultado de
+ * troca de episódio (pelo coordenador), fim, erro e desmontagem invalidam a geração. Resultado de
  * play()/onPlay de geração antiga é ignorado (e um onPlay atrasado pausa o próprio áudio).
+ * Erro de mídia é terminal também aqui: nada mais toca nem reivindica o coordenador.
  */
 export const createPlaybackController = ({
     id,
@@ -260,6 +261,7 @@ export const createPlaybackController = ({
     let generation = 0;
     let requested = -1; // geração do pedido de play em vigor (-1 = nenhum)
     let pending = false;
+    let errored = false;
 
     let suppressPause = false; // a próxima pausa foi causada por nós (troca de episódio, onPlay obsoleto, desmontagem)
 
@@ -289,7 +291,7 @@ export const createPlaybackController = ({
         /** Clique no play/pause: toca, pausa, ou cancela um play pendente. */
         toggle() {
             const audio = getAudio();
-            if (!audio) return;
+            if (!audio || errored) return;
             if (pending || !audio.paused) return stop(false);
             const attempt = (generation += 1);
             requested = attempt;
@@ -303,20 +305,17 @@ export const createPlaybackController = ({
                 },
                 (error) => {
                     if (attempt !== generation) return;
-                    pending = false;
-                    requested = -1;
+                    const kind = playRejectionKind(error);
+                    invalidate();
+                    if (kind === 'fatal') errored = true;
                     coordinator.release(id);
-                    dispatch({
-                        type: 'PLAY_REJECTED',
-                        kind: playRejectionKind(error),
-                        hasMetadata: hasMetadata(),
-                    });
+                    dispatch({ type: 'PLAY_REJECTED', kind, hasMetadata: hasMetadata() });
                 },
             );
         },
         /** Evento `play` do <audio>; false = tentativa obsoleta (o áudio é pausado e nada é anunciado). */
         onPlay() {
-            if (requested !== generation) {
+            if (errored || requested !== generation) {
                 silentPause();
                 return false;
             }
@@ -328,6 +327,8 @@ export const createPlaybackController = ({
             const announce = !suppressPause;
             suppressPause = false;
             invalidate();
+            // Pausado não reivindica mais nada (no-op se outro episódio já assumiu).
+            coordinator.release(id);
             dispatch({ type: 'PAUSE' });
             return announce;
         },
@@ -335,6 +336,13 @@ export const createPlaybackController = ({
             invalidate();
             coordinator.release(id);
             dispatch({ type: 'ENDED' });
+        },
+        /** Evento `error` do <audio>: invalida e libera ANTES de marcar o erro (terminal). */
+        onError() {
+            errored = true;
+            invalidate();
+            coordinator.release(id);
+            dispatch({ type: 'MEDIA_ERROR' });
         },
         /** Desmontagem: nada que chegue depois vale. */
         dispose() {

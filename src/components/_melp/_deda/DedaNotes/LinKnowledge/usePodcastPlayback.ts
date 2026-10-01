@@ -23,7 +23,8 @@ export const FORWARD_SECONDS = 30;
 /**
  * Estado e controles de um episódio sobre um <audio> nativo: posição e velocidade lembradas,
  * um episódio por vez, anúncios para leitor de tela e atalhos de teclado.
- * O componente renderiza `<audio ref={audioRef} {...audioProps} />` quando `src` existir.
+ * O componente renderiza `<audio ref={audioRef} {...audioProps} />` quando `src` existir e deve ser
+ * montado com `key` = audioUrl (troca de episódio = componente novo, estado zerado).
  */
 export const usePodcastPlayback = (episode: PodcastEpisode) => {
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -119,7 +120,7 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
             setAnnouncement(playbackAnnouncement('ended', title) as string);
             savePosition(key, 0, duration);
         },
-        onError: () => dispatch({ type: 'MEDIA_ERROR' }),
+        onError: () => controller.onError(),
     };
 
     return {

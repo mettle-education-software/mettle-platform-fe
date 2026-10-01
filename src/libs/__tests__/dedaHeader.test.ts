@@ -1,14 +1,16 @@
 import {
     contentfulImage,
+    contrastOverWhite,
     desktopWidths,
+    HEADER_GRADIENT,
     headerSources,
+    HOME_HEADER_TOP_OPACITY,
+    pickHeaderImage,
     QUOTE_SHADE,
     shadeAt,
     shadeGradient,
-    HEADER_GRADIENT,
-    HOME_HEADER_TOP_OPACITY,
-    pickHeaderImage,
-    quoteContrastOverWhite,
+    TITLE_AND_QUOTE_SHADE,
+    TITLE_SHADE,
 } from '../dedaHeader';
 
 const asset = 'https://images.ctfassets.net/space/id/hash/photo-1520986606214';
@@ -73,15 +75,13 @@ describe('desktopWidths (até a largura real do asset)', () => {
     });
 });
 
-describe('escurecimento da citação (página do DEDA)', () => {
-    it('nada até 50% da largura; sobe suave até 0,5 em 66% e fica assim', () => {
-        for (let at = 0; at <= 50; at += 1) expect(shadeAt(QUOTE_SHADE, at)).toBe(0);
-        expect(shadeAt(QUOTE_SHADE, 58)).toBeCloseTo(0.25);
-        for (let at = 66; at <= 100; at += 1) expect(shadeAt(QUOTE_SHADE, at)).toBe(0.5);
-    });
-
-    it('é o mínimo: com 0,45 a citação ficaria abaixo de 4.5:1', () => {
-        expect(QUOTE_SHADE[2][1]).toBe(0.5);
+describe('escurecimentos laterais', () => {
+    it('título: plano até 30% e some até 40%; citação: de 50% a 0,5 em 66%', () => {
+        expect(shadeAt(TITLE_SHADE, 15)).toBe(0.8);
+        expect(shadeAt(TITLE_SHADE, 40)).toBe(0);
+        for (let at = 40; at <= 50; at += 1) expect(shadeAt(TITLE_AND_QUOTE_SHADE, at)).toBe(0);
+        for (let at = 66; at <= 100; at += 1) expect(shadeAt(TITLE_AND_QUOTE_SHADE, at)).toBe(0.5);
+        expect(shadeGradient(TITLE_SHADE)).toContain('rgba(0, 0, 0, 0.8) 30%');
     });
 });
 
@@ -96,24 +96,45 @@ describe('pickHeaderImage (fallback do cabeçalho)', () => {
 });
 
 describe('gradiente vertical dos cabeçalhos', () => {
-    it('topo leve (constante, 0,15), 0,35 em 55% e fim exatamente no #2b2b2b do fundo', () => {
+    it('topo leve (constante, 0,15), escurece desde 40% e termina exatamente no #2b2b2b do fundo', () => {
         expect(HOME_HEADER_TOP_OPACITY).toBe(0.15);
         expect(HEADER_GRADIENT).toBe(
-            'linear-gradient(180deg, rgba(43, 43, 43, 0.15) 0%, rgba(43, 43, 43, 0.35) 55%, #2b2b2b 100%)',
+            'linear-gradient(180deg, rgba(43, 43, 43, 0.15) 0%, rgba(43, 43, 43, 0.25) 40%, rgba(43, 43, 43, 0.75) 80%, #2b2b2b 100%)',
         );
     });
 });
 
-describe('contraste da citação: gradiente vertical + sombra horizontal sobre imagem branca', () => {
-    // Faixa medida da citação (1280–1920 px): x 69–100% da largura; y 39–83% da altura a partir de baixo.
-    const band = (yFrom: number, yTo: number) => {
-        let worst = Infinity;
-        for (let x = 69; x <= 100; x += 1)
-            for (let y = yFrom; y <= yTo; y += 1) worst = Math.min(worst, quoteContrastOverWhite(x, y));
-        return worst;
-    };
+// Pior caso: imagem branca. Áreas medidas no harness (1280–1920 px), em % da largura / % da altura a partir do topo.
+const worst = (text: string, shade: [number, number][], [x0, x1]: number[], [y0, y1]: number[]) => {
+    let min = Infinity;
+    for (let x = x0; x <= x1; x += 1)
+        for (let y = y0; y <= y1; y += 1) min = Math.min(min, contrastOverWhite(text, shade, x, y));
+    return min;
+};
+const GOLD = '#b89261';
+const WHITE = '#ffffff';
 
-    it('área inteira da citação ≥ 4.5:1 sobre imagem branca', () => {
-        expect(band(39, 83)).toBeGreaterThanOrEqual(4.5);
+describe('contraste ≥ 4.5:1 sobre imagem branca (camadas reais)', () => {
+    it('citação (página do DEDA): branco em x 69–100%, y 17–61%', () => {
+        expect(worst(WHITE, TITLE_AND_QUOTE_SHADE, [69, 100], [17, 61])).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('título dourado da home: x 3–30%, y 44–72%', () => {
+        expect(worst(GOLD, TITLE_SHADE, [3, 30], [44, 72])).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('título dourado da página do DEDA: x 6–30%, y 26–45%', () => {
+        expect(worst(GOLD, TITLE_AND_QUOTE_SHADE, [6, 30], [26, 45])).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('chip "Current DEDA" (branco) da home: x 3–20%, y 17–37%', () => {
+        expect(worst(WHITE, TITLE_SHADE, [3, 20], [17, 37])).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('as opacidades são as mínimas (0,05 a menos já falha)', () => {
+        const less = (stops: [number, number][], by: number) =>
+            stops.map(([at, a]) => [at, a > 0 ? a - by : a] as [number, number]);
+        expect(worst(GOLD, less(TITLE_SHADE, 0.05), [3, 30], [44, 72])).toBeLessThan(4.5);
+        expect(worst(WHITE, less(QUOTE_SHADE, 0.05), [69, 100], [17, 61])).toBeLessThan(4.5);
     });
 });

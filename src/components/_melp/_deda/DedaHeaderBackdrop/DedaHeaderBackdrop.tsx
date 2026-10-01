@@ -31,7 +31,8 @@ const Shade = styled.div`
     pointer-events: none;
     background: var(--deda-header-gradient);
 
-    @media (min-width: ${MOBILE_MAX_WIDTH + 1}px) {
+    // Escurecimento lateral só onde o cabeçalho tem texto (acima de 860 px).
+    @media (min-width: ${SMALL_VIEWPORT + 1}px) {
         background: var(--deda-header-gradient), var(--deda-header-shade, linear-gradient(transparent, transparent));
     }
 `;

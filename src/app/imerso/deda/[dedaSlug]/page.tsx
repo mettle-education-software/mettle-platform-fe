@@ -11,7 +11,7 @@ import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueri
 import { SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { withDedaSlug } from 'libs/authentication/withDedaSlug';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
-import { HEADER_GRADIENT, QUOTE_SHADE } from 'libs/dedaHeader';
+import { HEADER_GRADIENT, TITLE_AND_QUOTE_SHADE } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
@@ -23,6 +23,11 @@ const HeaderSummary = styled.section`
     /* conteúdo acima do fundo (<DedaHeaderBackdrop>) */
     & > :not([data-deda-backdrop]) {
         position: relative;
+    }
+
+    /* título legível sobre imagem clara */
+    h1 {
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
     }
 
     .deda-header-quote {
@@ -131,7 +136,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                 <DedaHeaderBackdrop
                     images={[headerImage, featuredDeda?.dedaFeaturedImage]}
                     gradient={HEADER_GRADIENT}
-                    shade={QUOTE_SHADE}
+                    shade={TITLE_AND_QUOTE_SHADE}
                 />
                 <MaxWidthContainer style={{ marginBottom: '2rem' }}>
                     {isDesktop ? (

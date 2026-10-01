@@ -8,7 +8,7 @@ import { useDeviceSize, useGetCurrentDeda } from 'hooks';
 import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
-import { HEADER_GRADIENT } from 'libs/dedaHeader';
+import { HEADER_GRADIENT, TITLE_SHADE } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -19,6 +19,12 @@ const HeaderSummary = styled.section`
     /* conteúdo acima do fundo (<DedaHeaderBackdrop>) */
     & > :not([data-deda-backdrop]) {
         position: relative;
+    }
+
+    /* título e chip legíveis sobre imagem clara */
+    h1,
+    h5 {
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
     }
     width: 100%;
     padding: 1.8rem 0;
@@ -68,6 +74,7 @@ export const FreeHome = () => {
                 <DedaHeaderBackdrop
                     images={[headerImage, featuredDeda?.dedaFeaturedImage]}
                     gradient={HEADER_GRADIENT}
+                    shade={TITLE_SHADE}
                 />
                 <MaxWidthContainer>
                     {device === 'desktop' && (

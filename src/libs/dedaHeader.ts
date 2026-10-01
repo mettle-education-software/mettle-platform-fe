@@ -56,14 +56,33 @@ export const headerSources = (raw: string | null | undefined, intrinsicWidth?: n
     };
 };
 
-// Escurecimento só na página do DEDA, atrás da citação: começa suave em 50% e chega a 0,5 em 66%
-// (a citação começa em 69–74% da largura). 0,5 é o mínimo (passo 0,05) para o branco da citação
-// ficar ≥ 4.5:1 sobre imagem branca em toda a área dela (testado). Nada na home e nada no celular.
+// Escurecimentos laterais (desktop, onde há texto no cabeçalho; nada no celular):
+// - esquerda, atrás do título dourado e do chip: plano nos primeiros 30% e some até 40%. O dourado
+//   (#b89261) precisa de fundo quase tão escuro quanto #2b2b2b para 4.5:1 sobre imagem branca: 0,8 é o
+//   mínimo em passos de 0,05 (0,5 daria ~2:1; testado);
+// - direita, atrás da citação (página do DEDA): começa em 50% e chega a 0,5 em 66% — mínimo para o
+//   branco da citação ≥ 4.5:1 sobre imagem branca.
+export const TITLE_SHADE_OPACITY = 0.8;
+export const QUOTE_SHADE_OPACITY = 0.5;
+export const TITLE_SHADE: [number, number][] = [
+    [0, TITLE_SHADE_OPACITY],
+    [30, TITLE_SHADE_OPACITY],
+    [40, 0],
+    [100, 0],
+];
 export const QUOTE_SHADE: [number, number][] = [
     [0, 0],
     [50, 0],
-    [66, 0.5],
-    [100, 0.5],
+    [66, QUOTE_SHADE_OPACITY],
+    [100, QUOTE_SHADE_OPACITY],
+];
+export const TITLE_AND_QUOTE_SHADE: [number, number][] = [
+    [0, TITLE_SHADE_OPACITY],
+    [30, TITLE_SHADE_OPACITY],
+    [40, 0],
+    [50, 0],
+    [66, QUOTE_SHADE_OPACITY],
+    [100, QUOTE_SHADE_OPACITY],
 ];
 
 export const shadeGradient = (stops: [number, number][]) =>
@@ -97,23 +116,34 @@ export const pickHeaderImage = <T extends { url: string; width?: number | null }
 export const HOME_HEADER_TOP_OPACITY = 0.15;
 export const HEADER_VERTICAL: [number, number][] = [
     [0, HOME_HEADER_TOP_OPACITY],
-    [55, 0.35],
+    [40, 0.25],
+    [80, 0.75],
     [100, 1],
 ];
-export const HEADER_GRADIENT = `linear-gradient(180deg, rgba(43, 43, 43, ${HOME_HEADER_TOP_OPACITY}) 0%, rgba(43, 43, 43, 0.35) 55%, #2b2b2b 100%)`;
+// Escurece antes da base para a imagem clara não "acabar" numa faixa; termina exatamente no #2b2b2b.
+export const HEADER_GRADIENT = `linear-gradient(180deg, ${HEADER_VERTICAL.map(([at, alpha]) =>
+    alpha === 1 ? `#2b2b2b ${at}%` : `rgba(43, 43, 43, ${alpha}) ${at}%`,
+).join(', ')})`;
 
 const toLinear = (channel: number) => {
     const c = channel / 255;
     return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 };
 
+/** Luminância relativa (WCAG) de um hex #rrggbb. */
+export const hexLuminance = (hex: string) =>
+    [1, 3, 5]
+        .map((i) => toLinear(parseInt(hex.slice(i, i + 2), 16)))
+        .reduce((sum, value, i) => sum + value * [0.2126, 0.7152, 0.0722][i], 0);
+
 /**
- * Contraste do texto branco da citação sobre a PIOR imagem (branca), somando as camadas reais:
- * imagem → sombra horizontal (QUOTE_SHADE em x%) → gradiente vertical da página (em y% a partir de baixo).
+ * Contraste de um texto (`textHex`) sobre a PIOR imagem (branca), somando as camadas reais:
+ * imagem → escurecimento lateral (`shade` em x%) → gradiente vertical (em y% a partir do topo).
  */
-export const quoteContrastOverWhite = (xPct: number, yPctFromBottom: number) => {
-    const afterShade = 255 * (1 - shadeAt(QUOTE_SHADE, xPct));
-    const vertical = shadeAt(HEADER_VERTICAL, 100 - yPctFromBottom);
-    const channel = 43 * vertical + afterShade * (1 - vertical);
-    return 1.05 / (toLinear(channel) + 0.05);
+export const contrastOverWhite = (textHex: string, shade: [number, number][], xPct: number, yPctFromTop: number) => {
+    const afterShade = 255 * (1 - shadeAt(shade, xPct));
+    const vertical = shadeAt(HEADER_VERTICAL, yPctFromTop);
+    const background = toLinear(43 * vertical + afterShade * (1 - vertical));
+    const text = hexLuminance(textHex);
+    return (Math.max(text, background) + 0.05) / (Math.min(text, background) + 0.05);
 };

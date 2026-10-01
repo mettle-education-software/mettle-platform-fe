@@ -2,6 +2,7 @@
 
 import { PodcastEpisode } from 'hooks/queries/dedaQueries';
 import {
+    applySeek,
     clampPosition,
     cleanEpisodeTitle,
     loadPosition,
@@ -62,18 +63,13 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
     }, [key, controller]);
 
     const seekTo = (seconds: number) => {
-        const audio = audioRef.current;
         if (status === 'error') return;
-        if (audio && audio.readyState >= 1) {
-            audio.currentTime = clampPosition(seconds, duration || audio.duration || 0);
-            setCurrent(audio.currentTime);
-            return;
-        }
-        // Sem metadados ainda (antes do play ou carregando): só posiciona, sem tocar nem baixar.
-        const position = clampPosition(seconds, duration);
+        // Com metadados move o <audio>; sem eles só posiciona (sem tocar nem baixar). Nos dois casos,
+        // lembra a posição para o próximo load e salva.
+        const position = applySeek(audioRef.current, seconds, duration);
         startAtRef.current = position;
         setCurrent(position);
-        savePosition(key, position, duration);
+        savePosition(key, position, duration || audioRef.current?.duration || 0);
     };
 
     const toggle = () => {

@@ -1,4 +1,5 @@
 import {
+    applySeek,
     clampPosition,
     cleanEpisodeTitle,
     contrastWithWhite,
@@ -322,5 +323,22 @@ describe('clampPosition', () => {
         expect(clampPosition(30, 0)).toBe(30);
         expect(clampPosition(-5, 0)).toBe(0);
         expect(clampPosition(NaN, 600)).toBe(0);
+    });
+});
+
+describe('applySeek', () => {
+    it('sem metadados: só calcula a posição, não toca no <audio>', () => {
+        const audio = { readyState: 0, duration: NaN, currentTime: 0 };
+        expect(applySeek(audio, 30, 90)).toBe(30);
+        expect(audio.currentTime).toBe(0);
+        expect(applySeek(null, 120, 90)).toBe(90);
+    });
+
+    it('com metadados: move o <audio> e devolve a posição aplicada', () => {
+        const audio = { readyState: 1, duration: 90, currentTime: 10 };
+        expect(applySeek(audio, 40, 0)).toBe(40);
+        expect(audio.currentTime).toBe(40);
+        expect(applySeek(audio, 500, 90)).toBe(90);
+        expect(applySeek(audio, -20, 90)).toBe(0);
     });
 });

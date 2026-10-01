@@ -7,9 +7,6 @@ import { coverBackground, formatTime, nextRate, podcastCardColor } from 'libs/po
 import React from 'react';
 import { BACK_SECONDS, FORWARD_SECONDS, usePodcastPlayback } from './usePodcastPlayback';
 
-// Telas de toque e até tablet: alvos de toque com pelo menos 44px.
-const TOUCH = '@media (pointer: coarse), (max-width: 1024px)';
-
 const Card = styled.div`
     position: relative;
     display: flex;
@@ -110,8 +107,9 @@ const Controls = styled.div`
 // Trilha preenchida até a posição atual (--progress é um número calculado no componente).
 const Progress = styled.input`
     width: 100%;
-    height: 24px;
-    margin: 0;
+    /* área de toque de 44px; a trilha visível tem 4px */
+    height: 44px;
+    margin: -10px 0;
     appearance: none;
     -webkit-appearance: none;
     border-radius: 999px;
@@ -123,10 +121,6 @@ const Progress = styled.input`
             rgba(255, 255, 255, 0.3) var(--progress, 0%) 100%
         )
         center / 100% 4px no-repeat;
-
-    ${TOUCH} {
-        height: 44px;
-    }
 
     &::-webkit-slider-thumb {
         -webkit-appearance: none;
@@ -183,7 +177,11 @@ const SmallButton = styled.button`
     gap: 0.2rem;
     font-size: 12px;
     font-weight: 600;
-    padding: 0.15rem 0.45rem;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 0 0.6rem;
+    box-sizing: border-box;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.15);
 
@@ -194,14 +192,6 @@ const SmallButton = styled.button`
     &:disabled {
         opacity: 0.5;
         cursor: default;
-    }
-
-    ${TOUCH} {
-        min-width: 44px;
-        min-height: 44px;
-        justify-content: center;
-        padding: 0 0.6rem;
-        box-sizing: border-box;
     }
 `;
 

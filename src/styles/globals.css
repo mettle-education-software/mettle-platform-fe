@@ -21,6 +21,9 @@
     --danger: #ff4d4f;
     --main-bg: #2b2b2b;
     --brown-bg: #3c362f;
+    /* Popups (Modal/Drawer) são renderizados em portal fora de <main data-theme>: sem isto,
+       var(--secondary) fica indefinida lá dentro. Mesmo valor nos dois temas. */
+    --secondary: var(--secondary-light);
 }
 
 main[data-theme='light'] {

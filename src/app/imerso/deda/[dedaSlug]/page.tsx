@@ -4,9 +4,10 @@ import styled from '@emotion/styled';
 import { ArrowBackIos } from '@mui/icons-material';
 import { Button, Flex, Typography } from 'antd';
 import { DedaActivity, DedaNotes, DedaQuote, DedaReview, MaxWidthContainer, TabNav, withRoles } from 'components';
+import { DedaHeaderBackdrop } from 'components/_melp/_deda/DedaHeaderBackdrop/DedaHeaderBackdrop';
 import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
-import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
+import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { withDedaSlug } from 'libs/authentication/withDedaSlug';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
@@ -15,11 +16,19 @@ import React, { useState } from 'react';
 
 const { Title } = Typography;
 
-const HeaderSummary = styled.section<{ imgUrl?: string }>`
-    background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43) 15%, rgb(0, 0, 0, 0) 100%),
-        url(${({ imgUrl }) => imgUrl});
-    background-size: cover;
-    background-position: center;
+const HEADER_GRADIENT = 'linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43) 15%, rgb(0, 0, 0, 0) 100%)';
+
+const HeaderSummary = styled.section`
+    position: relative;
+    background-color: #2b2b2b;
+    /* conteúdo acima do fundo (<DedaHeaderBackdrop>) */
+    & > :not([data-deda-backdrop]) {
+        position: relative;
+    }
+
+    .deda-header-quote {
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    }
     max-height: 250px;
     height: 250px;
     display: flex;
@@ -72,6 +81,8 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     const isDesktop = device === 'desktop';
 
     const featuredDedaDataResult = useFeaturedDedaData(dedaId);
+    // Cabeçalho: imagem própria (dedaHeaderImage) ou, sem ela, a do card como antes.
+    const headerImage = useDedaHeaderImage(dedaId);
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
     const [activeTab, setActiveTab] = useState('dedaNotes');
@@ -117,7 +128,11 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
 
     return (
         <AppLayout withMelpSummary>
-            <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
+            <HeaderSummary>
+                <DedaHeaderBackdrop
+                    imageUrl={headerImage ?? featuredDeda?.dedaFeaturedImage.url}
+                    gradient={HEADER_GRADIENT}
+                />
                 <MaxWidthContainer style={{ marginBottom: '2rem' }}>
                     {isDesktop ? (
                         <Flex justify="space-between">
@@ -132,7 +147,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                                 />
                                 <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
                             </Flex>
-                            <div style={{ flex: 0.3 }}>
+                            <div style={{ flex: 0.3 }} className="deda-header-quote">
                                 <DedaQuote dedaId={dedaId} />
                             </div>
                         </Flex>

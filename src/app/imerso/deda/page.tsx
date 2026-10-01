@@ -8,7 +8,7 @@ import { useDeviceSize } from 'hooks';
 import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
-import { HEADER_GRADIENT, TITLE_SHADE } from 'libs/dedaHeader';
+import { HEADER_GRADIENT, TITLE_SHADE_HOME } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -89,7 +89,7 @@ function DedaPage() {
                 <DedaHeaderBackdrop
                     images={[headerImage, featuredDeda?.dedaFeaturedImage]}
                     gradient={HEADER_GRADIENT}
-                    shade={TITLE_SHADE}
+                    shades={[TITLE_SHADE_HOME]}
                 />
                 {!blockedDEDAs ? (
                     <MaxWidthContainer>

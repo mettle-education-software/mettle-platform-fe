@@ -7,10 +7,11 @@ import {
     HOME_HEADER_TOP_OPACITY,
     pickHeaderImage,
     QUOTE_SHADE,
-    shadeAt,
-    shadeGradient,
-    TITLE_AND_QUOTE_SHADE,
-    TITLE_SHADE,
+    RadialShade,
+    radialShadeAt,
+    radialShadeCss,
+    TITLE_SHADE_DEDA,
+    TITLE_SHADE_HOME,
 } from '../dedaHeader';
 
 const asset = 'https://images.ctfassets.net/space/id/hash/photo-1520986606214';
@@ -75,13 +76,25 @@ describe('desktopWidths (até a largura real do asset)', () => {
     });
 });
 
-describe('escurecimentos laterais', () => {
-    it('título: plano até 30% e some até 40%; citação: de 50% a 0,5 em 66%', () => {
-        expect(shadeAt(TITLE_SHADE, 15)).toBe(0.8);
-        expect(shadeAt(TITLE_SHADE, 40)).toBe(0);
-        for (let at = 40; at <= 50; at += 1) expect(shadeAt(TITLE_AND_QUOTE_SHADE, at)).toBe(0);
-        for (let at = 66; at <= 100; at += 1) expect(shadeAt(TITLE_AND_QUOTE_SHADE, at)).toBe(0.5);
-        expect(shadeGradient(TITLE_SHADE)).toContain('rgba(0, 0, 0, 0.8) 30%');
+describe('esfumados radiais', () => {
+    it('CSS da elipse a partir da geometria (sem borda: termina em 0 na borda da elipse)', () => {
+        expect(radialShadeCss(TITLE_SHADE_HOME)).toBe(
+            'radial-gradient(ellipse 42% 120% at 12% 55%, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.8) 45%, rgba(0, 0, 0, 0) 100%)',
+        );
+        expect(radialShadeCss(QUOTE_SHADE)).toBe(
+            'radial-gradient(ellipse 42% 140% at 86% 45%, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.45) 50%, rgba(0, 0, 0, 0) 100%)',
+        );
+    });
+
+    it('opacidade cai continuamente até 0 (sem degrau)', () => {
+        let previous = radialShadeAt(TITLE_SHADE_HOME, 12, 55);
+        for (let x = 13; x <= 60; x += 1) {
+            const alpha = radialShadeAt(TITLE_SHADE_HOME, x, 55);
+            expect(alpha).toBeLessThanOrEqual(previous);
+            expect(previous - alpha).toBeLessThan(0.05);
+            previous = alpha;
+        }
+        expect(radialShadeAt(TITLE_SHADE_HOME, 60, 55)).toBe(0);
     });
 });
 
@@ -105,36 +118,39 @@ describe('gradiente vertical dos cabeçalhos', () => {
 });
 
 // Pior caso: imagem branca. Áreas medidas no harness (1280–1920 px), em % da largura / % da altura a partir do topo.
-const worst = (text: string, shade: [number, number][], [x0, x1]: number[], [y0, y1]: number[]) => {
+const worst = (text: string, shades: RadialShade[], [x0, x1]: number[], [y0, y1]: number[]) => {
     let min = Infinity;
     for (let x = x0; x <= x1; x += 1)
-        for (let y = y0; y <= y1; y += 1) min = Math.min(min, contrastOverWhite(text, shade, x, y));
+        for (let y = y0; y <= y1; y += 1) min = Math.min(min, contrastOverWhite(text, shades, x, y));
     return min;
 };
 const GOLD = '#b89261';
 const WHITE = '#ffffff';
+const DEDA = [TITLE_SHADE_DEDA, QUOTE_SHADE];
+const weaker = (shade: RadialShade): RadialShade => ({
+    ...shade,
+    stops: shade.stops.map(([at, a]) => [at, a > 0 ? a - 0.05 : a] as [number, number]),
+});
 
 describe('contraste ≥ 4.5:1 sobre imagem branca (camadas reais)', () => {
     it('citação (página do DEDA): branco em x 69–100%, y 17–61%', () => {
-        expect(worst(WHITE, TITLE_AND_QUOTE_SHADE, [69, 100], [17, 61])).toBeGreaterThanOrEqual(4.5);
+        expect(worst(WHITE, DEDA, [69, 100], [17, 61])).toBeGreaterThanOrEqual(4.5);
     });
 
     it('título dourado da home: x 3–30%, y 44–72%', () => {
-        expect(worst(GOLD, TITLE_SHADE, [3, 30], [44, 72])).toBeGreaterThanOrEqual(4.5);
+        expect(worst(GOLD, [TITLE_SHADE_HOME], [3, 30], [44, 72])).toBeGreaterThanOrEqual(4.5);
     });
 
     it('título dourado da página do DEDA: x 6–30%, y 26–45%', () => {
-        expect(worst(GOLD, TITLE_AND_QUOTE_SHADE, [6, 30], [26, 45])).toBeGreaterThanOrEqual(4.5);
+        expect(worst(GOLD, DEDA, [6, 30], [26, 45])).toBeGreaterThanOrEqual(4.5);
     });
 
     it('chip "Current DEDA" (branco) da home: x 3–20%, y 17–37%', () => {
-        expect(worst(WHITE, TITLE_SHADE, [3, 20], [17, 37])).toBeGreaterThanOrEqual(4.5);
+        expect(worst(WHITE, [TITLE_SHADE_HOME], [3, 20], [17, 37])).toBeGreaterThanOrEqual(4.5);
     });
 
     it('as opacidades são as mínimas (0,05 a menos já falha)', () => {
-        const less = (stops: [number, number][], by: number) =>
-            stops.map(([at, a]) => [at, a > 0 ? a - by : a] as [number, number]);
-        expect(worst(GOLD, less(TITLE_SHADE, 0.05), [3, 30], [44, 72])).toBeLessThan(4.5);
-        expect(worst(WHITE, less(QUOTE_SHADE, 0.05), [69, 100], [17, 61])).toBeLessThan(4.5);
+        expect(worst(GOLD, [weaker(TITLE_SHADE_HOME)], [3, 30], [44, 72])).toBeLessThan(4.5);
+        expect(worst(WHITE, [TITLE_SHADE_DEDA, weaker(QUOTE_SHADE)], [69, 100], [17, 61])).toBeLessThan(4.5);
     });
 });

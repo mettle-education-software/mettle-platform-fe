@@ -56,37 +56,56 @@ export const headerSources = (raw: string | null | undefined, intrinsicWidth?: n
     };
 };
 
-// Escurecimentos laterais (desktop, onde há texto no cabeçalho; nada no celular):
-// - esquerda, atrás do título dourado e do chip: plano nos primeiros 30% e some até 40%. O dourado
-//   (#b89261) precisa de fundo quase tão escuro quanto #2b2b2b para 4.5:1 sobre imagem branca: 0,8 é o
-//   mínimo em passos de 0,05 (0,5 daria ~2:1; testado);
-// - direita, atrás da citação (página do DEDA): começa em 50% e chega a 0,5 em 66% — mínimo para o
-//   branco da citação ≥ 4.5:1 sobre imagem branca.
-export const TITLE_SHADE_OPACITY = 0.8;
-export const QUOTE_SHADE_OPACITY = 0.5;
-export const TITLE_SHADE: [number, number][] = [
-    [0, TITLE_SHADE_OPACITY],
-    [30, TITLE_SHADE_OPACITY],
-    [40, 0],
-    [100, 0],
-];
-export const QUOTE_SHADE: [number, number][] = [
-    [0, 0],
-    [50, 0],
-    [66, QUOTE_SHADE_OPACITY],
-    [100, QUOTE_SHADE_OPACITY],
-];
-export const TITLE_AND_QUOTE_SHADE: [number, number][] = [
-    [0, TITLE_SHADE_OPACITY],
-    [30, TITLE_SHADE_OPACITY],
-    [40, 0],
-    [50, 0],
-    [66, QUOTE_SHADE_OPACITY],
-    [100, QUOTE_SHADE_OPACITY],
-];
+// Esfumados RADIAIS atrás do texto (desktop, onde o cabeçalho tem texto; nada no celular): sem
+// borda nem "parede" vertical. Geometria do coordenador; opacidades no mínimo (passos de 0,05) que
+// mantém ≥ 4.5:1 sobre imagem branca na área do texto (testado):
+// - título dourado e chip: o dourado #b89261 precisa de fundo quase tão escuro quanto #2b2b2b, então
+//   o núcleo fica em 0,8 até 45% do raio e some até a borda da elipse (centro na altura do título);
+// - citação (página do DEDA): 0,6 no centro, 0,45 a 50% do raio, some até a borda.
+export type RadialShade = {
+    /** raios da elipse, em % da largura e da altura */
+    rx: number;
+    ry: number;
+    /** centro, em % da largura e da altura (a partir do topo) */
+    cx: number;
+    cy: number;
+    /** [posição % do raio, opacidade do preto] */
+    stops: [number, number][];
+};
 
-export const shadeGradient = (stops: [number, number][]) =>
-    `linear-gradient(90deg, ${stops.map(([at, alpha]) => `rgba(0, 0, 0, ${alpha}) ${at}%`).join(', ')})`;
+export const TITLE_SHADE_HOME: RadialShade = {
+    rx: 42,
+    ry: 120,
+    cx: 12,
+    cy: 55,
+    stops: [
+        [0, 0.8],
+        [45, 0.8],
+        [100, 0],
+    ],
+};
+// Página do DEDA: o título fica mais alto (26–45% da altura), por isso o centro em 40%.
+export const TITLE_SHADE_DEDA: RadialShade = { ...TITLE_SHADE_HOME, cy: 40 };
+export const QUOTE_SHADE: RadialShade = {
+    rx: 42,
+    ry: 140,
+    cx: 86,
+    cy: 45,
+    stops: [
+        [0, 0.6],
+        [50, 0.45],
+        [100, 0],
+    ],
+};
+
+export const radialShadeCss = ({ rx, ry, cx, cy, stops }: RadialShade) =>
+    `radial-gradient(ellipse ${rx}% ${ry}% at ${cx}% ${cy}%, ${stops
+        .map(([at, alpha]) => `rgba(0, 0, 0, ${alpha}) ${at}%`)
+        .join(', ')})`;
+
+/** Opacidade do esfumado num ponto (x%, y% a partir do topo), como o navegador desenha a elipse. */
+export const radialShadeAt = ({ rx, ry, cx, cy, stops }: RadialShade, xPct: number, yPct: number) =>
+    shadeAt(stops, Math.min(100, Math.hypot((xPct - cx) / rx, (yPct - cy) / ry) * 100));
 
 /** Opacidade do escurecimento numa posição (%), por interpolação linear entre os stops. */
 export const shadeAt = (stops: [number, number][], at: number) => {
@@ -138,12 +157,12 @@ export const hexLuminance = (hex: string) =>
 
 /**
  * Contraste de um texto (`textHex`) sobre a PIOR imagem (branca), somando as camadas reais:
- * imagem → escurecimento lateral (`shade` em x%) → gradiente vertical (em y% a partir do topo).
+ * imagem → esfumados radiais → gradiente vertical (em y% a partir do topo).
  */
-export const contrastOverWhite = (textHex: string, shade: [number, number][], xPct: number, yPctFromTop: number) => {
-    const afterShade = 255 * (1 - shadeAt(shade, xPct));
+export const contrastOverWhite = (textHex: string, shades: RadialShade[], xPct: number, yPctFromTop: number) => {
+    const afterShades = shades.reduce((channel, shade) => channel * (1 - radialShadeAt(shade, xPct, yPctFromTop)), 255);
     const vertical = shadeAt(HEADER_VERTICAL, yPctFromTop);
-    const background = toLinear(43 * vertical + afterShade * (1 - vertical));
+    const background = toLinear(43 * vertical + afterShades * (1 - vertical));
     const text = hexLuminance(textHex);
     return (Math.max(text, background) + 0.05) / (Math.min(text, background) + 0.05);
 };

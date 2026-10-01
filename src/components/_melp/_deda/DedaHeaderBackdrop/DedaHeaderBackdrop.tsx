@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { SMALL_VIEWPORT } from 'libs/constants';
-import { headerSources, MOBILE_MAX_WIDTH, pickHeaderImage, shadeGradient } from 'libs/dedaHeader';
+import { headerSources, MOBILE_MAX_WIDTH, pickHeaderImage, RadialShade, radialShadeCss } from 'libs/dedaHeader';
 import React, { useState } from 'react';
 
 // Acima de 860 px há o menu lateral (200 px): o cabeçalho é mais estreito que a tela.
@@ -47,12 +47,13 @@ type HeaderImage = { url: string; width?: number | null };
 export const DedaHeaderBackdrop = ({
     images,
     gradient,
-    shade,
+    shades,
 }: {
     /** Candidatas em ordem de preferência (dedaHeaderImage, dedaFeaturedImage). */
     images: (HeaderImage | null | undefined)[];
     gradient: string;
-    shade?: [number, number][];
+    /** esfumados radiais atrás do texto (só acima de 860 px) */
+    shades?: RadialShade[];
 }) => {
     // Primeira candidata válida; se a imagem falhar ao carregar, passa para a próxima válida.
     const [failed, setFailed] = useState<string[]>([]);
@@ -85,7 +86,7 @@ export const DedaHeaderBackdrop = ({
                 style={
                     {
                         '--deda-header-gradient': gradient,
-                        ...(shade ? { '--deda-header-shade': shadeGradient(shade) } : {}),
+                        ...(shades?.length ? { '--deda-header-shade': shades.map(radialShadeCss).join(', ') } : {}),
                     } as React.CSSProperties
                 }
             />

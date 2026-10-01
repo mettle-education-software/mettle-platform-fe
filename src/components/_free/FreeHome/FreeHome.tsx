@@ -8,7 +8,7 @@ import { useDeviceSize, useGetCurrentDeda } from 'hooks';
 import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
-import { HEADER_GRADIENT, TITLE_SHADE } from 'libs/dedaHeader';
+import { HEADER_GRADIENT, TITLE_SHADE_HOME } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -74,7 +74,7 @@ export const FreeHome = () => {
                 <DedaHeaderBackdrop
                     images={[headerImage, featuredDeda?.dedaFeaturedImage]}
                     gradient={HEADER_GRADIENT}
-                    shade={TITLE_SHADE}
+                    shades={[TITLE_SHADE_HOME]}
                 />
                 <MaxWidthContainer>
                     {device === 'desktop' && (

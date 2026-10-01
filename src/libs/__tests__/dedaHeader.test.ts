@@ -1,4 +1,20 @@
-import { contentfulImage, desktopWidths, headerSources, QUOTE_SHADE, shadeAt, shadeGradient } from '../dedaHeader';
+import {
+    contentfulImage,
+    contrastOverWhite,
+    desktopWidths,
+    HEADER_GRADIENT,
+    HEADER_VERTICAL,
+    headerSources,
+    HOME_HEADER_TOP_OPACITY,
+    pickHeaderImage,
+    QUOTE_SHADE_OPACITY,
+    shadeAt,
+    TEXT_SHADE_CORE,
+    textCornerRadius,
+    textShadeCss,
+    textShadeRect,
+    TITLE_SHADE_OPACITY,
+} from '../dedaHeader';
 
 const asset = 'https://images.ctfassets.net/space/id/hash/photo-1520986606214';
 
@@ -62,13 +78,70 @@ describe('desktopWidths (até a largura real do asset)', () => {
     });
 });
 
-describe('escurecimento da citação (página do DEDA)', () => {
-    it('nada nos dois terços da esquerda; no máximo 0,45 no terço direito', () => {
-        for (let at = 0; at <= 62; at += 1) expect(shadeAt(QUOTE_SHADE, at)).toBe(0);
-        for (let at = 63; at <= 100; at += 1) expect(shadeAt(QUOTE_SHADE, at)).toBeLessThanOrEqual(0.45);
-        expect(shadeAt(QUOTE_SHADE, 90)).toBe(0.45);
-        expect(shadeGradient(QUOTE_SHADE)).toBe(
-            'linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, 0.45) 78%, rgba(0, 0, 0, 0.45) 100%)',
+describe('pickHeaderImage (fallback do cabeçalho)', () => {
+    const ok = { url: asset, width: 2400 };
+    it('primeira candidata que headerSources aceita', () => {
+        expect(pickHeaderImage([ok, { url: `${asset}-b` }])).toBe(0);
+        expect(pickHeaderImage([null, ok])).toBe(1);
+        expect(pickHeaderImage([{ url: 'https://images.unsplash.com/x' }, ok])).toBe(1);
+        expect(pickHeaderImage([undefined, null])).toBe(-1);
+    });
+});
+
+describe('gradiente vertical dos cabeçalhos', () => {
+    it('topo leve (constante, 0,15), escurece desde 40% e termina exatamente no #2b2b2b do fundo', () => {
+        expect(HOME_HEADER_TOP_OPACITY).toBe(0.15);
+        expect(HEADER_GRADIENT).toBe(
+            'linear-gradient(180deg, rgba(43, 43, 43, 0.15) 0%, rgba(43, 43, 43, 0.25) 40%, rgba(43, 43, 43, 0.75) 80%, #2b2b2b 100%)',
         );
+    });
+});
+
+describe('esfumados presos ao texto', () => {
+    it('retângulo = texto + folga proporcional e fixa; CSS closest-side com núcleo plano', () => {
+        expect(textShadeRect({ left: 100, top: 50, width: 200, height: 40 })).toEqual({
+            left: 100 - (224 + 280),
+            top: 50 - (24 + 200),
+            width: 200 + 2 * (224 + 280),
+            height: 40 + 2 * (24 + 200),
+        });
+        expect(textShadeCss(0.85)).toBe(
+            `radial-gradient(closest-side, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.85) ${TEXT_SHADE_CORE}%, rgba(0, 0, 0, 0.748) 70%, rgba(0, 0, 0, 0.501) 80%, rgba(0, 0, 0, 0.246) 90%, rgba(0, 0, 0, 0) 100%)`,
+        );
+    });
+
+    // Títulos de "London" (~140 px) a títulos longos em 1 ou 2 linhas ("The Bilingual Brain",
+    // "Morning, Night, Neither": até ~800 px) e citações de 180–420 px por 88–240 px — o que aparece
+    // entre 861 e 2560 px de tela.
+    it('o texto inteiro fica no núcleo de opacidade cheia, para qualquer tamanho', () => {
+        for (let w = 100; w <= 800; w += 20)
+            for (let h = 40; h <= 240; h += 8) expect(textCornerRadius(w, h)).toBeLessThanOrEqual(TEXT_SHADE_CORE);
+    });
+});
+
+const GOLD = '#b89261';
+const WHITE = '#ffffff';
+
+describe('contraste ≥ 4.5:1 sobre imagem branca (pior caso: topo do gradiente, 0,15)', () => {
+    it('título dourado (home e página do DEDA) e ← dourado', () => {
+        expect(contrastOverWhite(GOLD, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('chip "Current DEDA" (branco, no mesmo esfumado do título)', () => {
+        expect(contrastOverWhite(WHITE, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('citação (branco)', () => {
+        expect(contrastOverWhite(WHITE, QUOTE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('as opacidades são as mínimas (0,05 a menos já falha)', () => {
+        expect(contrastOverWhite(GOLD, TITLE_SHADE_OPACITY - 0.05)).toBeLessThan(4.5);
+        expect(contrastOverWhite(WHITE, QUOTE_SHADE_OPACITY - 0.05)).toBeLessThan(4.5);
+    });
+
+    it('abas inativas (branco, sem esfumado) na faixa das abas, y 74–100% da altura', () => {
+        for (let y = 74; y <= 100; y += 1)
+            expect(contrastOverWhite(WHITE, 0, shadeAt(HEADER_VERTICAL, y))).toBeGreaterThanOrEqual(4.5);
     });
 });

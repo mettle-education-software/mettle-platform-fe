@@ -45,3 +45,33 @@ export const headerSources = (raw: string | null | undefined): HeaderSources | n
         fallback: contentfulImage(raw, { w: DESKTOP_WIDTHS[0], fm: 'webp', q: 75 }) as string,
     };
 };
+
+// Escurecimento horizontal atrás do texto (pedido do André, imagem B): título à esquerda, citação e
+// botão à direita. Stops [posição %, opacidade do preto]. A partir de 66% a sombra é ≥ 0,6, o que
+// cobre a citação (começa em 69–74% da largura) com contraste ≥ 4.5:1 mesmo sobre imagem branca.
+export const DESKTOP_SHADE: [number, number][] = [
+    [0, 0.55],
+    [32, 0],
+    [55, 0],
+    [66, 0.6],
+    [100, 0.72],
+];
+// Celular (coluna única): só à esquerda, onde fica o ← (0–18% da largura); a base já tem o gradiente da página.
+export const MOBILE_SHADE: [number, number][] = [
+    [0, 0.7],
+    [25, 0.6],
+    [55, 0],
+];
+
+export const shadeGradient = (stops: [number, number][]) =>
+    `linear-gradient(90deg, ${stops.map(([at, alpha]) => `rgba(0, 0, 0, ${alpha}) ${at}%`).join(', ')})`;
+
+/** Opacidade do escurecimento numa posição (%), por interpolação linear entre os stops. */
+export const shadeAt = (stops: [number, number][], at: number) => {
+    for (let i = 1; i < stops.length; i += 1) {
+        const [x0, a0] = stops[i - 1];
+        const [x1, a1] = stops[i];
+        if (at <= x1) return a0 + ((a1 - a0) * (at - x0)) / (x1 - x0 || 1);
+    }
+    return stops[stops.length - 1][1];
+};

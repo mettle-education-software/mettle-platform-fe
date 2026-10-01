@@ -25,6 +25,10 @@ const HeaderSummary = styled.section`
     & > :not([data-deda-backdrop]) {
         position: relative;
     }
+
+    .deda-header-quote {
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    }
     max-height: 250px;
     height: 250px;
     display: flex;
@@ -143,7 +147,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                                 />
                                 <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
                             </Flex>
-                            <div style={{ flex: 0.3 }}>
+                            <div style={{ flex: 0.3 }} className="deda-header-quote">
                                 <DedaQuote dedaId={dedaId} />
                             </div>
                         </Flex>

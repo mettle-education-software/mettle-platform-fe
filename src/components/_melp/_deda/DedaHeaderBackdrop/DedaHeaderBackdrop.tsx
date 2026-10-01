@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { SMALL_VIEWPORT } from 'libs/constants';
-import { headerSources, MOBILE_MAX_WIDTH } from 'libs/dedaHeader';
+import { DESKTOP_SHADE, headerSources, MOBILE_MAX_WIDTH, MOBILE_SHADE, shadeGradient } from 'libs/dedaHeader';
 import React from 'react';
 
 // Acima de 860 px há o menu lateral (200 px): o cabeçalho é mais estreito que a tela.
@@ -22,15 +22,16 @@ const Layer = styled.div`
     }
 `;
 
-// Celular: sombra extra de 60% para o branco sobre qualquer imagem ficar ≥ 4.5:1.
+// Por cima da imagem: escurecimento horizontal atrás do texto + o gradiente vertical da página.
+// Celular: só à esquerda, onde fica o texto (coluna única).
 const Shade = styled.div`
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: var(--deda-header-gradient);
+    background: ${shadeGradient(DESKTOP_SHADE)}, var(--deda-header-gradient);
 
     @media (max-width: ${MOBILE_MAX_WIDTH}px) {
-        background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), var(--deda-header-gradient);
+        background: ${shadeGradient(MOBILE_SHADE)}, var(--deda-header-gradient);
     }
 `;
 

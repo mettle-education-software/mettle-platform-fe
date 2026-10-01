@@ -191,3 +191,7 @@ export const podcastPlayback = createPlaybackCoordinator();
  */
 export const statusAfterPlayRejection = (error: unknown, hasMetadata: boolean) =>
     (error as { name?: string } | null)?.name === 'NotSupportedError' ? 'error' : hasMetadata ? 'ready' : 'idle';
+
+/** Mesmo que `statusAfterPlayRejection`, mas `error` é terminal: uma rejeição posterior não o desfaz. */
+export const resolvePlayRejection = <S extends string>(current: S, error: unknown, hasMetadata: boolean) =>
+    current === 'error' ? 'error' : statusAfterPlayRejection(error, hasMetadata);

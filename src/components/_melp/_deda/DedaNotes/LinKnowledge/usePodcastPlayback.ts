@@ -12,6 +12,7 @@ import {
     podcastPlayback,
     savePosition,
     saveRate,
+    resolvePlayRejection,
     statusAfterPlayRejection,
 } from 'libs/podcast';
 import React, { useEffect, useRef, useState } from 'react';
@@ -27,6 +28,8 @@ export const FORWARD_SECONDS = 30;
 export const usePodcastPlayback = (episode: PodcastEpisode) => {
     const audioRef = useRef<HTMLAudioElement>(null);
     const lastSavedRef = useRef(0);
+    // Marcado no mesmo tick do erro de mídia (antes de qualquer re-render).
+    const erroredRef = useRef(false);
     // Só http(s): URL inválida nem monta o <audio> e cai direto no estado de erro.
     const src = mediaUrl(episode.audioUrl);
     const key = episode.audioUrl;
@@ -67,8 +70,12 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
         if (status === 'idle') setStatus('loading');
         // Rejeição não fatal (bloqueio, interrupção) volta ao estado anterior e o play pode ser clicado de novo.
         audio.play().catch((error) => {
-            const next = statusAfterPlayRejection(error, audio.readyState >= 1);
-            setStatus(next);
+            if (erroredRef.current) return;
+            const hasMetadata = audio.readyState >= 1;
+            const next = statusAfterPlayRejection(error, hasMetadata);
+            if (next === 'error') erroredRef.current = true;
+            // `error` é terminal: uma rejeição que chegue depois do onError não o desfaz.
+            setStatus((current) => resolvePlayRejection(current, error, hasMetadata));
             if (next === 'idle') setStarted(false);
         });
     };
@@ -127,7 +134,10 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
             setAnnouncement(playbackAnnouncement('ended', title) as string);
             savePosition(key, 0, duration);
         },
-        onError: () => setStatus('error'),
+        onError: () => {
+            erroredRef.current = true;
+            setStatus('error');
+        },
     };
 
     return {

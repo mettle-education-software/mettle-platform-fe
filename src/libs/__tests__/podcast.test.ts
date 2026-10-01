@@ -11,6 +11,7 @@ import {
     mediaUrl,
     nextRate,
     playbackAnnouncement,
+    resolvePlayRejection,
     playerKeyAction,
     savePosition,
     saveRate,
@@ -249,5 +250,19 @@ describe('statusAfterPlayRejection', () => {
     it('só NotSupportedError é erro de mídia', () => {
         expect(statusAfterPlayRejection(err('NotSupportedError'), false)).toBe('error');
         expect(statusAfterPlayRejection(err('NotSupportedError'), true)).toBe('error');
+    });
+});
+
+describe('resolvePlayRejection', () => {
+    const abort = Object.assign(new Error('AbortError'), { name: 'AbortError' });
+
+    it('onError seguido de rejeição AbortError mantém error', () => {
+        expect(resolvePlayRejection('error', abort, true)).toBe('error');
+        expect(resolvePlayRejection('error', abort, false)).toBe('error');
+    });
+
+    it('sem erro anterior, segue a regra da rejeição', () => {
+        expect(resolvePlayRejection('loading', abort, false)).toBe('idle');
+        expect(resolvePlayRejection('loading', abort, true)).toBe('ready');
     });
 });

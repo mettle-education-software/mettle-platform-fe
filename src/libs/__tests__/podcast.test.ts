@@ -14,6 +14,7 @@ import {
     playerKeyAction,
     savePosition,
     saveRate,
+    statusAfterPlayRejection,
 } from '../podcast';
 
 const memoryStorage = () => {
@@ -231,5 +232,22 @@ describe('um episódio toca por vez', () => {
         coordinator.release('b');
         coordinator.claim('a', pauseA);
         expect(pauseB).not.toHaveBeenCalled();
+    });
+});
+
+describe('statusAfterPlayRejection', () => {
+    const err = (name: string) => Object.assign(new Error(name), { name });
+
+    it('NotAllowedError e AbortError não travam em loading nem viram erro', () => {
+        expect(statusAfterPlayRejection(err('NotAllowedError'), false)).toBe('idle');
+        expect(statusAfterPlayRejection(err('NotAllowedError'), true)).toBe('ready');
+        expect(statusAfterPlayRejection(err('AbortError'), false)).toBe('idle');
+        expect(statusAfterPlayRejection(err('AbortError'), true)).toBe('ready');
+        expect(statusAfterPlayRejection(undefined, true)).toBe('ready');
+    });
+
+    it('só NotSupportedError é erro de mídia', () => {
+        expect(statusAfterPlayRejection(err('NotSupportedError'), false)).toBe('error');
+        expect(statusAfterPlayRejection(err('NotSupportedError'), true)).toBe('error');
     });
 });

@@ -183,3 +183,11 @@ export const createPlaybackCoordinator = () => {
 };
 
 export const podcastPlayback = createPlaybackCoordinator();
+
+/**
+ * Estado depois de `audio.play()` rejeitar: só formato/fonte inválidos (NotSupportedError) viram erro;
+ * bloqueio (NotAllowedError), interrupção (AbortError) e o resto voltam ao estado anterior ao clique,
+ * para o botão play funcionar de novo.
+ */
+export const statusAfterPlayRejection = (error: unknown, hasMetadata: boolean) =>
+    (error as { name?: string } | null)?.name === 'NotSupportedError' ? 'error' : hasMetadata ? 'ready' : 'idle';

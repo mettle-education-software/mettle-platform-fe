@@ -12,6 +12,7 @@ import {
     podcastPlayback,
     savePosition,
     saveRate,
+    statusAfterPlayRejection,
 } from 'libs/podcast';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -64,8 +65,12 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
         if (!audio.paused) return audio.pause();
         setStarted(true);
         if (status === 'idle') setStatus('loading');
-        // Só formato/fonte inválidos viram erro; bloqueio ou interrupção do play não.
-        audio.play().catch((error) => error?.name === 'NotSupportedError' && setStatus('error'));
+        // Rejeição não fatal (bloqueio, interrupção) volta ao estado anterior e o play pode ser clicado de novo.
+        audio.play().catch((error) => {
+            const next = statusAfterPlayRejection(error, audio.readyState >= 1);
+            setStatus(next);
+            if (next === 'idle') setStarted(false);
+        });
     };
 
     const cycleRate = () => {

@@ -104,6 +104,9 @@ const ArticleImage = ({
         </figure>
     ) : null;
 
+// Um popup aberto por vez: id fixo para o aria-labelledby do modal.
+export const METTLE_ARTICLE_TITLE_ID = 'mettle-article-title';
+
 /** Corpo do artigo do Mettle Editor dentro do popup de leitura do LinKnowledge. */
 export const MettleArticleReader = ({
     article,
@@ -127,7 +130,7 @@ export const MettleArticleReader = ({
                 <Typography.Text style={{ color: '#8c8c8c', letterSpacing: 1, textTransform: 'uppercase' }}>
                     Day {article.day} · {GENRE_LABELS[article.genre] ?? article.genre}
                 </Typography.Text>
-                <Typography.Title level={2} style={{ marginTop: '0.5rem' }}>
+                <Typography.Title id={METTLE_ARTICLE_TITLE_ID} level={2} style={{ marginTop: '0.5rem' }}>
                     {article.title}
                 </Typography.Title>
                 <Typography.Text style={{ color: '#595959' }}>

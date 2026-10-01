@@ -17,6 +17,12 @@ const Dialog = styled(Modal)`
         padding: 0;
         height: 100%;
     }
+
+    /* título só para leitores de tela (nome acessível do dialog) */
+    .ant-modal-header {
+        margin: 0;
+        padding: 0;
+    }
 `;
 
 const ArticleFrameContainer = styled.div`
@@ -73,24 +79,58 @@ const ArticleHeader = styled.div`
     padding: 0 1.5rem 1rem;
 `;
 
-/** Popup de leitura do LinKnowledge: modal no desktop, tela cheia no mobile. */
+const VisuallyHidden = styled.span`
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+`;
+
+/**
+ * Popup de leitura do LinKnowledge: modal no desktop, tela cheia no mobile.
+ * `title` dá o nome acessível; `labelledBy` aponta para o título visível do conteúdo, quando houver.
+ */
 export const ArticleReaderModal = ({
     open,
     onClose,
+    title,
+    labelledBy,
     children,
 }: {
     open: boolean;
     onClose(): void;
+    title: string;
+    labelledBy?: string;
     children: React.ReactNode;
 }) => {
     const device = useDeviceSize();
 
     return device === 'desktop' ? (
-        <Dialog open={open} onCancel={onClose} onOk={onClose} destroyOnClose footer={null} width="70vw">
+        // O rc-dialog só liga aria-labelledby ao próprio título: título oculto visualmente.
+        <Dialog
+            open={open}
+            onCancel={onClose}
+            onOk={onClose}
+            destroyOnClose
+            footer={null}
+            width="70vw"
+            title={<VisuallyHidden>{title}</VisuallyHidden>}
+        >
             {children}
         </Dialog>
     ) : (
-        <Drawer open={open} onClose={onClose} destroyOnClose width="100%" height="100%" placement="bottom">
+        <Drawer
+            open={open}
+            onClose={onClose}
+            destroyOnClose
+            width="100%"
+            height="100%"
+            placement="bottom"
+            aria-labelledby={labelledBy}
+            aria-label={labelledBy ? undefined : title}
+        >
             {children}
         </Drawer>
     );
@@ -202,7 +242,7 @@ export const ArticleFrame = ({ href, title, fullWidth }: { href: string; title: 
                 if (!isModalOpen) setIsModalOpen(true);
             }}
         >
-            <ArticleReaderModal open={isModalOpen} onClose={handleOk}>
+            <ArticleReaderModal open={isModalOpen} onClose={handleOk} title={article?.title || title}>
                 {articleBody}
             </ArticleReaderModal>
             <div style={thumbStyle} />

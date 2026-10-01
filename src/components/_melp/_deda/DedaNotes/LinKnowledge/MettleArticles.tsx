@@ -7,7 +7,7 @@ import { GENRE_LABELS } from 'libs/linknowledge';
 import Image from 'next/image';
 import React, { useState } from 'react';
 import { ArticleReaderModal } from '../../../ArticleFrame/ArticleFrame';
-import { MettleArticleReader } from './MettleArticleReader';
+import { METTLE_ARTICLE_TITLE_ID, MettleArticleReader } from './MettleArticleReader';
 
 const ArticleCard = styled.button`
     all: unset;
@@ -97,7 +97,12 @@ export const MettleArticles = ({
                     })}
                 </div>,
             )}
-            <ArticleReaderModal open={index >= 0} onClose={() => setOpenDay(null)}>
+            <ArticleReaderModal
+                open={index >= 0}
+                onClose={() => setOpenDay(null)}
+                title={articles[index]?.title ?? ''}
+                labelledBy={METTLE_ARTICLE_TITLE_ID}
+            >
                 {index >= 0 && (
                     <MettleArticleReader
                         article={articles[index]}

@@ -182,12 +182,7 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                     >
                         <LinKnowledgeCardsRow>
                             {videos.map(({ title, href }, index) => (
-                                <VideoFrame
-                                    key={href}
-                                    title={title}
-                                    videoSrc={href}
-                                    meta={`Day ${index + 1} · Video`}
-                                />
+                                <VideoFrame key={href} title={title} videoSrc={href} meta={`Day ${index + 1}`} />
                             ))}
                         </LinKnowledgeCardsRow>
                     </CarouselCard>

@@ -66,7 +66,7 @@ const PlayBadge = styled.span`
     font-size: 1.25rem;
 `;
 
-/** `meta` (ex.: "Day 2 · Video") liga o card do carrossel do LinKnowledge, igual ao dos artigos. */
+/** `meta` (ex.: "Day 2") liga o card do carrossel do LinKnowledge, igual ao dos artigos. */
 export const VideoFrame = ({
     videoSrc,
     title,

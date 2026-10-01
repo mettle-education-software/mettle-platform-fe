@@ -179,8 +179,11 @@ export const createPlaybackCoordinator = () => {
         release(id: string) {
             if (active?.id === id) active = null;
         },
+        activeId: () => active?.id ?? null,
     };
 };
+
+export type PlaybackCoordinator = ReturnType<typeof createPlaybackCoordinator>;
 
 export const podcastPlayback = createPlaybackCoordinator();
 
@@ -195,7 +198,8 @@ export type PlaybackAction =
     | { type: 'PAUSE' }
     | { type: 'ENDED' }
     | { type: 'MEDIA_ERROR' }
-    | { type: 'PLAY_REJECTED'; kind: 'fatal' | 'blocked'; hasMetadata: boolean };
+    | { type: 'PLAY_REJECTED'; kind: 'fatal' | 'blocked'; hasMetadata: boolean }
+    | { type: 'PLAY_CANCELLED'; hasMetadata: boolean };
 
 export const initialPlayback = (hasSource: boolean): PlaybackState => ({
     status: hasSource ? 'idle' : 'error',
@@ -222,12 +226,107 @@ export const playbackReducer = (state: PlaybackState, action: PlaybackAction): P
         case 'MEDIA_ERROR':
             return { ...state, status: 'error', playing: false };
         case 'PLAY_REJECTED':
-            if (action.kind === 'fatal') return { ...state, status: 'error', playing: false };
-            // Bloqueio/interrupção: volta ao estado anterior ao clique e o play pode ser clicado de novo.
+        case 'PLAY_CANCELLED':
+            if (action.type === 'PLAY_REJECTED' && action.kind === 'fatal') {
+                return { ...state, status: 'error', playing: false };
+            }
+            // Bloqueio, interrupção ou cancelamento: volta ao estado anterior ao clique; o play pode ser clicado de novo.
             return action.hasMetadata
                 ? { ...state, status: 'ready', playing: false }
                 : { ...state, status: 'idle', started: false, playing: false };
         default:
             return state;
     }
+};
+
+type AudioLike = { paused: boolean; readyState: number; play(): Promise<void>; pause(): void };
+
+/**
+ * Tentativas de play com geração: cada pedido de play ganha um número; pausa, cancelamento,
+ * troca de episódio (pelo coordenador), fim e desmontagem invalidam a geração. Resultado de
+ * play()/onPlay de geração antiga é ignorado (e um onPlay atrasado pausa o próprio áudio).
+ */
+export const createPlaybackController = ({
+    id,
+    getAudio,
+    dispatch,
+    coordinator = podcastPlayback,
+}: {
+    id: string;
+    getAudio: () => AudioLike | null;
+    dispatch: (action: PlaybackAction) => void;
+    coordinator?: PlaybackCoordinator;
+}) => {
+    let generation = 0;
+    let requested = -1; // geração do pedido de play em vigor (-1 = nenhum)
+    let pending = false;
+
+    const hasMetadata = () => (getAudio()?.readyState ?? 0) >= 1;
+    const invalidate = () => {
+        generation += 1;
+        requested = -1;
+        const wasPending = pending;
+        pending = false;
+        return wasPending;
+    };
+    // Parar: invalida ANTES de pausar, para nenhum callback em voo da tentativa atual valer.
+    const stop = () => {
+        if (invalidate()) dispatch({ type: 'PLAY_CANCELLED', hasMetadata: hasMetadata() });
+        getAudio()?.pause();
+    };
+
+    return {
+        /** Clique no play/pause: toca, pausa, ou cancela um play pendente. */
+        toggle() {
+            const audio = getAudio();
+            if (!audio) return;
+            if (pending || !audio.paused) return stop();
+            const attempt = (generation += 1);
+            requested = attempt;
+            pending = true;
+            coordinator.claim(id, stop);
+            dispatch({ type: 'PLAY_REQUEST' });
+            audio.play().then(
+                () => {
+                    if (attempt === generation) pending = false;
+                },
+                (error) => {
+                    if (attempt !== generation) return;
+                    pending = false;
+                    requested = -1;
+                    coordinator.release(id);
+                    dispatch({
+                        type: 'PLAY_REJECTED',
+                        kind: playRejectionKind(error),
+                        hasMetadata: hasMetadata(),
+                    });
+                },
+            );
+        },
+        /** Evento `play` do <audio>; false = tentativa obsoleta (o áudio é pausado e nada é anunciado). */
+        onPlay() {
+            if (requested !== generation) {
+                getAudio()?.pause();
+                return false;
+            }
+            dispatch({ type: 'PLAYING' });
+            return true;
+        },
+        /** Evento `pause` do <audio> (inclui pausa externa, ex. controles do sistema). */
+        onPause() {
+            invalidate();
+            dispatch({ type: 'PAUSE' });
+        },
+        onEnded() {
+            invalidate();
+            coordinator.release(id);
+            dispatch({ type: 'ENDED' });
+        },
+        /** Desmontagem: nada que chegue depois vale. */
+        dispose() {
+            invalidate();
+            coordinator.release(id);
+            getAudio()?.pause();
+        },
+    };
 };

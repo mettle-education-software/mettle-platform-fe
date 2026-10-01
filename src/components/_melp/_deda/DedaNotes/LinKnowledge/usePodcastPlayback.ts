@@ -10,13 +10,12 @@ import {
     initialPlayback,
     playbackAnnouncement,
     playbackReducer,
-    playRejectionKind,
     playerKeyAction,
-    podcastPlayback,
+    createPlaybackController,
     savePosition,
     saveRate,
 } from 'libs/podcast';
-import React, { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 export const BACK_SECONDS = 15;
 export const FORWARD_SECONDS = 30;
@@ -41,17 +40,21 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
     const [duration, setDuration] = useState(episode.durationSeconds ?? 0);
     const [rate, setRate] = useState(loadRate);
 
+    // Tentativas de play com geração (corridas entre players, duplo clique, desmontagem): libs/podcast.
+    const controller = useMemo(
+        () => createPlaybackController({ id: key, getAudio: () => audioRef.current, dispatch }),
+        [key],
+    );
+
     useEffect(() => {
         const audio = audioRef.current;
-        // Desmontar (sair da página/DEDA): salva a posição e para o áudio.
+        // Desmontar ou trocar de episódio: salva a posição e invalida/para a tentativa em curso.
         return () => {
-            podcastPlayback.release(key);
-            if (!audio) return;
             // Só com metadados carregados: sair antes disso não pode apagar a posição salva.
-            if (audio.readyState >= 1) savePosition(key, audio.currentTime, audio.duration);
-            audio.pause();
+            if (audio && audio.readyState >= 1) savePosition(key, audio.currentTime, audio.duration);
+            controller.dispose();
         };
-    }, [key]);
+    }, [key, controller]);
 
     const seekTo = (seconds: number) => {
         const audio = audioRef.current;
@@ -61,15 +64,8 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
     };
 
     const toggle = () => {
-        const audio = audioRef.current;
-        if (!audio || status === 'error') return;
-        if (!audio.paused) return audio.pause();
-        dispatch({ type: 'PLAY_REQUEST' });
-        audio
-            .play()
-            .catch((error) =>
-                dispatch({ type: 'PLAY_REJECTED', kind: playRejectionKind(error), hasMetadata: audio.readyState >= 1 }),
-            );
+        if (status === 'error') return;
+        controller.toggle();
     };
 
     const cycleRate = () => {
@@ -108,21 +104,17 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
                 savePosition(key, currentTime, total);
             }
         },
-        onPlay: (event) => {
-            const audio = event.currentTarget;
-            podcastPlayback.claim(key, () => audio.pause());
-            dispatch({ type: 'PLAYING' });
-            setAnnouncement(playbackAnnouncement('play', title) as string);
+        onPlay: () => {
+            if (controller.onPlay()) setAnnouncement(playbackAnnouncement('play', title) as string);
         },
         onPause: (event) => {
-            dispatch({ type: 'PAUSE' });
+            controller.onPause();
             const message = playbackAnnouncement('pause', title, event.currentTarget.ended);
             if (message) setAnnouncement(message);
             savePosition(key, event.currentTarget.currentTime, event.currentTarget.duration);
         },
         onEnded: () => {
-            dispatch({ type: 'ENDED' });
-            podcastPlayback.release(key);
+            controller.onEnded();
             setAnnouncement(playbackAnnouncement('ended', title) as string);
             savePosition(key, 0, duration);
         },

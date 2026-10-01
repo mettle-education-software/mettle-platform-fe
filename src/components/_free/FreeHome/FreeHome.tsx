@@ -6,6 +6,7 @@ import { AppLayout, Chip, DedasGrid, MaxWidthContainer } from 'components';
 import { useDeviceSize, useGetCurrentDeda } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT } from 'libs';
+import { dedaPath } from 'libs/cleanUrls';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -54,7 +55,7 @@ export const FreeHome = () => {
 
     const router = useRouter();
 
-    const handleSelectedDeda = (dedaId: string) => router.push(`/imerso/deda/${dedaId}`);
+    const handleSelectedDeda = (dedaSlug: string) => router.push(dedaPath(dedaSlug));
 
     return (
         <AppLayout>
@@ -77,7 +78,7 @@ export const FreeHome = () => {
                             </Flex>
                             <Button
                                 style={{ borderRadius: 36, fontSize: 20, height: 40 }}
-                                href={`/imerso/deda/${featuredDeda?.dedaId}`}
+                                href={featuredDeda && dedaPath(featuredDeda.dedaSlug)}
                                 type="primary"
                             >
                                 Open DEDA

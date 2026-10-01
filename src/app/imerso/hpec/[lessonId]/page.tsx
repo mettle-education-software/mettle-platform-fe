@@ -12,11 +12,12 @@ import {
     TabNav,
     withRoles,
 } from 'components';
-import { AppLayout } from 'components/layouts';
+import { AppLayout, LoadingLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
-import { useGetHpecResources } from 'hooks/queries/hpecQueries';
+import { useGetHpecResources, useHpecIdOfLesson } from 'hooks/queries/hpecQueries';
 import { withAuthentication } from 'libs';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { notFound } from 'next/navigation';
 import { AccessCtaBlock, useProductAccess } from 'providers';
 import React, { useState } from 'react';
 
@@ -123,8 +124,16 @@ function HpecContent({ params: { hpecId, lessonId } }: Readonly<{ params: Record
     );
 }
 
-function Hpec({ params }: Readonly<{ params: Record<string, string> }>) {
+function Hpec({ params: { lessonId } }: Readonly<{ params: Record<string, string> }>) {
     const device = useDeviceSize();
+    // A URL leva só a aula (/imerso/hpec/welcome); o módulo (hpecId) vem do Contentful.
+    const { hpecId, loading } = useHpecIdOfLesson(lessonId);
+
+    if (!hpecId) {
+        if (!loading) notFound();
+        return <LoadingLayout />;
+    }
+    const params = { hpecId, lessonId };
 
     return (
         <AppLayout withMelpSummary>

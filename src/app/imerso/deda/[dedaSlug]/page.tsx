@@ -8,6 +8,7 @@ import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { SMALL_VIEWPORT, withAuthentication } from 'libs';
+import { withDedaSlug } from 'libs/authentication/withDedaSlug';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
@@ -197,4 +198,4 @@ const DedaContentWithRoles = withRoles(DedaContent, {
     },
 });
 
-export default withAuthentication(withDedaUnlocked(DedaContentWithRoles));
+export default withAuthentication(withDedaSlug(withDedaUnlocked(DedaContentWithRoles)));

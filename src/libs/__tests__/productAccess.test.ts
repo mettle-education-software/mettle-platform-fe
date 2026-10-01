@@ -23,12 +23,18 @@ describe('resolveAccess', () => {
 });
 
 describe('isImersoRouteAllowedWhenExpired', () => {
-    it.each(['/', '/imerso', '/imerso/', '/imerso/deda', '/imerso/lamp', '/imerso/hpec/HPEC1/welcome', '/settings'])(
-        'libera %s',
-        (path) => expect(isImersoRouteAllowedWhenExpired(path)).toBe(true),
-    );
+    it.each([
+        '/',
+        '/imerso',
+        '/imerso/',
+        '/imerso/deda',
+        '/imerso/lamp',
+        '/imerso/hpec/HPEC1/welcome',
+        '/imerso/hpec/welcome',
+        '/settings',
+    ])('libera %s', (path) => expect(isImersoRouteAllowedWhenExpired(path)).toBe(true));
 
-    it.each(['/imerso/deda/DEDA74', '/imerso/qualquer-outra'])('bloqueia %s', (path) =>
+    it.each(['/imerso/deda/DEDA74', '/imerso/deda/london', '/imerso/qualquer-outra'])('bloqueia %s', (path) =>
         expect(isImersoRouteAllowedWhenExpired(path)).toBe(false),
     );
 });

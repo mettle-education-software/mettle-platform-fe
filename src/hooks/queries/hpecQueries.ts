@@ -2,6 +2,7 @@ import { useQuery } from '@apollo/client';
 import gql from 'graphql-tag';
 import { HpecModulesResponse, HpecResourcesResponse, IHPECLesson } from 'interfaces';
 import { getUnlockedDate } from 'libs';
+import { hpecIdOfLesson } from 'libs/cleanUrls';
 import { useMelpContext } from 'providers';
 import { useEffect, useState } from 'react';
 
@@ -143,3 +144,10 @@ export const useGetHpecResources = (lessonId: string) =>
         fetchPolicy: 'cache-first',
         skip: lessonId === 'first-lesson',
     });
+
+// lessonId é único entre os módulos (conferido no Contentful em 30-Set-2026), então a URL leva só a aula.
+export const useHpecIdOfLesson = (lessonId: string) => {
+    const { data, loading } = useQuery<HpecModulesResponse>(hpecTitlesQuery, { fetchPolicy: 'cache-first' });
+    const hpecId = hpecIdOfLesson(lessonId, data?.hpecContentCollection.items);
+    return { hpecId, loading };
+};

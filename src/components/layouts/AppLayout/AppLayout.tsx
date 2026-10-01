@@ -7,6 +7,7 @@ import { Logo, NotificationsList } from 'components';
 import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
 import { handleLogout, SMALL_VIEWPORT } from 'libs';
+import { hpecLessonPath } from 'libs/cleanUrls';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
 import { usePathname, useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
@@ -214,7 +215,7 @@ export const AppLayout = forwardRef<
                                           onClick: ({ domEvent }) => {
                                               domEvent.preventDefault();
                                               collapseOnMobile();
-                                              router.push('/imerso/hpec/HPEC1/welcome');
+                                              router.push(hpecLessonPath('welcome'));
                                           },
                                       },
                                       {

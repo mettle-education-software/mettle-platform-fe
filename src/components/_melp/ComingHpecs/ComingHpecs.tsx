@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import { Card, Col, Flex, Row, Skeleton, Typography } from 'antd';
 import { Chip } from 'components';
 import { useGetHpecsModules } from 'hooks';
+import { hpecLessonPath } from 'libs/cleanUrls';
 import Link from 'next/link';
 import React from 'react';
 import Markdown from 'react-markdown';
@@ -126,7 +127,7 @@ export const ComingHpecs: React.FC<ComingHpecsProps> = () => {
                         <VideoThumbnail
                             moduleOrder={lastModule?.moduleOrder}
                             title={firstModuleLesson?.lessonTitle}
-                            link={`/imerso/hpec/${lastModule?.hpecId}/${firstModuleLesson?.lessonId}`}
+                            link={hpecLessonPath(firstModuleLesson.lessonId)}
                             vimeoId={firstModuleLesson.lessonVideoEmbedUrl.split('/').pop() as string}
                         />
                     </StartHere>
@@ -154,7 +155,7 @@ export const ComingHpecs: React.FC<ComingHpecsProps> = () => {
                                             <VideoThumbnail
                                                 moduleOrder={lastModule?.moduleOrder}
                                                 title={lesson.lessonTitle}
-                                                link={`/imerso/hpec/${lastModule?.hpecId}/${lesson.lessonId}`}
+                                                link={hpecLessonPath(lesson.lessonId)}
                                                 vimeoId={lesson.lessonVideoEmbedUrl.split('/').pop() as string}
                                             />
                                         </Col>

@@ -10,6 +10,7 @@ import { DedaNotesQueryResponse } from 'interfaces';
 import { padding, SMALL_VIEWPORT } from 'libs';
 import React, { useMemo, useRef } from 'react';
 import { PodcastFrame } from '../../../PodcastFrame/PodcastFrame';
+import { MettleArticles } from './MettleArticles';
 
 const LinKnowledgeContainer = styled.div`
     background: #2b2b2b;
@@ -158,13 +159,18 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                             </CarouselTitle>
                         }
                     >
-                        <ArticlesRow>
-                            {articles.map(({ title, href }) => (
-                                <div key={href}>
-                                    <ArticleFrame title={title} href={href} />
-                                </div>
-                            ))}
-                        </ArticlesRow>
+                        <MettleArticles
+                            dedaId={dedaId}
+                            fallback={
+                                <ArticlesRow>
+                                    {articles.map(({ title, href }) => (
+                                        <div key={href}>
+                                            <ArticleFrame title={title} href={href} />
+                                        </div>
+                                    ))}
+                                </ArticlesRow>
+                            }
+                        />
                     </CarouselCard>
                     <CarouselCard
                         title={

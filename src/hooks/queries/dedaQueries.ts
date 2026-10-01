@@ -427,3 +427,82 @@ export const useGetDedaVideosArticles = (dedaId: string) => {
         fetchPolicy: 'cache-first',
     });
 };
+
+export const useDedaIdBySlug = (dedaSlug: string, skip = false) =>
+    useQuery<{ dedaContentCollection: { items: { dedaId: string }[] } }>(
+        gql`
+            query DedaIdBySlug($dedaSlug: String) {
+                dedaContentCollection(where: { dedaSlug: $dedaSlug }, limit: 1) {
+                    items {
+                        dedaId
+                    }
+                }
+            }
+        `,
+        { variables: { dedaSlug }, skip: skip || !dedaSlug, fetchPolicy: 'cache-first' },
+    );
+
+export type LinKnowledgeArticle = {
+    title: string;
+    day: number;
+    genre: string;
+    author?: string | null;
+    editionDate?: string | null;
+    wordCount?: number | null;
+    body?: { json: any };
+    imagesCollection: { items: { url: string; description?: string | null; width: number; height: number }[] };
+};
+
+type LinKnowledgeResponse = {
+    dedaContentCollection: {
+        items: {
+            dedaId: string;
+            dedaSlug: string;
+            dedaTitle: string;
+            dedaLinKnowledgeArticlesCollection: { items: (LinKnowledgeArticle | null)[] };
+        }[];
+    };
+};
+
+const linKnowledgeArticleFields = `
+    title
+    day
+    genre
+    author
+    editionDate
+    wordCount
+    imagesCollection(limit: 2) {
+        items {
+            url
+            description
+            width
+            height
+        }
+    }
+`;
+
+// Consulta separada de propósito: enquanto o campo novo não existir no ambiente do Contentful
+// (hoje só no `testing`), ela falha sozinha e a seção simplesmente não aparece.
+export const useLinKnowledgeEdition = (dedaId: string) =>
+    useQuery<LinKnowledgeResponse>(
+        gql`
+            query LinKnowledgeEdition($dedaId: String) {
+                dedaContentCollection(where: { dedaId: $dedaId }, limit: 1) {
+                    items {
+                        dedaId
+                        dedaSlug
+                        dedaTitle
+                        dedaLinKnowledgeArticlesCollection(limit: 7) {
+                            items {
+                                ${linKnowledgeArticleFields}
+                                body {
+                                    json
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `,
+        { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
+    );

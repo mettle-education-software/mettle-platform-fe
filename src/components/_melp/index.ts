@@ -1,7 +1,7 @@
 export { MelpSummary } from './MelpSummary/MelpSummary';
 export { DedaCard } from './DedaCard/DedaCard';
 export { PodcastFrame } from './PodcastFrame/PodcastFrame';
-export { ArticleFrame } from './ArticleFrame/ArticleFrame';
+export { ArticleFrame, ArticleReaderModal } from './ArticleFrame/ArticleFrame';
 export { VideoFrame } from './VideoFrame/VideoFrame';
 export { HeaderSummary } from './HeaderSummary/HeaderSummary';
 export { InputWithTime } from './InputWithTime/InputWithTime';

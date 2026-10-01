@@ -8,7 +8,7 @@ import { useDeviceSize, useGetCurrentDeda } from 'hooks';
 import { useDedaHeaderImage, useDedaHomeHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
-import { HEADER_GRADIENT, HOME_MOBILE_CROPS, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
+import { HEADER_GRADIENT, HOME_ART_OBJECT_POSITION, HOME_MOBILE_CROPS, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import React, { useRef } from 'react';
 
@@ -76,7 +76,11 @@ export const FreeHome = () => {
         <AppLayout>
             <HeaderSummary>
                 <DedaHeaderBackdrop
-                    images={[homeHeaderImage, headerImage, featuredDeda?.dedaFeaturedImage]}
+                    images={[
+                        homeHeaderImage && { ...homeHeaderImage, objectPosition: HOME_ART_OBJECT_POSITION },
+                        headerImage,
+                        featuredDeda?.dedaFeaturedImage,
+                    ]}
                     mobileCrops={HOME_MOBILE_CROPS}
                     gradient={HEADER_GRADIENT}
                     textShades={[{ target: titleRef, opacity: TITLE_SHADE_OPACITY }]}

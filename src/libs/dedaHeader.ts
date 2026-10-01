@@ -20,6 +20,11 @@ export const HOME_MOBILE_CROPS = [
     [1290, 387],
 ] as const;
 export type MobileCrops = readonly (readonly [number, number])[];
+
+// Arte da home (ultra-panorâmica 3:1, assunto na faixa central): a faixa do cabeçalho mostra só ~19% da
+// altura em telas de 2560 px, menos que o assunto (~22%). Em vez de centrar (50%), a janela sobe um pouco
+// para o TOPO do assunto ficar sempre visível; a base some no gradiente que já a escurece.
+export const HOME_ART_OBJECT_POSITION = '50% 46%';
 // Larguras do desktop até a largura real do asset (a Images API não amplia; DPR ≥ 2 pega a maior).
 export const DESKTOP_WIDTHS = [1280, 1920, 2560, 3840] as const;
 const MAX_IMAGES_API_WIDTH = 4000;

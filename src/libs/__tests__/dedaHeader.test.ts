@@ -5,6 +5,7 @@ import {
     HEADER_GRADIENT,
     HEADER_VERTICAL,
     headerSources,
+    HOME_ART_OBJECT_POSITION,
     HOME_HEADER_TOP_OPACITY,
     HOME_MOBILE_CROPS,
     pickHeaderImage,
@@ -176,5 +177,40 @@ describe('cabeçalho da home: imagem própria e recorte do celular', () => {
             headerSources(home.url, home.width)?.desktop,
         );
         expect(headerSources(header.url, header.width)?.mobile).toContain('w=800&h=440&fit=fill&f=center');
+    });
+});
+
+describe('arte da home: o topo do assunto fica visível (object-position vertical)', () => {
+    // Faixa da altura da imagem (em %) que aparece num cabeçalho w×h com `object-fit: cover` (a largura
+    // manda) e object-position vertical `y`%. `image` = [top, bottom] da parte da arte original que foi
+    // servida (desktop: inteira; celular: recorte central 3,33:1 de uma 3:1 → 5–95%).
+    const band = (w: number, h: number, ratio: number, y: number, image: [number, number] = [0, 100]) => {
+        const visible = (h / w) * ratio; // fração da altura servida
+        const top = (1 - visible) * (y / 100);
+        const span = image[1] - image[0];
+        return [image[0] + span * top, image[0] + span * (top + visible)];
+    };
+    const y = Number(HOME_ART_OBJECT_POSITION.split(' ')[1].replace('%', ''));
+    const TOWER_TOPS = 38.3; // topo das torres na arte do London (% da altura); base da ponte em ~60%
+
+    it.each([
+        ['1280 px', 1080, 146],
+        ['1920 px', 1720, 146],
+        ['2560 px (menu aberto)', 2360, 146],
+        ['2560 px (menu recolhido)', 2480, 146],
+    ])('%s: topo das torres dentro da faixa visível', (_label, w, h) => {
+        const [top, bottom] = band(w, h, 3, y);
+        expect(top).toBeLessThan(TOWER_TOPS);
+        expect(bottom).toBeGreaterThan(54); // torres e passarela superior inteiras
+    });
+
+    it('celular (390×58, recorte 800×240): ponte inteira', () => {
+        const [top, bottom] = band(390, 58, 800 / 240, y, [5, 95]);
+        expect(top).toBeLessThan(TOWER_TOPS);
+        expect(bottom).toBeGreaterThan(60);
+    });
+
+    it('centrado (50%) cortaria o topo das torres em 2560 px', () => {
+        expect(band(2360, 146, 3, 50)[0]).toBeGreaterThan(TOWER_TOPS);
     });
 });

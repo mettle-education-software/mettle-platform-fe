@@ -87,7 +87,11 @@ const useTextShadeRects = (shades: TextShade[] | undefined, anchor: RefObject<HT
  * e o gradiente da página por cima. O pai precisa de `position` (relative/sticky) e o conteúdo,
  * de `position: relative` para ficar acima.
  */
-type HeaderImage = { url: string; width?: number | null };
+type HeaderImage = {
+    url: string;
+    width?: number | null;
+    /** só para esta imagem (padrão: center) */ objectPosition?: string;
+};
 
 export const DedaHeaderBackdrop = ({
     images,
@@ -123,6 +127,7 @@ export const DedaHeaderBackdrop = ({
                         <img
                             src={sources.fallback}
                             alt=""
+                            style={image?.objectPosition ? { objectPosition: image.objectPosition } : undefined}
                             decoding="async"
                             fetchPriority="high"
                             onError={() => image && setFailed((list) => [...list, image.url])}

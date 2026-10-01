@@ -12,6 +12,7 @@ import {
     loadRate,
     mediaUrl,
     nextRate,
+    playbackAnnouncement,
     playerKeyAction,
     savePosition,
     saveRate,
@@ -285,14 +286,17 @@ export const PodcastPlayer = ({ episode, titleId }: { episode: PodcastEpisode; t
                         }}
                         onPlay={() => {
                             setPlaying(true);
-                            setAnnouncement(`Tocando: ${title}`);
+                            setAnnouncement(playbackAnnouncement('play', title) as string);
                         }}
                         onPause={(event) => {
                             setPlaying(false);
+                            const message = playbackAnnouncement('pause', title, event.currentTarget.ended);
+                            if (message) setAnnouncement(message);
                             savePosition(key, event.currentTarget.currentTime, event.currentTarget.duration);
                         }}
                         onEnded={() => {
                             setPlaying(false);
+                            setAnnouncement(playbackAnnouncement('ended', title) as string);
                             savePosition(key, 0, duration);
                         }}
                         onError={() => setStatus('error')}

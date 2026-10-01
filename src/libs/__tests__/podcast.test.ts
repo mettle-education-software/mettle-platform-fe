@@ -6,6 +6,7 @@ import {
     loadRate,
     mediaUrl,
     nextRate,
+    playbackAnnouncement,
     playerKeyAction,
     savePosition,
     saveRate,
@@ -174,5 +175,17 @@ describe('mediaUrl', () => {
         expect(mediaUrl('ep.mp3')).toBeNull();
         expect(mediaUrl('')).toBeNull();
         expect(mediaUrl(undefined)).toBeNull();
+    });
+});
+
+describe('playbackAnnouncement', () => {
+    it('anuncia play, pausa e fim', () => {
+        expect(playbackAnnouncement('play', 'Big Ben')).toBe('Tocando: Big Ben');
+        expect(playbackAnnouncement('pause', 'Big Ben')).toBe('Pausado: Big Ben');
+        expect(playbackAnnouncement('ended', 'Big Ben')).toBe('Fim do episódio: Big Ben');
+    });
+
+    it('a pausa disparada pelo fim do episódio não anuncia "Pausado"', () => {
+        expect(playbackAnnouncement('pause', 'Big Ben', true)).toBeNull();
     });
 });

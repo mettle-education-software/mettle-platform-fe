@@ -124,3 +124,10 @@ export const saveRate = (rate: number, storage = defaultStorage()) => {
 const EPISODE_NUMBER = /^\s*(?:(?:episode\s*|ep\.?\s*|e(?=\d)|#\s*)\d+\s*[.:)\-–—|]?\s*|\d+\s*[.:)\-–—|]\s*)/i;
 
 export const cleanEpisodeTitle = (title: string) => title.replace(EPISODE_NUMBER, '').trim() || title.trim();
+
+/** Texto da região aria-live para cada evento do <audio>; o `pause` que vem junto do fim não anuncia. */
+export const playbackAnnouncement = (event: 'play' | 'pause' | 'ended', title: string, ended = false) => {
+    if (event === 'play') return `Tocando: ${title}`;
+    if (event === 'ended') return `Fim do episódio: ${title}`;
+    return ended ? null : `Pausado: ${title}`;
+};

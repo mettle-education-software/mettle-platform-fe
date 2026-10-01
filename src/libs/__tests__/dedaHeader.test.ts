@@ -1,5 +1,4 @@
-import { contentfulImage, DESKTOP_SHADE, headerSources, MOBILE_SHADE, shadeAt, shadeGradient } from '../dedaHeader';
-import { contrastWithWhite } from '../podcast';
+import { contentfulImage, desktopWidths, headerSources, QUOTE_SHADE, shadeAt, shadeGradient } from '../dedaHeader';
 
 const asset = 'https://images.ctfassets.net/space/id/hash/photo-1520986606214';
 
@@ -43,28 +42,33 @@ describe('headerSources', () => {
     });
 });
 
-// Texto branco sobre a pior imagem (branca) com escurecimento `alpha`: fundo = 255 × (1 − alpha).
-const whiteOverWhiteImage = (alpha: number) => {
-    const v = Math.round(255 * (1 - alpha))
-        .toString(16)
-        .padStart(2, '0');
-    return contrastWithWhite(`#${v}${v}${v}`);
-};
+describe('desktopWidths (até a largura real do asset)', () => {
+    it('sem largura conhecida: 1280/1920/2560', () => {
+        expect(desktopWidths(undefined)).toEqual([1280, 1920, 2560]);
+    });
 
-describe('escurecimento horizontal', () => {
-    it('gera o gradiente pedido (stops do André + reforço sob a citação)', () => {
-        expect(shadeGradient(DESKTOP_SHADE)).toBe(
-            'linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 32%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.6) 66%, rgba(0, 0, 0, 0.72) 100%)',
+    it('nunca pede w maior que o asset; inclui a própria largura para DPR ≥ 2', () => {
+        expect(desktopWidths(1170)).toEqual([1170]);
+        expect(desktopWidths(1280)).toEqual([1280]);
+        expect(desktopWidths(2400)).toEqual([1280, 1920, 2400]);
+        expect(desktopWidths(3840)).toEqual([1280, 1920, 2560, 3840]);
+        expect(desktopWidths(6000)).toEqual([1280, 1920, 2560, 3840, 4000]);
+    });
+
+    it('headerSources usa essas larguras no desktop', () => {
+        expect(headerSources(asset, 2400)?.desktop).toBe(
+            [1280, 1920, 2400].map((w) => `${asset}?w=${w}&fm=webp&q=75 ${w}w`).join(', '),
         );
     });
+});
 
-    it('citação (69–100% da largura em 1280–1920 px): contraste ≥ 4.5:1 sobre imagem branca', () => {
-        for (let at = 66; at <= 100; at += 1)
-            expect(whiteOverWhiteImage(shadeAt(DESKTOP_SHADE, at))).toBeGreaterThanOrEqual(4.5);
-    });
-
-    it('celular: o ← (0–18% da largura) com contraste ≥ 4.5:1', () => {
-        for (let at = 0; at <= 18; at += 1)
-            expect(whiteOverWhiteImage(shadeAt(MOBILE_SHADE, at))).toBeGreaterThanOrEqual(4.5);
+describe('escurecimento da citação (página do DEDA)', () => {
+    it('nada nos dois terços da esquerda; no máximo 0,45 no terço direito', () => {
+        for (let at = 0; at <= 62; at += 1) expect(shadeAt(QUOTE_SHADE, at)).toBe(0);
+        for (let at = 63; at <= 100; at += 1) expect(shadeAt(QUOTE_SHADE, at)).toBeLessThanOrEqual(0.45);
+        expect(shadeAt(QUOTE_SHADE, 90)).toBe(0.45);
+        expect(shadeGradient(QUOTE_SHADE)).toBe(
+            'linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, 0.45) 78%, rgba(0, 0, 0, 0.45) 100%)',
+        );
     });
 });

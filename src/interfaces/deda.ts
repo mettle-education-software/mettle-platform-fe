@@ -8,6 +8,7 @@ export type DedaQueryName =
 
 export interface DedaFeaturedImage {
     url: string;
+    width?: number;
 }
 
 export interface DedaItem {

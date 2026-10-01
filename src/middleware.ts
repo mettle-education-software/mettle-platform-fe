@@ -45,5 +45,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/imerso/deda/:dedaId/:path*', '/imerso/hpec/:hpecId/:lessonId'],
+    matcher: ['/imerso/deda/:dedaId/:path*', '/imerso/hpec/:hpecId/:lessonId*'],
 };

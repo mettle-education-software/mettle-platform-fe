@@ -1,12 +1,20 @@
 import {
     cleanEpisodeTitle,
+    contrastWithWhite,
+    createPlaybackCoordinator,
+    DEFAULT_PODCAST_COLOR,
+    podcastCardColor,
     coverBackground,
     formatTime,
     loadPosition,
     loadRate,
     mediaUrl,
     nextRate,
+    initialPlayback,
     playbackAnnouncement,
+    playbackReducer,
+    PlaybackAction,
+    playRejectionKind,
     playerKeyAction,
     savePosition,
     saveRate,
@@ -187,5 +195,117 @@ describe('playbackAnnouncement', () => {
 
     it('a pausa disparada pelo fim do episódio não anuncia "Pausado"', () => {
         expect(playbackAnnouncement('pause', 'Big Ben', true)).toBeNull();
+    });
+});
+
+describe('podcastCardColor', () => {
+    it('valida o hex; inválido ou ausente → cor padrão da Mettle', () => {
+        expect(podcastCardColor('#1E3264')).toBe('#1e3264');
+        expect(podcastCardColor('red')).toBe(DEFAULT_PODCAST_COLOR);
+        expect(podcastCardColor('#fff')).toBe(DEFAULT_PODCAST_COLOR);
+        expect(podcastCardColor('#1e3264; background:url(x)')).toBe(DEFAULT_PODCAST_COLOR);
+        expect(podcastCardColor('url(javascript:alert(1))')).toBe(DEFAULT_PODCAST_COLOR);
+        expect(podcastCardColor(undefined)).toBe(DEFAULT_PODCAST_COLOR);
+    });
+
+    it.each(['#ffffff', '#ffe600', '#1db954', '#e8115b', '#1e3264', '#b89261', '#000000'])(
+        '%s: texto branco com contraste ≥ 4.5:1',
+        (hex) => {
+            const color = podcastCardColor(hex);
+            expect(color).toMatch(/^#[0-9a-f]{6}$/);
+            expect(contrastWithWhite(color)).toBeGreaterThanOrEqual(4.5);
+        },
+    );
+
+    it('cor já escura fica como está', () => {
+        expect(podcastCardColor('#1e3264')).toBe('#1e3264');
+    });
+});
+
+describe('um episódio toca por vez', () => {
+    it('tocar outro pausa o anterior; o mesmo não se pausa', () => {
+        const coordinator = createPlaybackCoordinator();
+        const pauseA = jest.fn();
+        const pauseB = jest.fn();
+        coordinator.claim('a', pauseA);
+        coordinator.claim('a', pauseA);
+        expect(pauseA).not.toHaveBeenCalled();
+        coordinator.claim('b', pauseB);
+        expect(pauseA).toHaveBeenCalledTimes(1);
+        coordinator.release('b');
+        coordinator.claim('a', pauseA);
+        expect(pauseB).not.toHaveBeenCalled();
+    });
+});
+
+describe('playbackReducer', () => {
+    const err = (name: string) => Object.assign(new Error(name), { name });
+    const run = (actions: PlaybackAction[], hasSource = true) =>
+        actions.reduce(playbackReducer, initialPlayback(hasSource));
+    const blocked = (hasMetadata: boolean): PlaybackAction => ({ type: 'PLAY_REJECTED', kind: 'blocked', hasMetadata });
+    const fatal: PlaybackAction = { type: 'PLAY_REJECTED', kind: 'fatal', hasMetadata: false };
+
+    it('classifica a rejeição do play()', () => {
+        expect(playRejectionKind(err('NotSupportedError'))).toBe('fatal');
+        expect(playRejectionKind(err('NotAllowedError'))).toBe('blocked');
+        expect(playRejectionKind(err('AbortError'))).toBe('blocked');
+        expect(playRejectionKind(undefined)).toBe('blocked');
+    });
+
+    it('fluxo normal: idle → loading → ready → tocando → pausado → fim', () => {
+        expect(run([])).toEqual({ status: 'idle', started: false, playing: false });
+        expect(run([{ type: 'PLAY_REQUEST' }])).toEqual({ status: 'loading', started: true, playing: false });
+        expect(run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }, { type: 'PLAYING' }])).toEqual({
+            status: 'ready',
+            started: true,
+            playing: true,
+        });
+        expect(
+            run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }, { type: 'PLAYING' }, { type: 'PAUSE' }]).playing,
+        ).toBe(false);
+        expect(
+            run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }, { type: 'PLAYING' }, { type: 'ENDED' }]).playing,
+        ).toBe(false);
+    });
+
+    it('rejeição não fatal não trava em loading', () => {
+        expect(run([{ type: 'PLAY_REQUEST' }, blocked(false)])).toEqual({
+            status: 'idle',
+            started: false,
+            playing: false,
+        });
+        expect(run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }, blocked(true)])).toEqual({
+            status: 'ready',
+            started: true,
+            playing: false,
+        });
+    });
+
+    it('erro de mídia ANTES da rejeição: fica error e started não zera', () => {
+        for (const hasMetadata of [true, false]) {
+            const state = run([{ type: 'PLAY_REQUEST' }, { type: 'MEDIA_ERROR' }, blocked(hasMetadata)]);
+            expect(state).toEqual({ status: 'error', started: true, playing: false });
+        }
+    });
+
+    it('erro de mídia DEPOIS da rejeição: termina em error', () => {
+        expect(run([{ type: 'PLAY_REQUEST' }, blocked(false), { type: 'MEDIA_ERROR' }]).status).toBe('error');
+        expect(
+            run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }, blocked(true), { type: 'MEDIA_ERROR' }]).status,
+        ).toBe('error');
+    });
+
+    it('error é terminal para qualquer evento seguinte', () => {
+        const after = run([{ type: 'PLAY_REQUEST' }, fatal]);
+        expect(after.status).toBe('error');
+        (['PLAY_REQUEST', 'METADATA', 'PLAYING', 'PAUSE', 'ENDED'] as const).forEach((type) =>
+            expect(playbackReducer(after, { type }).status).toBe('error'),
+        );
+        expect(playbackReducer(after, blocked(true)).status).toBe('error');
+        expect(playbackReducer({ ...after, playing: true }, { type: 'PLAYING' }).playing).toBe(false);
+    });
+
+    it('sem URL válida começa em error', () => {
+        expect(run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }], false).status).toBe('error');
     });
 });

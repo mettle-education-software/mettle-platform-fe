@@ -2,38 +2,31 @@
 
 import styled from '@emotion/styled';
 import { usePodcastEpisodes, PodcastEpisode } from 'hooks/queries/dedaQueries';
-import { cssUrl } from 'libs/podcast';
+import { coverBackground } from 'libs/podcast';
 import React, { useId, useState } from 'react';
 import { ArticleReaderModal } from '../../../ArticleFrame/ArticleFrame';
 import { LinKnowledgeCard, LinKnowledgeCardsRow } from './LinKnowledgeCard';
 import { PodcastPlayer } from './PodcastPlayer';
 
 // Capa quadrada no card 16:9: arte centralizada sobre a própria capa desfocada.
-const CoverArt = styled.div<{ src: string }>`
+const CoverLayer = styled.div<{ blurred?: boolean }>`
     position: absolute;
-    inset: 0;
-    overflow: hidden;
-
-    &::before,
-    &::after {
-        content: '';
-        position: absolute;
-        background: ${({ src }) => cssUrl(src)} center / cover no-repeat;
-    }
-
-    &::before {
-        inset: -10%;
-        filter: blur(16px) brightness(0.7);
-    }
-
-    &::after {
-        inset: 0;
-        margin: auto;
-        height: 100%;
-        aspect-ratio: 1;
-        background-size: contain;
-    }
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: ${({ blurred }) => (blurred ? 'cover' : 'contain')};
+    ${({ blurred }) => (blurred ? 'inset: -10%; filter: blur(16px) brightness(0.7);' : 'inset: 0;')}
 `;
+
+const CoverArt = ({ src }: { src: string }) => {
+    const backgroundImage = coverBackground(src);
+    if (!backgroundImage) return null;
+    return (
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+            <CoverLayer blurred style={{ backgroundImage }} />
+            <CoverLayer style={{ backgroundImage }} />
+        </div>
+    );
+};
 
 /** Episódios de podcast do DEDA no card comum; sem episódios, os embeds do Spotify como antes. */
 export const PodcastEpisodes = ({ dedaId, fallback }: { dedaId: string; fallback: React.ReactNode }) => {
@@ -56,7 +49,11 @@ export const PodcastEpisodes = ({ dedaId, fallback }: { dedaId: string; fallback
                         key={item.audioUrl}
                         meta={item.showName || 'Podcast'}
                         title={item.title}
-                        image={item.coverImageUrl ? <CoverArt src={item.coverImageUrl} /> : undefined}
+                        image={
+                            coverBackground(item.coverImageUrl) ? (
+                                <CoverArt src={item.coverImageUrl as string} />
+                            ) : undefined
+                        }
                         onClick={() => setOpen(index)}
                     />
                 ))}

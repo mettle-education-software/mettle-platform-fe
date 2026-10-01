@@ -42,5 +42,46 @@ export const savePosition = (episodeKey: string, seconds: number, duration: numb
     }
 };
 
-/** URL segura dentro de `url("...")` no CSS (aspas, barra invertida e quebras de linha). */
-export const cssUrl = (url: string) => `url("${url.replace(/["\\\n\r]/g, (c) => encodeURIComponent(c))}")`;
+/**
+ * Capa como `background-image` inline (style do React, nunca interpolada no CSS do Emotion):
+ * só http(s), normalizada pelo URL() (aspas, espaços, <, > e quebras de linha saem codificados).
+ */
+export const coverBackground = (raw?: string | null) => {
+    try {
+        const url = new URL(raw ?? '');
+        if (url.protocol !== 'https:' && url.protocol !== 'http:') return undefined;
+        return `url("${url.href.replace(/["\\]/g, encodeURIComponent)}")`;
+    } catch {
+        return undefined;
+    }
+};
+
+const INTERACTIVE_TAGS = new Set(['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'A', 'AUDIO', 'VIDEO']);
+const INTERACTIVE_ROLES = new Set([
+    'slider',
+    'button',
+    'link',
+    'menuitem',
+    'option',
+    'radio',
+    'checkbox',
+    'switch',
+    'tab',
+    'textbox',
+    'spinbutton',
+    'combobox',
+]);
+
+type KeyTarget = { tagName: string; getAttribute(name: string): string | null; isContentEditable?: boolean };
+
+/** Atalho do player para a tecla, ou null; nunca rouba teclas de um controle interativo focado. */
+export const playerKeyAction = (key: string, target: KeyTarget): 'toggle' | 'back' | 'forward' | null => {
+    const role = target.getAttribute('role');
+    if (INTERACTIVE_TAGS.has(target.tagName) || (role && INTERACTIVE_ROLES.has(role)) || target.isContentEditable) {
+        return null;
+    }
+    if (key === ' ') return 'toggle';
+    if (key === 'ArrowLeft') return 'back';
+    if (key === 'ArrowRight') return 'forward';
+    return null;
+};

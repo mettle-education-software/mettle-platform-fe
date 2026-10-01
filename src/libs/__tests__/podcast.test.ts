@@ -1,4 +1,4 @@
-import { cssUrl, formatTime, loadPosition, savePosition } from '../podcast';
+import { coverBackground, formatTime, loadPosition, playerKeyAction, savePosition } from '../podcast';
 
 const memoryStorage = () => {
     const data = new Map<string, string>();
@@ -62,10 +62,42 @@ describe('posição por episódio', () => {
     });
 });
 
-describe('cssUrl', () => {
-    it('mantém URLs normais e escapa aspas/quebras', () => {
-        expect(cssUrl('https://x.com/a%20b.jpg')).toBe('url("https://x.com/a%20b.jpg")');
-        expect(cssUrl('https://x.com/a".jpg')).toBe('url("https://x.com/a%22.jpg")');
-        expect(cssUrl('https://x.com/a\n.jpg')).toBe('url("https://x.com/a%0A.jpg")');
+describe('coverBackground', () => {
+    it('aceita só http(s) e mantém URLs normais', () => {
+        expect(coverBackground('https://x.com/a%20b.jpg')).toBe('url("https://x.com/a%20b.jpg")');
+        expect(coverBackground('javascript:alert(1)')).toBeUndefined();
+        expect(coverBackground('data:image/png;base64,AAA')).toBeUndefined();
+        expect(coverBackground('nao é url')).toBeUndefined();
+        expect(coverBackground(null)).toBeUndefined();
+    });
+
+    it('não deixa a URL fechar o url() nem injetar markup', () => {
+        const value = coverBackground(
+            'https://x.com/a.jpg"); background: red; x:("</style><script>alert(1)</script>',
+        ) as string;
+        expect(value.startsWith('url("https://x.com/')).toBe(true);
+        expect(value.slice(5, -2)).not.toMatch(/["<>\s\\]/);
+        expect(value.endsWith('")')).toBe(true);
+    });
+});
+
+describe('playerKeyAction', () => {
+    const el = (tagName: string, role: string | null = null) => ({ tagName, getAttribute: () => role });
+
+    it('no player (alvo não interativo): espaço e setas', () => {
+        expect(playerKeyAction(' ', el('DIV'))).toBe('toggle');
+        expect(playerKeyAction('ArrowLeft', el('DIV'))).toBe('back');
+        expect(playerKeyAction('ArrowRight', el('SPAN'))).toBe('forward');
+        expect(playerKeyAction('Enter', el('DIV'))).toBeNull();
+    });
+
+    it('ignora controles interativos focados', () => {
+        ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'A'].forEach((tag) => {
+            expect(playerKeyAction('ArrowLeft', el(tag))).toBeNull();
+            expect(playerKeyAction(' ', el(tag))).toBeNull();
+        });
+        expect(playerKeyAction('ArrowRight', el('DIV', 'slider'))).toBeNull();
+        expect(playerKeyAction(' ', el('DIV', 'button'))).toBeNull();
+        expect(playerKeyAction('ArrowLeft', { ...el('DIV'), isContentEditable: true })).toBeNull();
     });
 });

@@ -4,7 +4,7 @@ import { LoadingOutlined, PauseOutlined, CaretRightFilled, RedoOutlined, UndoOut
 import styled from '@emotion/styled';
 import { Typography } from 'antd';
 import { PodcastEpisode } from 'hooks/queries/dedaQueries';
-import { cssUrl, formatTime, loadPosition, savePosition } from 'libs/podcast';
+import { coverBackground, formatTime, loadPosition, playerKeyAction, savePosition } from 'libs/podcast';
 import React, { useEffect, useRef, useState } from 'react';
 
 const RATES = [0.75, 1, 1.25, 1.5];
@@ -28,12 +28,11 @@ const Column = styled.div`
     text-align: center;
 `;
 
-const Cover = styled.div<{ src?: string | null }>`
+const Cover = styled.div`
     width: min(18rem, 70vw, 40vh);
     aspect-ratio: 1;
     border-radius: 8px;
     background: #2b2b2b center / cover no-repeat;
-    background-image: ${({ src }) => (src ? cssUrl(src) : 'none')};
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
 `;
 
@@ -153,20 +152,21 @@ export const PodcastPlayer = ({ episode, titleId }: { episode: PodcastEpisode; t
     };
 
     const onKeyDown = (event: React.KeyboardEvent) => {
-        const tag = (event.target as HTMLElement).tagName;
-        if (event.key === ' ' && tag !== 'BUTTON' && tag !== 'INPUT') {
-            event.preventDefault();
-            toggle();
-        } else if (tag !== 'INPUT' && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
-            event.preventDefault();
-            seekTo(current + (event.key === 'ArrowLeft' ? -BACK_SECONDS : BACK_SECONDS));
-        }
+        const action = playerKeyAction(event.key, event.target as HTMLElement);
+        if (!action) return;
+        event.preventDefault();
+        if (action === 'toggle') toggle();
+        else seekTo(current + (action === 'back' ? -BACK_SECONDS : BACK_SECONDS));
     };
 
     return (
         <Wrapper ref={wrapperRef} tabIndex={-1} onKeyDown={onKeyDown}>
             <Column>
-                <Cover src={episode.coverImageUrl} role="img" aria-label={episode.showName || episode.title} />
+                <Cover
+                    style={{ backgroundImage: coverBackground(episode.coverImageUrl) }}
+                    role="img"
+                    aria-label={episode.showName || episode.title}
+                />
                 <div>
                     {episode.showName && (
                         <Typography.Text

@@ -354,7 +354,6 @@ export const useFeaturedDedaData = (dedaId?: string) => {
                         dedaTitle
                         dedaFeaturedImage {
                             url
-                            width
                         }
                     }
                 }
@@ -542,27 +541,3 @@ export const usePodcastEpisodes = (dedaId: string) =>
         `,
         { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
     );
-
-// Imagem própria do cabeçalho (campo `dedaHeaderImage`). Consulta separada: campo ausente/vazio ou
-// erro → o cabeçalho usa a `dedaFeaturedImage`, como antes.
-export const useDedaHeaderImage = (dedaId?: string) => {
-    const { data } = useQuery<{
-        dedaContentCollection: { items: { dedaHeaderImage?: { url: string; width: number; height: number } | null }[] };
-    }>(
-        gql`
-            query DedaHeaderImage($dedaId: String) {
-                dedaContentCollection(where: { dedaId: $dedaId }, limit: 1) {
-                    items {
-                        dedaHeaderImage {
-                            url
-                            width
-                            height
-                        }
-                    }
-                }
-            }
-        `,
-        { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
-    );
-    return data?.dedaContentCollection.items[0]?.dedaHeaderImage ?? null;
-};

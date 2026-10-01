@@ -4,35 +4,22 @@ import styled from '@emotion/styled';
 import { ArrowBackIos } from '@mui/icons-material';
 import { Button, Flex, Typography } from 'antd';
 import { DedaActivity, DedaNotes, DedaQuote, DedaReview, MaxWidthContainer, TabNav, withRoles } from 'components';
-import { DedaHeaderBackdrop } from 'components/_melp/_deda/DedaHeaderBackdrop/DedaHeaderBackdrop';
 import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
-import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
+import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { withDedaSlug } from 'libs/authentication/withDedaSlug';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
-import { HEADER_GRADIENT, QUOTE_SHADE_OPACITY, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 
 const { Title } = Typography;
 
-const HeaderSummary = styled.section`
-    position: relative;
-    background-color: #2b2b2b;
-    /* conteúdo acima do fundo (<DedaHeaderBackdrop>) */
-    & > :not([data-deda-backdrop]) {
-        position: relative;
-    }
-
-    /* título legível sobre imagem clara */
-    h1 {
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
-    }
-
-    .deda-header-quote {
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-    }
+const HeaderSummary = styled.section<{ imgUrl?: string }>`
+    background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43) 15%, rgb(0, 0, 0, 0) 100%),
+        url(${({ imgUrl }) => imgUrl});
+    background-size: cover;
+    background-position: center;
     max-height: 250px;
     height: 250px;
     display: flex;
@@ -85,11 +72,6 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     const isDesktop = device === 'desktop';
 
     const featuredDedaDataResult = useFeaturedDedaData(dedaId);
-    // Cabeçalho: imagem própria (dedaHeaderImage) ou, sem ela, a do card como antes.
-    const headerImage = useDedaHeaderImage(dedaId);
-    // O esfumado do cabeçalho segue o título e a citação (qualquer largura/tamanho de texto).
-    const titleRef = useRef<HTMLDivElement>(null);
-    const quoteRef = useRef<HTMLDivElement>(null);
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
     const [activeTab, setActiveTab] = useState('dedaNotes');
@@ -135,19 +117,11 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
 
     return (
         <AppLayout withMelpSummary>
-            <HeaderSummary>
-                <DedaHeaderBackdrop
-                    images={[headerImage, featuredDeda?.dedaFeaturedImage]}
-                    gradient={HEADER_GRADIENT}
-                    textShades={[
-                        { target: titleRef, opacity: TITLE_SHADE_OPACITY },
-                        { target: quoteRef, opacity: QUOTE_SHADE_OPACITY },
-                    ]}
-                />
+            <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
                 <MaxWidthContainer style={{ marginBottom: '2rem' }}>
                     {isDesktop ? (
                         <Flex justify="space-between">
-                            <Flex align="center" ref={titleRef}>
+                            <Flex align="center">
                                 <Button
                                     style={{ border: 'none' }}
                                     icon={<ArrowBackIos className="color-secondary" />}
@@ -158,7 +132,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                                 />
                                 <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
                             </Flex>
-                            <div style={{ flex: 0.3, minWidth: 260 }} className="deda-header-quote" ref={quoteRef}>
+                            <div style={{ flex: 0.3 }}>
                                 <DedaQuote dedaId={dedaId} />
                             </div>
                         </Flex>

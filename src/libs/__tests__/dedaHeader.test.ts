@@ -1,4 +1,16 @@
-import { contentfulImage, desktopWidths, headerSources, QUOTE_SHADE, shadeAt, shadeGradient } from '../dedaHeader';
+import {
+    contentfulImage,
+    desktopWidths,
+    headerSources,
+    QUOTE_SHADE,
+    shadeAt,
+    shadeGradient,
+    DEDA_HEADER_GRADIENT,
+    HOME_HEADER_GRADIENT,
+    HOME_HEADER_TOP_OPACITY,
+    pickHeaderImage,
+    quoteContrastOverWhite,
+} from '../dedaHeader';
 
 const asset = 'https://images.ctfassets.net/space/id/hash/photo-1520986606214';
 
@@ -70,5 +82,51 @@ describe('escurecimento da citação (página do DEDA)', () => {
         expect(shadeGradient(QUOTE_SHADE)).toBe(
             'linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, 0.45) 78%, rgba(0, 0, 0, 0.45) 100%)',
         );
+    });
+});
+
+describe('pickHeaderImage (fallback do cabeçalho)', () => {
+    const ok = { url: asset, width: 2400 };
+    it('primeira candidata que headerSources aceita', () => {
+        expect(pickHeaderImage([ok, { url: `${asset}-b` }])).toBe(0);
+        expect(pickHeaderImage([null, ok])).toBe(1);
+        expect(pickHeaderImage([{ url: 'https://images.unsplash.com/x' }, ok])).toBe(1);
+        expect(pickHeaderImage([undefined, null])).toBe(-1);
+    });
+});
+
+describe('gradientes verticais', () => {
+    it('home: topo com a opacidade da constante (hoje 0,7) e base no #2b2b2b', () => {
+        expect(HOME_HEADER_TOP_OPACITY).toBe(0.7);
+        expect(HOME_HEADER_GRADIENT).toBe('linear-gradient(0deg, rgb(43, 43, 43) 0%, rgba(43, 43, 43, 0.7) 100%)');
+    });
+
+    it('página do DEDA: sólido até 15% e transparente no topo', () => {
+        expect(DEDA_HEADER_GRADIENT).toBe(
+            'linear-gradient(0deg, rgba(43, 43, 43, 1) 0%, rgba(43, 43, 43, 1) 15%, rgba(43, 43, 43, 0) 100%)',
+        );
+    });
+});
+
+describe('contraste da citação: gradiente vertical + sombra horizontal sobre imagem branca', () => {
+    // Faixa medida da citação (1280–1920 px): x 69–100% da largura; y 39–83% da altura a partir de baixo.
+    const band = (yFrom: number, yTo: number) => {
+        let worst = Infinity;
+        for (let x = 69; x <= 100; x += 1)
+            for (let y = yFrom; y <= yTo; y += 1) worst = Math.min(worst, quoteContrastOverWhite(x, y));
+        return worst;
+    };
+
+    // Requisito ≥ 4.5:1 sobre imagem branca: AINDA NÃO atingido com a sombra limitada a 0,45 (pedido do
+    // André) — pior ponto ≈ 2,26:1 no topo/início da citação; metade de baixo ≈ 4,47:1. `test.failing`
+    // registra o requisito sem quebrar a suíte: quando a sombra/gradiente forem ajustados e passar, o
+    // Jest avisa para trocar por `it`.
+    test.failing('faixa inteira da citação ≥ 4.5:1 sobre imagem branca', () => {
+        expect(band(39, 83)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('piso atual medido (não pode piorar): ≥ 2.2:1 na faixa inteira e ≥ 4.4:1 na metade de baixo', () => {
+        expect(band(39, 83)).toBeGreaterThanOrEqual(2.2);
+        expect(band(39, 55)).toBeGreaterThanOrEqual(4.4);
     });
 });

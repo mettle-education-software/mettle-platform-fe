@@ -77,3 +77,47 @@ export const shadeAt = (stops: [number, number][], at: number) => {
     }
     return stops[stops.length - 1][1];
 };
+
+/** Primeira imagem candidata que `headerSources` aceita (ex.: dedaHeaderImage, depois dedaFeaturedImage). */
+export const pickHeaderImage = <T extends { url: string; width?: number | null }>(
+    candidates: (T | null | undefined)[],
+    from = 0,
+) => {
+    for (let i = from; i < candidates.length; i += 1) {
+        const candidate = candidates[i];
+        if (candidate && headerSources(candidate.url, candidate.width)) return i;
+    }
+    return -1;
+};
+
+// Gradientes verticais (de baixo para cima) sobre a imagem. Terminam no #2b2b2b do fundo da página.
+// Home/Free: opacidade do topo ajustável (André decide vendo a imagem nova do London).
+export const HOME_HEADER_TOP_OPACITY = 0.7;
+export const HOME_HEADER_GRADIENT = `linear-gradient(0deg, rgb(43, 43, 43) 0%, rgba(43, 43, 43, ${HOME_HEADER_TOP_OPACITY}) 100%)`;
+
+// Página do DEDA: sólido até 15% da altura (onde ficam as abas) e transparente no topo.
+// Stops [posição % a partir de baixo, opacidade do #2b2b2b].
+export const DEDA_HEADER_VERTICAL: [number, number][] = [
+    [0, 1],
+    [15, 1],
+    [100, 0],
+];
+export const DEDA_HEADER_GRADIENT = `linear-gradient(0deg, ${DEDA_HEADER_VERTICAL.map(
+    ([at, alpha]) => `rgba(43, 43, 43, ${alpha}) ${at}%`,
+).join(', ')})`;
+
+const toLinear = (channel: number) => {
+    const c = channel / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+};
+
+/**
+ * Contraste do texto branco da citação sobre a PIOR imagem (branca), somando as camadas reais:
+ * imagem → sombra horizontal (QUOTE_SHADE em x%) → gradiente vertical da página (em y% a partir de baixo).
+ */
+export const quoteContrastOverWhite = (xPct: number, yPctFromBottom: number) => {
+    const afterShade = 255 * (1 - shadeAt(QUOTE_SHADE, xPct));
+    const vertical = shadeAt(DEDA_HEADER_VERTICAL, yPctFromBottom);
+    const channel = 43 * vertical + afterShade * (1 - vertical);
+    return 1.05 / (toLinear(channel) + 0.05);
+};

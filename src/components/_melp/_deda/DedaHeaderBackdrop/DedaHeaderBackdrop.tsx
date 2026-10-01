@@ -2,8 +2,8 @@
 
 import styled from '@emotion/styled';
 import { SMALL_VIEWPORT } from 'libs/constants';
-import { headerSources, MOBILE_MAX_WIDTH, shadeGradient } from 'libs/dedaHeader';
-import React from 'react';
+import { headerSources, MOBILE_MAX_WIDTH, pickHeaderImage, shadeGradient } from 'libs/dedaHeader';
+import React, { useState } from 'react';
 
 // Acima de 860 px há o menu lateral (200 px): o cabeçalho é mais estreito que a tela.
 const DESKTOP_SIZES = `(max-width: ${SMALL_VIEWPORT}px) 100vw, calc(100vw - 200px)`;
@@ -41,29 +41,40 @@ const Shade = styled.div`
  * e o gradiente da página por cima. O pai precisa de `position` (relative/sticky) e o conteúdo,
  * de `position: relative` para ficar acima.
  */
+type HeaderImage = { url: string; width?: number | null };
+
 export const DedaHeaderBackdrop = ({
-    image,
+    images,
     gradient,
     shade,
 }: {
-    image?: { url: string; width?: number | null } | null;
+    /** Candidatas em ordem de preferência (dedaHeaderImage, dedaFeaturedImage). */
+    images: (HeaderImage | null | undefined)[];
     gradient: string;
     shade?: [number, number][];
 }) => {
-    const sources = headerSources(image?.url, image?.width);
+    // Primeira candidata válida; se a imagem falhar ao carregar, passa para a próxima válida.
+    const [failed, setFailed] = useState<string[]>([]);
+    const candidates = images.map((image) => (image && !failed.includes(image.url) ? image : null));
+    const index = pickHeaderImage(candidates);
+    const image = index >= 0 ? candidates[index] : null;
+    const sources = image ? headerSources(image.url, image.width) : null;
     return (
         <>
             {sources && (
                 <Layer aria-hidden data-deda-backdrop>
-                    <picture>
+                    <picture key={image?.url}>
                         <source media={`(max-width: ${MOBILE_MAX_WIDTH}px)`} srcSet={sources.mobile} sizes="100vw" />
-                        <source
-                            media={`(min-width: ${MOBILE_MAX_WIDTH + 1}px)`}
-                            srcSet={sources.desktop}
-                            sizes={DESKTOP_SIZES}
-                        />
+                        {/* sem media: a ordem do <picture> já deixa o celular na fonte de cima */}
+                        <source srcSet={sources.desktop} sizes={DESKTOP_SIZES} />
                         {/* eslint-disable-next-line @next/next/no-img-element -- <picture> com direção de arte */}
-                        <img src={sources.fallback} alt="" decoding="async" fetchPriority="high" />
+                        <img
+                            src={sources.fallback}
+                            alt=""
+                            decoding="async"
+                            fetchPriority="high"
+                            onError={() => image && setFailed((list) => [...list, image.url])}
+                        />
                     </picture>
                 </Layer>
             )}

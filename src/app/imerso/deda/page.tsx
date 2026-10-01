@@ -8,13 +8,12 @@ import { useDeviceSize } from 'hooks';
 import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
+import { HOME_HEADER_GRADIENT } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useState } from 'react';
 
 const { Title } = Typography;
-
-const HEADER_GRADIENT = 'linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43, 0.7) 100%)';
 
 const HeaderSummary = styled.section`
     background-color: #2b2b2b;
@@ -81,7 +80,10 @@ function DedaPage() {
     return (
         <AppLayout withMelpSummary>
             <HeaderSummary>
-                <DedaHeaderBackdrop image={headerImage ?? featuredDeda?.dedaFeaturedImage} gradient={HEADER_GRADIENT} />
+                <DedaHeaderBackdrop
+                    images={[headerImage, featuredDeda?.dedaFeaturedImage]}
+                    gradient={HOME_HEADER_GRADIENT}
+                />
                 {!blockedDEDAs ? (
                     <MaxWidthContainer>
                         {device === 'desktop' && (

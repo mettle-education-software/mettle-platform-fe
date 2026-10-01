@@ -133,16 +133,34 @@ export const shadeAt = (stops: [number, number][], at: number) => {
     return stops[stops.length - 1][1];
 };
 
-/** Primeira imagem candidata que `headerSources` aceita (ex.: dedaHeaderImage, depois dedaFeaturedImage). */
+/**
+ * Primeira imagem candidata que `headerSources` aceita, na ordem de preferência. `null` = não há;
+ * `undefined` = ainda carregando: enquanto houver uma candidata anterior carregando, devolve -1 (espera),
+ * para não mostrar/baixar uma imagem de menor preferência e trocá-la logo depois.
+ */
 export const pickHeaderImage = <T extends { url: string; width?: number | null }>(
     candidates: (T | null | undefined)[],
 ) => {
     for (let i = 0; i < candidates.length; i += 1) {
         const candidate = candidates[i];
+        if (candidate === undefined) return -1;
         if (candidate && headerSources(candidate.url, candidate.width)) return i;
     }
     return -1;
 };
+
+// Consulta que nunca responde não pode deixar o cabeçalho sem imagem: depois deste prazo, candidata
+// ainda `undefined` passa a valer como `null` e o cabeçalho usa a próxima imagem disponível.
+export const HEADER_IMAGE_WAIT_MS = 3000;
+
+/** Dispara `onTimeout` depois do prazo; devolve o cancelamento (para o unmount). */
+export const startHeaderImageWait = (onTimeout: () => void, ms = HEADER_IMAGE_WAIT_MS) => {
+    const id = setTimeout(onTimeout, ms);
+    return () => clearTimeout(id);
+};
+
+export const settleHeaderImages = <T>(candidates: (T | null | undefined)[], timedOut: boolean) =>
+    timedOut ? candidates.map((candidate) => candidate ?? null) : candidates;
 
 // Gradiente vertical dos cabeçalhos (home, Free e página do DEDA), de cima para baixo: topo leve e
 // fim exatamente no #2b2b2b do fundo da página (a imagem se dilui, sem linha). Stops [% a partir do

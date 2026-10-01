@@ -131,3 +131,55 @@ export const playbackAnnouncement = (event: 'play' | 'pause' | 'ended', title: s
     if (event === 'ended') return `Fim do episódio: ${title}`;
     return ended ? null : `Pausado: ${title}`;
 };
+
+// Cor do card de podcast (estilo Spotify): só hex #rrggbb validado; senão o marrom escuro da Mettle.
+export const DEFAULT_PODCAST_COLOR = '#3c362f';
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+const channels = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+
+const luminance = (hex: string) => {
+    const [r, g, b] = channels(hex).map((value) => {
+        const c = value / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+/** Contraste WCAG entre o texto branco e a cor. */
+export const contrastWithWhite = (hex: string) => 1.05 / (luminance(hex) + 0.05);
+
+/**
+ * Fundo do card: cor do programa validada e, se clara demais, escurecida (mistura com preto)
+ * até o texto branco ter contraste ≥ 4.5:1. Sempre devolve um hex nosso, seguro para style inline.
+ */
+export const podcastCardColor = (raw?: string | null) => {
+    const base = raw && HEX_COLOR.test(raw) ? raw.toLowerCase() : DEFAULT_PODCAST_COLOR;
+    for (let shade = 0; shade <= 1; shade += 0.05) {
+        const hex = `#${channels(base)
+            .map((value) =>
+                Math.round(value * (1 - shade))
+                    .toString(16)
+                    .padStart(2, '0'),
+            )
+            .join('')}`;
+        if (contrastWithWhite(hex) >= 4.5) return hex;
+    }
+    return '#000000';
+};
+
+/** Um episódio toca por vez: quem começa a tocar pausa o anterior. */
+export const createPlaybackCoordinator = () => {
+    let active: { id: string; pause: () => void } | null = null;
+    return {
+        claim(id: string, pause: () => void) {
+            if (active && active.id !== id) active.pause();
+            active = { id, pause };
+        },
+        release(id: string) {
+            if (active?.id === id) active = null;
+        },
+    };
+};
+
+export const podcastPlayback = createPlaybackCoordinator();

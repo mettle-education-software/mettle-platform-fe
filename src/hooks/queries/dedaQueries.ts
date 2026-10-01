@@ -513,6 +513,7 @@ export type PodcastEpisode = {
     coverImageUrl?: string | null;
     audioUrl: string;
     durationSeconds?: number | null;
+    accentColor?: string | null;
 };
 
 // Consulta separada: sem o campo no schema (ou sem episódios), a seção mantém os embeds do Spotify.
@@ -531,6 +532,7 @@ export const usePodcastEpisodes = (dedaId: string) =>
                                 coverImageUrl
                                 audioUrl
                                 durationSeconds
+                                accentColor
                             }
                         }
                     }

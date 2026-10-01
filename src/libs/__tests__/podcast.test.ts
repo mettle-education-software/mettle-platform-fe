@@ -1,5 +1,9 @@
 import {
     cleanEpisodeTitle,
+    contrastWithWhite,
+    createPlaybackCoordinator,
+    DEFAULT_PODCAST_COLOR,
+    podcastCardColor,
     coverBackground,
     formatTime,
     loadPosition,
@@ -187,5 +191,45 @@ describe('playbackAnnouncement', () => {
 
     it('a pausa disparada pelo fim do episódio não anuncia "Pausado"', () => {
         expect(playbackAnnouncement('pause', 'Big Ben', true)).toBeNull();
+    });
+});
+
+describe('podcastCardColor', () => {
+    it('valida o hex; inválido ou ausente → cor padrão da Mettle', () => {
+        expect(podcastCardColor('#1E3264')).toBe('#1e3264');
+        expect(podcastCardColor('red')).toBe(DEFAULT_PODCAST_COLOR);
+        expect(podcastCardColor('#fff')).toBe(DEFAULT_PODCAST_COLOR);
+        expect(podcastCardColor('#1e3264; background:url(x)')).toBe(DEFAULT_PODCAST_COLOR);
+        expect(podcastCardColor('url(javascript:alert(1))')).toBe(DEFAULT_PODCAST_COLOR);
+        expect(podcastCardColor(undefined)).toBe(DEFAULT_PODCAST_COLOR);
+    });
+
+    it.each(['#ffffff', '#ffe600', '#1db954', '#e8115b', '#1e3264', '#b89261', '#000000'])(
+        '%s: texto branco com contraste ≥ 4.5:1',
+        (hex) => {
+            const color = podcastCardColor(hex);
+            expect(color).toMatch(/^#[0-9a-f]{6}$/);
+            expect(contrastWithWhite(color)).toBeGreaterThanOrEqual(4.5);
+        },
+    );
+
+    it('cor já escura fica como está', () => {
+        expect(podcastCardColor('#1e3264')).toBe('#1e3264');
+    });
+});
+
+describe('um episódio toca por vez', () => {
+    it('tocar outro pausa o anterior; o mesmo não se pausa', () => {
+        const coordinator = createPlaybackCoordinator();
+        const pauseA = jest.fn();
+        const pauseB = jest.fn();
+        coordinator.claim('a', pauseA);
+        coordinator.claim('a', pauseA);
+        expect(pauseA).not.toHaveBeenCalled();
+        coordinator.claim('b', pauseB);
+        expect(pauseA).toHaveBeenCalledTimes(1);
+        coordinator.release('b');
+        coordinator.claim('a', pauseA);
+        expect(pauseB).not.toHaveBeenCalled();
     });
 });

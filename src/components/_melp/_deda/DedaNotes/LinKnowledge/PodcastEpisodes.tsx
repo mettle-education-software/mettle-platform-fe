@@ -2,70 +2,39 @@
 
 import styled from '@emotion/styled';
 import { usePodcastEpisodes, PodcastEpisode } from 'hooks/queries/dedaQueries';
-import { cleanEpisodeTitle, coverBackground } from 'libs/podcast';
-import React, { useId, useState } from 'react';
-import { ArticleReaderModal } from '../../../ArticleFrame/ArticleFrame';
-import { LinKnowledgeCard, LinKnowledgeCardsRow } from './LinKnowledgeCard';
-import { PodcastPlayer } from './PodcastPlayer';
+import React from 'react';
+import { PodcastCard } from './PodcastCard';
 
-// Capa quadrada no card 16:9: arte centralizada sobre a própria capa desfocada.
-const CoverLayer = styled.div<{ blurred?: boolean }>`
-    position: absolute;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: ${({ blurred }) => (blurred ? 'cover' : 'contain')};
-    ${({ blurred }) => (blurred ? 'inset: -10%; filter: blur(16px) brightness(0.7);' : 'inset: 0;')}
+// Colunas via variável CSS (número nosso): 3, ou 4 quando houver exatamente 4; 2 no tablet; 1 no celular.
+const Grid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(var(--columns, 3), minmax(0, 1fr));
+    gap: 1rem;
+    padding-bottom: 1rem;
+
+    @media (max-width: 1024px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 600px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
 `;
 
-const CoverArt = ({ src }: { src: string }) => {
-    const backgroundImage = coverBackground(src);
-    if (!backgroundImage) return null;
-    return (
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-            <CoverLayer blurred style={{ backgroundImage }} />
-            <CoverLayer style={{ backgroundImage }} />
-        </div>
-    );
-};
-
-/** Episódios de podcast do DEDA no card comum; sem episódios, os embeds do Spotify como antes. */
+/** Episódios de podcast do DEDA em cards estilo Spotify com player inline; sem episódios, os embeds do Spotify como antes. */
 export const PodcastEpisodes = ({ dedaId, fallback }: { dedaId: string; fallback: React.ReactNode }) => {
     const { data, loading } = usePodcastEpisodes(dedaId);
-    const [open, setOpen] = useState<number | null>(null);
-    const titleId = useId();
     const episodes = (data?.dedaContentCollection.items[0]?.dedaPodcastEpisodesCollection?.items ?? []).filter(
         (episode): episode is PodcastEpisode => !!episode?.audioUrl,
     );
 
     if (episodes.length === 0) return loading ? null : <>{fallback}</>;
 
-    const episode = open === null ? undefined : episodes[open];
-
     return (
-        <>
-            <LinKnowledgeCardsRow>
-                {episodes.map((item, index) => (
-                    <LinKnowledgeCard
-                        key={item.audioUrl}
-                        meta={item.showName || 'Podcast'}
-                        title={cleanEpisodeTitle(item.title)}
-                        image={
-                            coverBackground(item.coverImageUrl) ? (
-                                <CoverArt src={item.coverImageUrl as string} />
-                            ) : undefined
-                        }
-                        onClick={() => setOpen(index)}
-                    />
-                ))}
-            </LinKnowledgeCardsRow>
-            <ArticleReaderModal
-                open={!!episode}
-                onClose={() => setOpen(null)}
-                title={episode ? cleanEpisodeTitle(episode.title) : ''}
-                labelledBy={titleId}
-            >
-                {episode && <PodcastPlayer key={episode.audioUrl} episode={episode} titleId={titleId} />}
-            </ArticleReaderModal>
-        </>
+        <Grid style={{ '--columns': episodes.length === 4 ? 4 : 3 } as React.CSSProperties}>
+            {episodes.map((episode) => (
+                <PodcastCard key={episode.audioUrl} episode={episode} />
+            ))}
+        </Grid>
     );
 };

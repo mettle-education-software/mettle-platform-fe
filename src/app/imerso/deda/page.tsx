@@ -81,7 +81,10 @@ function DedaPage() {
     return (
         <AppLayout withMelpSummary>
             <HeaderSummary>
-                <DedaHeaderBackdrop image={headerImage ?? featuredDeda?.dedaFeaturedImage} gradient={HEADER_GRADIENT} />
+                <DedaHeaderBackdrop
+                    imageUrl={headerImage ?? featuredDeda?.dedaFeaturedImage.url}
+                    gradient={HEADER_GRADIENT}
+                />
                 {!blockedDEDAs ? (
                     <MaxWidthContainer>
                         {device === 'desktop' && (

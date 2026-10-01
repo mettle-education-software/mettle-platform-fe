@@ -11,7 +11,6 @@ import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueri
 import { SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { withDedaSlug } from 'libs/authentication/withDedaSlug';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
-import { QUOTE_SHADE } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
@@ -131,9 +130,8 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
         <AppLayout withMelpSummary>
             <HeaderSummary>
                 <DedaHeaderBackdrop
-                    image={headerImage ?? featuredDeda?.dedaFeaturedImage}
+                    imageUrl={headerImage ?? featuredDeda?.dedaFeaturedImage.url}
                     gradient={HEADER_GRADIENT}
-                    shade={QUOTE_SHADE}
                 />
                 <MaxWidthContainer style={{ marginBottom: '2rem' }}>
                     {isDesktop ? (

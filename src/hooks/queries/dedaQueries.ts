@@ -354,7 +354,6 @@ export const useFeaturedDedaData = (dedaId?: string) => {
                         dedaTitle
                         dedaFeaturedImage {
                             url
-                            width
                         }
                     }
                 }
@@ -564,5 +563,5 @@ export const useDedaHeaderImage = (dedaId?: string) => {
         `,
         { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
     );
-    return data?.dedaContentCollection.items[0]?.dedaHeaderImage ?? null;
+    return data?.dedaContentCollection.items[0]?.dedaHeaderImage?.url ?? null;
 };

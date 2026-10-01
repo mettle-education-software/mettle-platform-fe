@@ -2,6 +2,7 @@
 
 import { PodcastEpisode } from 'hooks/queries/dedaQueries';
 import {
+    clampPosition,
     cleanEpisodeTitle,
     loadPosition,
     loadRate,
@@ -37,8 +38,11 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
     // status/started/playing num reducer único: `error` terminal e sem corrida entre eventos.
     const [{ status, started, playing }, dispatch] = useReducer(playbackReducer, !!src, initialPlayback);
     const [announcement, setAnnouncement] = useState('');
-    const [current, setCurrent] = useState(0);
     const [duration, setDuration] = useState(episode.durationSeconds ?? 0);
+    // Antes do primeiro play (sem metadados): a posição mostrada vem da posição salva, e
+    // arrastar/±15/30 só muda `startAtRef` — o próximo play começa dali.
+    const [current, setCurrent] = useState(() => clampPosition(loadPosition(key), episode.durationSeconds ?? 0));
+    const startAtRef = useRef(current);
     const [rate, setRate] = useState(loadRate);
 
     // Tentativas de play com geração (corridas entre players, duplo clique, desmontagem): libs/podcast.
@@ -59,9 +63,17 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
 
     const seekTo = (seconds: number) => {
         const audio = audioRef.current;
-        if (!audio || status !== 'ready') return;
-        audio.currentTime = Math.min(Math.max(0, seconds), duration || audio.duration || 0);
-        setCurrent(audio.currentTime);
+        if (status === 'error') return;
+        if (audio && audio.readyState >= 1) {
+            audio.currentTime = clampPosition(seconds, duration || audio.duration || 0);
+            setCurrent(audio.currentTime);
+            return;
+        }
+        // Sem metadados ainda (antes do play ou carregando): só posiciona, sem tocar nem baixar.
+        const position = clampPosition(seconds, duration);
+        startAtRef.current = position;
+        setCurrent(position);
+        savePosition(key, position, duration);
     };
 
     const toggle = () => {
@@ -73,7 +85,11 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
         const value = nextRate(rate);
         setRate(value);
         saveRate(value);
-        if (audioRef.current) audioRef.current.playbackRate = value;
+        // Vale também antes do play: o load do áudio volta ao defaultPlaybackRate.
+        if (audioRef.current) {
+            audioRef.current.defaultPlaybackRate = value;
+            audioRef.current.playbackRate = value;
+        }
     };
 
     const onKeyDown = (event: React.KeyboardEvent) => {
@@ -91,8 +107,9 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
         onLoadedMetadata: (event) => {
             const audio = event.currentTarget;
             if (Number.isFinite(audio.duration)) setDuration(audio.duration);
-            const saved = loadPosition(key);
-            if (saved) audio.currentTime = saved;
+            // Começa de onde o usuário posicionou antes do play (ou da posição salva).
+            const startAt = clampPosition(startAtRef.current, audio.duration);
+            if (startAt) audio.currentTime = startAt;
             setCurrent(audio.currentTime);
             audio.playbackRate = rate;
             dispatch({ type: 'METADATA' });

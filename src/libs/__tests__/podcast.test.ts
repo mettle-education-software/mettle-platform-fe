@@ -1,4 +1,5 @@
 import {
+    clampPosition,
     cleanEpisodeTitle,
     contrastWithWhite,
     createPlaybackCoordinator,
@@ -307,5 +308,19 @@ describe('playbackReducer', () => {
 
     it('sem URL válida começa em error', () => {
         expect(run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }], false).status).toBe('error');
+    });
+});
+
+describe('clampPosition', () => {
+    it('limita a [0, duração] quando a duração é conhecida', () => {
+        expect(clampPosition(-15, 600)).toBe(0);
+        expect(clampPosition(630, 600)).toBe(600);
+        expect(clampPosition(45, 600)).toBe(45);
+    });
+
+    it('sem duração conhecida, só impede negativo', () => {
+        expect(clampPosition(30, 0)).toBe(30);
+        expect(clampPosition(-5, 0)).toBe(0);
+        expect(clampPosition(NaN, 600)).toBe(0);
     });
 });

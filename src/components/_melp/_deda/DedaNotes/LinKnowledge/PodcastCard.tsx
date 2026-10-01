@@ -219,8 +219,7 @@ const ERROR_MESSAGE = 'Não foi possível carregar este episódio.';
 /** Card de episódio no estilo Spotify, com player inline (sem popup). */
 export const PodcastCard = ({ episode }: { episode: PodcastEpisode }) => {
     const playback = usePodcastPlayback(episode);
-    const { status, playing, started, current, duration, rate, title } = playback;
-    const ready = status === 'ready';
+    const { status, playing, current, duration, rate, title } = playback;
 
     return (
         <Card
@@ -243,55 +242,50 @@ export const PodcastCard = ({ episode }: { episode: PodcastEpisode }) => {
             {status === 'error' ? (
                 <Meta>{ERROR_MESSAGE}</Meta>
             ) : (
-                started && (
-                    <Controls>
-                        <Progress
-                            type="range"
-                            min={0}
-                            max={Math.max(duration, 1)}
-                            step={1}
-                            value={current}
-                            style={
-                                {
-                                    '--progress': `${duration ? (Math.min(current, duration) / duration) * 100 : 0}%`,
-                                } as React.CSSProperties
-                            }
-                            disabled={!ready}
-                            aria-label="Playback position"
-                            aria-valuetext={`${formatTime(current)} of ${formatTime(duration)}`}
-                            onChange={(event) => playback.seekTo(Number(event.target.value))}
-                        />
-                        <Times>
-                            <span>{formatTime(current)}</span>
-                            <span>{formatTime(duration)}</span>
-                        </Times>
-                        <Buttons>
-                            <SmallButton
-                                type="button"
-                                aria-label={`Back ${BACK_SECONDS} seconds`}
-                                disabled={!ready}
-                                onClick={() => playback.seekTo(current - BACK_SECONDS)}
-                            >
-                                <UndoOutlined /> {BACK_SECONDS}
-                            </SmallButton>
-                            <SmallButton
-                                type="button"
-                                aria-label={`Forward ${FORWARD_SECONDS} seconds`}
-                                disabled={!ready}
-                                onClick={() => playback.seekTo(current + FORWARD_SECONDS)}
-                            >
-                                <RedoOutlined /> {FORWARD_SECONDS}
-                            </SmallButton>
-                            <SmallButton
-                                type="button"
-                                aria-label={`Playback speed ${rate}×. Change to ${nextRate(rate)}×`}
-                                onClick={playback.cycleRate}
-                            >
-                                {rate}×
-                            </SmallButton>
-                        </Buttons>
-                    </Controls>
-                )
+                <Controls>
+                    <Progress
+                        type="range"
+                        min={0}
+                        max={Math.max(duration, 1)}
+                        step={1}
+                        value={current}
+                        style={
+                            {
+                                '--progress': `${duration ? (Math.min(current, duration) / duration) * 100 : 0}%`,
+                            } as React.CSSProperties
+                        }
+                        aria-label="Playback position"
+                        aria-valuetext={`${formatTime(current)} of ${formatTime(duration)}`}
+                        onChange={(event) => playback.seekTo(Number(event.target.value))}
+                    />
+                    <Times>
+                        <span>{formatTime(current)}</span>
+                        <span>{formatTime(duration)}</span>
+                    </Times>
+                    <Buttons>
+                        <SmallButton
+                            type="button"
+                            aria-label={`Back ${BACK_SECONDS} seconds`}
+                            onClick={() => playback.seekTo(current - BACK_SECONDS)}
+                        >
+                            <UndoOutlined /> {BACK_SECONDS}
+                        </SmallButton>
+                        <SmallButton
+                            type="button"
+                            aria-label={`Forward ${FORWARD_SECONDS} seconds`}
+                            onClick={() => playback.seekTo(current + FORWARD_SECONDS)}
+                        >
+                            <RedoOutlined /> {FORWARD_SECONDS}
+                        </SmallButton>
+                        <SmallButton
+                            type="button"
+                            aria-label={`Playback speed ${rate}×. Change to ${nextRate(rate)}×`}
+                            onClick={playback.cycleRate}
+                        >
+                            {rate}×
+                        </SmallButton>
+                    </Buttons>
+                </Controls>
             )}
 
             {status !== 'error' && (

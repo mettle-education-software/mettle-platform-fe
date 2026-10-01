@@ -9,6 +9,12 @@ export const formatTime = (seconds: number) => {
     return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
 };
 
+/** Posição dentro do episódio: nunca negativa; limitada à duração quando ela é conhecida. */
+export const clampPosition = (seconds: number, duration: number) => {
+    const value = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+    return duration > 0 ? Math.min(value, duration) : value;
+};
+
 type PositionStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 const positionKey = (episodeKey: string) => `mettle:podcast-position:${episodeKey}`;

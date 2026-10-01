@@ -184,14 +184,50 @@ export const createPlaybackCoordinator = () => {
 
 export const podcastPlayback = createPlaybackCoordinator();
 
-/**
- * Estado depois de `audio.play()` rejeitar: só formato/fonte inválidos (NotSupportedError) viram erro;
- * bloqueio (NotAllowedError), interrupção (AbortError) e o resto voltam ao estado anterior ao clique,
- * para o botão play funcionar de novo.
- */
-export const statusAfterPlayRejection = (error: unknown, hasMetadata: boolean) =>
-    (error as { name?: string } | null)?.name === 'NotSupportedError' ? 'error' : hasMetadata ? 'ready' : 'idle';
+// Estado do player num reducer único: `error` é terminal e `started` só zera fora de erro,
+// em qualquer ordem de eventos (onError, rejeição do play(), metadados, play/pause).
+export type PlaybackStatus = 'idle' | 'loading' | 'ready' | 'error';
+export type PlaybackState = { status: PlaybackStatus; started: boolean; playing: boolean };
+export type PlaybackAction =
+    | { type: 'PLAY_REQUEST' }
+    | { type: 'METADATA' }
+    | { type: 'PLAYING' }
+    | { type: 'PAUSE' }
+    | { type: 'ENDED' }
+    | { type: 'MEDIA_ERROR' }
+    | { type: 'PLAY_REJECTED'; kind: 'fatal' | 'blocked'; hasMetadata: boolean };
 
-/** Mesmo que `statusAfterPlayRejection`, mas `error` é terminal: uma rejeição posterior não o desfaz. */
-export const resolvePlayRejection = <S extends string>(current: S, error: unknown, hasMetadata: boolean) =>
-    current === 'error' ? 'error' : statusAfterPlayRejection(error, hasMetadata);
+export const initialPlayback = (hasSource: boolean): PlaybackState => ({
+    status: hasSource ? 'idle' : 'error',
+    started: false,
+    playing: false,
+});
+
+/** Só formato/fonte inválidos (NotSupportedError) são fatais; bloqueio e interrupção não. */
+export const playRejectionKind = (error: unknown): 'fatal' | 'blocked' =>
+    (error as { name?: string } | null)?.name === 'NotSupportedError' ? 'fatal' : 'blocked';
+
+export const playbackReducer = (state: PlaybackState, action: PlaybackAction): PlaybackState => {
+    if (state.status === 'error') return state.playing ? { ...state, playing: false } : state;
+    switch (action.type) {
+        case 'PLAY_REQUEST':
+            return { ...state, started: true, status: state.status === 'idle' ? 'loading' : state.status };
+        case 'METADATA':
+            return { ...state, status: 'ready' };
+        case 'PLAYING':
+            return { ...state, started: true, playing: true };
+        case 'PAUSE':
+        case 'ENDED':
+            return { ...state, playing: false };
+        case 'MEDIA_ERROR':
+            return { ...state, status: 'error', playing: false };
+        case 'PLAY_REJECTED':
+            if (action.kind === 'fatal') return { ...state, status: 'error', playing: false };
+            // Bloqueio/interrupção: volta ao estado anterior ao clique e o play pode ser clicado de novo.
+            return action.hasMetadata
+                ? { ...state, status: 'ready', playing: false }
+                : { ...state, status: 'idle', started: false, playing: false };
+        default:
+            return state;
+    }
+};

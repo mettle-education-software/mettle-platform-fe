@@ -10,12 +10,14 @@ import {
     loadRate,
     mediaUrl,
     nextRate,
+    initialPlayback,
     playbackAnnouncement,
-    resolvePlayRejection,
+    playbackReducer,
+    PlaybackAction,
+    playRejectionKind,
     playerKeyAction,
     savePosition,
     saveRate,
-    statusAfterPlayRejection,
 } from '../podcast';
 
 const memoryStorage = () => {
@@ -236,33 +238,74 @@ describe('um episódio toca por vez', () => {
     });
 });
 
-describe('statusAfterPlayRejection', () => {
+describe('playbackReducer', () => {
     const err = (name: string) => Object.assign(new Error(name), { name });
+    const run = (actions: PlaybackAction[], hasSource = true) =>
+        actions.reduce(playbackReducer, initialPlayback(hasSource));
+    const blocked = (hasMetadata: boolean): PlaybackAction => ({ type: 'PLAY_REJECTED', kind: 'blocked', hasMetadata });
+    const fatal: PlaybackAction = { type: 'PLAY_REJECTED', kind: 'fatal', hasMetadata: false };
 
-    it('NotAllowedError e AbortError não travam em loading nem viram erro', () => {
-        expect(statusAfterPlayRejection(err('NotAllowedError'), false)).toBe('idle');
-        expect(statusAfterPlayRejection(err('NotAllowedError'), true)).toBe('ready');
-        expect(statusAfterPlayRejection(err('AbortError'), false)).toBe('idle');
-        expect(statusAfterPlayRejection(err('AbortError'), true)).toBe('ready');
-        expect(statusAfterPlayRejection(undefined, true)).toBe('ready');
+    it('classifica a rejeição do play()', () => {
+        expect(playRejectionKind(err('NotSupportedError'))).toBe('fatal');
+        expect(playRejectionKind(err('NotAllowedError'))).toBe('blocked');
+        expect(playRejectionKind(err('AbortError'))).toBe('blocked');
+        expect(playRejectionKind(undefined)).toBe('blocked');
     });
 
-    it('só NotSupportedError é erro de mídia', () => {
-        expect(statusAfterPlayRejection(err('NotSupportedError'), false)).toBe('error');
-        expect(statusAfterPlayRejection(err('NotSupportedError'), true)).toBe('error');
+    it('fluxo normal: idle → loading → ready → tocando → pausado → fim', () => {
+        expect(run([])).toEqual({ status: 'idle', started: false, playing: false });
+        expect(run([{ type: 'PLAY_REQUEST' }])).toEqual({ status: 'loading', started: true, playing: false });
+        expect(run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }, { type: 'PLAYING' }])).toEqual({
+            status: 'ready',
+            started: true,
+            playing: true,
+        });
+        expect(
+            run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }, { type: 'PLAYING' }, { type: 'PAUSE' }]).playing,
+        ).toBe(false);
+        expect(
+            run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }, { type: 'PLAYING' }, { type: 'ENDED' }]).playing,
+        ).toBe(false);
     });
-});
 
-describe('resolvePlayRejection', () => {
-    const abort = Object.assign(new Error('AbortError'), { name: 'AbortError' });
-
-    it('onError seguido de rejeição AbortError mantém error', () => {
-        expect(resolvePlayRejection('error', abort, true)).toBe('error');
-        expect(resolvePlayRejection('error', abort, false)).toBe('error');
+    it('rejeição não fatal não trava em loading', () => {
+        expect(run([{ type: 'PLAY_REQUEST' }, blocked(false)])).toEqual({
+            status: 'idle',
+            started: false,
+            playing: false,
+        });
+        expect(run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }, blocked(true)])).toEqual({
+            status: 'ready',
+            started: true,
+            playing: false,
+        });
     });
 
-    it('sem erro anterior, segue a regra da rejeição', () => {
-        expect(resolvePlayRejection('loading', abort, false)).toBe('idle');
-        expect(resolvePlayRejection('loading', abort, true)).toBe('ready');
+    it('erro de mídia ANTES da rejeição: fica error e started não zera', () => {
+        for (const hasMetadata of [true, false]) {
+            const state = run([{ type: 'PLAY_REQUEST' }, { type: 'MEDIA_ERROR' }, blocked(hasMetadata)]);
+            expect(state).toEqual({ status: 'error', started: true, playing: false });
+        }
+    });
+
+    it('erro de mídia DEPOIS da rejeição: termina em error', () => {
+        expect(run([{ type: 'PLAY_REQUEST' }, blocked(false), { type: 'MEDIA_ERROR' }]).status).toBe('error');
+        expect(
+            run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }, blocked(true), { type: 'MEDIA_ERROR' }]).status,
+        ).toBe('error');
+    });
+
+    it('error é terminal para qualquer evento seguinte', () => {
+        const after = run([{ type: 'PLAY_REQUEST' }, fatal]);
+        expect(after.status).toBe('error');
+        (['PLAY_REQUEST', 'METADATA', 'PLAYING', 'PAUSE', 'ENDED'] as const).forEach((type) =>
+            expect(playbackReducer(after, { type }).status).toBe('error'),
+        );
+        expect(playbackReducer(after, blocked(true)).status).toBe('error');
+        expect(playbackReducer({ ...after, playing: true }, { type: 'PLAYING' }).playing).toBe(false);
+    });
+
+    it('sem URL válida começa em error', () => {
+        expect(run([{ type: 'PLAY_REQUEST' }, { type: 'METADATA' }], false).status).toBe('error');
     });
 });

@@ -7,15 +7,16 @@ import {
     loadRate,
     mediaUrl,
     nextRate,
+    initialPlayback,
     playbackAnnouncement,
+    playbackReducer,
+    playRejectionKind,
     playerKeyAction,
     podcastPlayback,
     savePosition,
     saveRate,
-    resolvePlayRejection,
-    statusAfterPlayRejection,
 } from 'libs/podcast';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef, useState } from 'react';
 
 export const BACK_SECONDS = 15;
 export const FORWARD_SECONDS = 30;
@@ -28,16 +29,13 @@ export const FORWARD_SECONDS = 30;
 export const usePodcastPlayback = (episode: PodcastEpisode) => {
     const audioRef = useRef<HTMLAudioElement>(null);
     const lastSavedRef = useRef(0);
-    // Marcado no mesmo tick do erro de mídia (antes de qualquer re-render).
-    const erroredRef = useRef(false);
     // Só http(s): URL inválida nem monta o <audio> e cai direto no estado de erro.
     const src = mediaUrl(episode.audioUrl);
     const key = episode.audioUrl;
     const title = cleanEpisodeTitle(episode.title);
 
-    const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(src ? 'idle' : 'error');
-    const [playing, setPlaying] = useState(false);
-    const [started, setStarted] = useState(false);
+    // status/started/playing num reducer único: `error` terminal e sem corrida entre eventos.
+    const [{ status, started, playing }, dispatch] = useReducer(playbackReducer, !!src, initialPlayback);
     const [announcement, setAnnouncement] = useState('');
     const [current, setCurrent] = useState(0);
     const [duration, setDuration] = useState(episode.durationSeconds ?? 0);
@@ -66,18 +64,12 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
         const audio = audioRef.current;
         if (!audio || status === 'error') return;
         if (!audio.paused) return audio.pause();
-        setStarted(true);
-        if (status === 'idle') setStatus('loading');
-        // Rejeição não fatal (bloqueio, interrupção) volta ao estado anterior e o play pode ser clicado de novo.
-        audio.play().catch((error) => {
-            if (erroredRef.current) return;
-            const hasMetadata = audio.readyState >= 1;
-            const next = statusAfterPlayRejection(error, hasMetadata);
-            if (next === 'error') erroredRef.current = true;
-            // `error` é terminal: uma rejeição que chegue depois do onError não o desfaz.
-            setStatus((current) => resolvePlayRejection(current, error, hasMetadata));
-            if (next === 'idle') setStarted(false);
-        });
+        dispatch({ type: 'PLAY_REQUEST' });
+        audio
+            .play()
+            .catch((error) =>
+                dispatch({ type: 'PLAY_REJECTED', kind: playRejectionKind(error), hasMetadata: audio.readyState >= 1 }),
+            );
     };
 
     const cycleRate = () => {
@@ -106,7 +98,7 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
             if (saved) audio.currentTime = saved;
             setCurrent(audio.currentTime);
             audio.playbackRate = rate;
-            setStatus('ready');
+            dispatch({ type: 'METADATA' });
         },
         onTimeUpdate: (event) => {
             const { currentTime, duration: total } = event.currentTarget;
@@ -119,25 +111,22 @@ export const usePodcastPlayback = (episode: PodcastEpisode) => {
         onPlay: (event) => {
             const audio = event.currentTarget;
             podcastPlayback.claim(key, () => audio.pause());
-            setPlaying(true);
+            dispatch({ type: 'PLAYING' });
             setAnnouncement(playbackAnnouncement('play', title) as string);
         },
         onPause: (event) => {
-            setPlaying(false);
+            dispatch({ type: 'PAUSE' });
             const message = playbackAnnouncement('pause', title, event.currentTarget.ended);
             if (message) setAnnouncement(message);
             savePosition(key, event.currentTarget.currentTime, event.currentTarget.duration);
         },
         onEnded: () => {
-            setPlaying(false);
+            dispatch({ type: 'ENDED' });
             podcastPlayback.release(key);
             setAnnouncement(playbackAnnouncement('ended', title) as string);
             savePosition(key, 0, duration);
         },
-        onError: () => {
-            erroredRef.current = true;
-            setStatus('error');
-        },
+        onError: () => dispatch({ type: 'MEDIA_ERROR' }),
     };
 
     return {

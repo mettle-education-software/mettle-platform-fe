@@ -50,6 +50,19 @@ const CardText = styled.div`
     gap: 0.35rem;
 `;
 
+// Título sempre com a altura de 3 linhas: todos os cards (artigos e vídeos) ficam com a mesma altura.
+const CardTitle = styled.span`
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    min-height: calc(3 * 1.4em);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+`;
+
 /** Linha do carrossel com os cards (mesma largura e espaçamento para artigos e vídeos). */
 export const LinKnowledgeCardsRow = styled.div`
     display: flex;
@@ -80,9 +93,7 @@ export const LinKnowledgeCard = ({
         )}
         <CardText>
             <Typography.Text style={{ color: 'var(--secondary)', fontSize: 12 }}>{meta}</Typography.Text>
-            <Typography.Text strong style={{ color: '#FFFFFF', fontSize: 16 }}>
-                {title}
-            </Typography.Text>
+            <CardTitle>{title}</CardTitle>
         </CardText>
     </Card>
 );

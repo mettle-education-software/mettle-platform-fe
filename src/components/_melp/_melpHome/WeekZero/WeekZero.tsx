@@ -2,6 +2,7 @@
 
 import { Col, Row } from 'antd';
 import { ComingHpecs, DedasGrid } from 'components';
+import { dedaPath } from 'libs/cleanUrls';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -17,8 +18,8 @@ export const WeekZero: React.FC = () => {
                 <DedasGrid
                     customTitle="DEDA week zero"
                     type="lastDedas"
-                    onSelectedDeda={(dedaId) => {
-                        router.push(`/imerso/deda/${dedaId}`);
+                    onSelectedDeda={(dedaSlug) => {
+                        router.push(dedaPath(dedaSlug));
                     }}
                 />
             </Col>

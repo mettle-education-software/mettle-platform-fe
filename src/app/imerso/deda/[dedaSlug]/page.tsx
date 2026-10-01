@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 import { ArrowBackIos } from '@mui/icons-material';
 import { Button, Flex, Typography } from 'antd';
 import { DedaActivity, DedaNotes, DedaQuote, DedaReview, MaxWidthContainer, TabNav, withRoles } from 'components';
-import { AppLayout } from 'components/layouts';
+import { AppLayout, LoadingLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
-import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
+import { useDedaIdBySlug, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
-import { useRouter } from 'next/navigation';
+import { DEDA_ID_PATTERN } from 'libs/cleanUrls';
+import { notFound, useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 const { Title } = Typography;
@@ -197,4 +198,19 @@ const DedaContentWithRoles = withRoles(DedaContent, {
     },
 });
 
-export default withAuthentication(withDedaUnlocked(DedaContentWithRoles));
+// A URL leva o dedaSlug (ex.: /imerso/deda/london); daqui para dentro tudo segue com o dedaId.
+// eslint-disable-next-line react/display-name
+const withDedaSlug = (Component: any) => (props: { params: { dedaSlug: string } }) => {
+    const { dedaSlug } = props.params;
+    const isLegacyId = DEDA_ID_PATTERN.test(dedaSlug);
+    const { data, loading } = useDedaIdBySlug(dedaSlug, isLegacyId);
+    const dedaId = isLegacyId ? dedaSlug : data?.dedaContentCollection.items[0]?.dedaId;
+
+    if (!dedaId) {
+        if (!loading) notFound();
+        return <LoadingLayout />;
+    }
+    return <Component {...props} params={{ ...props.params, dedaId }} />;
+};
+
+export default withAuthentication(withDedaSlug(withDedaUnlocked(DedaContentWithRoles)));

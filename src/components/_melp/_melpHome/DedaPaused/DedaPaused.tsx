@@ -4,6 +4,7 @@ import { Alert, Button, Col, Flex, Row, Skeleton, Typography } from 'antd';
 import { ComingHpecs, DedasGrid } from 'components';
 import { useResumeDeda } from 'hooks';
 import { nextMondayDate } from 'libs';
+import { dedaPath } from 'libs/cleanUrls';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from 'providers';
 import React from 'react';
@@ -61,8 +62,8 @@ export const DedaPaused: React.FC = () => {
                 <Col xs={24} md={18}>
                     <DedasGrid
                         type="lastDedas"
-                        onSelectedDeda={(dedaId) => {
-                            router.push(`/imerso/deda/${dedaId}`);
+                        onSelectedDeda={(dedaSlug) => {
+                            router.push(dedaPath(dedaSlug));
                         }}
                     />
                 </Col>

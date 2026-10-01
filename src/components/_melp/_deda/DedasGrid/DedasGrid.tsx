@@ -12,7 +12,7 @@ import React from 'react';
 
 interface DedasGridProps {
     type: 'lastDedas' | 'nextDedas' | 'allDedas';
-    onSelectedDeda: (dedaId: string) => void;
+    onSelectedDeda: (dedaSlug: string) => void;
     customTitle?: string;
     blockedDEDAs?: boolean;
 }
@@ -147,7 +147,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                                     title={deda.dedaTitle}
                                     week={`Week ${(currentWeek as number) - index}`}
                                     onClick={() => {
-                                        onSelectedDeda(deda.dedaId);
+                                        onSelectedDeda(deda.dedaSlug);
                                     }}
                                     categories={deda.dedaCategories}
                                     blocked={!unlockedDEDAs?.includes(deda.dedaId)}
@@ -164,7 +164,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                                     title={deda.dedaTitle}
                                     week={`Week ${(currentWeek as number) + index + 1}`}
                                     onClick={() => {
-                                        onSelectedDeda(deda.dedaId);
+                                        onSelectedDeda(deda.dedaSlug);
                                     }}
                                     categories={deda.dedaCategories}
                                     blocked={!unlockedDEDAs?.includes(deda.dedaId)}
@@ -179,7 +179,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                                     imgUrl={deda.dedaFeaturedImage.url}
                                     title={deda.dedaTitle}
                                     onClick={() => {
-                                        onSelectedDeda(deda.dedaId);
+                                        onSelectedDeda(deda.dedaSlug);
                                     }}
                                     categories={deda.dedaCategories}
                                     blocked={!unlockedDEDAs?.includes(deda.dedaId)}

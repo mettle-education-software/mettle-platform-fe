@@ -3,6 +3,7 @@
 import { RightOutlined, TrophyFilled } from '@ant-design/icons';
 import { Alert, Col, Row, Typography } from 'antd';
 import { ComingHpecs, DedasGrid } from 'components';
+import { dedaPath } from 'libs/cleanUrls';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 import { SeeRestBtn } from '../DedaStarted/DedaStarted';
@@ -40,8 +41,8 @@ export const DedaFinished: React.FC = () => {
                         <DedasGrid
                             customTitle="Dive back again"
                             type="lastDedas"
-                            onSelectedDeda={(dedaId) => {
-                                router.push(`/imerso/deda/${dedaId}`);
+                            onSelectedDeda={(dedaSlug) => {
+                                router.push(dedaPath(dedaSlug));
                             }}
                         />
                     </Col>

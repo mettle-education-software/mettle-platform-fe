@@ -8,24 +8,19 @@ import { useDeviceSize } from 'hooks';
 import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
-import { HEADER_GRADIENT, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const { Title } = Typography;
+
+const HEADER_GRADIENT = 'linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43, 0.7) 100%)';
 
 const HeaderSummary = styled.section`
     background-color: #2b2b2b;
     /* conteúdo acima do fundo (<DedaHeaderBackdrop>) */
     & > :not([data-deda-backdrop]) {
         position: relative;
-    }
-
-    /* título e chip legíveis sobre imagem clara */
-    h1,
-    h5 {
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
     }
     width: 100%;
     padding: 1.8rem 0;
@@ -75,8 +70,6 @@ function DedaPage() {
 
     const featuredDedaDataResult = useFeaturedDedaData(selectedDeda);
     // Cabeçalho: imagem própria (dedaHeaderImage) ou, sem ela, a do card como antes.
-    // Título e chip: o esfumado do cabeçalho segue este bloco (qualquer largura/tamanho de título).
-    const titleRef = useRef<HTMLDivElement>(null);
     const headerImage = useDedaHeaderImage(selectedDeda);
 
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
@@ -88,24 +81,15 @@ function DedaPage() {
     return (
         <AppLayout withMelpSummary>
             <HeaderSummary>
-                <DedaHeaderBackdrop
-                    images={[headerImage, featuredDeda?.dedaFeaturedImage]}
-                    gradient={HEADER_GRADIENT}
-                    textShades={[{ target: titleRef, opacity: TITLE_SHADE_OPACITY }]}
-                />
+                <DedaHeaderBackdrop image={headerImage ?? featuredDeda?.dedaFeaturedImage} gradient={HEADER_GRADIENT} />
                 {!blockedDEDAs ? (
                     <MaxWidthContainer>
                         {device === 'desktop' && (
                             <Flex align="flex-end" justify="space-between">
-                                <Flex vertical gap="0.8rem" ref={titleRef}>
+                                <Flex vertical gap="0.8rem">
                                     <Chip
                                         bgColor="rgba(183, 144, 96, 0.3)"
-                                        style={{
-                                            border: 'none',
-                                            paddingLeft: 18,
-                                            paddingRight: 18,
-                                            alignSelf: 'flex-start',
-                                        }}
+                                        style={{ border: 'none', paddingLeft: 18, paddingRight: 18 }}
                                     >
                                         <Title level={5} style={{ color: '#FFFFFF' }}>
                                             Current DEDA

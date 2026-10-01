@@ -1,0 +1,299 @@
+'use client';
+
+import { LoadingOutlined, PauseOutlined, CaretRightFilled, RedoOutlined, UndoOutlined } from '@ant-design/icons';
+import styled from '@emotion/styled';
+import { Typography } from 'antd';
+import { PodcastEpisode } from 'hooks/queries/dedaQueries';
+import { cssUrl, formatTime, loadPosition, savePosition } from 'libs/podcast';
+import React, { useEffect, useRef, useState } from 'react';
+
+const RATES = [0.75, 1, 1.25, 1.5];
+const BACK_SECONDS = 15;
+const FORWARD_SECONDS = 30;
+
+const Wrapper = styled.div`
+    height: 100%;
+    overflow-y: auto;
+    padding: 0 1.5rem 2rem;
+    outline: none;
+`;
+
+const Column = styled.div`
+    max-width: 26rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    text-align: center;
+`;
+
+const Cover = styled.div<{ src?: string | null }>`
+    width: min(18rem, 70vw, 40vh);
+    aspect-ratio: 1;
+    border-radius: 8px;
+    background: #2b2b2b center / cover no-repeat;
+    background-image: ${({ src }) => (src ? cssUrl(src) : 'none')};
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+`;
+
+const Progress = styled.input`
+    width: 100%;
+    accent-color: var(--secondary);
+    cursor: pointer;
+`;
+
+const Times = styled.div`
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    margin-top: -0.5rem;
+    font-size: 12px;
+    color: #8c8c8c;
+    font-variant-numeric: tabular-nums;
+`;
+
+const Controls = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+`;
+
+const IconButton = styled.button`
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 1.5rem;
+    color: #262626;
+    border-radius: 50%;
+    padding: 0.25rem;
+
+    small {
+        font-size: 10px;
+        font-weight: 600;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--secondary);
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
+`;
+
+const PlayButton = styled(IconButton)`
+    width: 4rem;
+    height: 4rem;
+    justify-content: center;
+    background: var(--secondary);
+    color: #ffffff;
+    font-size: 1.75rem;
+
+    &:hover:not(:disabled) {
+        filter: brightness(1.1);
+    }
+`;
+
+const RateButton = styled.button<{ active: boolean }>`
+    all: unset;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    color: ${({ active }) => (active ? '#ffffff' : '#595959')};
+    background: ${({ active }) => (active ? 'var(--secondary)' : 'rgba(0, 0, 0, 0.06)')};
+
+    &:focus-visible {
+        outline: 2px solid var(--secondary);
+    }
+`;
+
+/** Player de podcast da Plataforma (áudio nativo), aberto no mesmo popup dos artigos e vídeos. */
+export const PodcastPlayer = ({ episode, titleId }: { episode: PodcastEpisode; titleId: string }) => {
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const lastSavedRef = useRef(0);
+    const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+    const [playing, setPlaying] = useState(false);
+    const [current, setCurrent] = useState(0);
+    const [duration, setDuration] = useState(episode.durationSeconds ?? 0);
+    const [rate, setRate] = useState(1);
+
+    const key = episode.audioUrl;
+
+    useEffect(() => {
+        wrapperRef.current?.focus();
+        const audio = audioRef.current;
+        // Fechar o popup desmonta o player: salva a posição e para o áudio.
+        return () => {
+            if (!audio) return;
+            // Só com metadados carregados: fechar antes disso não pode apagar a posição salva.
+            if (audio.readyState >= 1) savePosition(key, audio.currentTime, audio.duration);
+            audio.pause();
+        };
+    }, [key]);
+
+    const seekTo = (seconds: number) => {
+        const audio = audioRef.current;
+        if (!audio || status !== 'ready') return;
+        audio.currentTime = Math.min(Math.max(0, seconds), duration || audio.duration || 0);
+        setCurrent(audio.currentTime);
+    };
+
+    const toggle = () => {
+        const audio = audioRef.current;
+        if (!audio || status === 'error') return;
+        if (audio.paused) audio.play().catch(() => setStatus('error'));
+        else audio.pause();
+    };
+
+    const onKeyDown = (event: React.KeyboardEvent) => {
+        const tag = (event.target as HTMLElement).tagName;
+        if (event.key === ' ' && tag !== 'BUTTON' && tag !== 'INPUT') {
+            event.preventDefault();
+            toggle();
+        } else if (tag !== 'INPUT' && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+            event.preventDefault();
+            seekTo(current + (event.key === 'ArrowLeft' ? -BACK_SECONDS : BACK_SECONDS));
+        }
+    };
+
+    return (
+        <Wrapper ref={wrapperRef} tabIndex={-1} onKeyDown={onKeyDown}>
+            <Column>
+                <Cover src={episode.coverImageUrl} role="img" aria-label={episode.showName || episode.title} />
+                <div>
+                    {episode.showName && (
+                        <Typography.Text
+                            style={{
+                                color: 'var(--secondary)',
+                                fontSize: 12,
+                                letterSpacing: 1,
+                                textTransform: 'uppercase',
+                            }}
+                        >
+                            {episode.showName}
+                        </Typography.Text>
+                    )}
+                    <Typography.Title id={titleId} level={3} style={{ margin: '0.25rem 0 0' }}>
+                        {episode.title}
+                    </Typography.Title>
+                </div>
+
+                <audio
+                    ref={audioRef}
+                    src={episode.audioUrl}
+                    preload="metadata"
+                    onLoadedMetadata={(event) => {
+                        const audio = event.currentTarget;
+                        if (Number.isFinite(audio.duration)) setDuration(audio.duration);
+                        const saved = loadPosition(key);
+                        if (saved) audio.currentTime = saved;
+                        setCurrent(audio.currentTime);
+                        audio.playbackRate = rate;
+                        setStatus('ready');
+                    }}
+                    onTimeUpdate={(event) => {
+                        const { currentTime, duration: total } = event.currentTarget;
+                        setCurrent(currentTime);
+                        if (Math.abs(currentTime - lastSavedRef.current) >= 5) {
+                            lastSavedRef.current = currentTime;
+                            savePosition(key, currentTime, total);
+                        }
+                    }}
+                    onPlay={() => setPlaying(true)}
+                    onPause={(event) => {
+                        setPlaying(false);
+                        savePosition(key, event.currentTarget.currentTime, event.currentTarget.duration);
+                    }}
+                    onEnded={() => {
+                        setPlaying(false);
+                        savePosition(key, 0, duration);
+                    }}
+                    onError={() => setStatus('error')}
+                />
+
+                {status === 'error' ? (
+                    <Typography.Text type="danger" role="alert">
+                        Não foi possível carregar este episódio.
+                    </Typography.Text>
+                ) : (
+                    <>
+                        <Progress
+                            type="range"
+                            min={0}
+                            max={Math.max(duration, 1)}
+                            step={1}
+                            value={current}
+                            disabled={status !== 'ready'}
+                            aria-label="Playback position"
+                            aria-valuetext={`${formatTime(current)} of ${formatTime(duration)}`}
+                            onChange={(event) => seekTo(Number(event.target.value))}
+                        />
+                        <Times>
+                            <span>{formatTime(current)}</span>
+                            <span>{formatTime(duration)}</span>
+                        </Times>
+
+                        <Controls>
+                            <IconButton
+                                type="button"
+                                aria-label={`Back ${BACK_SECONDS} seconds`}
+                                disabled={status !== 'ready'}
+                                onClick={() => seekTo(current - BACK_SECONDS)}
+                            >
+                                <UndoOutlined />
+                                <small>{BACK_SECONDS}</small>
+                            </IconButton>
+                            <PlayButton
+                                type="button"
+                                aria-label={playing ? 'Pause' : 'Play'}
+                                aria-busy={status === 'loading'}
+                                onClick={toggle}
+                            >
+                                {status === 'loading' ? (
+                                    <LoadingOutlined />
+                                ) : playing ? (
+                                    <PauseOutlined />
+                                ) : (
+                                    <CaretRightFilled />
+                                )}
+                            </PlayButton>
+                            <IconButton
+                                type="button"
+                                aria-label={`Forward ${FORWARD_SECONDS} seconds`}
+                                disabled={status !== 'ready'}
+                                onClick={() => seekTo(current + FORWARD_SECONDS)}
+                            >
+                                <RedoOutlined />
+                                <small>{FORWARD_SECONDS}</small>
+                            </IconButton>
+                        </Controls>
+
+                        <div role="group" aria-label="Playback speed" style={{ display: 'flex', gap: '0.5rem' }}>
+                            {RATES.map((value) => (
+                                <RateButton
+                                    key={value}
+                                    type="button"
+                                    active={rate === value}
+                                    aria-pressed={rate === value}
+                                    onClick={() => {
+                                        setRate(value);
+                                        if (audioRef.current) audioRef.current.playbackRate = value;
+                                    }}
+                                >
+                                    {value}×
+                                </RateButton>
+                            ))}
+                        </div>
+                    </>
+                )}
+            </Column>
+        </Wrapper>
+    );
+};

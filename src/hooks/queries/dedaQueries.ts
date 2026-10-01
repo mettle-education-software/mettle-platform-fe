@@ -506,3 +506,36 @@ export const useLinKnowledgeEdition = (dedaId: string) =>
         `,
         { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
     );
+
+export type PodcastEpisode = {
+    title: string;
+    showName?: string | null;
+    coverImageUrl?: string | null;
+    audioUrl: string;
+    durationSeconds?: number | null;
+};
+
+// Consulta separada: sem o campo no schema (ou sem episódios), a seção mantém os embeds do Spotify.
+export const usePodcastEpisodes = (dedaId: string) =>
+    useQuery<{
+        dedaContentCollection: { items: { dedaPodcastEpisodesCollection?: { items: (PodcastEpisode | null)[] } }[] };
+    }>(
+        gql`
+            query DedaPodcastEpisodes($dedaId: String) {
+                dedaContentCollection(where: { dedaId: $dedaId }, limit: 1) {
+                    items {
+                        dedaPodcastEpisodesCollection(limit: 7) {
+                            items {
+                                title
+                                showName
+                                coverImageUrl
+                                audioUrl
+                                durationSeconds
+                            }
+                        }
+                    }
+                }
+            }
+        `,
+        { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
+    );

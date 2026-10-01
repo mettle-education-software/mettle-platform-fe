@@ -152,19 +152,6 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
         <LinKnowledgeContainer>
             <MaxWidthContainer>
                 <MainFlexColumn vertical align="stretch" gap="1.5rem">
-                    <MettleArticles dedaId={dedaId}>
-                        {(row) => (
-                            <CarouselCard
-                                title={
-                                    <CarouselTitle level={4}>
-                                        <FileTextFilled /> Mettle Editor
-                                    </CarouselTitle>
-                                }
-                            >
-                                {row}
-                            </CarouselCard>
-                        )}
-                    </MettleArticles>
                     <CarouselCard
                         title={
                             <CarouselTitle level={4}>
@@ -172,13 +159,18 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                             </CarouselTitle>
                         }
                     >
-                        <ArticlesRow>
-                            {articles.map(({ title, href }) => (
-                                <div key={href}>
-                                    <ArticleFrame title={title} href={href} />
-                                </div>
-                            ))}
-                        </ArticlesRow>
+                        <MettleArticles
+                            dedaId={dedaId}
+                            fallback={
+                                <ArticlesRow>
+                                    {articles.map(({ title, href }) => (
+                                        <div key={href}>
+                                            <ArticleFrame title={title} href={href} />
+                                        </div>
+                                    ))}
+                                </ArticlesRow>
+                            }
+                        />
                     </CarouselCard>
                     <CarouselCard
                         title={

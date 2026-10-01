@@ -25,3 +25,7 @@ export const splitAtMiddle = <T extends { nodeType: string }>(nodes: T[]): [T[],
     while (cut < nodes.length && nodes[cut - 1]?.nodeType !== 'paragraph') cut++;
     return [nodes.slice(0, cut), nodes.slice(cut)];
 };
+
+/** Artigos da edição na ordem dos dias; lista vazia = o DEDA ainda usa os links externos. */
+export const editionArticles = <T extends { day: number }>(items?: (T | null)[] | null): T[] =>
+    (items ?? []).filter((item): item is T => !!item).sort((a, b) => a.day - b.day);

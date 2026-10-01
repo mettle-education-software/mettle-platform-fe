@@ -1,4 +1,4 @@
-import { formatEditionDate, readingMinutes, splitAtMiddle } from '../linknowledge';
+import { editionArticles, formatEditionDate, readingMinutes, splitAtMiddle } from '../linknowledge';
 
 describe('linknowledge', () => {
     it('tempo de leitura ≈ palavras/200, mínimo 1', () => {
@@ -18,5 +18,12 @@ describe('linknowledge', () => {
         expect(a.map((x) => x.nodeType)).toEqual(['paragraph', 'heading-2', 'paragraph']);
         expect(b).toHaveLength(1);
         expect(splitAtMiddle([])).toEqual([[], []]);
+    });
+
+    it('artigos da edição: ordem por dia, nulos fora; vazio mantém os links externos', () => {
+        expect(editionArticles([{ day: 3 }, null, { day: 1 }]).map((a) => a.day)).toEqual([1, 3]);
+        expect(editionArticles([])).toEqual([]);
+        expect(editionArticles(undefined)).toEqual([]);
+        expect(editionArticles(null)).toEqual([]);
     });
 });

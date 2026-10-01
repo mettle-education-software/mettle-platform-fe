@@ -66,10 +66,7 @@ export const FreeHome = () => {
     return (
         <AppLayout>
             <HeaderSummary>
-                <DedaHeaderBackdrop
-                    imageUrl={headerImage ?? featuredDeda?.dedaFeaturedImage.url}
-                    gradient={HEADER_GRADIENT}
-                />
+                <DedaHeaderBackdrop image={headerImage ?? featuredDeda?.dedaFeaturedImage} gradient={HEADER_GRADIENT} />
                 <MaxWidthContainer>
                     {device === 'desktop' && (
                         <Flex align="flex-end" justify="space-between">

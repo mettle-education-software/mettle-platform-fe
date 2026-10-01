@@ -10,7 +10,9 @@ export const MOBILE_CROPS = [
     [800, 440],
     [1290, 709],
 ] as const;
-export const DESKTOP_WIDTHS = [1280, 1920, 2560] as const;
+// Larguras do desktop até a largura real do asset (a Images API não amplia; DPR ≥ 2 pega a maior).
+export const DESKTOP_WIDTHS = [1280, 1920, 2560, 3840] as const;
+const MAX_IMAGES_API_WIDTH = 4000;
 export const MOBILE_MAX_WIDTH = 640;
 
 /** URL da Images API (só https em images.ctfassets.net); qualquer outra coisa → null. */
@@ -28,13 +30,21 @@ export const contentfulImage = (raw: string | null | undefined, params: Record<s
 
 export type HeaderSources = { mobile: string; desktop: string; fallback: string };
 
-/** `srcset` do celular (recorte) e do desktop (larguras); null se a imagem não for do Contentful. */
-export const headerSources = (raw: string | null | undefined): HeaderSources | null => {
+/** Larguras do desktop para um asset de `intrinsic` px: as padrão abaixo dele + a própria largura do asset. */
+export const desktopWidths = (intrinsic?: number | null) => {
+    if (!intrinsic || intrinsic <= 0) return [1280, 1920, 2560];
+    const max = Math.min(Math.round(intrinsic), MAX_IMAGES_API_WIDTH);
+    return [...DESKTOP_WIDTHS.filter((w) => w < max), max];
+};
+
+/** `srcset` do celular (recorte) e do desktop (larguras reais); null se a imagem não for do Contentful. */
+export const headerSources = (raw: string | null | undefined, intrinsicWidth?: number | null): HeaderSources | null => {
     const mobile = MOBILE_CROPS.map(([w, h]) => {
         const href = contentfulImage(raw, { w, h, fit: 'fill', f: 'center', fm: 'webp', q: 70 });
         return href && `${href} ${w}w`;
     });
-    const desktop = DESKTOP_WIDTHS.map((w) => {
+    const widths = desktopWidths(intrinsicWidth);
+    const desktop = widths.map((w) => {
         const href = contentfulImage(raw, { w, fm: 'webp', q: 75 });
         return href && `${href} ${w}w`;
     });
@@ -42,25 +52,17 @@ export const headerSources = (raw: string | null | undefined): HeaderSources | n
     return {
         mobile: mobile.join(', '),
         desktop: desktop.join(', '),
-        fallback: contentfulImage(raw, { w: DESKTOP_WIDTHS[0], fm: 'webp', q: 75 }) as string,
+        fallback: contentfulImage(raw, { w: widths[0], fm: 'webp', q: 75 }) as string,
     };
 };
 
-// Escurecimento horizontal atrás do texto (pedido do André, imagem B): título à esquerda, citação e
-// botão à direita. Stops [posição %, opacidade do preto]. A partir de 66% a sombra é ≥ 0,6, o que
-// cobre a citação (começa em 69–74% da largura) com contraste ≥ 4.5:1 mesmo sobre imagem branca.
-export const DESKTOP_SHADE: [number, number][] = [
-    [0, 0.55],
-    [32, 0],
-    [55, 0],
-    [66, 0.6],
-    [100, 0.72],
-];
-// Celular (coluna única): só à esquerda, onde fica o ← (0–18% da largura); a base já tem o gradiente da página.
-export const MOBILE_SHADE: [number, number][] = [
-    [0, 0.7],
-    [25, 0.6],
-    [55, 0],
+// Escurecimento só na página do DEDA, no terço direito atrás da citação (máx. 0,45, pedido do André);
+// nada à esquerda, nada na home e nada no celular. A legibilidade vem junto com o text-shadow da citação.
+export const QUOTE_SHADE: [number, number][] = [
+    [0, 0],
+    [62, 0],
+    [78, 0.45],
+    [100, 0.45],
 ];
 
 export const shadeGradient = (stops: [number, number][]) =>

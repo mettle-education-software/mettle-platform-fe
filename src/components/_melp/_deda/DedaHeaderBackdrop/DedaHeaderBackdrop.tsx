@@ -99,7 +99,7 @@ export const DedaHeaderBackdrop = ({
     gradient,
     textShades,
 }: {
-    /** Candidatas em ordem de preferência (dedaHeaderImage, dedaFeaturedImage). */
+    /** Candidatas em ordem de preferência; `null` = não existe, `undefined` = ainda carregando. */
     images: (HeaderImage | null | undefined)[];
     /** recortes do celular (padrão: os da página do DEDA; a home passa os dela, mais baixos) */
     mobileCrops?: MobileCrops;
@@ -109,7 +109,8 @@ export const DedaHeaderBackdrop = ({
 }) => {
     // Primeira candidata válida; se a imagem falhar ao carregar, passa para a próxima válida.
     const [failed, setFailed] = useState<string[]>([]);
-    const candidates = images.map((image) => (image && !failed.includes(image.url) ? image : null));
+    // Mantém `undefined` (ainda carregando): o seletor espera por ela antes de usar uma de menor preferência.
+    const candidates = images.map((image) => (image && failed.includes(image.url) ? null : image));
     const index = pickHeaderImage(candidates);
     const image = index >= 0 ? candidates[index] : null;
     const sources = image ? headerSources(image.url, image.width, mobileCrops) : null;

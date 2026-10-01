@@ -546,7 +546,7 @@ export const usePodcastEpisodes = (dedaId: string) =>
 // Imagem própria do cabeçalho (campo `dedaHeaderImage`). Consulta separada: campo ausente/vazio ou
 // erro → o cabeçalho usa a `dedaFeaturedImage`, como antes.
 export const useDedaHeaderImage = (dedaId?: string) => {
-    const { data } = useQuery<{
+    const { data, loading } = useQuery<{
         dedaContentCollection: { items: { dedaHeaderImage?: { url: string; width: number; height: number } | null }[] };
     }>(
         gql`
@@ -564,13 +564,15 @@ export const useDedaHeaderImage = (dedaId?: string) => {
         `,
         { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
     );
+    // undefined = ainda não se sabe (o cabeçalho espera, para não baixar a imagem seguinte e trocar depois)
+    if (!dedaId || loading) return undefined;
     return data?.dedaContentCollection.items[0]?.dedaHeaderImage ?? null;
 };
 
 // Imagem só do cabeçalho da HOME (campo `dedaHomeHeaderImage`, arte ultra-panorâmica). Consulta separada:
 // campo ausente/vazio ou erro → a home segue para `dedaHeaderImage` e depois `dedaFeaturedImage`.
 export const useDedaHomeHeaderImage = (dedaId?: string) => {
-    const { data } = useQuery<{
+    const { data, loading } = useQuery<{
         dedaContentCollection: {
             items: { dedaHomeHeaderImage?: { url: string; width: number; height: number } | null }[];
         };
@@ -590,5 +592,7 @@ export const useDedaHomeHeaderImage = (dedaId?: string) => {
         `,
         { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
     );
+    // undefined = ainda não se sabe (o cabeçalho espera, para não baixar a imagem seguinte e trocar depois)
+    if (!dedaId || loading) return undefined;
     return data?.dedaContentCollection.items[0]?.dedaHomeHeaderImage ?? null;
 };

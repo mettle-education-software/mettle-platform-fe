@@ -86,7 +86,18 @@ describe('pickHeaderImage (fallback do cabeçalho)', () => {
         expect(pickHeaderImage([ok, { url: `${asset}-b` }])).toBe(0);
         expect(pickHeaderImage([null, ok])).toBe(1);
         expect(pickHeaderImage([{ url: 'https://images.unsplash.com/x' }, ok])).toBe(1);
-        expect(pickHeaderImage([undefined, null])).toBe(-1);
+        expect(pickHeaderImage([null, null])).toBe(-1);
+    });
+
+    it('candidata anterior ainda carregando (undefined): espera em vez de usar a seguinte', () => {
+        expect(pickHeaderImage([undefined, ok])).toBe(-1);
+        expect(pickHeaderImage([undefined, undefined, ok])).toBe(-1);
+        expect(pickHeaderImage([null, undefined, ok])).toBe(-1);
+        // quando a preferida já chegou, não importa se as seguintes ainda carregam
+        expect(pickHeaderImage([ok, undefined])).toBe(0);
+        expect(pickHeaderImage([null, ok, undefined])).toBe(1);
+        // tudo carregado
+        expect(pickHeaderImage([null, null, ok])).toBe(2);
     });
 });
 
@@ -157,7 +168,7 @@ describe('cabeçalho da home: imagem própria e recorte do celular', () => {
         expect(pickHeaderImage([home, header, card])).toBe(0);
         expect(pickHeaderImage([null, header, card])).toBe(1);
         expect(pickHeaderImage([null, null, card])).toBe(2);
-        expect(pickHeaderImage([{ url: 'https://example.com/x.jpg' }, undefined, card])).toBe(2);
+        expect(pickHeaderImage([{ url: 'https://example.com/x.jpg' }, null, card])).toBe(2);
     });
 
     it('celular: recorte central 800×240 (430/800/1290w), nunca as larguras do desktop', () => {

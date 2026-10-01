@@ -96,7 +96,8 @@ function DedaPage() {
                         headerImage,
                         featuredDeda?.dedaFeaturedImage,
                     ]}
-                    mobileCrops={HOME_MOBILE_CROPS}
+                    // Bloqueada no celular o cabeçalho é mais alto (~2,8:1): vale o recorte padrão, mais alto.
+                    mobileCrops={blockedDEDAs ? undefined : HOME_MOBILE_CROPS}
                     gradient={HEADER_GRADIENT}
                     textShades={[{ target: titleRef, opacity: TITLE_SHADE_OPACITY }]}
                 />

@@ -56,56 +56,51 @@ export const headerSources = (raw: string | null | undefined, intrinsicWidth?: n
     };
 };
 
-// Esfumados RADIAIS atrás do texto (desktop, onde o cabeçalho tem texto; nada no celular): sem
-// borda nem "parede" vertical. Geometria do coordenador; opacidades no mínimo (passos de 0,05) que
-// mantém ≥ 4.5:1 sobre imagem branca na área do texto (testado):
-// - título dourado e chip: o dourado #b89261 precisa de fundo quase tão escuro quanto #2b2b2b, então
-//   o núcleo fica em 0,8 até 45% do raio e some até a borda da elipse (centro na altura do título);
-// - citação (página do DEDA): 0,6 no centro, 0,45 a 50% do raio, some até a borda.
-export type RadialShade = {
-    /** raios da elipse, em % da largura e da altura */
-    rx: number;
-    ry: number;
-    /** centro, em % da largura e da altura (a partir do topo) */
-    cx: number;
-    cy: number;
-    /** [posição % do raio, opacidade do preto] */
-    stops: [number, number][];
+// Esfumados atrás do texto, PRESOS AO TEXTO (não à largura do cabeçalho): cada um é uma elipse
+// (`radial-gradient(closest-side, …)`) desenhada sob o gradiente vertical, num retângulo que envolve o
+// título/chip ou a citação com folga proporcional + fixa. Assim cobre o texto em qualquer largura de tela
+// (861–2560 px) e com títulos longos, e nunca escurece a base (sem linha). Só existe onde há texto
+// (desktop); no celular, nada.
+export const TEXT_SHADE_PAD = { xRatio: 0.8, yRatio: 0.6, px: 200 };
+// Opacidade plana até 60% do raio (os cantos do texto ficam a ≤ 60% para qualquer tamanho, testado)
+// e depois cai em curva suave até a borda — sem "mancha" de borda nítida ao redor do texto.
+export const TEXT_SHADE_CORE = 60;
+// Mínimos (passos de 0,05) para ≥ 4.5:1 sobre imagem branca, contando só o topo do gradiente vertical
+// (0,15, o caso mais claro): dourado #b89261 do título → 0,85; branco da citação → 0,5.
+export const TITLE_SHADE_OPACITY = 0.85;
+export const QUOTE_SHADE_OPACITY = 0.5;
+
+/** Retângulo do esfumado (px, relativo ao cabeçalho) para um texto em `rect`. */
+export const textShadeRect = (rect: { left: number; top: number; width: number; height: number }) => {
+    const padX = rect.width * TEXT_SHADE_PAD.xRatio + TEXT_SHADE_PAD.px;
+    const padY = rect.height * TEXT_SHADE_PAD.yRatio + TEXT_SHADE_PAD.px;
+    return {
+        left: rect.left - padX,
+        top: rect.top - padY,
+        width: rect.width + 2 * padX,
+        height: rect.height + 2 * padY,
+    };
 };
 
-export const TITLE_SHADE_HOME: RadialShade = {
-    rx: 42,
-    ry: 120,
-    cx: 12,
-    cy: 55,
-    stops: [
-        [0, 0.8],
-        [45, 0.8],
-        [100, 0],
-    ],
-};
-// Página do DEDA: o título fica mais alto (26–45% da altura), por isso o centro em 40%.
-export const TITLE_SHADE_DEDA: RadialShade = { ...TITLE_SHADE_HOME, cy: 40 };
-export const QUOTE_SHADE: RadialShade = {
-    rx: 42,
-    ry: 140,
-    cx: 86,
-    cy: 45,
-    stops: [
-        [0, 0.6],
-        [50, 0.45],
-        [100, 0],
-    ],
-};
+const FALLOFF: [number, number][] = [
+    [0, 1],
+    [TEXT_SHADE_CORE, 1],
+    [72, 0.7],
+    [84, 0.35],
+    [93, 0.1],
+    [100, 0],
+];
 
-export const radialShadeCss = ({ rx, ry, cx, cy, stops }: RadialShade) =>
-    `radial-gradient(ellipse ${rx}% ${ry}% at ${cx}% ${cy}%, ${stops
-        .map(([at, alpha]) => `rgba(0, 0, 0, ${alpha}) ${at}%`)
-        .join(', ')})`;
+export const textShadeCss = (opacity: number) =>
+    `radial-gradient(closest-side, ${FALLOFF.map(
+        ([at, k]) => `rgba(0, 0, 0, ${Math.round(opacity * k * 1000) / 1000}) ${at}%`,
+    ).join(', ')})`;
 
-/** Opacidade do esfumado num ponto (x%, y% a partir do topo), como o navegador desenha a elipse. */
-export const radialShadeAt = ({ rx, ry, cx, cy, stops }: RadialShade, xPct: number, yPct: number) =>
-    shadeAt(stops, Math.min(100, Math.hypot((xPct - cx) / rx, (yPct - cy) / ry) * 100));
+/** Posição do canto do texto no esfumado, em % do raio (0 = centro, 100 = borda). */
+export const textCornerRadius = (width: number, height: number) => {
+    const box = textShadeRect({ left: 0, top: 0, width, height });
+    return Math.hypot(width / box.width, height / box.height) * 100;
+};
 
 /** Opacidade do escurecimento numa posição (%), por interpolação linear entre os stops. */
 export const shadeAt = (stops: [number, number][], at: number) => {
@@ -120,9 +115,8 @@ export const shadeAt = (stops: [number, number][], at: number) => {
 /** Primeira imagem candidata que `headerSources` aceita (ex.: dedaHeaderImage, depois dedaFeaturedImage). */
 export const pickHeaderImage = <T extends { url: string; width?: number | null }>(
     candidates: (T | null | undefined)[],
-    from = 0,
 ) => {
-    for (let i = from; i < candidates.length; i += 1) {
+    for (let i = 0; i < candidates.length; i += 1) {
         const candidate = candidates[i];
         if (candidate && headerSources(candidate.url, candidate.width)) return i;
     }
@@ -156,13 +150,11 @@ export const hexLuminance = (hex: string) =>
         .reduce((sum, value, i) => sum + value * [0.2126, 0.7152, 0.0722][i], 0);
 
 /**
- * Contraste de um texto (`textHex`) sobre a PIOR imagem (branca), somando as camadas reais:
- * imagem → esfumados radiais → gradiente vertical (em y% a partir do topo).
+ * Contraste de um texto (`textHex`) sobre a PIOR imagem (branca): imagem → esfumado de opacidade `shade`
+ * → gradiente vertical com opacidade `vertical` (padrão: 0,15, o topo, o caso mais claro).
  */
-export const contrastOverWhite = (textHex: string, shades: RadialShade[], xPct: number, yPctFromTop: number) => {
-    const afterShades = shades.reduce((channel, shade) => channel * (1 - radialShadeAt(shade, xPct, yPctFromTop)), 255);
-    const vertical = shadeAt(HEADER_VERTICAL, yPctFromTop);
-    const background = toLinear(43 * vertical + afterShades * (1 - vertical));
+export const contrastOverWhite = (textHex: string, shade: number, vertical = HEADER_VERTICAL[0][1]) => {
+    const background = toLinear(43 * vertical + 255 * (1 - shade) * (1 - vertical));
     const text = hexLuminance(textHex);
     return (Math.max(text, background) + 0.05) / (Math.min(text, background) + 0.05);
 };

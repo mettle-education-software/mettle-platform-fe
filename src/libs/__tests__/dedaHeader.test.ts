@@ -3,15 +3,17 @@ import {
     contrastOverWhite,
     desktopWidths,
     HEADER_GRADIENT,
+    HEADER_VERTICAL,
     headerSources,
     HOME_HEADER_TOP_OPACITY,
     pickHeaderImage,
-    QUOTE_SHADE,
-    RadialShade,
-    radialShadeAt,
-    radialShadeCss,
-    TITLE_SHADE_DEDA,
-    TITLE_SHADE_HOME,
+    QUOTE_SHADE_OPACITY,
+    shadeAt,
+    TEXT_SHADE_CORE,
+    textCornerRadius,
+    textShadeCss,
+    textShadeRect,
+    TITLE_SHADE_OPACITY,
 } from '../dedaHeader';
 
 const asset = 'https://images.ctfassets.net/space/id/hash/photo-1520986606214';
@@ -76,28 +78,6 @@ describe('desktopWidths (até a largura real do asset)', () => {
     });
 });
 
-describe('esfumados radiais', () => {
-    it('CSS da elipse a partir da geometria (sem borda: termina em 0 na borda da elipse)', () => {
-        expect(radialShadeCss(TITLE_SHADE_HOME)).toBe(
-            'radial-gradient(ellipse 42% 120% at 12% 55%, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.8) 45%, rgba(0, 0, 0, 0) 100%)',
-        );
-        expect(radialShadeCss(QUOTE_SHADE)).toBe(
-            'radial-gradient(ellipse 42% 140% at 86% 45%, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.45) 50%, rgba(0, 0, 0, 0) 100%)',
-        );
-    });
-
-    it('opacidade cai continuamente até 0 (sem degrau)', () => {
-        let previous = radialShadeAt(TITLE_SHADE_HOME, 12, 55);
-        for (let x = 13; x <= 60; x += 1) {
-            const alpha = radialShadeAt(TITLE_SHADE_HOME, x, 55);
-            expect(alpha).toBeLessThanOrEqual(previous);
-            expect(previous - alpha).toBeLessThan(0.05);
-            previous = alpha;
-        }
-        expect(radialShadeAt(TITLE_SHADE_HOME, 60, 55)).toBe(0);
-    });
-});
-
 describe('pickHeaderImage (fallback do cabeçalho)', () => {
     const ok = { url: asset, width: 2400 };
     it('primeira candidata que headerSources aceita', () => {
@@ -117,40 +97,51 @@ describe('gradiente vertical dos cabeçalhos', () => {
     });
 });
 
-// Pior caso: imagem branca. Áreas medidas no harness (1280–1920 px), em % da largura / % da altura a partir do topo.
-const worst = (text: string, shades: RadialShade[], [x0, x1]: number[], [y0, y1]: number[]) => {
-    let min = Infinity;
-    for (let x = x0; x <= x1; x += 1)
-        for (let y = y0; y <= y1; y += 1) min = Math.min(min, contrastOverWhite(text, shades, x, y));
-    return min;
-};
-const GOLD = '#b89261';
-const WHITE = '#ffffff';
-const DEDA = [TITLE_SHADE_DEDA, QUOTE_SHADE];
-const weaker = (shade: RadialShade): RadialShade => ({
-    ...shade,
-    stops: shade.stops.map(([at, a]) => [at, a > 0 ? a - 0.05 : a] as [number, number]),
+describe('esfumados presos ao texto', () => {
+    it('retângulo = texto + folga proporcional e fixa; CSS closest-side com núcleo plano', () => {
+        expect(textShadeRect({ left: 100, top: 50, width: 200, height: 40 })).toEqual({
+            left: 100 - (160 + 200),
+            top: 50 - (24 + 200),
+            width: 200 + 2 * (160 + 200),
+            height: 40 + 2 * (24 + 200),
+        });
+        expect(textShadeCss(0.85)).toBe(
+            `radial-gradient(closest-side, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.85) ${TEXT_SHADE_CORE}%, rgba(0, 0, 0, 0.595) 72%, rgba(0, 0, 0, 0.298) 84%, rgba(0, 0, 0, 0.085) 93%, rgba(0, 0, 0, 0) 100%)`,
+        );
+    });
+
+    // Títulos de "London" (~140 px) a títulos longos em 1 ou 2 linhas ("The Bilingual Brain",
+    // "Morning, Night, Neither": até ~800 px) e citações de 180–420 px por 88–240 px — o que aparece
+    // entre 861 e 2560 px de tela.
+    it('o texto inteiro fica no núcleo de opacidade cheia, para qualquer tamanho', () => {
+        for (let w = 100; w <= 800; w += 20)
+            for (let h = 40; h <= 240; h += 8) expect(textCornerRadius(w, h)).toBeLessThanOrEqual(TEXT_SHADE_CORE);
+    });
 });
 
-describe('contraste ≥ 4.5:1 sobre imagem branca (camadas reais)', () => {
-    it('citação (página do DEDA): branco em x 69–100%, y 17–61%', () => {
-        expect(worst(WHITE, DEDA, [69, 100], [17, 61])).toBeGreaterThanOrEqual(4.5);
+const GOLD = '#b89261';
+const WHITE = '#ffffff';
+
+describe('contraste ≥ 4.5:1 sobre imagem branca (pior caso: topo do gradiente, 0,15)', () => {
+    it('título dourado (home e página do DEDA) e ← dourado', () => {
+        expect(contrastOverWhite(GOLD, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
     });
 
-    it('título dourado da home: x 3–30%, y 44–72%', () => {
-        expect(worst(GOLD, [TITLE_SHADE_HOME], [3, 30], [44, 72])).toBeGreaterThanOrEqual(4.5);
+    it('chip "Current DEDA" (branco, no mesmo esfumado do título)', () => {
+        expect(contrastOverWhite(WHITE, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
     });
 
-    it('título dourado da página do DEDA: x 6–30%, y 26–45%', () => {
-        expect(worst(GOLD, DEDA, [6, 30], [26, 45])).toBeGreaterThanOrEqual(4.5);
-    });
-
-    it('chip "Current DEDA" (branco) da home: x 3–20%, y 17–37%', () => {
-        expect(worst(WHITE, [TITLE_SHADE_HOME], [3, 20], [17, 37])).toBeGreaterThanOrEqual(4.5);
+    it('citação (branco)', () => {
+        expect(contrastOverWhite(WHITE, QUOTE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
     });
 
     it('as opacidades são as mínimas (0,05 a menos já falha)', () => {
-        expect(worst(GOLD, [weaker(TITLE_SHADE_HOME)], [3, 30], [44, 72])).toBeLessThan(4.5);
-        expect(worst(WHITE, [TITLE_SHADE_DEDA, weaker(QUOTE_SHADE)], [69, 100], [17, 61])).toBeLessThan(4.5);
+        expect(contrastOverWhite(GOLD, TITLE_SHADE_OPACITY - 0.05)).toBeLessThan(4.5);
+        expect(contrastOverWhite(WHITE, QUOTE_SHADE_OPACITY - 0.05)).toBeLessThan(4.5);
+    });
+
+    it('abas inativas (branco, sem esfumado) na faixa das abas, y 74–100% da altura', () => {
+        for (let y = 74; y <= 100; y += 1)
+            expect(contrastOverWhite(WHITE, 0, shadeAt(HEADER_VERTICAL, y))).toBeGreaterThanOrEqual(4.5);
     });
 });

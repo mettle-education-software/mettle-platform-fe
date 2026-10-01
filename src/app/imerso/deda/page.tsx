@@ -8,10 +8,10 @@ import { useDeviceSize } from 'hooks';
 import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
-import { HEADER_GRADIENT, TITLE_SHADE_HOME } from 'libs/dedaHeader';
+import { HEADER_GRADIENT, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 const { Title } = Typography;
 
@@ -75,6 +75,8 @@ function DedaPage() {
 
     const featuredDedaDataResult = useFeaturedDedaData(selectedDeda);
     // Cabeçalho: imagem própria (dedaHeaderImage) ou, sem ela, a do card como antes.
+    // Título e chip: o esfumado do cabeçalho segue este bloco (qualquer largura/tamanho de título).
+    const titleRef = useRef<HTMLDivElement>(null);
     const headerImage = useDedaHeaderImage(selectedDeda);
 
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
@@ -89,13 +91,13 @@ function DedaPage() {
                 <DedaHeaderBackdrop
                     images={[headerImage, featuredDeda?.dedaFeaturedImage]}
                     gradient={HEADER_GRADIENT}
-                    shades={[TITLE_SHADE_HOME]}
+                    textShades={[{ target: titleRef, opacity: TITLE_SHADE_OPACITY }]}
                 />
                 {!blockedDEDAs ? (
                     <MaxWidthContainer>
                         {device === 'desktop' && (
                             <Flex align="flex-end" justify="space-between">
-                                <Flex vertical gap="0.8rem">
+                                <Flex vertical gap="0.8rem" ref={titleRef}>
                                     <Chip
                                         bgColor="rgba(183, 144, 96, 0.3)"
                                         style={{ border: 'none', paddingLeft: 18, paddingRight: 18 }}

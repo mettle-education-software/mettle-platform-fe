@@ -8,9 +8,9 @@ import { useDeviceSize, useGetCurrentDeda } from 'hooks';
 import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
-import { HEADER_GRADIENT, TITLE_SHADE_HOME } from 'libs/dedaHeader';
+import { HEADER_GRADIENT, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import React, { useRef } from 'react';
 
 const { Title } = Typography;
 
@@ -60,6 +60,8 @@ export const FreeHome = () => {
 
     const featuredDedaDataResult = useFeaturedDedaData(currentDeda?.id);
     // Cabeçalho: imagem própria (dedaHeaderImage) ou, sem ela, a do card como antes.
+    // Título e chip: o esfumado do cabeçalho segue este bloco (qualquer largura/tamanho de título).
+    const titleRef = useRef<HTMLDivElement>(null);
     const headerImage = useDedaHeaderImage(currentDeda?.id);
 
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
@@ -74,12 +76,12 @@ export const FreeHome = () => {
                 <DedaHeaderBackdrop
                     images={[headerImage, featuredDeda?.dedaFeaturedImage]}
                     gradient={HEADER_GRADIENT}
-                    shades={[TITLE_SHADE_HOME]}
+                    textShades={[{ target: titleRef, opacity: TITLE_SHADE_OPACITY }]}
                 />
                 <MaxWidthContainer>
                     {device === 'desktop' && (
                         <Flex align="flex-end" justify="space-between">
-                            <Flex vertical gap="0.8rem">
+                            <Flex vertical gap="0.8rem" ref={titleRef}>
                                 <Chip
                                     bgColor="rgba(183, 144, 96, 0.3)"
                                     style={{ border: 'none', paddingLeft: 18, paddingRight: 18 }}

@@ -11,9 +11,9 @@ import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueri
 import { SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { withDedaSlug } from 'libs/authentication/withDedaSlug';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
-import { HEADER_GRADIENT, QUOTE_SHADE, TITLE_SHADE_DEDA } from 'libs/dedaHeader';
+import { HEADER_GRADIENT, QUOTE_SHADE_OPACITY, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 const { Title } = Typography;
 
@@ -87,6 +87,9 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     const featuredDedaDataResult = useFeaturedDedaData(dedaId);
     // Cabeçalho: imagem própria (dedaHeaderImage) ou, sem ela, a do card como antes.
     const headerImage = useDedaHeaderImage(dedaId);
+    // O esfumado do cabeçalho segue o título e a citação (qualquer largura/tamanho de texto).
+    const titleRef = useRef<HTMLDivElement>(null);
+    const quoteRef = useRef<HTMLDivElement>(null);
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
     const [activeTab, setActiveTab] = useState('dedaNotes');
@@ -136,12 +139,15 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                 <DedaHeaderBackdrop
                     images={[headerImage, featuredDeda?.dedaFeaturedImage]}
                     gradient={HEADER_GRADIENT}
-                    shades={[TITLE_SHADE_DEDA, QUOTE_SHADE]}
+                    textShades={[
+                        { target: titleRef, opacity: TITLE_SHADE_OPACITY },
+                        { target: quoteRef, opacity: QUOTE_SHADE_OPACITY },
+                    ]}
                 />
                 <MaxWidthContainer style={{ marginBottom: '2rem' }}>
                     {isDesktop ? (
                         <Flex justify="space-between">
-                            <Flex align="center">
+                            <Flex align="center" ref={titleRef}>
                                 <Button
                                     style={{ border: 'none' }}
                                     icon={<ArrowBackIos className="color-secondary" />}
@@ -152,7 +158,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                                 />
                                 <Typography.Title>{featuredDeda?.dedaTitle}</Typography.Title>
                             </Flex>
-                            <div style={{ flex: 0.3 }} className="deda-header-quote">
+                            <div style={{ flex: 0.3, minWidth: 260 }} className="deda-header-quote" ref={quoteRef}>
                                 <DedaQuote dedaId={dedaId} />
                             </div>
                         </Flex>

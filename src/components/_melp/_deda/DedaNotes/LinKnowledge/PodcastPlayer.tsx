@@ -10,6 +10,7 @@ import {
     formatTime,
     loadPosition,
     loadRate,
+    mediaUrl,
     nextRate,
     playerKeyAction,
     savePosition,
@@ -165,13 +166,27 @@ const RateButton = styled.button`
     }
 `;
 
+const ERROR_MESSAGE = 'Não foi possível carregar este episódio.';
+
+const VisuallyHidden = styled.span`
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+`;
+
 /** Player de podcast da Plataforma (áudio nativo), aberto no mesmo popup dos artigos e vídeos. */
 export const PodcastPlayer = ({ episode, titleId }: { episode: PodcastEpisode; titleId: string }) => {
     const audioRef = useRef<HTMLAudioElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const lastSavedRef = useRef(0);
-    const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+    // Só http(s): URL inválida nem monta o <audio> e cai direto no estado de erro.
+    const src = mediaUrl(episode.audioUrl);
+    const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(src ? 'loading' : 'error');
     const [playing, setPlaying] = useState(false);
+    const [announcement, setAnnouncement] = useState('');
     const [current, setCurrent] = useState(0);
     const [duration, setDuration] = useState(episode.durationSeconds ?? 0);
     const [rate, setRate] = useState(loadRate);
@@ -240,46 +255,52 @@ export const PodcastPlayer = ({ episode, titleId }: { episode: PodcastEpisode; t
                     </Typography.Title>
                 </div>
 
-                <audio
-                    ref={audioRef}
-                    src={episode.audioUrl}
-                    preload="metadata"
-                    onLoadedMetadata={(event) => {
-                        const audio = event.currentTarget;
-                        if (Number.isFinite(audio.duration)) setDuration(audio.duration);
-                        const saved = loadPosition(key);
-                        if (saved) audio.currentTime = saved;
-                        setCurrent(audio.currentTime);
-                        audio.playbackRate = rate;
-                        setStatus('ready');
-                        // Autoplay: o clique no card é o gesto do usuário. Se o navegador bloquear,
-                        // fica o botão play normal, sem erro (falha real de mídia chega pelo onError).
-                        audio.play().catch(() => undefined);
-                    }}
-                    onTimeUpdate={(event) => {
-                        const { currentTime, duration: total } = event.currentTarget;
-                        setCurrent(currentTime);
-                        if (Math.abs(currentTime - lastSavedRef.current) >= 5) {
-                            lastSavedRef.current = currentTime;
-                            savePosition(key, currentTime, total);
-                        }
-                    }}
-                    onPlay={() => setPlaying(true)}
-                    onPause={(event) => {
-                        setPlaying(false);
-                        savePosition(key, event.currentTarget.currentTime, event.currentTarget.duration);
-                    }}
-                    onEnded={() => {
-                        setPlaying(false);
-                        savePosition(key, 0, duration);
-                    }}
-                    onError={() => setStatus('error')}
-                />
+                {/* Anúncio para leitor de tela (o autoplay não é anunciado pelo navegador). */}
+                <VisuallyHidden aria-live="polite">{status === 'error' ? ERROR_MESSAGE : announcement}</VisuallyHidden>
+
+                {src && (
+                    <audio
+                        ref={audioRef}
+                        src={src}
+                        preload="metadata"
+                        onLoadedMetadata={(event) => {
+                            const audio = event.currentTarget;
+                            if (Number.isFinite(audio.duration)) setDuration(audio.duration);
+                            const saved = loadPosition(key);
+                            if (saved) audio.currentTime = saved;
+                            setCurrent(audio.currentTime);
+                            audio.playbackRate = rate;
+                            setStatus('ready');
+                            // Autoplay: o clique no card é o gesto do usuário. Se o navegador bloquear,
+                            // fica o botão play normal, sem erro (falha real de mídia chega pelo onError).
+                            audio.play().catch(() => undefined);
+                        }}
+                        onTimeUpdate={(event) => {
+                            const { currentTime, duration: total } = event.currentTarget;
+                            setCurrent(currentTime);
+                            if (Math.abs(currentTime - lastSavedRef.current) >= 5) {
+                                lastSavedRef.current = currentTime;
+                                savePosition(key, currentTime, total);
+                            }
+                        }}
+                        onPlay={() => {
+                            setPlaying(true);
+                            setAnnouncement(`Tocando: ${title}`);
+                        }}
+                        onPause={(event) => {
+                            setPlaying(false);
+                            savePosition(key, event.currentTarget.currentTime, event.currentTarget.duration);
+                        }}
+                        onEnded={() => {
+                            setPlaying(false);
+                            savePosition(key, 0, duration);
+                        }}
+                        onError={() => setStatus('error')}
+                    />
+                )}
 
                 {status === 'error' ? (
-                    <Typography.Text type="danger" role="alert">
-                        Não foi possível carregar este episódio.
-                    </Typography.Text>
+                    <Typography.Text type="danger">{ERROR_MESSAGE}</Typography.Text>
                 ) : (
                     <>
                         <Progress

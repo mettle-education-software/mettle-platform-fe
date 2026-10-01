@@ -56,6 +56,16 @@ export const coverBackground = (raw?: string | null) => {
     }
 };
 
+/** URL de mídia aceita no <audio>: só http(s) absoluta, normalizada pelo URL(); senão null. */
+export const mediaUrl = (raw?: string | null) => {
+    try {
+        const url = new URL(raw ?? '');
+        return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+    } catch {
+        return null;
+    }
+};
+
 const INTERACTIVE_TAGS = new Set(['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'A', 'AUDIO', 'VIDEO']);
 const INTERACTIVE_ROLES = new Set([
     'slider',

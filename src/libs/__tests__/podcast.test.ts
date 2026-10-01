@@ -4,6 +4,7 @@ import {
     formatTime,
     loadPosition,
     loadRate,
+    mediaUrl,
     nextRate,
     playerKeyAction,
     savePosition,
@@ -157,5 +158,21 @@ describe('cleanEpisodeTitle', () => {
         expect(cleanEpisodeTitle('Every Day Matters')).toBe('Every Day Matters');
         expect(cleanEpisodeTitle('Epic Stories')).toBe('Epic Stories');
         expect(cleanEpisodeTitle('42.')).toBe('42.');
+    });
+});
+
+describe('mediaUrl', () => {
+    it('aceita só http(s) absoluta e normaliza', () => {
+        expect(mediaUrl('https://cdn.example.com/ep 1.mp3')).toBe('https://cdn.example.com/ep%201.mp3');
+        expect(mediaUrl('http://example.com/a.mp3')).toBe('http://example.com/a.mp3');
+    });
+
+    it('recusa javascript:, data:, relativa e vazia', () => {
+        expect(mediaUrl('javascript:alert(1)')).toBeNull();
+        expect(mediaUrl('data:audio/mp3;base64,AAAA')).toBeNull();
+        expect(mediaUrl('/audio/ep.mp3')).toBeNull();
+        expect(mediaUrl('ep.mp3')).toBeNull();
+        expect(mediaUrl('')).toBeNull();
+        expect(mediaUrl(undefined)).toBeNull();
     });
 });

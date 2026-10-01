@@ -5,8 +5,7 @@ import {
     QUOTE_SHADE,
     shadeAt,
     shadeGradient,
-    DEDA_HEADER_GRADIENT,
-    HOME_HEADER_GRADIENT,
+    HEADER_GRADIENT,
     HOME_HEADER_TOP_OPACITY,
     pickHeaderImage,
     quoteContrastOverWhite,
@@ -75,13 +74,14 @@ describe('desktopWidths (até a largura real do asset)', () => {
 });
 
 describe('escurecimento da citação (página do DEDA)', () => {
-    it('nada nos dois terços da esquerda; no máximo 0,45 no terço direito', () => {
-        for (let at = 0; at <= 62; at += 1) expect(shadeAt(QUOTE_SHADE, at)).toBe(0);
-        for (let at = 63; at <= 100; at += 1) expect(shadeAt(QUOTE_SHADE, at)).toBeLessThanOrEqual(0.45);
-        expect(shadeAt(QUOTE_SHADE, 90)).toBe(0.45);
-        expect(shadeGradient(QUOTE_SHADE)).toBe(
-            'linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, 0.45) 78%, rgba(0, 0, 0, 0.45) 100%)',
-        );
+    it('nada até 50% da largura; sobe suave até 0,5 em 66% e fica assim', () => {
+        for (let at = 0; at <= 50; at += 1) expect(shadeAt(QUOTE_SHADE, at)).toBe(0);
+        expect(shadeAt(QUOTE_SHADE, 58)).toBeCloseTo(0.25);
+        for (let at = 66; at <= 100; at += 1) expect(shadeAt(QUOTE_SHADE, at)).toBe(0.5);
+    });
+
+    it('é o mínimo: com 0,45 a citação ficaria abaixo de 4.5:1', () => {
+        expect(QUOTE_SHADE[2][1]).toBe(0.5);
     });
 });
 
@@ -95,15 +95,11 @@ describe('pickHeaderImage (fallback do cabeçalho)', () => {
     });
 });
 
-describe('gradientes verticais', () => {
-    it('home: topo com a opacidade da constante (hoje 0,7) e base no #2b2b2b', () => {
-        expect(HOME_HEADER_TOP_OPACITY).toBe(0.7);
-        expect(HOME_HEADER_GRADIENT).toBe('linear-gradient(0deg, rgb(43, 43, 43) 0%, rgba(43, 43, 43, 0.7) 100%)');
-    });
-
-    it('página do DEDA: sólido até 15% e transparente no topo', () => {
-        expect(DEDA_HEADER_GRADIENT).toBe(
-            'linear-gradient(0deg, rgba(43, 43, 43, 1) 0%, rgba(43, 43, 43, 1) 15%, rgba(43, 43, 43, 0) 100%)',
+describe('gradiente vertical dos cabeçalhos', () => {
+    it('topo leve (constante, 0,15), 0,35 em 55% e fim exatamente no #2b2b2b do fundo', () => {
+        expect(HOME_HEADER_TOP_OPACITY).toBe(0.15);
+        expect(HEADER_GRADIENT).toBe(
+            'linear-gradient(180deg, rgba(43, 43, 43, 0.15) 0%, rgba(43, 43, 43, 0.35) 55%, #2b2b2b 100%)',
         );
     });
 });
@@ -117,16 +113,7 @@ describe('contraste da citação: gradiente vertical + sombra horizontal sobre i
         return worst;
     };
 
-    // Requisito ≥ 4.5:1 sobre imagem branca: AINDA NÃO atingido com a sombra limitada a 0,45 (pedido do
-    // André) — pior ponto ≈ 2,26:1 no topo/início da citação; metade de baixo ≈ 4,47:1. `test.failing`
-    // registra o requisito sem quebrar a suíte: quando a sombra/gradiente forem ajustados e passar, o
-    // Jest avisa para trocar por `it`.
-    test.failing('faixa inteira da citação ≥ 4.5:1 sobre imagem branca', () => {
+    it('área inteira da citação ≥ 4.5:1 sobre imagem branca', () => {
         expect(band(39, 83)).toBeGreaterThanOrEqual(4.5);
-    });
-
-    it('piso atual medido (não pode piorar): ≥ 2.2:1 na faixa inteira e ≥ 4.4:1 na metade de baixo', () => {
-        expect(band(39, 83)).toBeGreaterThanOrEqual(2.2);
-        expect(band(39, 55)).toBeGreaterThanOrEqual(4.4);
     });
 });

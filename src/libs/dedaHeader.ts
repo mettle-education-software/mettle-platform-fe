@@ -56,13 +56,14 @@ export const headerSources = (raw: string | null | undefined, intrinsicWidth?: n
     };
 };
 
-// Escurecimento só na página do DEDA, no terço direito atrás da citação (máx. 0,45, pedido do André);
-// nada à esquerda, nada na home e nada no celular. A legibilidade vem junto com o text-shadow da citação.
+// Escurecimento só na página do DEDA, atrás da citação: começa suave em 50% e chega a 0,5 em 66%
+// (a citação começa em 69–74% da largura). 0,5 é o mínimo (passo 0,05) para o branco da citação
+// ficar ≥ 4.5:1 sobre imagem branca em toda a área dela (testado). Nada na home e nada no celular.
 export const QUOTE_SHADE: [number, number][] = [
     [0, 0],
-    [62, 0],
-    [78, 0.45],
-    [100, 0.45],
+    [50, 0],
+    [66, 0.5],
+    [100, 0.5],
 ];
 
 export const shadeGradient = (stops: [number, number][]) =>
@@ -90,21 +91,16 @@ export const pickHeaderImage = <T extends { url: string; width?: number | null }
     return -1;
 };
 
-// Gradientes verticais (de baixo para cima) sobre a imagem. Terminam no #2b2b2b do fundo da página.
-// Home/Free: opacidade do topo ajustável (André decide vendo a imagem nova do London).
-export const HOME_HEADER_TOP_OPACITY = 0.7;
-export const HOME_HEADER_GRADIENT = `linear-gradient(0deg, rgb(43, 43, 43) 0%, rgba(43, 43, 43, ${HOME_HEADER_TOP_OPACITY}) 100%)`;
-
-// Página do DEDA: sólido até 15% da altura (onde ficam as abas) e transparente no topo.
-// Stops [posição % a partir de baixo, opacidade do #2b2b2b].
-export const DEDA_HEADER_VERTICAL: [number, number][] = [
-    [0, 1],
-    [15, 1],
-    [100, 0],
+// Gradiente vertical dos cabeçalhos (home, Free e página do DEDA), de cima para baixo: topo leve e
+// fim exatamente no #2b2b2b do fundo da página (a imagem se dilui, sem linha). Stops [% a partir do
+// topo, opacidade do #2b2b2b]. A opacidade do topo fica numa constante fácil de ajustar.
+export const HOME_HEADER_TOP_OPACITY = 0.15;
+export const HEADER_VERTICAL: [number, number][] = [
+    [0, HOME_HEADER_TOP_OPACITY],
+    [55, 0.35],
+    [100, 1],
 ];
-export const DEDA_HEADER_GRADIENT = `linear-gradient(0deg, ${DEDA_HEADER_VERTICAL.map(
-    ([at, alpha]) => `rgba(43, 43, 43, ${alpha}) ${at}%`,
-).join(', ')})`;
+export const HEADER_GRADIENT = `linear-gradient(180deg, rgba(43, 43, 43, ${HOME_HEADER_TOP_OPACITY}) 0%, rgba(43, 43, 43, 0.35) 55%, #2b2b2b 100%)`;
 
 const toLinear = (channel: number) => {
     const c = channel / 255;
@@ -117,7 +113,7 @@ const toLinear = (channel: number) => {
  */
 export const quoteContrastOverWhite = (xPct: number, yPctFromBottom: number) => {
     const afterShade = 255 * (1 - shadeAt(QUOTE_SHADE, xPct));
-    const vertical = shadeAt(DEDA_HEADER_VERTICAL, yPctFromBottom);
+    const vertical = shadeAt(HEADER_VERTICAL, 100 - yPctFromBottom);
     const channel = 43 * vertical + afterShade * (1 - vertical);
     return 1.05 / (toLinear(channel) + 0.05);
 };

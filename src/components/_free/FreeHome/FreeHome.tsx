@@ -5,10 +5,10 @@ import { Button, Flex, Typography } from 'antd';
 import { AppLayout, Chip, DedasGrid, MaxWidthContainer } from 'components';
 import { DedaHeaderBackdrop } from 'components/_melp/_deda/DedaHeaderBackdrop/DedaHeaderBackdrop';
 import { useDeviceSize, useGetCurrentDeda } from 'hooks';
-import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
+import { useDedaHeaderImage, useDedaHomeHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
-import { HEADER_GRADIENT, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
+import { HEADER_GRADIENT, HOME_ART_OBJECT_POSITION, HOME_MOBILE_CROPS, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import React, { useRef } from 'react';
 
@@ -63,6 +63,8 @@ export const FreeHome = () => {
     // Título e chip: o esfumado do cabeçalho segue este bloco (qualquer largura/tamanho de título).
     const titleRef = useRef<HTMLDivElement>(null);
     const headerImage = useDedaHeaderImage(currentDeda?.id);
+    // Home: arte própria (ultra-panorâmica) antes da imagem de cabeçalho do DEDA e da do card.
+    const homeHeaderImage = useDedaHomeHeaderImage(currentDeda?.id);
 
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
@@ -74,7 +76,12 @@ export const FreeHome = () => {
         <AppLayout>
             <HeaderSummary>
                 <DedaHeaderBackdrop
-                    images={[headerImage, featuredDeda?.dedaFeaturedImage]}
+                    images={[
+                        homeHeaderImage && { ...homeHeaderImage, objectPosition: HOME_ART_OBJECT_POSITION },
+                        headerImage,
+                        featuredDeda?.dedaFeaturedImage,
+                    ]}
+                    mobileCrops={HOME_MOBILE_CROPS}
                     gradient={HEADER_GRADIENT}
                     textShades={[{ target: titleRef, opacity: TITLE_SHADE_OPACITY }]}
                 />

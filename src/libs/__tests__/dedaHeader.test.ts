@@ -5,7 +5,9 @@ import {
     HEADER_GRADIENT,
     HEADER_VERTICAL,
     headerSources,
+    HOME_ART_OBJECT_POSITION,
     HOME_HEADER_TOP_OPACITY,
+    HOME_MOBILE_CROPS,
     pickHeaderImage,
     QUOTE_SHADE_OPACITY,
     shadeAt,
@@ -143,5 +145,72 @@ describe('contraste ≥ 4.5:1 sobre imagem branca (pior caso: topo do gradiente,
     it('abas inativas (branco, sem esfumado) na faixa das abas, y 74–100% da altura', () => {
         for (let y = 74; y <= 100; y += 1)
             expect(contrastOverWhite(WHITE, 0, shadeAt(HEADER_VERTICAL, y))).toBeGreaterThanOrEqual(4.5);
+    });
+});
+
+describe('cabeçalho da home: imagem própria e recorte do celular', () => {
+    const home = { url: `${asset}-home`, width: 3840 };
+    const header = { url: asset, width: 2172 };
+    const card = { url: `${asset}-card`, width: 1170 };
+
+    it('ordem: dedaHomeHeaderImage → dedaHeaderImage → dedaFeaturedImage', () => {
+        expect(pickHeaderImage([home, header, card])).toBe(0);
+        expect(pickHeaderImage([null, header, card])).toBe(1);
+        expect(pickHeaderImage([null, null, card])).toBe(2);
+        expect(pickHeaderImage([{ url: 'https://example.com/x.jpg' }, undefined, card])).toBe(2);
+    });
+
+    it('celular: recorte central 800×240 (430/800/1290w), nunca as larguras do desktop', () => {
+        const sources = headerSources(home.url, home.width, HOME_MOBILE_CROPS);
+        expect(sources?.mobile).toBe(
+            [
+                `${home.url}?w=430&h=129&fit=fill&f=center&fm=webp&q=70 430w`,
+                `${home.url}?w=800&h=240&fit=fill&f=center&fm=webp&q=70 800w`,
+                `${home.url}?w=1290&h=387&fit=fill&f=center&fm=webp&q=70 1290w`,
+            ].join(', '),
+        );
+        expect(sources?.mobile).not.toMatch(/w=(1920|2560|3840)/);
+    });
+
+    it('desktop igual ao dos demais (até a largura real) e página do DEDA com o recorte de sempre', () => {
+        expect(headerSources(home.url, home.width, HOME_MOBILE_CROPS)?.desktop).toBe(
+            headerSources(home.url, home.width)?.desktop,
+        );
+        expect(headerSources(header.url, header.width)?.mobile).toContain('w=800&h=440&fit=fill&f=center');
+    });
+});
+
+describe('arte da home: o topo do assunto fica visível (object-position vertical)', () => {
+    // Faixa da altura da imagem (em %) que aparece num cabeçalho w×h com `object-fit: cover` (a largura
+    // manda) e object-position vertical `y`%. `image` = [top, bottom] da parte da arte original que foi
+    // servida (desktop: inteira; celular: recorte central 3,33:1 de uma 3:1 → 5–95%).
+    const band = (w: number, h: number, ratio: number, y: number, image: [number, number] = [0, 100]) => {
+        const visible = (h / w) * ratio; // fração da altura servida
+        const top = (1 - visible) * (y / 100);
+        const span = image[1] - image[0];
+        return [image[0] + span * top, image[0] + span * (top + visible)];
+    };
+    const y = Number(HOME_ART_OBJECT_POSITION.split(' ')[1].replace('%', ''));
+    const TOWER_TOPS = 38.3; // topo das torres na arte do London (% da altura); base da ponte em ~60%
+
+    it.each([
+        ['1280 px', 1080, 146],
+        ['1920 px', 1720, 146],
+        ['2560 px (menu aberto)', 2360, 146],
+        ['2560 px (menu recolhido)', 2480, 146],
+    ])('%s: topo das torres dentro da faixa visível', (_label, w, h) => {
+        const [top, bottom] = band(w, h, 3, y);
+        expect(top).toBeLessThan(TOWER_TOPS);
+        expect(bottom).toBeGreaterThan(54); // torres e passarela superior inteiras
+    });
+
+    it('celular (390×58, recorte 800×240): ponte inteira', () => {
+        const [top, bottom] = band(390, 58, 800 / 240, y, [5, 95]);
+        expect(top).toBeLessThan(TOWER_TOPS);
+        expect(bottom).toBeGreaterThan(60);
+    });
+
+    it('centrado (50%) cortaria o topo das torres em 2560 px', () => {
+        expect(band(2360, 146, 3, 50)[0]).toBeGreaterThan(TOWER_TOPS);
     });
 });

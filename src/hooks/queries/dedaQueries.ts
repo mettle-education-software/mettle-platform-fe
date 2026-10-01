@@ -566,3 +566,29 @@ export const useDedaHeaderImage = (dedaId?: string) => {
     );
     return data?.dedaContentCollection.items[0]?.dedaHeaderImage ?? null;
 };
+
+// Imagem só do cabeçalho da HOME (campo `dedaHomeHeaderImage`, arte ultra-panorâmica). Consulta separada:
+// campo ausente/vazio ou erro → a home segue para `dedaHeaderImage` e depois `dedaFeaturedImage`.
+export const useDedaHomeHeaderImage = (dedaId?: string) => {
+    const { data } = useQuery<{
+        dedaContentCollection: {
+            items: { dedaHomeHeaderImage?: { url: string; width: number; height: number } | null }[];
+        };
+    }>(
+        gql`
+            query DedaHomeHeaderImage($dedaId: String) {
+                dedaContentCollection(where: { dedaId: $dedaId }, limit: 1) {
+                    items {
+                        dedaHomeHeaderImage {
+                            url
+                            width
+                            height
+                        }
+                    }
+                }
+            }
+        `,
+        { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
+    );
+    return data?.dedaContentCollection.items[0]?.dedaHomeHeaderImage ?? null;
+};

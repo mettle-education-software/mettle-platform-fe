@@ -10,6 +10,21 @@ export const MOBILE_CROPS = [
     [800, 440],
     [1290, 709],
 ] as const;
+/**
+ * Home (faixa de ~6,8:1 no celular): recorte central mais baixo, 800×240 (3,33:1), para o assunto da arte
+ * ultra-panorâmica (faixa central da imagem) aparecer inteiro em vez de ser cortado pelo recorte alto.
+ */
+export const HOME_MOBILE_CROPS = [
+    [430, 129],
+    [800, 240],
+    [1290, 387],
+] as const;
+export type MobileCrops = readonly (readonly [number, number])[];
+
+// Arte da home (ultra-panorâmica 3:1, assunto na faixa central): a faixa do cabeçalho mostra só ~19% da
+// altura em telas de 2560 px, menos que o assunto (~22%). Em vez de centrar (50%), a janela sobe um pouco
+// para o TOPO do assunto ficar sempre visível; a base some no gradiente que já a escurece.
+export const HOME_ART_OBJECT_POSITION = '50% 46%';
 // Larguras do desktop até a largura real do asset (a Images API não amplia; DPR ≥ 2 pega a maior).
 export const DESKTOP_WIDTHS = [1280, 1920, 2560, 3840] as const;
 const MAX_IMAGES_API_WIDTH = 4000;
@@ -38,8 +53,12 @@ export const desktopWidths = (intrinsic?: number | null) => {
 };
 
 /** `srcset` do celular (recorte) e do desktop (larguras reais); null se a imagem não for do Contentful. */
-export const headerSources = (raw: string | null | undefined, intrinsicWidth?: number | null): HeaderSources | null => {
-    const mobile = MOBILE_CROPS.map(([w, h]) => {
+export const headerSources = (
+    raw: string | null | undefined,
+    intrinsicWidth?: number | null,
+    mobileCrops: MobileCrops = MOBILE_CROPS,
+): HeaderSources | null => {
+    const mobile = mobileCrops.map(([w, h]) => {
         const href = contentfulImage(raw, { w, h, fit: 'fill', f: 'center', fm: 'webp', q: 70 });
         return href && `${href} ${w}w`;
     });

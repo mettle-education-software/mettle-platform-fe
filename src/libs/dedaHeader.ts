@@ -149,6 +149,19 @@ export const pickHeaderImage = <T extends { url: string; width?: number | null }
     return -1;
 };
 
+// Consulta que nunca responde não pode deixar o cabeçalho sem imagem: depois deste prazo, candidata
+// ainda `undefined` passa a valer como `null` e o cabeçalho usa a próxima imagem disponível.
+export const HEADER_IMAGE_WAIT_MS = 3000;
+
+/** Dispara `onTimeout` depois do prazo; devolve o cancelamento (para o unmount). */
+export const startHeaderImageWait = (onTimeout: () => void, ms = HEADER_IMAGE_WAIT_MS) => {
+    const id = setTimeout(onTimeout, ms);
+    return () => clearTimeout(id);
+};
+
+export const settleHeaderImages = <T>(candidates: (T | null | undefined)[], timedOut: boolean) =>
+    timedOut ? candidates.map((candidate) => candidate ?? null) : candidates;
+
 // Gradiente vertical dos cabeçalhos (home, Free e página do DEDA), de cima para baixo: topo leve e
 // fim exatamente no #2b2b2b do fundo da página (a imagem se dilui, sem linha). Stops [% a partir do
 // topo, opacidade do #2b2b2b]. A opacidade do topo fica numa constante fácil de ajustar.

@@ -7,6 +7,8 @@ import {
     MOBILE_MAX_WIDTH,
     MobileCrops,
     pickHeaderImage,
+    settleHeaderImages,
+    startHeaderImageWait,
     textShadeCss,
     textShadeRect,
 } from 'libs/dedaHeader';
@@ -110,7 +112,13 @@ export const DedaHeaderBackdrop = ({
     // Primeira candidata válida; se a imagem falhar ao carregar, passa para a próxima válida.
     const [failed, setFailed] = useState<string[]>([]);
     // Mantém `undefined` (ainda carregando): o seletor espera por ela antes de usar uma de menor preferência.
-    const candidates = images.map((image) => (image && failed.includes(image.url) ? null : image));
+    // Prazo de espera pelas consultas, contado do mount; depois dele vale a próxima imagem disponível.
+    const [timedOut, setTimedOut] = useState(false);
+    useEffect(() => startHeaderImageWait(() => setTimedOut(true)), []);
+    const candidates = settleHeaderImages(
+        images.map((image) => (image && failed.includes(image.url) ? null : image)),
+        timedOut,
+    );
     const index = pickHeaderImage(candidates);
     const image = index >= 0 ? candidates[index] : null;
     const sources = image ? headerSources(image.url, image.width, mobileCrops) : null;

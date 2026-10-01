@@ -3,6 +3,7 @@ import {
     contrastOverWhite,
     desktopWidths,
     HEADER_GRADIENT,
+    HEADER_IMAGE_WAIT_MS,
     HEADER_VERTICAL,
     headerSources,
     HOME_ART_OBJECT_POSITION,
@@ -10,7 +11,9 @@ import {
     HOME_MOBILE_CROPS,
     pickHeaderImage,
     QUOTE_SHADE_OPACITY,
+    settleHeaderImages,
     shadeAt,
+    startHeaderImageWait,
     TEXT_SHADE_CORE,
     textCornerRadius,
     textShadeCss,
@@ -223,5 +226,38 @@ describe('arte da home: o topo do assunto fica visível (object-position vertica
 
     it('centrado (50%) cortaria o topo das torres em 2560 px', () => {
         expect(band(2360, 146, 3, 50)[0]).toBeGreaterThan(TOWER_TOPS);
+    });
+});
+
+describe('consulta que nunca responde: prazo de espera do cabeçalho', () => {
+    const card = { url: `${asset}-card`, width: 1170 };
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('antes do prazo espera; aos 3 s a candidata pendente vale como null e entra a próxima imagem', () => {
+        let timedOut = false;
+        startHeaderImageWait(() => {
+            timedOut = true;
+        });
+        const pick = () => pickHeaderImage(settleHeaderImages([undefined, undefined, card], timedOut));
+
+        jest.advanceTimersByTime(HEADER_IMAGE_WAIT_MS - 1);
+        expect(pick()).toBe(-1);
+        jest.advanceTimersByTime(1);
+        expect(timedOut).toBe(true);
+        expect(pick()).toBe(2);
+    });
+
+    it('cancelado no unmount, o prazo não dispara', () => {
+        const onTimeout = jest.fn();
+        const cancel = startHeaderImageWait(onTimeout);
+        cancel();
+        jest.advanceTimersByTime(HEADER_IMAGE_WAIT_MS * 2);
+        expect(onTimeout).not.toHaveBeenCalled();
+    });
+
+    it('depois do prazo, uma candidata já carregada continua valendo', () => {
+        const home = { url: `${asset}-home`, width: 2171 };
+        expect(pickHeaderImage(settleHeaderImages([home, undefined, card], true))).toBe(0);
     });
 });

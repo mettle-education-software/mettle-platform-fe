@@ -61,7 +61,8 @@ export const headerSources = (raw: string | null | undefined, intrinsicWidth?: n
 // título/chip ou a citação com folga proporcional + fixa. Assim cobre o texto em qualquer largura de tela
 // (861–2560 px) e com títulos longos, e nunca escurece a base (sem linha). Só existe onde há texto
 // (desktop); no celular, nada.
-export const TEXT_SHADE_PAD = { xRatio: 0.8, yRatio: 0.6, px: 200 };
+// Folga horizontal maior que a vertical: o esfumado fica largo e cai devagar (sem "oval" visível).
+export const TEXT_SHADE_PAD = { xRatio: 1.12, yRatio: 0.6, px: 280, pxY: 200 };
 // Opacidade plana até 60% do raio (os cantos do texto ficam a ≤ 60% para qualquer tamanho, testado)
 // e depois cai em curva suave até a borda — sem "mancha" de borda nítida ao redor do texto.
 export const TEXT_SHADE_CORE = 60;
@@ -73,7 +74,7 @@ export const QUOTE_SHADE_OPACITY = 0.5;
 /** Retângulo do esfumado (px, relativo ao cabeçalho) para um texto em `rect`. */
 export const textShadeRect = (rect: { left: number; top: number; width: number; height: number }) => {
     const padX = rect.width * TEXT_SHADE_PAD.xRatio + TEXT_SHADE_PAD.px;
-    const padY = rect.height * TEXT_SHADE_PAD.yRatio + TEXT_SHADE_PAD.px;
+    const padY = rect.height * TEXT_SHADE_PAD.yRatio + TEXT_SHADE_PAD.pxY;
     return {
         left: rect.left - padX,
         top: rect.top - padY,
@@ -82,12 +83,13 @@ export const textShadeRect = (rect: { left: number; top: number; width: number; 
     };
 };
 
+// Queda gradual depois do núcleo (proporções da opacidade cheia; com 0,85: .85 → .75 → .5 → .25 → 0).
 const FALLOFF: [number, number][] = [
     [0, 1],
     [TEXT_SHADE_CORE, 1],
-    [72, 0.7],
-    [84, 0.35],
-    [93, 0.1],
+    [70, 0.88],
+    [80, 0.59],
+    [90, 0.29],
     [100, 0],
 ];
 

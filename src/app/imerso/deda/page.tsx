@@ -100,7 +100,12 @@ function DedaPage() {
                                 <Flex vertical gap="0.8rem" ref={titleRef}>
                                     <Chip
                                         bgColor="rgba(183, 144, 96, 0.3)"
-                                        style={{ border: 'none', paddingLeft: 18, paddingRight: 18 }}
+                                        style={{
+                                            border: 'none',
+                                            paddingLeft: 18,
+                                            paddingRight: 18,
+                                            alignSelf: 'flex-start',
+                                        }}
                                     >
                                         <Title level={5} style={{ color: '#FFFFFF' }}>
                                             Current DEDA

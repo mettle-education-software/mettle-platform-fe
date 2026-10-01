@@ -100,13 +100,13 @@ describe('gradiente vertical dos cabeçalhos', () => {
 describe('esfumados presos ao texto', () => {
     it('retângulo = texto + folga proporcional e fixa; CSS closest-side com núcleo plano', () => {
         expect(textShadeRect({ left: 100, top: 50, width: 200, height: 40 })).toEqual({
-            left: 100 - (160 + 200),
+            left: 100 - (224 + 280),
             top: 50 - (24 + 200),
-            width: 200 + 2 * (160 + 200),
+            width: 200 + 2 * (224 + 280),
             height: 40 + 2 * (24 + 200),
         });
         expect(textShadeCss(0.85)).toBe(
-            `radial-gradient(closest-side, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.85) ${TEXT_SHADE_CORE}%, rgba(0, 0, 0, 0.595) 72%, rgba(0, 0, 0, 0.298) 84%, rgba(0, 0, 0, 0.085) 93%, rgba(0, 0, 0, 0) 100%)`,
+            `radial-gradient(closest-side, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.85) ${TEXT_SHADE_CORE}%, rgba(0, 0, 0, 0.748) 70%, rgba(0, 0, 0, 0.501) 80%, rgba(0, 0, 0, 0.246) 90%, rgba(0, 0, 0, 0) 100%)`,
         );
     });
 

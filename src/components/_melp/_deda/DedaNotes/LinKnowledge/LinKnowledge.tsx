@@ -10,6 +10,7 @@ import { DedaNotesQueryResponse } from 'interfaces';
 import { padding, SMALL_VIEWPORT } from 'libs';
 import React, { useMemo, useRef } from 'react';
 import { PodcastFrame } from '../../../PodcastFrame/PodcastFrame';
+import { LinKnowledgeCardsRow } from './LinKnowledgeCard';
 import { MettleArticles } from './MettleArticles';
 
 const LinKnowledgeContainer = styled.div`
@@ -179,13 +180,16 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                             </CarouselTitle>
                         }
                     >
-                        <ArticlesRow>
-                            {videos.map(({ title, href }) => (
-                                <div key={href}>
-                                    <VideoFrame title={title} videoSrc={href} />
-                                </div>
+                        <LinKnowledgeCardsRow>
+                            {videos.map(({ title, href }, index) => (
+                                <VideoFrame
+                                    key={href}
+                                    title={title}
+                                    videoSrc={href}
+                                    meta={`Day ${index + 1} · Video`}
+                                />
                             ))}
-                        </ArticlesRow>
+                        </LinKnowledgeCardsRow>
                     </CarouselCard>
                     <CarouselCard
                         hideScroll

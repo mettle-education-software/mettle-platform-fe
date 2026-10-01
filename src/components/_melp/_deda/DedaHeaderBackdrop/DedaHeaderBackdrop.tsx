@@ -2,7 +2,14 @@
 
 import styled from '@emotion/styled';
 import { SMALL_VIEWPORT } from 'libs/constants';
-import { headerSources, MOBILE_MAX_WIDTH, pickHeaderImage, textShadeCss, textShadeRect } from 'libs/dedaHeader';
+import {
+    headerSources,
+    MOBILE_MAX_WIDTH,
+    MobileCrops,
+    pickHeaderImage,
+    textShadeCss,
+    textShadeRect,
+} from 'libs/dedaHeader';
 import React, { RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 // Acima de 860 px há o menu lateral (200 px): o cabeçalho é mais estreito que a tela.
@@ -84,11 +91,14 @@ type HeaderImage = { url: string; width?: number | null };
 
 export const DedaHeaderBackdrop = ({
     images,
+    mobileCrops,
     gradient,
     textShades,
 }: {
     /** Candidatas em ordem de preferência (dedaHeaderImage, dedaFeaturedImage). */
     images: (HeaderImage | null | undefined)[];
+    /** recortes do celular (padrão: os da página do DEDA; a home passa os dela, mais baixos) */
+    mobileCrops?: MobileCrops;
     gradient: string;
     /** esfumados presos aos textos (título/chip, citação); só existem onde o texto está montado */
     textShades?: TextShade[];
@@ -98,7 +108,7 @@ export const DedaHeaderBackdrop = ({
     const candidates = images.map((image) => (image && !failed.includes(image.url) ? image : null));
     const index = pickHeaderImage(candidates);
     const image = index >= 0 ? candidates[index] : null;
-    const sources = image ? headerSources(image.url, image.width) : null;
+    const sources = image ? headerSources(image.url, image.width, mobileCrops) : null;
     const anchorRef = useRef<HTMLDivElement>(null);
     const rects = useTextShadeRects(textShades, anchorRef);
     return (

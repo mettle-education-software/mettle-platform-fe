@@ -6,6 +6,7 @@ import {
     HEADER_VERTICAL,
     headerSources,
     HOME_HEADER_TOP_OPACITY,
+    HOME_MOBILE_CROPS,
     pickHeaderImage,
     QUOTE_SHADE_OPACITY,
     shadeAt,
@@ -143,5 +144,37 @@ describe('contraste ≥ 4.5:1 sobre imagem branca (pior caso: topo do gradiente,
     it('abas inativas (branco, sem esfumado) na faixa das abas, y 74–100% da altura', () => {
         for (let y = 74; y <= 100; y += 1)
             expect(contrastOverWhite(WHITE, 0, shadeAt(HEADER_VERTICAL, y))).toBeGreaterThanOrEqual(4.5);
+    });
+});
+
+describe('cabeçalho da home: imagem própria e recorte do celular', () => {
+    const home = { url: `${asset}-home`, width: 3840 };
+    const header = { url: asset, width: 2172 };
+    const card = { url: `${asset}-card`, width: 1170 };
+
+    it('ordem: dedaHomeHeaderImage → dedaHeaderImage → dedaFeaturedImage', () => {
+        expect(pickHeaderImage([home, header, card])).toBe(0);
+        expect(pickHeaderImage([null, header, card])).toBe(1);
+        expect(pickHeaderImage([null, null, card])).toBe(2);
+        expect(pickHeaderImage([{ url: 'https://example.com/x.jpg' }, undefined, card])).toBe(2);
+    });
+
+    it('celular: recorte central 800×240 (430/800/1290w), nunca as larguras do desktop', () => {
+        const sources = headerSources(home.url, home.width, HOME_MOBILE_CROPS);
+        expect(sources?.mobile).toBe(
+            [
+                `${home.url}?w=430&h=129&fit=fill&f=center&fm=webp&q=70 430w`,
+                `${home.url}?w=800&h=240&fit=fill&f=center&fm=webp&q=70 800w`,
+                `${home.url}?w=1290&h=387&fit=fill&f=center&fm=webp&q=70 1290w`,
+            ].join(', '),
+        );
+        expect(sources?.mobile).not.toMatch(/w=(1920|2560|3840)/);
+    });
+
+    it('desktop igual ao dos demais (até a largura real) e página do DEDA com o recorte de sempre', () => {
+        expect(headerSources(home.url, home.width, HOME_MOBILE_CROPS)?.desktop).toBe(
+            headerSources(home.url, home.width)?.desktop,
+        );
+        expect(headerSources(header.url, header.width)?.mobile).toContain('w=800&h=440&fit=fill&f=center');
     });
 });

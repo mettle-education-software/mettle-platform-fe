@@ -5,10 +5,10 @@ import { Button, Flex, Typography } from 'antd';
 import { AppLayout, Chip, DedasGrid, MaxWidthContainer, withRoles } from 'components';
 import { DedaHeaderBackdrop } from 'components/_melp/_deda/DedaHeaderBackdrop/DedaHeaderBackdrop';
 import { useDeviceSize } from 'hooks';
-import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
+import { useDedaHeaderImage, useDedaHomeHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
-import { HEADER_GRADIENT, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
+import { HEADER_GRADIENT, HOME_MOBILE_CROPS, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -78,6 +78,8 @@ function DedaPage() {
     // Título e chip: o esfumado do cabeçalho segue este bloco (qualquer largura/tamanho de título).
     const titleRef = useRef<HTMLDivElement>(null);
     const headerImage = useDedaHeaderImage(selectedDeda);
+    // Home: arte própria (ultra-panorâmica) antes da imagem de cabeçalho do DEDA e da do card.
+    const homeHeaderImage = useDedaHomeHeaderImage(selectedDeda);
 
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
@@ -89,7 +91,8 @@ function DedaPage() {
         <AppLayout withMelpSummary>
             <HeaderSummary>
                 <DedaHeaderBackdrop
-                    images={[headerImage, featuredDeda?.dedaFeaturedImage]}
+                    images={[homeHeaderImage, headerImage, featuredDeda?.dedaFeaturedImage]}
+                    mobileCrops={HOME_MOBILE_CROPS}
                     gradient={HEADER_GRADIENT}
                     textShades={[{ target: titleRef, opacity: TITLE_SHADE_OPACITY }]}
                 />

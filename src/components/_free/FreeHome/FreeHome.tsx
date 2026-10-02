@@ -10,7 +10,7 @@ import { padding, SMALL_VIEWPORT } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { HEADER_GRADIENT, HOME_ART_OBJECT_POSITION, HOME_MOBILE_CROPS } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
-import React, { useRef } from 'react';
+import React from 'react';
 
 const { Title } = Typography;
 
@@ -60,8 +60,6 @@ export const FreeHome = () => {
 
     const featuredDedaDataResult = useFeaturedDedaData(currentDeda?.id);
     // Cabeçalho: imagem própria (dedaHeaderImage) ou, sem ela, a do card como antes.
-    // Título e chip: o esfumado do cabeçalho segue este bloco (qualquer largura/tamanho de título).
-    const titleRef = useRef<HTMLDivElement>(null);
     const headerImage = useDedaHeaderImage(currentDeda?.id);
     // Home: arte própria (ultra-panorâmica) antes da imagem de cabeçalho do DEDA e da do card.
     const homeHeaderImage = useDedaHomeHeaderImage(currentDeda?.id);
@@ -87,7 +85,7 @@ export const FreeHome = () => {
                 <MaxWidthContainer>
                     {device === 'desktop' && (
                         <Flex align="flex-end" justify="space-between">
-                            <Flex vertical gap="0.8rem" ref={titleRef}>
+                            <Flex vertical gap="0.8rem">
                                 <Chip
                                     bgColor="rgba(183, 144, 96, 0.3)"
                                     style={{

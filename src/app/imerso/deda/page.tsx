@@ -11,7 +11,7 @@ import { dedaPath } from 'libs/cleanUrls';
 import { HEADER_GRADIENT, HOME_ART_OBJECT_POSITION, HOME_MOBILE_CROPS } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const { Title } = Typography;
 
@@ -75,8 +75,6 @@ function DedaPage() {
 
     const featuredDedaDataResult = useFeaturedDedaData(selectedDeda);
     // Cabeçalho: imagem própria (dedaHeaderImage) ou, sem ela, a do card como antes.
-    // Título e chip: o esfumado do cabeçalho segue este bloco (qualquer largura/tamanho de título).
-    const titleRef = useRef<HTMLDivElement>(null);
     const headerImage = useDedaHeaderImage(selectedDeda);
     // Home: arte própria (ultra-panorâmica) antes da imagem de cabeçalho do DEDA e da do card.
     const homeHeaderImage = useDedaHomeHeaderImage(selectedDeda);
@@ -104,7 +102,7 @@ function DedaPage() {
                     <MaxWidthContainer>
                         {device === 'desktop' && (
                             <Flex align="flex-end" justify="space-between">
-                                <Flex vertical gap="0.8rem" ref={titleRef}>
+                                <Flex vertical gap="0.8rem">
                                     <Chip
                                         bgColor="rgba(183, 144, 96, 0.3)"
                                         style={{

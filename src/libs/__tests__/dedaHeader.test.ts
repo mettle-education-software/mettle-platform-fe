@@ -10,15 +10,9 @@ import {
     HOME_HEADER_TOP_OPACITY,
     HOME_MOBILE_CROPS,
     pickHeaderImage,
-    QUOTE_SHADE_OPACITY,
     settleHeaderImages,
     shadeAt,
     startHeaderImageWait,
-    TEXT_SHADE_BLUR,
-    TEXT_SHADE_PAD,
-    textShadeStyle,
-    textShadeRect,
-    TITLE_SHADE_OPACITY,
 } from '../dedaHeader';
 
 const asset = 'https://images.ctfassets.net/space/id/hash/photo-1520986606214';
@@ -105,59 +99,24 @@ describe('pickHeaderImage (fallback do cabeçalho)', () => {
 });
 
 describe('gradiente vertical dos cabeçalhos', () => {
-    it('topo leve (constante, 0,15), escurece desde 40% e termina exatamente no #2b2b2b do fundo', () => {
-        expect(HOME_HEADER_TOP_OPACITY).toBe(0.15);
+    it('overlay desde o topo (constante, 0,45), mais forte para baixo, termina exatamente no #2b2b2b do fundo', () => {
+        expect(HOME_HEADER_TOP_OPACITY).toBe(0.45);
         expect(HEADER_GRADIENT).toBe(
-            'linear-gradient(180deg, rgba(43, 43, 43, 0.15) 0%, rgba(43, 43, 43, 0.25) 40%, rgba(43, 43, 43, 0.75) 80%, #2b2b2b 100%)',
+            'linear-gradient(180deg, rgba(43, 43, 43, 0.45) 0%, rgba(43, 43, 43, 0.6) 40%, rgba(43, 43, 43, 0.85) 80%, #2b2b2b 100%)',
         );
     });
 });
 
-describe('sombra justa ao texto', () => {
-    it('retângulo = texto + folga FIXA (não cresce com o texto); preto desfocado', () => {
-        expect(textShadeRect({ left: 100, top: 50, width: 200, height: 40 })).toEqual({
-            left: 100 - TEXT_SHADE_PAD,
-            top: 50 - TEXT_SHADE_PAD,
-            width: 200 + 2 * TEXT_SHADE_PAD,
-            height: 40 + 2 * TEXT_SHADE_PAD,
-        });
-        expect(textShadeStyle(0.55)).toEqual({
-            background: 'rgba(0, 0, 0, 0.55)',
-            borderRadius: TEXT_SHADE_PAD,
-            filter: `blur(${TEXT_SHADE_BLUR}px)`,
-        });
-    });
-
-    // Regressão de 02-Out-2026: com a elipse proporcional, o título "The Bilingual Brain" (~440 px)
-    // gerava uma sombra de ~1.700 px que apagava a imagem inteira. A sombra passa do texto só a folga.
-    it('título longo não cobre o cabeçalho: a sombra passa do texto só a folga fixa', () => {
-        for (const width of [140, 440, 800]) {
-            const shade = textShadeRect({ left: 0, top: 0, width, height: 56 });
-            expect(shade.width - width).toBe(2 * TEXT_SHADE_PAD);
-        }
-        expect(TEXT_SHADE_PAD).toBeLessThanOrEqual(96);
-    });
-});
-
-const GOLD = '#b89261';
 const WHITE = '#ffffff';
 
-describe('contraste sobre imagem branca (pior caso: foto clara do card; topo do gradiente, 0,15)', () => {
-    it('título dourado: texto grande, WCAG 3:1', () => {
-        expect(contrastOverWhite(GOLD, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(3);
+describe('overlay sobre a imagem inteira, sempre (padrão do Pedro; sem sombra localizada atrás do texto)', () => {
+    it('cobre a imagem toda desde o topo e só aumenta para baixo', () => {
+        expect(HOME_HEADER_TOP_OPACITY).toBeGreaterThanOrEqual(0.4);
+        for (let y = 1; y <= 100; y += 1)
+            expect(shadeAt(HEADER_VERTICAL, y)).toBeGreaterThanOrEqual(shadeAt(HEADER_VERTICAL, y - 1));
     });
 
-    it('chip "Current DEDA" (na sombra do título) e citação, brancos: 4.5:1', () => {
-        expect(contrastOverWhite(WHITE, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
-        expect(contrastOverWhite(WHITE, QUOTE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
-    });
-
-    it('as opacidades são as mínimas (0,05 a menos já falha)', () => {
-        expect(contrastOverWhite(GOLD, TITLE_SHADE_OPACITY - 0.05)).toBeLessThan(3);
-        expect(contrastOverWhite(WHITE, QUOTE_SHADE_OPACITY - 0.05)).toBeLessThan(4.5);
-    });
-
-    it('abas inativas (branco, sem esfumado) na faixa das abas, y 74–100% da altura', () => {
+    it('abas inativas (branco) na faixa das abas, y 74–100% da altura', () => {
         for (let y = 74; y <= 100; y += 1)
             expect(contrastOverWhite(WHITE, 0, shadeAt(HEADER_VERTICAL, y))).toBeGreaterThanOrEqual(4.5);
     });

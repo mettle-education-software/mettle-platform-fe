@@ -8,7 +8,7 @@ import { useDeviceSize } from 'hooks';
 import { useDedaHeaderImage, useDedaHomeHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
-import { HEADER_GRADIENT, HOME_ART_OBJECT_POSITION, HOME_MOBILE_CROPS, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
+import { HEADER_GRADIENT, HOME_ART_OBJECT_POSITION, HOME_MOBILE_CROPS } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -99,7 +99,6 @@ function DedaPage() {
                     // Bloqueada no celular o cabeçalho é mais alto (~2,8:1): vale o recorte padrão, mais alto.
                     mobileCrops={blockedDEDAs ? undefined : HOME_MOBILE_CROPS}
                     gradient={HEADER_GRADIENT}
-                    textShades={[{ target: titleRef, opacity: TITLE_SHADE_OPACITY }]}
                 />
                 {!blockedDEDAs ? (
                     <MaxWidthContainer>

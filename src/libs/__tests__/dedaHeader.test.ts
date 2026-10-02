@@ -1,6 +1,5 @@
 import {
     contentfulImage,
-    contrastOver,
     contrastOverWhite,
     desktopWidths,
     HEADER_GRADIENT,
@@ -138,29 +137,24 @@ describe('sombra justa ao texto', () => {
         }
         expect(TEXT_SHADE_PAD).toBeLessThanOrEqual(96);
     });
-
-    it('o texto inteiro fica na parte de opacidade cheia (folga ≥ 2× o desfoque)', () => {
-        expect(TEXT_SHADE_PAD).toBeGreaterThanOrEqual(2 * TEXT_SHADE_BLUR);
-    });
 });
 
 const GOLD = '#b89261';
 const WHITE = '#ffffff';
 
-// As imagens de cabeçalho são nossas (identidade: céu/mar calmos nas laterais, luz de fim de tarde), não
-// branco puro. O pior caso real é um céu claro dourado (#f4c98a, o tom mais claro das artes publicadas).
-const BRIGHT_SKY = '#f4c98a';
+describe('contraste sobre imagem branca (pior caso: foto clara do card; topo do gradiente, 0,15)', () => {
+    it('título dourado: texto grande, WCAG 3:1', () => {
+        expect(contrastOverWhite(GOLD, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(3);
+    });
 
-describe('contraste sobre o céu mais claro das artes (topo do gradiente, 0,15)', () => {
-    it('título dourado (texto grande, WCAG 3:1) e chip/citação brancos (4.5:1)', () => {
-        expect(contrastOver(BRIGHT_SKY, GOLD, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(3);
-        expect(contrastOver(BRIGHT_SKY, WHITE, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
-        expect(contrastOver(BRIGHT_SKY, WHITE, QUOTE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
+    it('chip "Current DEDA" (na sombra do título) e citação, brancos: 4.5:1', () => {
+        expect(contrastOverWhite(WHITE, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
+        expect(contrastOverWhite(WHITE, QUOTE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
     });
 
     it('as opacidades são as mínimas (0,05 a menos já falha)', () => {
-        expect(contrastOver(BRIGHT_SKY, GOLD, TITLE_SHADE_OPACITY - 0.05)).toBeLessThan(3);
-        expect(contrastOver(BRIGHT_SKY, WHITE, QUOTE_SHADE_OPACITY - 0.05)).toBeLessThan(4.5);
+        expect(contrastOverWhite(GOLD, TITLE_SHADE_OPACITY - 0.05)).toBeLessThan(3);
+        expect(contrastOverWhite(WHITE, QUOTE_SHADE_OPACITY - 0.05)).toBeLessThan(4.5);
     });
 
     it('abas inativas (branco, sem esfumado) na faixa das abas, y 74–100% da altura', () => {

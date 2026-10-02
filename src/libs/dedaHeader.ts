@@ -79,14 +79,14 @@ export const headerSources = (
 // título/chip ou a citação com uma folga FIXA (não cresce com o tamanho do texto). A versão anterior era
 // uma elipse com folga proporcional à largura do texto: num título longo ("The Bilingual Brain") ela
 // cobria o cabeçalho inteiro e apagava a imagem. Só existe onde há texto (desktop); no celular, nada.
-// A folga é o dobro do desfoque: o texto inteiro fica na parte de opacidade cheia.
+// A folga é o dobro do desfoque (desvio-padrão do blur): na borda do texto a sombra ainda tem ~97% da opacidade.
 export const TEXT_SHADE_BLUR = 40;
 export const TEXT_SHADE_PAD = TEXT_SHADE_BLUR * 2;
-// Mínimos (passos de 0,05) sobre o céu mais claro das nossas artes (#f4c98a), contando só o topo do
-// gradiente vertical (0,15, o caso mais claro): título dourado #b89261, texto grande → 3:1 (WCAG) → 0,65;
-// branco da citação → 4.5:1 → 0,4. As artes são nossas (laterais calmas, fim de tarde), não branco puro.
-export const TITLE_SHADE_OPACITY = 0.65;
-export const QUOTE_SHADE_OPACITY = 0.4;
+// Mínimos (passos de 0,05) sobre imagem BRANCA (o pior caso: a foto do card, usada quando o DEDA ainda não
+// tem imagem própria, pode ser clara), contando só o topo do gradiente vertical (0,15): título dourado
+// #b89261, texto grande → 3:1 (WCAG) → 0,7; branco da citação e do chip → 4.5:1 → 0,5.
+export const TITLE_SHADE_OPACITY = 0.7;
+export const QUOTE_SHADE_OPACITY = 0.5;
 
 /** Retângulo da sombra (px, relativo ao cabeçalho) para um texto em `rect`. */
 export const textShadeRect = (rect: { left: number; top: number; width: number; height: number }) => ({
@@ -169,17 +169,11 @@ export const hexLuminance = (hex: string) =>
         .reduce((sum, value, i) => sum + value * [0.2126, 0.7152, 0.0722][i], 0);
 
 /**
- * Contraste (WCAG) do texto sobre uma cor da imagem (`imageHex`) → sombra preta de opacidade `shade`
+ * Contraste de um texto (`textHex`) sobre a PIOR imagem (branca): imagem → sombra preta de opacidade `shade`
  * → gradiente vertical com opacidade `vertical` (padrão: 0,15, o topo, o caso mais claro).
  */
-export const contrastOver = (imageHex: string, textHex: string, shade: number, vertical = HEADER_VERTICAL[0][1]) => {
-    const [r, g, b] = [1, 3, 5].map((i) =>
-        toLinear(43 * vertical + parseInt(imageHex.slice(i, i + 2), 16) * (1 - shade) * (1 - vertical)),
-    );
-    const background = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+export const contrastOverWhite = (textHex: string, shade: number, vertical = HEADER_VERTICAL[0][1]) => {
+    const background = toLinear(43 * vertical + 255 * (1 - shade) * (1 - vertical));
     const text = hexLuminance(textHex);
     return (Math.max(text, background) + 0.05) / (Math.min(text, background) + 0.05);
 };
-
-export const contrastOverWhite = (textHex: string, shade: number, vertical = HEADER_VERTICAL[0][1]) =>
-    contrastOver('#ffffff', textHex, shade, vertical);

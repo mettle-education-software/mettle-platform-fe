@@ -75,53 +75,33 @@ export const headerSources = (
     };
 };
 
-// Esfumados atrás do texto, PRESOS AO TEXTO (não à largura do cabeçalho): cada um é uma elipse
-// (`radial-gradient(closest-side, …)`) desenhada sob o gradiente vertical, num retângulo que envolve o
-// título/chip ou a citação com folga proporcional + fixa. Assim cobre o texto em qualquer largura de tela
-// (861–2560 px) e com títulos longos, e nunca escurece a base (sem linha). Só existe onde há texto
-// (desktop); no celular, nada.
-// Folga horizontal maior que a vertical: o esfumado fica largo e cai devagar (sem "oval" visível).
-export const TEXT_SHADE_PAD = { xRatio: 1.12, yRatio: 0.6, px: 280, pxY: 200 };
-// Opacidade plana até 60% do raio (os cantos do texto ficam a ≤ 60% para qualquer tamanho, testado)
-// e depois cai em curva suave até a borda — sem "mancha" de borda nítida ao redor do texto.
-export const TEXT_SHADE_CORE = 60;
-// Mínimos (passos de 0,05) para ≥ 4.5:1 sobre imagem branca, contando só o topo do gradiente vertical
-// (0,15, o caso mais claro): dourado #b89261 do título → 0,85; branco da citação → 0,5.
-export const TITLE_SHADE_OPACITY = 0.85;
-export const QUOTE_SHADE_OPACITY = 0.5;
+// Sombra atrás do texto, JUSTA AO TEXTO: um retângulo de cantos redondos, desfocado, que envolve o
+// título/chip ou a citação com uma folga FIXA (não cresce com o tamanho do texto). A versão anterior era
+// uma elipse com folga proporcional à largura do texto: num título longo ("The Bilingual Brain") ela
+// cobria o cabeçalho inteiro e apagava a imagem. Só existe onde há texto (desktop); no celular, nada.
+// A folga é o dobro do desfoque: o texto inteiro fica na parte de opacidade cheia.
+export const TEXT_SHADE_BLUR = 40;
+export const TEXT_SHADE_PAD = TEXT_SHADE_BLUR * 2;
+// Mínimos (passos de 0,05) sobre o céu mais claro das nossas artes (#f4c98a), contando só o topo do
+// gradiente vertical (0,15, o caso mais claro): título dourado #b89261, texto grande → 3:1 (WCAG) → 0,65;
+// branco da citação → 4.5:1 → 0,4. As artes são nossas (laterais calmas, fim de tarde), não branco puro.
+export const TITLE_SHADE_OPACITY = 0.65;
+export const QUOTE_SHADE_OPACITY = 0.4;
 
-/** Retângulo do esfumado (px, relativo ao cabeçalho) para um texto em `rect`. */
-export const textShadeRect = (rect: { left: number; top: number; width: number; height: number }) => {
-    const padX = rect.width * TEXT_SHADE_PAD.xRatio + TEXT_SHADE_PAD.px;
-    const padY = rect.height * TEXT_SHADE_PAD.yRatio + TEXT_SHADE_PAD.pxY;
-    return {
-        left: rect.left - padX,
-        top: rect.top - padY,
-        width: rect.width + 2 * padX,
-        height: rect.height + 2 * padY,
-    };
-};
+/** Retângulo da sombra (px, relativo ao cabeçalho) para um texto em `rect`. */
+export const textShadeRect = (rect: { left: number; top: number; width: number; height: number }) => ({
+    left: rect.left - TEXT_SHADE_PAD,
+    top: rect.top - TEXT_SHADE_PAD,
+    width: rect.width + 2 * TEXT_SHADE_PAD,
+    height: rect.height + 2 * TEXT_SHADE_PAD,
+});
 
-// Queda gradual depois do núcleo (proporções da opacidade cheia; com 0,85: .85 → .75 → .5 → .25 → 0).
-const FALLOFF: [number, number][] = [
-    [0, 1],
-    [TEXT_SHADE_CORE, 1],
-    [70, 0.88],
-    [80, 0.59],
-    [90, 0.29],
-    [100, 0],
-];
-
-export const textShadeCss = (opacity: number) =>
-    `radial-gradient(closest-side, ${FALLOFF.map(
-        ([at, k]) => `rgba(0, 0, 0, ${Math.round(opacity * k * 1000) / 1000}) ${at}%`,
-    ).join(', ')})`;
-
-/** Posição do canto do texto no esfumado, em % do raio (0 = centro, 100 = borda). */
-export const textCornerRadius = (width: number, height: number) => {
-    const box = textShadeRect({ left: 0, top: 0, width, height });
-    return Math.hypot(width / box.width, height / box.height) * 100;
-};
+/** Estilo da sombra: preto na opacidade pedida, desfocado nas bordas. */
+export const textShadeStyle = (opacity: number) => ({
+    background: `rgba(0, 0, 0, ${opacity})`,
+    borderRadius: TEXT_SHADE_PAD,
+    filter: `blur(${TEXT_SHADE_BLUR}px)`,
+});
 
 /** Opacidade do escurecimento numa posição (%), por interpolação linear entre os stops. */
 export const shadeAt = (stops: [number, number][], at: number) => {
@@ -189,11 +169,17 @@ export const hexLuminance = (hex: string) =>
         .reduce((sum, value, i) => sum + value * [0.2126, 0.7152, 0.0722][i], 0);
 
 /**
- * Contraste de um texto (`textHex`) sobre a PIOR imagem (branca): imagem → esfumado de opacidade `shade`
+ * Contraste (WCAG) do texto sobre uma cor da imagem (`imageHex`) → sombra preta de opacidade `shade`
  * → gradiente vertical com opacidade `vertical` (padrão: 0,15, o topo, o caso mais claro).
  */
-export const contrastOverWhite = (textHex: string, shade: number, vertical = HEADER_VERTICAL[0][1]) => {
-    const background = toLinear(43 * vertical + 255 * (1 - shade) * (1 - vertical));
+export const contrastOver = (imageHex: string, textHex: string, shade: number, vertical = HEADER_VERTICAL[0][1]) => {
+    const [r, g, b] = [1, 3, 5].map((i) =>
+        toLinear(43 * vertical + parseInt(imageHex.slice(i, i + 2), 16) * (1 - shade) * (1 - vertical)),
+    );
+    const background = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     const text = hexLuminance(textHex);
     return (Math.max(text, background) + 0.05) / (Math.min(text, background) + 0.05);
 };
+
+export const contrastOverWhite = (textHex: string, shade: number, vertical = HEADER_VERTICAL[0][1]) =>
+    contrastOver('#ffffff', textHex, shade, vertical);

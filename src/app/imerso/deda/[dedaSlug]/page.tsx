@@ -11,7 +11,7 @@ import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueri
 import { SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { withDedaSlug } from 'libs/authentication/withDedaSlug';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
-import { HEADER_GRADIENT, QUOTE_SHADE_OPACITY, TITLE_SHADE_OPACITY } from 'libs/dedaHeader';
+import { HEADER_GRADIENT } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import React, { useRef, useState } from 'react';
 
@@ -139,10 +139,6 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                 <DedaHeaderBackdrop
                     images={[headerImage, featuredDeda?.dedaFeaturedImage]}
                     gradient={HEADER_GRADIENT}
-                    textShades={[
-                        { target: titleRef, opacity: TITLE_SHADE_OPACITY },
-                        { target: quoteRef, opacity: QUOTE_SHADE_OPACITY },
-                    ]}
                 />
                 <MaxWidthContainer style={{ marginBottom: '2rem' }}>
                     {isDesktop ? (

@@ -75,34 +75,6 @@ export const headerSources = (
     };
 };
 
-// Sombra atrás do texto, JUSTA AO TEXTO: um retângulo de cantos redondos, desfocado, que envolve o
-// título/chip ou a citação com uma folga FIXA (não cresce com o tamanho do texto). A versão anterior era
-// uma elipse com folga proporcional à largura do texto: num título longo ("The Bilingual Brain") ela
-// cobria o cabeçalho inteiro e apagava a imagem. Só existe onde há texto (desktop); no celular, nada.
-// A folga é o dobro do desfoque (desvio-padrão do blur): na borda do texto a sombra ainda tem ~97% da opacidade.
-export const TEXT_SHADE_BLUR = 40;
-export const TEXT_SHADE_PAD = TEXT_SHADE_BLUR * 2;
-// Mínimos (passos de 0,05) sobre imagem BRANCA (o pior caso: a foto do card, usada quando o DEDA ainda não
-// tem imagem própria, pode ser clara), contando só o topo do gradiente vertical (0,15): título dourado
-// #b89261, texto grande → 3:1 (WCAG) → 0,7; branco da citação e do chip → 4.5:1 → 0,5.
-export const TITLE_SHADE_OPACITY = 0.7;
-export const QUOTE_SHADE_OPACITY = 0.5;
-
-/** Retângulo da sombra (px, relativo ao cabeçalho) para um texto em `rect`. */
-export const textShadeRect = (rect: { left: number; top: number; width: number; height: number }) => ({
-    left: rect.left - TEXT_SHADE_PAD,
-    top: rect.top - TEXT_SHADE_PAD,
-    width: rect.width + 2 * TEXT_SHADE_PAD,
-    height: rect.height + 2 * TEXT_SHADE_PAD,
-});
-
-/** Estilo da sombra: preto na opacidade pedida, desfocado nas bordas. */
-export const textShadeStyle = (opacity: number) => ({
-    background: `rgba(0, 0, 0, ${opacity})`,
-    borderRadius: TEXT_SHADE_PAD,
-    filter: `blur(${TEXT_SHADE_BLUR}px)`,
-});
-
 /** Opacidade do escurecimento numa posição (%), por interpolação linear entre os stops. */
 export const shadeAt = (stops: [number, number][], at: number) => {
     for (let i = 1; i < stops.length; i += 1) {
@@ -142,14 +114,16 @@ export const startHeaderImageWait = (onTimeout: () => void, ms = HEADER_IMAGE_WA
 export const settleHeaderImages = <T>(candidates: (T | null | undefined)[], timedOut: boolean) =>
     timedOut ? candidates.map((candidate) => candidate ?? null) : candidates;
 
-// Gradiente vertical dos cabeçalhos (home, Free e página do DEDA), de cima para baixo: topo leve e
-// fim exatamente no #2b2b2b do fundo da página (a imagem se dilui, sem linha). Stops [% a partir do
-// topo, opacidade do #2b2b2b]. A opacidade do topo fica numa constante fácil de ajustar.
-export const HOME_HEADER_TOP_OPACITY = 0.15;
+// Overlay dos cabeçalhos (home, Free e página do DEDA): uma camada #2b2b2b sobre a IMAGEM INTEIRA, sempre
+// (padrão do Pedro: "overlay sempre"), mais forte de cima para baixo, terminando exatamente no #2b2b2b do
+// fundo da página (a imagem se dilui, sem linha). É ela que dá leitura ao título e à citação; não há
+// sombra localizada atrás dos textos (André, 02-Out-2026: parecia sujeira). Stops [% a partir do topo,
+// opacidade do #2b2b2b]. A opacidade do topo fica numa constante fácil de ajustar.
+export const HOME_HEADER_TOP_OPACITY = 0.45;
 export const HEADER_VERTICAL: [number, number][] = [
     [0, HOME_HEADER_TOP_OPACITY],
-    [40, 0.25],
-    [80, 0.75],
+    [40, 0.6],
+    [80, 0.85],
     [100, 1],
 ];
 // Escurece antes da base para a imagem clara não "acabar" numa faixa; termina exatamente no #2b2b2b.
@@ -170,7 +144,7 @@ export const hexLuminance = (hex: string) =>
 
 /**
  * Contraste de um texto (`textHex`) sobre a PIOR imagem (branca): imagem → sombra preta de opacidade `shade`
- * → gradiente vertical com opacidade `vertical` (padrão: 0,15, o topo, o caso mais claro).
+ * (0 = sem sombra) → overlay vertical com opacidade `vertical`.
  */
 export const contrastOverWhite = (textHex: string, shade: number, vertical = HEADER_VERTICAL[0][1]) => {
     const background = toLinear(43 * vertical + 255 * (1 - shade) * (1 - vertical));

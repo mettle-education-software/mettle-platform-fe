@@ -10,7 +10,6 @@ export const GENRE_LABELS: Record<string, string> = {
     'practical-future': 'Practical & Future',
 };
 
-export const readingMinutes = (wordCount?: number | null) => Math.max(1, Math.round((wordCount ?? 0) / 200));
 
 export const formatEditionDate = (date?: string | null) =>
     date

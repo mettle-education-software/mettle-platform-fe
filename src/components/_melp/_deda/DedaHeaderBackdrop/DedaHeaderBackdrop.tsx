@@ -9,8 +9,8 @@ import {
     pickHeaderImage,
     settleHeaderImages,
     startHeaderImageWait,
-    textShadeCss,
     textShadeRect,
+    textShadeStyle,
 } from 'libs/dedaHeader';
 import React, { RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
@@ -154,7 +154,7 @@ export const DedaHeaderBackdrop = ({
                                 style={{
                                     position: 'absolute',
                                     ...rect,
-                                    background: textShadeCss(textShades[i].opacity),
+                                    ...textShadeStyle(textShades[i].opacity),
                                 }}
                             />
                         ),

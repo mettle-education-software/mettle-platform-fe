@@ -14,9 +14,9 @@ import {
     settleHeaderImages,
     shadeAt,
     startHeaderImageWait,
-    TEXT_SHADE_CORE,
-    textCornerRadius,
-    textShadeCss,
+    TEXT_SHADE_BLUR,
+    TEXT_SHADE_PAD,
+    textShadeStyle,
     textShadeRect,
     TITLE_SHADE_OPACITY,
 } from '../dedaHeader';
@@ -113,46 +113,47 @@ describe('gradiente vertical dos cabeçalhos', () => {
     });
 });
 
-describe('esfumados presos ao texto', () => {
-    it('retângulo = texto + folga proporcional e fixa; CSS closest-side com núcleo plano', () => {
+describe('sombra justa ao texto', () => {
+    it('retângulo = texto + folga FIXA (não cresce com o texto); preto desfocado', () => {
         expect(textShadeRect({ left: 100, top: 50, width: 200, height: 40 })).toEqual({
-            left: 100 - (224 + 280),
-            top: 50 - (24 + 200),
-            width: 200 + 2 * (224 + 280),
-            height: 40 + 2 * (24 + 200),
+            left: 100 - TEXT_SHADE_PAD,
+            top: 50 - TEXT_SHADE_PAD,
+            width: 200 + 2 * TEXT_SHADE_PAD,
+            height: 40 + 2 * TEXT_SHADE_PAD,
         });
-        expect(textShadeCss(0.85)).toBe(
-            `radial-gradient(closest-side, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.85) ${TEXT_SHADE_CORE}%, rgba(0, 0, 0, 0.748) 70%, rgba(0, 0, 0, 0.501) 80%, rgba(0, 0, 0, 0.246) 90%, rgba(0, 0, 0, 0) 100%)`,
-        );
+        expect(textShadeStyle(0.55)).toEqual({
+            background: 'rgba(0, 0, 0, 0.55)',
+            borderRadius: TEXT_SHADE_PAD,
+            filter: `blur(${TEXT_SHADE_BLUR}px)`,
+        });
     });
 
-    // Títulos de "London" (~140 px) a títulos longos em 1 ou 2 linhas ("The Bilingual Brain",
-    // "Morning, Night, Neither": até ~800 px) e citações de 180–420 px por 88–240 px — o que aparece
-    // entre 861 e 2560 px de tela.
-    it('o texto inteiro fica no núcleo de opacidade cheia, para qualquer tamanho', () => {
-        for (let w = 100; w <= 800; w += 20)
-            for (let h = 40; h <= 240; h += 8) expect(textCornerRadius(w, h)).toBeLessThanOrEqual(TEXT_SHADE_CORE);
+    // Regressão de 02-Out-2026: com a elipse proporcional, o título "The Bilingual Brain" (~440 px)
+    // gerava uma sombra de ~1.700 px que apagava a imagem inteira. A sombra passa do texto só a folga.
+    it('título longo não cobre o cabeçalho: a sombra passa do texto só a folga fixa', () => {
+        for (const width of [140, 440, 800]) {
+            const shade = textShadeRect({ left: 0, top: 0, width, height: 56 });
+            expect(shade.width - width).toBe(2 * TEXT_SHADE_PAD);
+        }
+        expect(TEXT_SHADE_PAD).toBeLessThanOrEqual(96);
     });
 });
 
 const GOLD = '#b89261';
 const WHITE = '#ffffff';
 
-describe('contraste ≥ 4.5:1 sobre imagem branca (pior caso: topo do gradiente, 0,15)', () => {
-    it('título dourado (home e página do DEDA) e ← dourado', () => {
-        expect(contrastOverWhite(GOLD, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
+describe('contraste sobre imagem branca (pior caso: foto clara do card; topo do gradiente, 0,15)', () => {
+    it('título dourado: texto grande, WCAG 3:1', () => {
+        expect(contrastOverWhite(GOLD, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(3);
     });
 
-    it('chip "Current DEDA" (branco, no mesmo esfumado do título)', () => {
+    it('chip "Current DEDA" (na sombra do título) e citação, brancos: 4.5:1', () => {
         expect(contrastOverWhite(WHITE, TITLE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
-    });
-
-    it('citação (branco)', () => {
         expect(contrastOverWhite(WHITE, QUOTE_SHADE_OPACITY)).toBeGreaterThanOrEqual(4.5);
     });
 
     it('as opacidades são as mínimas (0,05 a menos já falha)', () => {
-        expect(contrastOverWhite(GOLD, TITLE_SHADE_OPACITY - 0.05)).toBeLessThan(4.5);
+        expect(contrastOverWhite(GOLD, TITLE_SHADE_OPACITY - 0.05)).toBeLessThan(3);
         expect(contrastOverWhite(WHITE, QUOTE_SHADE_OPACITY - 0.05)).toBeLessThan(4.5);
     });
 

@@ -57,8 +57,8 @@ export const useRecorder: () => [
             if (e instanceof BlobEvent) setAudioURL(URL.createObjectURL(e.data));
         };
 
-        recorder.addEventListener('data available', handleData);
-        return () => recorder.removeEventListener('data available', handleData);
+        recorder.addEventListener('dataavailable', handleData);
+        return () => recorder.removeEventListener('dataavailable', handleData);
     }, [recorder, isRecording]);
 
     const startRecording = () => {

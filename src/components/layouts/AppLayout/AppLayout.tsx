@@ -2,14 +2,15 @@
 
 import { HomeOutlined, LogoutOutlined, MenuOutlined, SettingOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Button, Drawer, Flex, Layout, Menu, Typography } from 'antd';
+import { Alert, Button, Drawer, Flex, Layout, Menu, Typography } from 'antd';
 import { Logo, NotificationsList } from 'components';
 import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
 import { handleLogout, SMALL_VIEWPORT } from 'libs';
 import { hpecLessonPath } from 'libs/cleanUrls';
+import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAppContext, useMelpContext } from 'providers';
+import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { forwardRef, useEffect, useState } from 'react';
 import { DedaIcon } from '../../icons';
 import { UserMenu } from '../../molecules/UserMenu/UserMenu';
@@ -117,6 +118,37 @@ export const AppLayout = forwardRef<
 
         const { melpSummary } = useMelpContext();
         const { user } = useAppContext();
+        const { access, openCta } = useProductAccess();
+
+        // Imerso expirado: rotas fora da lista liberada mostram o CTA no lugar do conteúdo; nas liberadas, qualquer clique
+        // no conteúdo abre o modal, exceto o que estiver marcado com data-access-allow (e as abas, para navegar na LAMP).
+        const imersoState = access(IMERSO_PRODUCT).state;
+        const imersoLocked = imersoState === 'expired' && pathname.startsWith('/imerso');
+        const guardClick = (event: React.MouseEvent) => {
+            if ((event.target as HTMLElement).closest('[data-access-allow], .ant-tabs-tab')) return;
+            event.preventDefault();
+            event.stopPropagation();
+            openCta({ product: IMERSO_PRODUCT });
+        };
+        const content = !imersoLocked ? (
+            children
+        ) : isImersoRouteAllowedWhenExpired(pathname) ? (
+            <div onClickCapture={guardClick}>{children}</div>
+        ) : (
+            <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />
+        );
+        const graceBanner = imersoState === 'grace' && (
+            <Alert
+                banner
+                type="warning"
+                message="Não conseguimos processar seu pagamento — atualize para manter o acesso."
+                action={
+                    <Button size="small" href={RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL}>
+                        Atualizar pagamento
+                    </Button>
+                }
+            />
+        );
 
         const trigger = (
             <Button
@@ -151,7 +183,7 @@ export const AppLayout = forwardRef<
                             router.push('/');
                         },
                     },
-                    ...(user?.roles.includes('METTLE_STUDENT')
+                    ...(imersoState !== 'none'
                         ? [
                               {
                                   key: 'imerso',
@@ -255,7 +287,10 @@ export const AppLayout = forwardRef<
                             </Drawer>
                         </AppHeader>
                         <ContentLayout>
-                            <AppContent>{children}</AppContent>
+                            <AppContent>
+                                {graceBanner}
+                                {content}
+                            </AppContent>
                         </ContentLayout>
                     </Layout>
                 </PageLayout>
@@ -295,7 +330,10 @@ export const AppLayout = forwardRef<
                         </div>
                     </AppHeader>
                     <ContentLayout>
-                        <AppContent ref={ref}>{children}</AppContent>
+                        <AppContent ref={ref}>
+                            {graceBanner}
+                            {content}
+                        </AppContent>
                     </ContentLayout>
                 </Layout>
             </PageLayout>

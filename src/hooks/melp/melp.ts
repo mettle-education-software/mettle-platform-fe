@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MettleRoles } from 'interfaces';
 import { DedaDifficulty, MelpSummaryResponse } from 'interfaces/melp';
-import { useAppContext, useMelpContext, useNotificationsContext } from 'providers';
+import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { useAppContext, useMelpContext, useNotificationsContext, useProductAccess } from 'providers';
 import { useEffect, useState } from 'react';
 import { melpService } from 'services';
 
 export const useMelpSummary = (userUid?: string) => {
     const { user } = useAppContext();
+    const { access } = useProductAccess();
 
     return useQuery({
         queryKey: ['imerso-summary', userUid],
@@ -14,7 +16,8 @@ export const useMelpSummary = (userUid?: string) => {
             melpService.get<MelpSummaryResponse>(`/v2/${userUid as string}/summary`).then(({ data }) => data.data),
         enabled:
             !!userUid &&
-            [MettleRoles.METTLE_STUDENT, MettleRoles.METTLE_ADMIN].some((role) => user?.roles?.includes(role)),
+            ([MettleRoles.METTLE_STUDENT, MettleRoles.METTLE_ADMIN].some((role) => user?.roles?.includes(role)) ||
+                access(IMERSO_PRODUCT).state !== 'none'),
     });
 };
 

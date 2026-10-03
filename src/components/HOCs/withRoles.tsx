@@ -2,7 +2,7 @@
 
 import { LoadingLayout } from 'components';
 import { useRouter } from 'next/navigation';
-import { useAppContext } from 'providers';
+import { useAppContext, useProductAccess } from 'providers';
 import React from 'react';
 
 interface Config {
@@ -19,9 +19,11 @@ export function withRoles<P extends object>(Component: React.FC<P>, config: Conf
         const { roles, fallback } = config;
 
         const { user } = useAppContext();
+        const { access } = useProductAccess();
         const router = useRouter();
 
-        const hasPermission = roles.some((role) => user?.roles?.includes(role));
+        // Expirado ainda entra (modo leitura; o AppLayout decide o que abre). Só "none" é barrado.
+        const hasPermission = roles.some((role) => user?.roles?.includes(role) || access(role).state !== 'none');
 
         if (!user) return <LoadingLayout />;
 

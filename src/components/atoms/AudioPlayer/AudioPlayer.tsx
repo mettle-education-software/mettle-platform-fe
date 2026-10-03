@@ -2,13 +2,16 @@ import styled from '@emotion/styled';
 import { Flex } from 'antd';
 import { Typography } from 'antd';
 import React from 'react';
-import { AudioPlayer as RawAudioPlayer } from 'react-audio-play';
+import { AudioPlayerRef, AudioPlayer as RawAudioPlayer } from 'react-audio-play';
 
 const { Title, Text } = Typography;
 
 type AudioPlayerProps = Readonly<{
     audioURL: string;
     onPlayStart?: () => void;
+    onEnd?: () => void;
+    onError?: () => void;
+    subtitle?: string;
     primaryColor?: string;
     secondaryColor?: string;
     backgroundColor?: string;
@@ -36,9 +39,19 @@ const CoverImage = styled.div`
     background-image: url(${(props: { src?: string }) => props.src});
     background-size: cover;
     background-position: center;
+    flex: none;
+
+    @media (max-width: 400px) {
+        width: 4rem;
+        height: 4rem;
+    }
 `;
 
-export const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioURL, onPlayStart, title, coverSrc }) => {
+/** O ref expõe play/pause/stop do player (usado pelo player de duas faixas do passo 4). */
+export const AudioPlayer = React.forwardRef<AudioPlayerRef | undefined, AudioPlayerProps>(function AudioPlayer(
+    { audioURL, onPlayStart, onEnd, onError, title, subtitle, coverSrc },
+    ref,
+) {
     return (
         <PlayerWrapper>
             <CoverImage src={coverSrc} />
@@ -48,7 +61,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioURL, onPlayStart,
                         {title}
                     </Title>
                     <Text type="secondary" style={{ marginBottom: '0 !important' }}>
-                        Programa Imerso | DEDA
+                        {subtitle ?? 'Programa Imerso | DEDA'}
                     </Text>
                 </div>
                 <RawAudioPlayer
@@ -56,12 +69,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioURL, onPlayStart,
                     style={{ height: '5rem', boxShadow: 'none', border: 'none', padding: '0.2rem' }}
                     src={audioURL}
                     onPlay={onPlayStart}
+                    onEnd={onEnd}
+                    onError={onError}
+                    ref={ref}
                     sliderColor={'var(--brown-bg)'}
                 />
             </Flex>
         </PlayerWrapper>
     );
-};
+});
 
 // import styled from '@emotion/styled';
 // import { Howl } from 'howler';

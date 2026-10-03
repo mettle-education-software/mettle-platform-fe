@@ -10,7 +10,9 @@ import { DedaNotesQueryResponse } from 'interfaces';
 import { padding, SMALL_VIEWPORT } from 'libs';
 import React, { useMemo, useRef } from 'react';
 import { PodcastFrame } from '../../../PodcastFrame/PodcastFrame';
+import { LinKnowledgeCardsRow } from './LinKnowledgeCard';
 import { MettleArticles } from './MettleArticles';
+import { PodcastEpisodes } from './PodcastEpisodes';
 
 const LinKnowledgeContainer = styled.div`
     background: #2b2b2b;
@@ -179,13 +181,11 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                             </CarouselTitle>
                         }
                     >
-                        <ArticlesRow>
-                            {videos.map(({ title, href }) => (
-                                <div key={href}>
-                                    <VideoFrame title={title} videoSrc={href} />
-                                </div>
+                        <LinKnowledgeCardsRow>
+                            {videos.map(({ title, href }, index) => (
+                                <VideoFrame key={href} title={title} videoSrc={href} meta={`Day ${index + 1}`} />
                             ))}
-                        </ArticlesRow>
+                        </LinKnowledgeCardsRow>
                     </CarouselCard>
                     <CarouselCard
                         hideScroll
@@ -195,13 +195,18 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                             </CarouselTitle>
                         }
                     >
-                        <PodcastRow>
-                            {podcasts.map((podcastSrc) => (
-                                <div style={{ flexGrow: 1 }} key={podcastSrc}>
-                                    <PodcastFrame src={podcastSrc} />
-                                </div>
-                            ))}
-                        </PodcastRow>
+                        <PodcastEpisodes
+                            dedaId={dedaId}
+                            fallback={
+                                <PodcastRow>
+                                    {podcasts.map((podcastSrc) => (
+                                        <div style={{ flexGrow: 1 }} key={podcastSrc}>
+                                            <PodcastFrame src={podcastSrc} />
+                                        </div>
+                                    ))}
+                                </PodcastRow>
+                            }
+                        />
                     </CarouselCard>
                 </MainFlexColumn>
             </MaxWidthContainer>

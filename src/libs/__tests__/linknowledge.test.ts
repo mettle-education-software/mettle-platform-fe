@@ -1,11 +1,6 @@
-import { editionArticles, formatEditionDate, readingMinutes, splitAtMiddle } from '../linknowledge';
+import { editionArticles, formatEditionDate, splitAtMiddle } from '../linknowledge';
 
 describe('linknowledge', () => {
-    it('tempo de leitura ≈ palavras/200, mínimo 1', () => {
-        expect(readingMinutes(1000)).toBe(5);
-        expect(readingMinutes(0)).toBe(1);
-        expect(readingMinutes(undefined)).toBe(1);
-    });
 
     it('data da edição em inglês, sem deslocar o dia', () => {
         expect(formatEditionDate('2026-09-28')).toBe('28 September 2026');

@@ -14,7 +14,7 @@ export const useProductEventsSender = () => {
                 userEmail: string;
                 userFirstName: string;
             };
-        }) => n8nServiceWebhook.post(`/6a3498b7-5287-413c-afed-e504bda4eda6/event-handler/${productId}`, { ...dto }),
+        }) => n8nServiceWebhook.post(`/event-handler/${productId}`, { ...dto }),
     });
 };
 

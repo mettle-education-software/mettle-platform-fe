@@ -3,20 +3,29 @@
 import styled from '@emotion/styled';
 import { Button, Flex, Typography } from 'antd';
 import { AppLayout, Chip, DedasGrid, MaxWidthContainer } from 'components';
+import { DedaHeaderBackdrop } from 'components/_melp/_deda/DedaHeaderBackdrop/DedaHeaderBackdrop';
 import { useDeviceSize, useGetCurrentDeda } from 'hooks';
-import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
+import { useDedaHeaderImage, useDedaHomeHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
+import { HEADER_GRADIENT, HOME_ART_OBJECT_POSITION, HOME_MOBILE_CROPS } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
 const { Title } = Typography;
 
-const HeaderSummary = styled.section<{ imgUrl?: string }>`
-    background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43, 0.7) 100%), url(${({ imgUrl }) => imgUrl}),
-        #2b2b2b;
-    background-size: cover;
-    background-position: center;
+const HeaderSummary = styled.section`
+    background-color: #2b2b2b;
+    /* conteúdo acima do fundo (<DedaHeaderBackdrop>) */
+    & > :not([data-deda-backdrop]) {
+        position: relative;
+    }
+
+    /* título e chip legíveis sobre imagem clara */
+    h1,
+    h5 {
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+    }
     width: 100%;
     padding: 1.8rem 0;
     display: flex;
@@ -50,6 +59,10 @@ export const FreeHome = () => {
     const { data: currentDeda } = useGetCurrentDeda();
 
     const featuredDedaDataResult = useFeaturedDedaData(currentDeda?.id);
+    // Cabeçalho: imagem própria (dedaHeaderImage) ou, sem ela, a do card como antes.
+    const headerImage = useDedaHeaderImage(currentDeda?.id);
+    // Home: arte própria (ultra-panorâmica) antes da imagem de cabeçalho do DEDA e da do card.
+    const homeHeaderImage = useDedaHomeHeaderImage(currentDeda?.id);
 
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
@@ -59,14 +72,28 @@ export const FreeHome = () => {
 
     return (
         <AppLayout>
-            <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
+            <HeaderSummary>
+                <DedaHeaderBackdrop
+                    images={[
+                        homeHeaderImage && { ...homeHeaderImage, objectPosition: HOME_ART_OBJECT_POSITION },
+                        headerImage,
+                        featuredDeda?.dedaFeaturedImage,
+                    ]}
+                    mobileCrops={HOME_MOBILE_CROPS}
+                    gradient={HEADER_GRADIENT}
+                />
                 <MaxWidthContainer>
                     {device === 'desktop' && (
                         <Flex align="flex-end" justify="space-between">
                             <Flex vertical gap="0.8rem">
                                 <Chip
                                     bgColor="rgba(183, 144, 96, 0.3)"
-                                    style={{ border: 'none', paddingLeft: 18, paddingRight: 18 }}
+                                    style={{
+                                        border: 'none',
+                                        paddingLeft: 18,
+                                        paddingRight: 18,
+                                        alignSelf: 'flex-start',
+                                    }}
                                 >
                                     <Title level={5} style={{ color: '#FFFFFF' }}>
                                         Current DEDA

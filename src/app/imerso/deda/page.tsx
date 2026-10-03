@@ -3,21 +3,30 @@
 import styled from '@emotion/styled';
 import { Button, Flex, Typography } from 'antd';
 import { AppLayout, Chip, DedasGrid, MaxWidthContainer, withRoles } from 'components';
+import { DedaHeaderBackdrop } from 'components/_melp/_deda/DedaHeaderBackdrop/DedaHeaderBackdrop';
 import { useDeviceSize } from 'hooks';
-import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
+import { useDedaHeaderImage, useDedaHomeHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
+import { HEADER_GRADIENT, HOME_ART_OBJECT_POSITION, HOME_MOBILE_CROPS } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useState } from 'react';
 
 const { Title } = Typography;
 
-const HeaderSummary = styled.section<{ imgUrl?: string }>`
-    background: linear-gradient(0deg, rgb(43, 43, 43) 0%, rgb(43, 43, 43, 0.7) 100%), url(${({ imgUrl }) => imgUrl}),
-        #2b2b2b;
-    background-size: cover;
-    background-position: center;
+const HeaderSummary = styled.section`
+    background-color: #2b2b2b;
+    /* conteúdo acima do fundo (<DedaHeaderBackdrop>) */
+    & > :not([data-deda-backdrop]) {
+        position: relative;
+    }
+
+    /* título e chip legíveis sobre imagem clara */
+    h1,
+    h5 {
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+    }
     width: 100%;
     padding: 1.8rem 0;
     display: flex;
@@ -65,6 +74,10 @@ function DedaPage() {
     }, [melpSummary, unlockedDEDAs, setSelectedDeda, selectedDeda]);
 
     const featuredDedaDataResult = useFeaturedDedaData(selectedDeda);
+    // Cabeçalho: imagem própria (dedaHeaderImage) ou, sem ela, a do card como antes.
+    const headerImage = useDedaHeaderImage(selectedDeda);
+    // Home: arte própria (ultra-panorâmica) antes da imagem de cabeçalho do DEDA e da do card.
+    const homeHeaderImage = useDedaHomeHeaderImage(selectedDeda);
 
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
@@ -74,7 +87,17 @@ function DedaPage() {
 
     return (
         <AppLayout withMelpSummary>
-            <HeaderSummary imgUrl={featuredDeda?.dedaFeaturedImage.url}>
+            <HeaderSummary>
+                <DedaHeaderBackdrop
+                    images={[
+                        homeHeaderImage && { ...homeHeaderImage, objectPosition: HOME_ART_OBJECT_POSITION },
+                        headerImage,
+                        featuredDeda?.dedaFeaturedImage,
+                    ]}
+                    // Bloqueada no celular o cabeçalho é mais alto (~2,8:1): vale o recorte padrão, mais alto.
+                    mobileCrops={blockedDEDAs ? undefined : HOME_MOBILE_CROPS}
+                    gradient={HEADER_GRADIENT}
+                />
                 {!blockedDEDAs ? (
                     <MaxWidthContainer>
                         {device === 'desktop' && (
@@ -82,7 +105,12 @@ function DedaPage() {
                                 <Flex vertical gap="0.8rem">
                                     <Chip
                                         bgColor="rgba(183, 144, 96, 0.3)"
-                                        style={{ border: 'none', paddingLeft: 18, paddingRight: 18 }}
+                                        style={{
+                                            border: 'none',
+                                            paddingLeft: 18,
+                                            paddingRight: 18,
+                                            alignSelf: 'flex-start',
+                                        }}
                                     >
                                         <Title level={5} style={{ color: '#FFFFFF' }}>
                                             Current DEDA

@@ -354,6 +354,7 @@ export const useFeaturedDedaData = (dedaId?: string) => {
                         dedaTitle
                         dedaFeaturedImage {
                             url
+                            width
                         }
                     }
                 }
@@ -506,3 +507,92 @@ export const useLinKnowledgeEdition = (dedaId: string) =>
         `,
         { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
     );
+
+export type PodcastEpisode = {
+    title: string;
+    showName?: string | null;
+    coverImageUrl?: string | null;
+    audioUrl: string;
+    durationSeconds?: number | null;
+    accentColor?: string | null;
+};
+
+// Consulta separada: sem o campo no schema (ou sem episódios), a seção mantém os embeds do Spotify.
+export const usePodcastEpisodes = (dedaId: string) =>
+    useQuery<{
+        dedaContentCollection: { items: { dedaPodcastEpisodesCollection?: { items: (PodcastEpisode | null)[] } }[] };
+    }>(
+        gql`
+            query DedaPodcastEpisodes($dedaId: String) {
+                dedaContentCollection(where: { dedaId: $dedaId }, limit: 1) {
+                    items {
+                        dedaPodcastEpisodesCollection(limit: 7) {
+                            items {
+                                title
+                                showName
+                                coverImageUrl
+                                audioUrl
+                                durationSeconds
+                                accentColor
+                            }
+                        }
+                    }
+                }
+            }
+        `,
+        { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
+    );
+
+// Imagem própria do cabeçalho (campo `dedaHeaderImage`). Consulta separada: campo ausente/vazio ou
+// erro → o cabeçalho usa a `dedaFeaturedImage`, como antes.
+export const useDedaHeaderImage = (dedaId?: string) => {
+    const { data, loading } = useQuery<{
+        dedaContentCollection: { items: { dedaHeaderImage?: { url: string; width: number; height: number } | null }[] };
+    }>(
+        gql`
+            query DedaHeaderImage($dedaId: String) {
+                dedaContentCollection(where: { dedaId: $dedaId }, limit: 1) {
+                    items {
+                        dedaHeaderImage {
+                            url
+                            width
+                            height
+                        }
+                    }
+                }
+            }
+        `,
+        { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
+    );
+    // undefined = ainda não se sabe (o cabeçalho espera, para não baixar a imagem seguinte e trocar depois)
+    if (!dedaId || loading) return undefined;
+    return data?.dedaContentCollection.items[0]?.dedaHeaderImage ?? null;
+};
+
+// Imagem só do cabeçalho da HOME (campo `dedaHomeHeaderImage`, arte ultra-panorâmica). Consulta separada:
+// campo ausente/vazio ou erro → a home segue para `dedaHeaderImage` e depois `dedaFeaturedImage`.
+export const useDedaHomeHeaderImage = (dedaId?: string) => {
+    const { data, loading } = useQuery<{
+        dedaContentCollection: {
+            items: { dedaHomeHeaderImage?: { url: string; width: number; height: number } | null }[];
+        };
+    }>(
+        gql`
+            query DedaHomeHeaderImage($dedaId: String) {
+                dedaContentCollection(where: { dedaId: $dedaId }, limit: 1) {
+                    items {
+                        dedaHomeHeaderImage {
+                            url
+                            width
+                            height
+                        }
+                    }
+                }
+            }
+        `,
+        { variables: { dedaId }, skip: !dedaId, fetchPolicy: 'cache-first' },
+    );
+    // undefined = ainda não se sabe (o cabeçalho espera, para não baixar a imagem seguinte e trocar depois)
+    if (!dedaId || loading) return undefined;
+    return data?.dedaContentCollection.items[0]?.dedaHomeHeaderImage ?? null;
+};

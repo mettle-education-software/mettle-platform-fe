@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import { ArrowBackIos, ArrowForwardIos } from '@mui/icons-material';
 import { Button, Flex, Typography } from 'antd';
 import { LinKnowledgeArticle } from 'hooks/queries/dedaQueries';
-import { formatEditionDate, GENRE_LABELS, readingMinutes, splitAtMiddle } from 'libs/linknowledge';
+import { formatEditionDate, GENRE_LABELS, splitAtMiddle } from 'libs/linknowledge';
 import Image from 'next/image';
 import React from 'react';
 
@@ -135,7 +135,7 @@ export const MettleArticleReader = ({
                 </Typography.Title>
                 <Typography.Text style={{ color: '#595959' }}>
                     By {article.author || 'Mettle Editor'}
-                    {editionDate && ` · ${editionDate}`} · {readingMinutes(article.wordCount)} min read
+                    {editionDate && ` · ${editionDate}`}
                 </Typography.Text>
 
                 <ArticleImage image={imageTop} fallbackAlt={article.title} />

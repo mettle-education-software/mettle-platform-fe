@@ -8,6 +8,8 @@ import { ArticleFrame, MaxWidthContainer, VideoFrame } from 'components';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaNotesQueryResponse } from 'interfaces';
 import { padding, SMALL_VIEWPORT } from 'libs';
+import { todayCardDay } from 'libs/linknowledge';
+import { useMelpContext } from 'providers';
 import React, { useMemo, useRef } from 'react';
 import { PodcastFrame } from '../../../PodcastFrame/PodcastFrame';
 import { LinKnowledgeCardsRow } from './LinKnowledgeCard';
@@ -118,7 +120,9 @@ const CarouselCard = ({
                 )
             }
         >
-            <CarouselScrollableContent ref={scrollableContentRef}>{children}</CarouselScrollableContent>
+            <CarouselScrollableContent data-carousel ref={scrollableContentRef}>
+                {children}
+            </CarouselScrollableContent>
         </Card>
     );
 };
@@ -129,6 +133,8 @@ const CarouselTitle = styled(Typography.Title)`
 
 export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
     const dedaNotesResult = useDeda<DedaNotesQueryResponse>('deda-notes', dedaId);
+    const { melpSummary } = useMelpContext();
+    const todayDay = todayCardDay(melpSummary, dedaId);
     const dedaNotesContent = useMemo(() => dedaNotesResult?.data?.dedaContentCollection?.items[0], [dedaNotesResult]);
 
     if (!dedaNotesContent)
@@ -163,6 +169,7 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                     >
                         <MettleArticles
                             dedaId={dedaId}
+                            todayDay={todayDay}
                             fallback={
                                 <ArticlesRow>
                                     {articles.map(({ title, href }) => (
@@ -183,7 +190,13 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                     >
                         <LinKnowledgeCardsRow>
                             {videos.map(({ title, href }, index) => (
-                                <VideoFrame key={href} title={title} videoSrc={href} meta={`Day ${index + 1}`} />
+                                <VideoFrame
+                                    key={href}
+                                    title={title}
+                                    videoSrc={href}
+                                    meta={`Day ${index + 1}`}
+                                    today={index + 1 === todayDay}
+                                />
                             ))}
                         </LinKnowledgeCardsRow>
                     </CarouselCard>

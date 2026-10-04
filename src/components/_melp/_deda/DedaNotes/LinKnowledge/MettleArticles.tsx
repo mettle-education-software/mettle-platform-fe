@@ -9,7 +9,15 @@ import { LinKnowledgeCard, LinKnowledgeCardsRow } from './LinKnowledgeCard';
 import { METTLE_ARTICLE_TITLE_ID, MettleArticleReader } from './MettleArticleReader';
 
 /** Os 7 artigos do Mettle Editor, lidos no mesmo popup dos links do LinKnowledge; substituem os links externos quando existem. */
-export const MettleArticles = ({ dedaId, fallback }: { dedaId: string; fallback: React.ReactNode }) => {
+export const MettleArticles = ({
+    dedaId,
+    fallback,
+    todayDay = null,
+}: {
+    dedaId: string;
+    fallback: React.ReactNode;
+    todayDay?: number | null;
+}) => {
     const { data, loading } = useLinKnowledgeEdition(dedaId);
     const [openDay, setOpenDay] = useState<number | null>(null);
     const articles = editionArticles(data?.dedaContentCollection.items[0]?.dedaLinKnowledgeArticlesCollection?.items);
@@ -29,6 +37,7 @@ export const MettleArticles = ({ dedaId, fallback }: { dedaId: string; fallback:
                             key={article.day}
                             meta={`Day ${article.day} · ${GENRE_LABELS[article.genre] ?? article.genre}`}
                             title={article.title}
+                            today={article.day === todayDay}
                             onClick={() => setOpenDay(article.day)}
                             image={
                                 image && (

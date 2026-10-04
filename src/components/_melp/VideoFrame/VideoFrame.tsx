@@ -72,11 +72,13 @@ export const VideoFrame = ({
     title,
     fullWidth,
     meta,
+    today,
 }: {
     videoSrc: string;
     title: string;
     fullWidth?: boolean;
     meta?: string;
+    today?: boolean;
 }) => {
     const videoId = extractYouTubeID(videoSrc);
     const titleId = useId();
@@ -120,6 +122,7 @@ export const VideoFrame = ({
             <>
                 <LinKnowledgeCard
                     meta={meta}
+                    today={today}
                     title={title}
                     image={thumb}
                     overlay={

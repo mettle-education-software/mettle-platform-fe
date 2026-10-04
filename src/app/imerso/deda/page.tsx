@@ -8,7 +8,7 @@ import { useDeviceSize } from 'hooks';
 import { useDedaHeaderImage, useDedaHomeHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
-import { FULL_HEADER_CSS, HEADER_GRADIENT, HOME_ART_OBJECT_POSITION, HOME_MOBILE_CROPS } from 'libs/dedaHeader';
+import { HEADER_GRADIENT, HOME_ART_OBJECT_POSITION, HOME_MOBILE_CROPS } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -34,14 +34,6 @@ const HeaderSummary = styled.section`
     position: sticky;
     top: 0;
     z-index: 3;
-
-    /* imagem própria: altura segue a largura (3:1), conteúdo na base e cabeçalho rola com a página
-       (fixo, ocuparia metade da tela) */
-    ${FULL_HEADER_CSS}
-    &:has([data-deda-full]) {
-        position: relative;
-        align-items: flex-end;
-    }
 `;
 
 const GridContent = styled.section`
@@ -98,8 +90,8 @@ function DedaPage() {
             <HeaderSummary>
                 <DedaHeaderBackdrop
                     images={[
-                        homeHeaderImage && { ...homeHeaderImage, objectPosition: HOME_ART_OBJECT_POSITION, full: true },
-                        headerImage && { ...headerImage, full: true },
+                        homeHeaderImage && { ...homeHeaderImage, objectPosition: HOME_ART_OBJECT_POSITION },
+                        headerImage,
                         featuredDeda?.dedaFeaturedImage,
                     ]}
                     // Bloqueada no celular o cabeçalho é mais alto (~2,8:1): vale o recorte padrão, mais alto.

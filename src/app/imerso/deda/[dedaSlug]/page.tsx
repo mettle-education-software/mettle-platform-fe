@@ -11,7 +11,7 @@ import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueri
 import { SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { withDedaSlug } from 'libs/authentication/withDedaSlug';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
-import { FULL_HEADER_CSS, HEADER_GRADIENT } from 'libs/dedaHeader';
+import { HEADER_GRADIENT } from 'libs/dedaHeader';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
@@ -51,14 +51,6 @@ const HeaderSummary = styled.section`
 
     @media (max-width: ${SMALL_VIEWPORT}px) {
         height: 8vh;
-    }
-
-    /* imagem própria: altura segue a largura (3:1); no desktop nunca menor que os 250 px do conteúdo */
-    ${FULL_HEADER_CSS}
-    @media (min-width: ${SMALL_VIEWPORT + 1}px) {
-        &:has([data-deda-full]) {
-            min-height: 250px;
-        }
     }
 `;
 
@@ -142,7 +134,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
         <AppLayout withMelpSummary>
             <HeaderSummary>
                 <DedaHeaderBackdrop
-                    images={[headerImage && { ...headerImage, full: true }, featuredDeda?.dedaFeaturedImage]}
+                    images={[headerImage, featuredDeda?.dedaFeaturedImage]}
                     gradient={HEADER_GRADIENT}
                 />
                 <MaxWidthContainer style={{ marginBottom: '2rem' }}>

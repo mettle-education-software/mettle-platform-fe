@@ -19,15 +19,6 @@ export const HOME_MOBILE_CROPS = [
     [800, 240],
     [1290, 387],
 ] as const;
-/**
- * Imagem própria do cabeçalho (3:1): no celular o recorte também é 3:1, a faixa inteira da imagem, sem
- * cortar o assunto (fit=fill na mesma proporção do asset).
- */
-export const FULL_MOBILE_CROPS = [
-    [430, 143],
-    [800, 267],
-    [1290, 430],
-] as const;
 export type MobileCrops = readonly (readonly [number, number])[];
 
 // Arte da home (ultra-panorâmica 3:1, assunto na faixa central): a faixa do cabeçalho mostra só ~19% da
@@ -160,17 +151,3 @@ export const contrastOverWhite = (textHex: string, shade: number, vertical = HEA
     const text = hexLuminance(textHex);
     return (Math.max(text, background) + 0.05) / (Math.min(text, background) + 0.05);
 };
-
-// Cabeçalho com imagem própria (3:1): a altura segue a largura, para a imagem aparecer inteira. O teto de
-// altura evita um cabeçalho do tamanho da tela em monitores largos; acima dele a imagem (object-fit: cover,
-// centralizada) perde só uma faixa pequena e simétrica no topo e na base. Interpolado no `styled` do pai
-// (:has acha a camada marcada por <DedaHeaderBackdrop> quando a imagem escolhida é própria).
-export const FULL_HEADER_MAX_HEIGHT = 460;
-export const FULL_HEADER_CSS = `
-    &:has([data-deda-full]) {
-        aspect-ratio: 3 / 1;
-        width: 100%;
-        height: auto;
-        max-height: ${FULL_HEADER_MAX_HEIGHT}px;
-    }
-`;

@@ -5,8 +5,10 @@ import { ArrowBackIos } from '@mui/icons-material';
 import { Button, Flex, Typography } from 'antd';
 import { DedaActivity, DedaNotes, DedaQuote, DedaReview, MaxWidthContainer, TabNav, withRoles } from 'components';
 import { DedaHeaderBackdrop } from 'components/_melp/_deda/DedaHeaderBackdrop/DedaHeaderBackdrop';
+import { MyRecordings } from 'components/_melp/_deda/DedaRecorder/MyRecordings';
 import { AppLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
+import { useDedaRecordings } from 'hooks/melp/dedaRecording';
 import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { withDedaSlug } from 'libs/authentication/withDedaSlug';
@@ -90,6 +92,8 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
     const [activeTab, setActiveTab] = useState('dedaNotes');
+    // Aba "Minhas gravações": só com o gravador liberado para o aluno (hooks/melp/dedaRecording).
+    const recordingsTab = useDedaRecordings(dedaId).active;
 
     const tabItems = [
         {
@@ -128,6 +132,22 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                 </Title>
             ),
         },
+        ...(recordingsTab
+            ? [
+                  {
+                      key: 'dedaRecordings',
+                      label: (
+                          <Title
+                              level={5}
+                              className={activeTab === 'dedaRecordings' ? 'activeTab' : undefined}
+                              style={{ color: '#FFFFFF', fontWeight: 400 }}
+                          >
+                              {isDesktop ? 'Minhas gravações' : 'Gravações'}
+                          </Title>
+                      ),
+                  },
+              ]
+            : []),
     ];
 
     return (
@@ -204,6 +224,13 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                 {activeTab === 'dedaNotes' && <DedaNotes dedaId={dedaId} />}
                 {activeTab === 'dedaActivity' && <DedaActivity dedaId={dedaId} />}
                 {activeTab === 'dedaReview' && <DedaReview dedaId={dedaId} />}
+                {activeTab === 'dedaRecordings' && recordingsTab && (
+                    <MyRecordings
+                        dedaId={dedaId}
+                        dedaTitle={featuredDeda?.dedaTitle}
+                        coverSrc={featuredDeda?.dedaFeaturedImage?.url}
+                    />
+                )}
             </Content>
         </AppLayout>
     );

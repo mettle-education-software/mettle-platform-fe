@@ -21,6 +21,12 @@ const nextConfig = {
         TAWK_TO_WIDGET_ID: process.env.TAWK_TO_WIDGET_ID,
         TAWK_TO_CHAT_LINK: process.env.TAWK_TO_CHAT_LINK,
         VERCEL_ENV: process.env.VERCEL_ENV,
+        // Gravador de voz do DEDA: só "on" liga (desligado por padrão). A liberação por conta é do servidor.
+        DEDA_RECORDER: process.env.DEDA_RECORDER,
+    },
+    // Microfone só para a própria Plataforma (nenhum iframe de terceiro pede o microfone).
+    async headers() {
+        return [{ source: '/:path*', headers: [{ key: 'Permissions-Policy', value: 'microphone=(self)' }] }];
     },
     publicRuntimeConfig: {
         SENTRY_DSN: process.env.SENTRY_DSN,

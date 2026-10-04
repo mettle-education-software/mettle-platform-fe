@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Timer, TimerOff } from '@mui/icons-material'
 import { Breadcrumb, Button, Col, Flex, Row, Tooltip, Typography } from 'antd';
 import { DedaNavButton } from 'components';
 import { SaveDedaInputMutationDedaData, useConfetti, useDeviceSize, useSaveDedaInput } from 'hooks';
+import { useDedaRecordings, useFlushRecordingQueue } from 'hooks/melp/dedaRecording';
 import { getDayToday, padNumber } from 'libs';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
@@ -243,6 +244,13 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     const isTodaysDeda = melpSummary?.unlocked_dedas[melpSummary?.unlocked_dedas.length - 1] === dedaId;
     const isTodaysDedaAndNotCompleted = isTodaysDeda && !isTodaysDedaCompleted;
 
+    // Gravador do passo 2 (chave de liberação desligada por padrão; ver hooks/melp/dedaRecording).
+    const recordings = useDedaRecordings(dedaId);
+    useFlushRecordingQueue(recordings.active, recordings.uid);
+    const recorderOn = recordings.active && isTodaysDeda;
+    const [readRecordDone, setReadRecordDone] = useState(false);
+    const markReadRecordDone = useCallback(() => setReadRecordDone(true), []);
+
     const [hasPlayStarted, setHasPlayStarted] = useState(false);
     const handleDedaListenStart = useCallback(() => {
         setHasPlayStarted(true);
@@ -263,6 +271,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     };
 
     const indexOfCurrentStep = steps.indexOf(currentStep);
+    const blockedByRecorder = recorderOn && currentStep === 'readRecord' && !readRecordDone;
     const isNotWeekZero = !['CAN_START_DEDA', 'WEEK_ZERO'].includes(melpSummary.melp_status);
     const showStopwatch =
         isTodaysDedaAndNotCompleted &&
@@ -280,9 +289,18 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                 dedaOngoing={showStopwatch}
             />
         ),
-        readRecord: <ReadRecord key="readRecord" dedaId={dedaId} />,
+        readRecord: (
+            <ReadRecord key="readRecord" dedaId={dedaId} onRecordDone={recorderOn ? markReadRecordDone : undefined} />
+        ),
         watch: <Watch key="watch" dedaId={dedaId} />,
-        listenRead: <ListenRead key="listenRead" dedaId={dedaId} />,
+        listenRead: (
+            <ListenRead
+                key="listenRead"
+                dedaId={dedaId}
+                isCurrentDeda={isTodaysDeda}
+                onGoRecord={recorderOn ? () => setCurrentStep('readRecord') : undefined}
+            />
+        ),
         write: <Write key="write" dedaId={dedaId} />,
         finish: (
             <DedaActivitySummary
@@ -377,7 +395,9 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                                     block
                                     type="primary"
                                     disabled={
-                                        !!stepsProgress[currentStep as keyof typeof stepsProgress] || !hasPlayStarted
+                                        !!stepsProgress[currentStep as keyof typeof stepsProgress] ||
+                                        !hasPlayStarted ||
+                                        blockedByRecorder
                                     }
                                     onClick={() => {
                                         setStepsProgress((prev) => ({
@@ -497,7 +517,11 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                 {!['finish', 'completed'].includes(currentStep) && isTodaysDedaAndNotCompleted && isNotWeekZero && (
                     <CompleteButton
                         type="primary"
-                        disabled={!!stepsProgress[currentStep as keyof typeof stepsProgress] || !hasPlayStarted}
+                        disabled={
+                            !!stepsProgress[currentStep as keyof typeof stepsProgress] ||
+                            !hasPlayStarted ||
+                            blockedByRecorder
+                        }
                         onClick={() => {
                             setStepsProgress((prev) => ({
                                 ...prev,

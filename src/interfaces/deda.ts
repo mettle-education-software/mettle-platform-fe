@@ -39,7 +39,18 @@ export interface DedaFeaturesResponse {
     dedaContentCollection: DedaContentCollectionItems;
 }
 
-export type LinkType = {
+export interface ContextNoteEntry {
+    sys: { id: string };
+    term?: string;
+    body?: string;
+    image?: { url: string; width?: number; height?: number; description?: string } | null;
+}
+
+export interface ContextNoteLinks {
+    entries?: { hyperlink?: (ContextNoteEntry | null)[] };
+}
+
+export type LinkType = ContextNoteLinks & {
     assets: {
         block: {
             sys: {
@@ -66,7 +77,7 @@ export interface DedaNotesQueryResponse {
             };
             dedaNotesIntroductionContent: {
                 json: any;
-                links: {
+                links: ContextNoteLinks & {
                     assets: {
                         block: {
                             sys: {
@@ -87,7 +98,7 @@ export interface DedaNotesQueryResponse {
             };
             dedaNotesGlossaryContent: {
                 json: any;
-                links: {
+                links: ContextNoteLinks & {
                     assets: {
                         block: {
                             sys: {

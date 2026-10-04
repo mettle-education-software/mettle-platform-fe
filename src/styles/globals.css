@@ -155,3 +155,11 @@ a {
 /*    border-radius: 0.25rem !important;*/
 /*    border-color: var(--neutral);*/
 /*}*/
+
+@media (prefers-reduced-motion: reduce) {
+    .context-note-drawer,
+    .context-note-drawer * {
+        transition: none !important;
+        animation: none !important;
+    }
+}

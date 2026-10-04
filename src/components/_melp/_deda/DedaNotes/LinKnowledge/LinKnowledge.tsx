@@ -53,11 +53,31 @@ const Card = styled(AntCard)`
     }
 `;
 
-const CarouselScrollableContent = styled.div`
+const CarouselScrollableContent = styled.div<{ snap?: boolean }>`
     max-width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-behavior: smooth;
+
+    /* Celular: encaixe por card, vazando até a borda do Card (padding padrão do antd: 24px) para caber a fatia do próximo. */
+    @media (max-width: 600px) {
+        ${({ snap }) =>
+            snap &&
+            `
+            margin: 0 -24px;
+            padding: 0 24px;
+            max-width: none;
+            scroll-snap-type: x mandatory;
+            scroll-padding-inline: 24px;
+        `}
+    }
+`;
+
+// Setas só no celular: no computador os podcasts ficam lado a lado, sem rolagem.
+const MobileOnly = styled(Flex)`
+    @media (min-width: 601px) {
+        display: none;
+    }
 `;
 
 const PodcastRow = styled.div`
@@ -84,10 +104,13 @@ const ArticlesRow = styled.div`
 const CarouselCard = ({
     title,
     hideScroll = false,
+    mobileOnly = false,
     children,
 }: {
     title: React.ReactNode;
     hideScroll?: boolean;
+    /** Setas e encaixe por card só no celular (podcasts). */
+    mobileOnly?: boolean;
     children: React.ReactNode;
 }) => {
     const scrollableContentRef = useRef<HTMLDivElement>(null);
@@ -104,12 +127,14 @@ const CarouselCard = ({
         }
     };
 
+    const Arrows = mobileOnly ? MobileOnly : Flex;
+
     return (
         <Card
             title={title}
             extra={
                 hideScroll ? undefined : (
-                    <Flex>
+                    <Arrows>
                         <Button onClick={handleScrollLeft} style={{ border: 'none' }} ghost icon={<ArrowBackIos />} />
                         <Button
                             onClick={handleScrollRight}
@@ -117,11 +142,11 @@ const CarouselCard = ({
                             ghost
                             icon={<ArrowForwardIos />}
                         />
-                    </Flex>
+                    </Arrows>
                 )
             }
         >
-            <CarouselScrollableContent data-carousel ref={scrollableContentRef}>
+            <CarouselScrollableContent data-carousel snap={mobileOnly} ref={scrollableContentRef}>
                 {children}
             </CarouselScrollableContent>
         </Card>
@@ -203,7 +228,7 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                         </LinKnowledgeCardsRow>
                     </CarouselCard>
                     <CarouselCard
-                        hideScroll
+                        mobileOnly
                         title={
                             <CarouselTitle level={4}>
                                 <SpotifyFilled /> Podcasts

@@ -411,6 +411,23 @@ export const useGetDedaQuote = (dedaId: string) => {
                         dedaNotesQuote {
                             json
                             links {
+                                entries {
+                                    hyperlink {
+                                        sys {
+                                            id
+                                        }
+                                        ... on ContextNote {
+                                            term
+                                            body
+                                            image {
+                                                url
+                                                width
+                                                height
+                                                description
+                                            }
+                                        }
+                                    }
+                                }
                                 assets {
                                     block {
                                         sys {

@@ -1,7 +1,7 @@
 import { INLINES, BLOCKS } from '@contentful/rich-text-types';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { RichTextRenderer } from '../../components/atoms/RichTextRenderer/RichTextRenderer';
+import { RichTextRenderer, transformRichTextToString } from '../../components/atoms/RichTextRenderer/RichTextRenderer';
 import { findContextNote, safeNoteImageUrl, splitParagraphs } from '../contextNotes';
 
 const text = (value: string) => ({ nodeType: 'text', value, marks: [], data: {} });
@@ -74,5 +74,23 @@ describe('RichTextRenderer: entry-hyperlink', () => {
         const html = render(doc(ext), links);
         expect(html).toContain('href="https://example.com/x"');
         expect(html).toContain('target="_blank"');
+    });
+});
+
+describe('transformRichTextToString (citação do cabeçalho)', () => {
+    const quote = (l?: any) =>
+        renderToStaticMarkup(
+            createElement(
+                'div',
+                null,
+                transformRichTextToString({ rawContent: doc(entryLink('note-brexit')) as any, links: l }),
+            ),
+        );
+
+    it('nota presente vira botão; ausente ou sem links vira texto simples', () => {
+        expect(quote(links)).toContain('<button');
+        expect(quote(links)).toContain('>Brexit<');
+        expect(quote({ entries: { hyperlink: [] } })).not.toContain('<button');
+        expect(quote()).toContain('Brexit');
     });
 });

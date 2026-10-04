@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import { ArrowBackIos, ArrowForwardIos } from '@mui/icons-material';
 import { Button, Card as AntCard, Flex, Skeleton, Typography } from 'antd';
 import { ArticleFrame, MaxWidthContainer, VideoFrame } from 'components';
+import { useGetCurrentDeda } from 'hooks/melp/deda';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaNotesQueryResponse } from 'interfaces';
 import { padding, SMALL_VIEWPORT } from 'libs';
@@ -134,7 +135,8 @@ const CarouselTitle = styled(Typography.Title)`
 export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
     const dedaNotesResult = useDeda<DedaNotesQueryResponse>('deda-notes', dedaId);
     const { melpSummary } = useMelpContext();
-    const todayDay = todayCardDay(melpSummary, dedaId);
+    const { data: rotationDeda } = useGetCurrentDeda();
+    const todayDay = todayCardDay(melpSummary, dedaId, rotationDeda?.id);
     const dedaNotesContent = useMemo(() => dedaNotesResult?.data?.dedaContentCollection?.items[0], [dedaNotesResult]);
 
     if (!dedaNotesContent)

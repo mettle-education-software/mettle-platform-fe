@@ -7,6 +7,7 @@ import {
     DedaRecording,
     DedaRecordingsResponse,
     isSignedStorageUrl,
+    recordingsOrDisabled,
 } from 'libs/dedaRecording';
 import { flushQueue, idbQueue, QueuedRecording } from 'libs/recordingQueue';
 import { useAppContext } from 'providers';
@@ -15,8 +16,8 @@ import { melpService } from 'services';
 
 /**
  * Chave de liberação do front. Desligada por padrão: sem DEDA_RECORDER=on no ambiente, nada do gravador
- * aparece e nenhuma rota nova é chamada. Ligada, quem decide por conta é o servidor (lista de contas
- * liberadas, campo `enabled` de GET /recordings) — seção 9.3 do plano.
+ * aparece e nenhuma rota nova é chamada. Ligada, quem decide por conta é o servidor: o GET da lista é a única
+ * consulta; conta fora de DEDA_RECORDING_ENABLED_UIDS recebe 404 e nada mais é chamado — seção 9.3 do plano.
  */
 export const RECORDER_FLAG_ON = process.env.DEDA_RECORDER === 'on';
 
@@ -33,10 +34,12 @@ export const useDedaRecordings = (dedaId: string) => {
         queryFn: () =>
             melpService
                 .get<DedaRecordingsResponse>(`${base(uid as string)}?dedaId=${encodeURIComponent(dedaId)}`)
-                .then(({ data }) => data),
+                .then(({ data }) => data)
+                .catch(recordingsOrDisabled),
         enabled: allowed,
         retry: false,
-        staleTime: 60_000,
+        // Desligado para a conta: guarda a resposta e não pergunta de novo nesta sessão.
+        staleTime: (q) => (q.state.data?.enabled === false ? Infinity : 60_000),
     });
     return { ...query, active: allowed && query.data?.enabled === true, uid };
 };

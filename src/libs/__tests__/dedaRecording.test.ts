@@ -14,6 +14,7 @@ import {
     pickRecordingFormat,
     recorderReducer,
     RecorderAction,
+    recordingsOrDisabled,
     spokenDuration,
 } from '../dedaRecording';
 import { flushQueue, QueuedRecording, QueueStore, queueKey } from '../recordingQueue';
@@ -246,5 +247,20 @@ describe('flushQueue', () => {
         expect(await flushQueue(store, 'u1', '2026-10-02', send)).toEqual([]);
         expect(send).not.toHaveBeenCalled();
         expect(store.items.size).toBe(2);
+    });
+});
+
+describe('recordingsOrDisabled', () => {
+    it('404 (conta fora da lista ou rota não publicada) vira gravador desligado', () => {
+        expect(recordingsOrDisabled({ response: { status: 404, data: { code: 'RECORDING_DISABLED' } } })).toEqual({
+            enabled: false,
+            consent: { accepted: false, version: null },
+            recordings: [],
+        });
+    });
+    it('outros erros seguem como erro (e o gravador também não aparece)', () => {
+        const err = { response: { status: 500 } };
+        expect(() => recordingsOrDisabled(err)).toThrow();
+        expect(() => recordingsOrDisabled(new Error('rede'))).toThrow('rede');
     });
 });

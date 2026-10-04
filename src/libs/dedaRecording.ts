@@ -212,6 +212,17 @@ export interface DedaRecordingsResponse {
     recordings: DedaRecording[];
 }
 
+/**
+ * O servidor responde 404 a toda rota do gravador para a conta fora de DEDA_RECORDING_ENABLED_UIDS (e o portão
+ * da API, 404 se a rota ainda não foi publicada): vira "desligado", sem erro e sem nova tentativa.
+ */
+export const recordingsOrDisabled = (error: unknown): DedaRecordingsResponse => {
+    if ((error as { response?: { status?: number } })?.response?.status === 404) {
+        return { enabled: false, consent: { accepted: false, version: null }, recordings: [] };
+    }
+    throw error;
+};
+
 // ---------- indicadores (seção 5.4) ----------
 
 export const WEEK_DAYS = ['day1', 'day2', 'day3', 'day4', 'day5', 'day6', 'day7'] as const;

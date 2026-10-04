@@ -5,9 +5,12 @@ import styled from '@emotion/styled';
 import { ArrowBackIos, ArrowForwardIos } from '@mui/icons-material';
 import { Button, Card as AntCard, Flex, Skeleton, Typography } from 'antd';
 import { ArticleFrame, MaxWidthContainer, VideoFrame } from 'components';
+import { useGetCurrentDeda } from 'hooks/melp/deda';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaNotesQueryResponse } from 'interfaces';
 import { padding, SMALL_VIEWPORT } from 'libs';
+import { todayCardDay } from 'libs/linknowledge';
+import { useMelpContext } from 'providers';
 import React, { useMemo, useRef } from 'react';
 import { PodcastFrame } from '../../../PodcastFrame/PodcastFrame';
 import { LinKnowledgeCardsRow } from './LinKnowledgeCard';
@@ -50,11 +53,31 @@ const Card = styled(AntCard)`
     }
 `;
 
-const CarouselScrollableContent = styled.div`
+const CarouselScrollableContent = styled.div<{ snap?: boolean }>`
     max-width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-behavior: smooth;
+
+    /* Celular: encaixe por card, vazando até a borda do Card (padding padrão do antd: 24px) para caber a fatia do próximo. */
+    @media (max-width: 600px) {
+        ${({ snap }) =>
+            snap &&
+            `
+            margin: 0 -24px;
+            padding: 0 24px;
+            max-width: none;
+            scroll-snap-type: x mandatory;
+            scroll-padding-inline: 24px;
+        `}
+    }
+`;
+
+// Setas só no celular: no computador os podcasts ficam lado a lado, sem rolagem.
+const MobileOnly = styled(Flex)`
+    @media (min-width: 601px) {
+        display: none;
+    }
 `;
 
 const PodcastRow = styled.div`
@@ -81,10 +104,13 @@ const ArticlesRow = styled.div`
 const CarouselCard = ({
     title,
     hideScroll = false,
+    mobileOnly = false,
     children,
 }: {
     title: React.ReactNode;
     hideScroll?: boolean;
+    /** Setas e encaixe por card só no celular (podcasts). */
+    mobileOnly?: boolean;
     children: React.ReactNode;
 }) => {
     const scrollableContentRef = useRef<HTMLDivElement>(null);
@@ -101,12 +127,14 @@ const CarouselCard = ({
         }
     };
 
+    const Arrows = mobileOnly ? MobileOnly : Flex;
+
     return (
         <Card
             title={title}
             extra={
                 hideScroll ? undefined : (
-                    <Flex>
+                    <Arrows>
                         <Button onClick={handleScrollLeft} style={{ border: 'none' }} ghost icon={<ArrowBackIos />} />
                         <Button
                             onClick={handleScrollRight}
@@ -114,11 +142,13 @@ const CarouselCard = ({
                             ghost
                             icon={<ArrowForwardIos />}
                         />
-                    </Flex>
+                    </Arrows>
                 )
             }
         >
-            <CarouselScrollableContent ref={scrollableContentRef}>{children}</CarouselScrollableContent>
+            <CarouselScrollableContent data-carousel snap={mobileOnly} ref={scrollableContentRef}>
+                {children}
+            </CarouselScrollableContent>
         </Card>
     );
 };
@@ -129,6 +159,9 @@ const CarouselTitle = styled(Typography.Title)`
 
 export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
     const dedaNotesResult = useDeda<DedaNotesQueryResponse>('deda-notes', dedaId);
+    const { melpSummary } = useMelpContext();
+    const { data: rotationDeda } = useGetCurrentDeda();
+    const todayDay = todayCardDay(melpSummary, dedaId, rotationDeda?.id);
     const dedaNotesContent = useMemo(() => dedaNotesResult?.data?.dedaContentCollection?.items[0], [dedaNotesResult]);
 
     if (!dedaNotesContent)
@@ -163,6 +196,7 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                     >
                         <MettleArticles
                             dedaId={dedaId}
+                            todayDay={todayDay}
                             fallback={
                                 <ArticlesRow>
                                     {articles.map(({ title, href }) => (
@@ -183,12 +217,18 @@ export const LinKnowledge = ({ dedaId }: { dedaId: string }) => {
                     >
                         <LinKnowledgeCardsRow>
                             {videos.map(({ title, href }, index) => (
-                                <VideoFrame key={href} title={title} videoSrc={href} meta={`Day ${index + 1}`} />
+                                <VideoFrame
+                                    key={href}
+                                    title={title}
+                                    videoSrc={href}
+                                    meta={`Day ${index + 1}`}
+                                    today={index + 1 === todayDay}
+                                />
                             ))}
                         </LinKnowledgeCardsRow>
                     </CarouselCard>
                     <CarouselCard
-                        hideScroll
+                        mobileOnly
                         title={
                             <CarouselTitle level={4}>
                                 <SpotifyFilled /> Podcasts

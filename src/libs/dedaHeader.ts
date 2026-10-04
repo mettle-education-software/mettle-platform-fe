@@ -1,23 +1,24 @@
 // Imagem de cabeçalho do DEDA pela Images API do Contentful, mobile-first e com direção de arte:
-// no celular, recorte centralizado mais alto; no tablet/desktop, a imagem inteira nas larguras maiores.
+// no celular, recorte centralizado na proporção da faixa; no tablet/desktop, a imagem inteira nas larguras maiores.
 // O navegador escolhe uma fonte só (<picture>): o celular nunca baixa a versão desktop.
 
 const CONTENTFUL_IMAGES = 'images.ctfassets.net';
 
-/** Celular (até 640 px): recorte 800×440 (≈1,82:1), centralizado; 1×, 2× e 3× para telas de 360–430 px. */
-export const MOBILE_CROPS = [
-    [430, 236],
-    [800, 440],
-    [1290, 709],
-] as const;
 /**
- * Home (faixa de ~6,8:1 no celular): recorte central mais baixo, 800×240 (3,33:1), para o assunto da arte
- * ultra-panorâmica (faixa central da imagem) aparecer inteiro em vez de ser cortado pelo recorte alto.
+ * Celular (até 640 px): a faixa do cabeçalho da página tem 8vh de altura (≈360×72, 5:1 a 6:1). O recorte pedido
+ * tem a proporção da faixa (800×140, ≈5,7:1), centralizado, para a imagem aparecer inteira na altura; um recorte
+ * mais alto era cortado em dois terços pelo `cover`. 1×, 2× e 3× para telas de 360–430 px.
  */
+export const MOBILE_CROPS = [
+    [430, 76],
+    [800, 140],
+    [1290, 226],
+] as const;
+/** Home no celular: faixa ainda mais baixa (≈360×58, 6,2:1); recorte 800×128 na mesma lógica. */
 export const HOME_MOBILE_CROPS = [
-    [430, 129],
-    [800, 240],
-    [1290, 387],
+    [430, 69],
+    [800, 128],
+    [1290, 208],
 ] as const;
 export type MobileCrops = readonly (readonly [number, number])[];
 

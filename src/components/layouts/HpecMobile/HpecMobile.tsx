@@ -12,6 +12,8 @@ import {
     MaxWidthContainer,
 } from 'components';
 import { useGetHpecResources } from 'hooks';
+import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { AccessCtaBlock, useProductAccess } from 'providers';
 import React, { useState } from 'react';
 
 const { Title, Text } = Typography;
@@ -46,6 +48,7 @@ const LessonTabButton = styled.button`
 
 const LessonView = ({ onChangeView, lessonId }: { onChangeView(): void; lessonId: string }) => {
     const [lessonTab, setLessonTab] = useState<'video' | 'summary' | 'resources'>('video');
+    const imersoLocked = useProductAccess().access(IMERSO_PRODUCT).state === 'expired';
 
     const { data } = useGetHpecResources(lessonId);
 
@@ -54,7 +57,11 @@ const LessonView = ({ onChangeView, lessonId }: { onChangeView(): void; lessonId
     const videoTab = () => (
         <Row gutter={[16, 24]}>
             <Col span={24}>
-                <LessonVideo lessonId={lessonId} />
+                {imersoLocked ? (
+                    <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />
+                ) : (
+                    <LessonVideo lessonId={lessonId} />
+                )}
             </Col>
             <Col span={24}>
                 <Row gutter={[16, 8]}>
@@ -116,14 +123,22 @@ const LessonView = ({ onChangeView, lessonId }: { onChangeView(): void; lessonId
     const summaryTab = () => (
         <Flex vertical gap={16}>
             {returnRow('Summary')}
-            <LessonSummary lessonId={lessonId} />
+            {imersoLocked ? (
+                <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />
+            ) : (
+                <LessonSummary lessonId={lessonId} />
+            )}
         </Flex>
     );
 
     const resourcesTab = () => (
         <Flex vertical gap={16}>
             {returnRow('Resources')}
-            <LessonResources lessonId={lessonId} />
+            {imersoLocked ? (
+                <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />
+            ) : (
+                <LessonResources lessonId={lessonId} />
+            )}
         </Flex>
     );
 

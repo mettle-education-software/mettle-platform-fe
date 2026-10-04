@@ -39,6 +39,7 @@ export const DedaQuote: React.FC<DedaQuoteProps> = ({ dedaId }) => {
         <QuoteText>
             {transformRichTextToString({
                 rawContent: content?.dedaNotesQuote.json,
+                links: content?.dedaNotesQuote.links,
             })}
         </QuoteText>
     );

@@ -17,7 +17,8 @@ import {
 } from 'components';
 import { MelpStatus } from 'interfaces/melp';
 import { withAuthentication } from 'libs';
-import { useAppContext, useMelpContext } from 'providers';
+import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React from 'react';
 
 const { Title } = Typography;
@@ -58,6 +59,7 @@ const renderMelpHome = (melpAccountStatus: MelpStatus) => {
 const MelpHome = () => {
     const { melpSummary } = useMelpContext();
     const { user } = useAppContext();
+    const { access } = useProductAccess();
 
     const melpStatus = melpSummary?.melp_status;
     const daysSinceMelpStart = melpSummary?.days_since_melp_start;
@@ -66,6 +68,12 @@ const MelpHome = () => {
 
     if (melpStatus === 'MELP_BEGIN' && daysSinceMelpStart >= 2 && daysSinceMelpStart < 9) {
         renderStatus = 'WEEK_ZERO' as MelpStatus;
+    }
+
+    // Imerso expirado (cai em DEDA_PAUSED pela pausa do sistema): mesma home do DEDA em andamento, cujo único item que
+    // abre é "Explore all DEDAs" — o AppLayout transforma os demais cliques no convite de renovação.
+    if (access(IMERSO_PRODUCT).state === 'expired') {
+        renderStatus = 'DEDA_STARTED';
     }
 
     return (

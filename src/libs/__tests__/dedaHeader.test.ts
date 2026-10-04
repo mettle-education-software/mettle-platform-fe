@@ -33,13 +33,13 @@ describe('contentfulImage', () => {
 });
 
 describe('headerSources', () => {
-    it('celular: recorte centralizado mais alto (800×440 no 2×); desktop: 1280/1920/2560', () => {
+    it('celular: recorte na proporção da faixa (800×140 no 2×); desktop: 1280/1920/2560', () => {
         const sources = headerSources(asset);
         expect(sources?.mobile).toBe(
             [
-                `${asset}?w=430&h=236&fit=fill&f=center&fm=webp&q=70 430w`,
-                `${asset}?w=800&h=440&fit=fill&f=center&fm=webp&q=70 800w`,
-                `${asset}?w=1290&h=709&fit=fill&f=center&fm=webp&q=70 1290w`,
+                `${asset}?w=430&h=76&fit=fill&f=center&fm=webp&q=70 430w`,
+                `${asset}?w=800&h=140&fit=fill&f=center&fm=webp&q=70 800w`,
+                `${asset}?w=1290&h=226&fit=fill&f=center&fm=webp&q=70 1290w`,
             ].join(', '),
         );
         expect(sources?.desktop).toBe([1280, 1920, 2560].map((w) => `${asset}?w=${w}&fm=webp&q=75 ${w}w`).join(', '));
@@ -134,13 +134,13 @@ describe('cabeçalho da home: imagem própria e recorte do celular', () => {
         expect(pickHeaderImage([{ url: 'https://example.com/x.jpg' }, null, card])).toBe(2);
     });
 
-    it('celular: recorte central 800×240 (430/800/1290w), nunca as larguras do desktop', () => {
+    it('celular: recorte central 800×128 (430/800/1290w), nunca as larguras do desktop', () => {
         const sources = headerSources(home.url, home.width, HOME_MOBILE_CROPS);
         expect(sources?.mobile).toBe(
             [
-                `${home.url}?w=430&h=129&fit=fill&f=center&fm=webp&q=70 430w`,
-                `${home.url}?w=800&h=240&fit=fill&f=center&fm=webp&q=70 800w`,
-                `${home.url}?w=1290&h=387&fit=fill&f=center&fm=webp&q=70 1290w`,
+                `${home.url}?w=430&h=69&fit=fill&f=center&fm=webp&q=70 430w`,
+                `${home.url}?w=800&h=128&fit=fill&f=center&fm=webp&q=70 800w`,
+                `${home.url}?w=1290&h=208&fit=fill&f=center&fm=webp&q=70 1290w`,
             ].join(', '),
         );
         expect(sources?.mobile).not.toMatch(/w=(1920|2560|3840)/);
@@ -150,7 +150,7 @@ describe('cabeçalho da home: imagem própria e recorte do celular', () => {
         expect(headerSources(home.url, home.width, HOME_MOBILE_CROPS)?.desktop).toBe(
             headerSources(home.url, home.width)?.desktop,
         );
-        expect(headerSources(header.url, header.width)?.mobile).toContain('w=800&h=440&fit=fill&f=center');
+        expect(headerSources(header.url, header.width)?.mobile).toContain('w=800&h=140&fit=fill&f=center');
     });
 });
 
@@ -178,8 +178,8 @@ describe('arte da home: o topo do assunto fica visível (object-position vertica
         expect(bottom).toBeGreaterThan(54); // torres e passarela superior inteiras
     });
 
-    it('celular (390×58, recorte 800×240): ponte inteira', () => {
-        const [top, bottom] = band(390, 58, 800 / 240, y, [5, 95]);
+    it('celular (390×58, recorte 800×128): ponte inteira', () => {
+        const [top, bottom] = band(390, 58, 800 / 128, y, [5, 95]);
         expect(top).toBeLessThan(TOWER_TOPS);
         expect(bottom).toBeGreaterThan(60);
     });

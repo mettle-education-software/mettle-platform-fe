@@ -8,8 +8,9 @@ import { ContextNoteData } from '../../../libs/contextNotes';
 
 const { Paragraph } = Typography;
 
-const Trigger = styled.button`
-    all: unset;
+// <span role="button">, não <button>: o botão é uma caixa indivisível e deixava a vírgula ou o parêntese vizinho
+// sozinho na outra linha; o span quebra linha como texto comum e mantém a pontuação colada.
+const Trigger = styled.span`
     cursor: pointer;
     text-decoration: underline dotted;
     text-decoration-thickness: 1.5px;
@@ -49,7 +50,19 @@ export const ContextNote = ({ note, children }: { note: ContextNoteData; childre
 
     return (
         <>
-            <Trigger type="button" aria-haspopup="dialog" aria-expanded={open} onClick={show}>
+            <Trigger
+                role="button"
+                tabIndex={0}
+                aria-haspopup="dialog"
+                aria-expanded={open}
+                onClick={show}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        show();
+                    }
+                }}
+            >
                 {children}
             </Trigger>
             <Drawer

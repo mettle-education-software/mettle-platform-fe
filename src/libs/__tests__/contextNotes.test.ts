@@ -52,7 +52,7 @@ describe('contextNotes', () => {
 describe('RichTextRenderer: entry-hyperlink', () => {
     it('nota presente vira botão acessível', () => {
         const html = render(doc(entryLink('note-brexit')), links);
-        expect(html).toContain('<button');
+        expect(html).toContain('role="button"');
         expect(html).toContain('aria-expanded="false"');
         expect(html).toContain('aria-haspopup="dialog"');
         expect(html).toContain('Brexit');
@@ -63,7 +63,7 @@ describe('RichTextRenderer: entry-hyperlink', () => {
         for (const id of ['nao-existe', 'outro-tipo']) {
             const html = render(doc(entryLink(id)), links);
             expect(html).toContain('Veio o Brexit depois.');
-            expect(html).not.toContain('<button');
+            expect(html).not.toContain('role="button"');
             expect(html).not.toContain('type: entry-hyperlink');
         }
         expect(render(doc(entryLink('note-brexit')))).toContain('Veio o Brexit depois.');
@@ -88,9 +88,9 @@ describe('transformRichTextToString (citação do cabeçalho)', () => {
         );
 
     it('nota presente vira botão; ausente ou sem links vira texto simples', () => {
-        expect(quote(links)).toContain('<button');
+        expect(quote(links)).toContain('role="button"');
         expect(quote(links)).toContain('>Brexit<');
-        expect(quote({ entries: { hyperlink: [] } })).not.toContain('<button');
+        expect(quote({ entries: { hyperlink: [] } })).not.toContain('role="button"');
         expect(quote()).toContain('Brexit');
     });
 });

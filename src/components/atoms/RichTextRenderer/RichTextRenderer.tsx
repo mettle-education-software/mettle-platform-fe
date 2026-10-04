@@ -6,6 +6,8 @@ import { LinkType } from 'interfaces';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ReactNode } from 'react';
+import { findContextNote } from '../../../libs/contextNotes';
+import { ContextNote } from '../ContextNote/ContextNote';
 
 const { Title, Paragraph } = Typography;
 
@@ -132,6 +134,11 @@ const renderOptions = (links?: LinkType, justify?: boolean, toString?: boolean):
             // [INLINES.EMBEDDED_ENTRY]: (node: Node) => {
             //     return <p>LINK WILL BE HERE {JSON.stringify(node)}</p>;
             // },
+            // Nota de contexto abre dentro da plataforma; outro entry-hyperlink (ou nota ausente) vira texto simples.
+            [INLINES.ENTRY_HYPERLINK]: (node: Node, children: ReactNode) => {
+                const note = findContextNote(node.data?.target?.sys?.id, links);
+                return note ? <ContextNote note={note}>{children}</ContextNote> : <>{children}</>;
+            },
             [INLINES.HYPERLINK]: (node: Node, children: ReactNode) => (
                 <HyperLink href={node.data.uri} target="_blank">
                     {toString ? `${children}` : children}

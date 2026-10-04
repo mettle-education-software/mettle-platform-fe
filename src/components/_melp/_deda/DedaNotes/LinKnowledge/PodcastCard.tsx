@@ -28,6 +28,11 @@ const Top = styled.div`
     gap: 0.9rem;
     min-width: 0;
     padding-right: 3.5rem;
+
+    /* o botão de play fica embaixo; no celular o título usa a largura toda */
+    @media (max-width: 600px) {
+        padding-right: 0;
+    }
 `;
 
 const Cover = styled.div`
@@ -114,6 +119,8 @@ const Progress = styled.input`
     -webkit-appearance: none;
     border-radius: 999px;
     cursor: pointer;
+    /* arrastar a barra não rola o carrossel; só o gesto vertical da página passa */
+    touch-action: pan-y;
     accent-color: #ffffff;
     background: linear-gradient(
             to right,
@@ -167,6 +174,10 @@ const Buttons = styled.div`
     display: flex;
     align-items: center;
     gap: 0.5rem;
+
+    @media (max-width: 600px) {
+        gap: 0.25rem;
+    }
 `;
 
 const SmallButton = styled.button`
@@ -184,6 +195,10 @@ const SmallButton = styled.button`
     box-sizing: border-box;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.15);
+
+    @media (max-width: 600px) {
+        padding: 0 0.4rem;
+    }
 
     &:focus-visible {
         outline: 2px solid #ffffff;

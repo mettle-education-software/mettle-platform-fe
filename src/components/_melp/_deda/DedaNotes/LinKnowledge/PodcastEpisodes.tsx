@@ -5,7 +5,7 @@ import { usePodcastEpisodes, PodcastEpisode } from 'hooks/queries/dedaQueries';
 import React from 'react';
 import { PodcastCard } from './PodcastCard';
 
-// Colunas via variável CSS (número nosso): 3, ou 4 quando houver exatamente 4; 2 no tablet; 1 no celular.
+// Colunas via variável CSS (número nosso): 3, ou 4 quando houver exatamente 4; 2 no tablet; carrossel no celular.
 const Grid = styled.div`
     display: grid;
     grid-template-columns: repeat(var(--columns, 3), minmax(0, 1fr));
@@ -16,8 +16,14 @@ const Grid = styled.div`
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    /* Celular: fileira rolável dentro do CarouselCard (um card por vez, com uma fatia do próximo). */
     @media (max-width: 600px) {
-        grid-template-columns: minmax(0, 1fr);
+        display: flex;
+
+        > * {
+            flex: 0 0 calc(100% - 20px);
+            scroll-snap-align: start;
+        }
     }
 `;
 

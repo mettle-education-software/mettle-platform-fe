@@ -56,6 +56,17 @@ describe('linknowledge', () => {
             expect(todayCardDay(base, '')).toBeNull();
         });
 
+        it('programa concluído: dia do calendário de Brasília, só no DEDA da semana na rotação', () => {
+            const done = { ...base, melp_status: 'DEDA_FINISHED' as const, current_deda_day: 729, current_deda_week: 105 };
+            const sunday = new Date('2026-10-04T15:00:00Z'); // domingo em Brasília
+            const mondayUtc = new Date('2026-10-05T01:00:00Z'); // ainda domingo 22h em Brasília
+            expect(todayCardDay(done, 'DEDA34', 'DEDA34', sunday)).toBe(7);
+            expect(todayCardDay(done, 'DEDA34', 'DEDA34', mondayUtc)).toBe(7);
+            expect(todayCardDay(done, 'DEDA34', 'DEDA34', new Date('2026-10-05T15:00:00Z'))).toBe(1);
+            expect(todayCardDay(done, 'DEDA20', 'DEDA34', sunday)).toBeNull();
+            expect(todayCardDay(done, 'DEDA34', undefined, sunday)).toBeNull();
+        });
+
         it('pausa, sem programa iniciado ou concluído: nenhum destaque', () => {
             for (const melp_status of [
                 'DEDA_PAUSED',

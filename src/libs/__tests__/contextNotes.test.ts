@@ -1,6 +1,6 @@
+import { INLINES, BLOCKS } from '@contentful/rich-text-types';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { INLINES, BLOCKS } from '@contentful/rich-text-types';
 import { RichTextRenderer } from '../../components/atoms/RichTextRenderer/RichTextRenderer';
 import { findContextNote, safeNoteImageUrl, splitParagraphs } from '../contextNotes';
 
@@ -24,7 +24,8 @@ const links = {
         ],
     },
 };
-const render = (rawContent: any, l?: any) => renderToStaticMarkup(createElement(RichTextRenderer, { rawContent, links: l }));
+const render = (rawContent: any, l?: any) =>
+    renderToStaticMarkup(createElement(RichTextRenderer, { rawContent, links: l }));
 
 describe('contextNotes', () => {
     it('divide o corpo em parágrafos por linha em branco', () => {

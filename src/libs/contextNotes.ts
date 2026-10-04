@@ -34,7 +34,12 @@ export const toContextNote = (entry?: ContextNoteEntry | null): ContextNoteData 
         term: entry.term,
         paragraphs: splitParagraphs(entry.body),
         image: src
-            ? { src, width: entry.image?.width || 800, height: entry.image?.height || 450, alt: entry.image?.description || '' }
+            ? {
+                  src,
+                  width: entry.image?.width || 800,
+                  height: entry.image?.height || 450,
+                  alt: entry.image?.description || '',
+              }
             : undefined,
     };
 };

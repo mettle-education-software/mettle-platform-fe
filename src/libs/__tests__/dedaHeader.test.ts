@@ -2,6 +2,7 @@ import {
     contentfulImage,
     contrastOverWhite,
     desktopWidths,
+    FULL_MOBILE_CROPS,
     HEADER_GRADIENT,
     HEADER_IMAGE_WAIT_MS,
     HEADER_VERTICAL,
@@ -219,5 +220,17 @@ describe('consulta que nunca responde: prazo de espera do cabeçalho', () => {
     it('depois do prazo, uma candidata já carregada continua valendo', () => {
         const home = { url: `${asset}-home`, width: 2171 };
         expect(pickHeaderImage(settleHeaderImages([home, undefined, card], true))).toBe(0);
+    });
+});
+
+describe('imagem própria do cabeçalho (3:1)', () => {
+    it('celular: recortes na proporção 3:1 (a imagem inteira, sem cortar o assunto)', () => {
+        FULL_MOBILE_CROPS.forEach(([w, h]) => expect(Math.abs(w / h - 3)).toBeLessThan(0.02));
+        const sources = headerSources(asset, 3840, FULL_MOBILE_CROPS);
+        expect(sources?.mobile).toContain(`${asset}?w=800&h=267&fit=fill&f=center&fm=webp&q=70 800w`);
+    });
+
+    it('desktop: só a largura pedida, sem altura (a Images API mantém a proporção)', () => {
+        expect(headerSources(asset, 3840, FULL_MOBILE_CROPS)?.desktop).not.toContain('h=');
     });
 });

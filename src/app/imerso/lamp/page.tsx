@@ -16,11 +16,16 @@ import {
 } from 'components';
 import { LoadingLayout } from 'components/layouts/LoadingLayout/LoadingLayout';
 import { useDeviceSize } from 'hooks';
+import { useNewDesign } from 'hooks/useNewDesign';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
 import { withAuthentication } from 'libs';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
+
+// LAMP da plataforma nova (libs/newDesign), só para as contas da lista: fora do bundle dos alunos.
+const NewLamp = dynamic(() => import('components/_new/NewLamp'), { ssr: false, loading: () => null });
 
 const { Title, Text } = Typography;
 
@@ -186,12 +191,20 @@ const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: strin
     }, [melpSummary]);
 
     const router = useRouter();
+    const newDesign = useNewDesign();
 
     if (isMelpSummaryLoading) return <LoadingLayout />;
 
     // TODO - move this logic to server side rendering
     if (!!melpSummary && !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(melpSummary?.melp_status))
         router.push('/404');
+
+    if (newDesign)
+        return (
+            <AppLayout withMelpSummary>
+                <NewLamp initialTab={searchParams?.lampTab} />
+            </AppLayout>
+        );
 
     const tabBarExtra = new Map([
         ['performance', undefined],

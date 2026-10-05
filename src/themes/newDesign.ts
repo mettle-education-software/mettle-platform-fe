@@ -275,6 +275,7 @@ export const newAntdTheme: ThemeConfig = {
         Select: { borderRadius: 10 },
         Modal: { borderRadiusLG: 16, titleFontSize: 18, fontWeightStrong: 500 },
         Tooltip: { colorBgSpotlight: '#413e3b', colorTextLightSolid: '#f3ede4', borderRadius: 10 },
+        Rate: { starColor: '#b78a5b', starBg: 'rgba(255, 255, 255, 0.14)', starSize: 18, marginXS: 6 },
         Form: { labelColor: '#bdb4a8', itemMarginBottom: 0 },
         Typography: { titleMarginBottom: 0, titleMarginTop: 0 },
     },

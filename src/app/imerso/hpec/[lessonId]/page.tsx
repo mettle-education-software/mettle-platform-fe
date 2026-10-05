@@ -15,11 +15,16 @@ import {
 import { AppLayout, LoadingLayout } from 'components/layouts';
 import { useDeviceSize } from 'hooks';
 import { useGetHpecResources, useHpecIdOfLesson } from 'hooks/queries/hpecQueries';
+import { useNewDesign } from 'hooks/useNewDesign';
 import { withAuthentication } from 'libs';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
+import dynamic from 'next/dynamic';
 import { notFound } from 'next/navigation';
 import { AccessCtaBlock, useProductAccess } from 'providers';
 import React, { useState } from 'react';
+
+// Aula do HPEC no molde de cursos da plataforma nova (libs/newDesign), só para as contas da lista: fora do bundle dos alunos.
+const NewHpecLesson = dynamic(() => import('components/_new/NewHpecLesson'), { ssr: false, loading: () => null });
 
 const { Title } = Typography;
 
@@ -126,6 +131,7 @@ function HpecContent({ params: { hpecId, lessonId } }: Readonly<{ params: Record
 
 function Hpec({ params: { lessonId } }: Readonly<{ params: Record<string, string> }>) {
     const device = useDeviceSize();
+    const newDesign = useNewDesign();
     // A URL leva só a aula (/imerso/hpec/welcome); o módulo (hpecId) vem do Contentful.
     const { hpecId, loading } = useHpecIdOfLesson(lessonId);
 
@@ -134,6 +140,13 @@ function Hpec({ params: { lessonId } }: Readonly<{ params: Record<string, string
         return <LoadingLayout />;
     }
     const params = { hpecId, lessonId };
+
+    if (newDesign)
+        return (
+            <AppLayout withMelpSummary>
+                <NewHpecLesson lessonId={lessonId} />
+            </AppLayout>
+        );
 
     return (
         <AppLayout withMelpSummary>

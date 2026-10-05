@@ -34,6 +34,8 @@ const nextConfig = {
         VERCEL_ENV: process.env.VERCEL_ENV,
         // Gravador de voz do DEDA: só "on" liga (desligado por padrão). A liberação por conta é do servidor.
         DEDA_RECORDER: process.env.DEDA_RECORDER,
+        // Página nova do DEDA (libs/dedaReader): só "off" muda algo — desliga para todos (teste).
+        DEDA_READER: process.env.DEDA_READER,
     },
     // Microfone só para a própria Plataforma (nenhum iframe de terceiro pede o microfone).
     async headers() {

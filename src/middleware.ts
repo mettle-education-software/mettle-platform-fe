@@ -1,9 +1,10 @@
 import { legacyRedirectTarget } from 'libs/cleanUrls';
+import { contentFetch } from 'libs/contentSource';
 import { NextRequest, NextResponse } from 'next/server';
 
 const contentful = async <T>(query: string, variables: Record<string, string>): Promise<T | null> => {
     try {
-        const response = await fetch(process.env.GRAPHQL_URI as string, {
+        const response = await contentFetch(process.env.GRAPHQL_URI as string, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query, variables }),

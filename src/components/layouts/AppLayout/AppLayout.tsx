@@ -1,29 +1,21 @@
 'use client';
 
-import {
-    CustomerServiceOutlined,
-    HomeOutlined,
-    LogoutOutlined,
-    MenuOutlined,
-    SettingOutlined,
-} from '@ant-design/icons';
+import { MenuOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
-import { Alert, Button, Drawer, Flex, Layout, Menu, Typography } from 'antd';
+import { Alert, Button, Drawer, Flex, Layout, Menu } from 'antd';
 import { Logo } from 'components';
 import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
-import { handleLogout, SMALL_VIEWPORT } from 'libs';
-import { hpecLessonPath } from 'libs/cleanUrls';
+import { SMALL_VIEWPORT } from 'libs';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
 import { usePathname, useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { forwardRef, useEffect, useState } from 'react';
-import { DedaIcon } from '../../icons';
 import { UserMenu } from '../../molecules/UserMenu/UserMenu';
 import { AdminActions } from '../AdminActions/AdminActions';
+import { useAppMenu } from './appMenu';
 
 const { Header, Content, Sider } = Layout;
-const { Text } = Typography;
 
 const AppHeader = styled(Header)`
     background: var(--tertiary);
@@ -84,6 +76,11 @@ const CustomMenu = styled(Menu)`
     background: transparent;
     border: none !important;
     box-shadow: none !important;
+
+    /* "Configurações" cabe inteiro no menu lateral (faltavam 3 px): folga da direita de 16 para 8 px. */
+    &.ant-menu .ant-menu-item {
+        padding-inline-end: 8px;
+    }
 `;
 
 export const AppLayout = forwardRef<
@@ -115,9 +112,9 @@ export const AppLayout = forwardRef<
             }
         }, [device]);
 
-        const collapseOnMobile = () => {
+        const menu = useAppMenu(() => {
             if (device === 'mobile') setCollapsed(true);
-        };
+        });
 
         const pathname = usePathname();
         const router = useRouter();
@@ -174,119 +171,7 @@ export const AppLayout = forwardRef<
             />
         );
 
-        const customMenu = (
-            <CustomMenu
-                mode="inline"
-                selectedKeys={pathname.split('/')}
-                items={[
-                    {
-                        key: 'home',
-                        icon: <HomeOutlined />,
-                        label: 'Início',
-                        onClick: ({ domEvent }) => {
-                            domEvent.preventDefault();
-                            collapseOnMobile();
-                            router.push('/');
-                        },
-                    },
-                    ...(imersoState !== 'none'
-                        ? [
-                              {
-                                  key: 'imerso',
-                                  icon: (
-                                      <DedaIcon
-                                          style={{ marginLeft: '-3px' }}
-                                          onClick={(event) => {
-                                              event.stopPropagation();
-                                              router.push('/imerso');
-                                          }}
-                                      />
-                                  ),
-                                  label: (
-                                      <Text
-                                          style={{ cursor: 'pointer' }}
-                                          onClick={(event) => {
-                                              event.stopPropagation();
-                                              router.push('/imerso');
-                                          }}
-                                      >
-                                          IMERSO
-                                      </Text>
-                                  ),
-                                  children: [
-                                      {
-                                          key: 'meplHpec',
-                                          label: 'HPEC',
-                                          // @ts-ignore
-                                          onClick: ({ domEvent }) => {
-                                              domEvent.preventDefault();
-                                              collapseOnMobile();
-                                              router.push(hpecLessonPath('welcome'));
-                                          },
-                                      },
-                                      {
-                                          key: 'melpDeda',
-                                          label: 'DEDA',
-                                          // @ts-ignore
-                                          onClick: ({ domEvent }) => {
-                                              domEvent.preventDefault();
-                                              collapseOnMobile();
-                                              router.push('/imerso/deda');
-                                          },
-                                          disabled: ['MELP_SUSPENDED'].includes(melpSummary?.melp_status),
-                                      },
-                                      {
-                                          key: 'melpLamp',
-                                          label: 'LAMP',
-                                          disabled: !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(
-                                              melpSummary?.melp_status,
-                                          ),
-                                          // @ts-ignore
-                                          onClick: ({ domEvent }) => {
-                                              domEvent.preventDefault();
-                                              collapseOnMobile();
-                                              router.push('/imerso/lamp');
-                                          },
-                                      },
-                                  ],
-                              },
-                          ]
-                        : []),
-                    {
-                        key: 'settings',
-                        label: 'Ajustes',
-                        icon: <SettingOutlined />,
-                        onClick: ({ domEvent }) => {
-                            domEvent.preventDefault();
-                            collapseOnMobile();
-                            router.push('/settings');
-                        },
-                    },
-                    // O chat não tem balão flutuante (hideMessageBubble no layout); abre por aqui.
-                    {
-                        key: 'support',
-                        label: 'Suporte',
-                        icon: <CustomerServiceOutlined />,
-                        onClick: ({ domEvent }) => {
-                            domEvent.preventDefault();
-                            collapseOnMobile();
-                            if (window.$chatwoot?.toggle) window.$chatwoot.toggle('open');
-                            else router.push('/settings?tab=help');
-                        },
-                    },
-                    {
-                        key: 'logout',
-                        label: 'Sair',
-                        icon: <LogoutOutlined />,
-                        onClick: ({ domEvent }) => {
-                            domEvent.preventDefault();
-                            collapseOnMobile();
-                            handleLogout();
-                        },
-                    },
-                ]}
-            />
-        );
+        const customMenu = <CustomMenu mode="inline" selectedKeys={menu.selectedKeys} items={menu.items} />;
 
         if (device === 'mobile') {
             return (

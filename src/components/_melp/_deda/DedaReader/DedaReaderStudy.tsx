@@ -1,16 +1,6 @@
 'use client';
 
 import { gql, useQuery } from '@apollo/client';
-import {
-    AccessTime,
-    Check,
-    ChevronRight,
-    ExpandLess,
-    FormatListBulleted,
-    Lock,
-    MenuBookOutlined,
-    PlayArrow,
-} from '@mui/icons-material';
 import { Drawer, Tooltip } from 'antd';
 import { AudioPlayer } from 'components';
 import { DedaRecorder } from 'components/_melp/_deda/DedaRecorder/DedaRecorder';
@@ -38,17 +28,15 @@ import {
     writeDayState,
     writeDayToday,
 } from 'libs/dedaReader';
-import { Figtree } from 'next/font/google';
+import { Check, ChevronRight, ChevronUp, Clock, Info, Lock, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
-import React, { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { font as uiFont } from 'themes/font';
 import { DedaActivitySummary, DedaStepsCompleted } from '../DedaActivity/steps';
 import { ReaderProse } from './ReaderProse';
-import { DrawerBody } from './readerStyles';
-
-export const readFont = Figtree({ subsets: ['latin'], weight: ['400', '500', '600'], style: ['normal', 'italic'] });
+import { readFont, uiFont } from './readerFonts';
+import { DrawerBody, ICON } from './readerStyles';
 
 // Texto da transcrição com as notas de contexto (entry-hyperlink) — só a página nova pede `entries`.
 const readerReadQuery = gql`
@@ -143,23 +131,51 @@ const ReaderTimer = ({ onStop }: { onStop(duration: number): void }) => {
                 aria-label={isOpen ? `Study time today ${time}. Hide timer` : 'Show timer'}
                 onClick={() => setIsOpen((v) => !v)}
             >
-                <AccessTime aria-hidden />
+                <Clock {...ICON} aria-hidden />
                 {isOpen && <span>{time}</span>}
             </button>
         </Tooltip>
     );
 };
 
-const Hint = ({ icon, children }: { icon: ReactNode; children: ReactNode }) => (
-    <span className="hint">
-        {icon}
-        <span>{children}</span>
-    </span>
-);
+/** ⓘ do passo: a instrução fica guardada aqui (toque ou teclado abre; tocar fora, Esc ou o próprio ⓘ fecha). */
+const StepInfo = ({ text }: { text: string }) => {
+    const [open, setOpen] = useState(false);
+    const box = useRef<HTMLDivElement>(null);
+    const id = useId();
+    useEffect(() => {
+        if (!open) return;
+        const outside = (event: PointerEvent) => !box.current?.contains(event.target as Node) && setOpen(false);
+        const escape = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
+        document.addEventListener('pointerdown', outside);
+        document.addEventListener('keydown', escape);
+        return () => {
+            document.removeEventListener('pointerdown', outside);
+            document.removeEventListener('keydown', escape);
+        };
+    }, [open]);
+    return (
+        <div className="info" ref={box}>
+            <button
+                type="button"
+                aria-label="Step instructions"
+                aria-expanded={open}
+                aria-controls={id}
+                onClick={() => setOpen((v) => !v)}
+            >
+                <Info {...ICON} size={16} aria-hidden />
+            </button>
+            {/* role=status: o leitor de tela anuncia o texto ao abrir */}
+            <p id={id} role="status" hidden={!open}>
+                {open && text}
+            </p>
+        </div>
+    );
+};
 
 /* ---------- conteúdo de cada passo ---------- */
 
-const ListenStage = ({ dedaId, startMessage }: { dedaId: string; startMessage: boolean }) => {
+const ListenStage = ({ dedaId }: { dedaId: string }) => {
     const { data } = useDeda<DedaListenQueryResponse>('deda-listen', dedaId);
     const item = data?.dedaContentCollection?.items[0];
     const cover = contentfulImage(item?.dedaFeaturedImage?.url, { w: 1240, fm: 'webp', q: 75 });
@@ -168,11 +184,6 @@ const ListenStage = ({ dedaId, startMessage }: { dedaId: string; startMessage: b
             {/* eslint-disable-next-line @next/next/no-img-element -- imagem do Contentful já dimensionada */}
             {cover && <img src={cover} alt="" />}
             <h2>{item?.dedaTitle}</h2>
-            {startMessage ? (
-                <p className="start">Click PLAY to start today&apos;s DEDA. Once you click, the timer will begin.</p>
-            ) : (
-                <p>Close your eyes if it helps. The text comes in the next step — for now, only your ears.</p>
-            )}
         </div>
     );
 };
@@ -239,18 +250,13 @@ const WriteDays = ({
                                 <span className="wd">Day </span>
                                 {d}
                             </b>
-                            <small>{state === 'today' ? 'Today' : state === 'locked' ? <Lock /> : null}</small>
+                            <small>
+                                {state === 'today' ? 'Today' : state === 'locked' ? <Lock {...ICON} /> : null}
+                            </small>
                         </button>
                     );
                 })}
             </div>
-            <p className="daykey">
-                <span>Earlier days open for reference</span>
-                <span>
-                    <Lock aria-hidden />
-                    opens on its day
-                </span>
-            </p>
             {day !== today && (
                 <div className="past" role="status">
                     <span>
@@ -405,7 +411,12 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
     const stepsShown = READER_STEPS.filter(
         (step) => step !== 'completed' && (step !== 'finish' || isTodaysDedaAndNotCompleted),
     );
-    const stepLabel = currentStep === 'finish' ? 'Summary' : `Step ${stepNumber(currentStep)} of 5`;
+    const stepLabel = currentStep === 'finish' ? '' : `Step ${stepNumber(currentStep)} of 5`;
+    // Instrução do passo, guardada no ⓘ (antes de começar o DEDA de hoje, o aviso do cronômetro).
+    const infoText =
+        currentStep === 'listen' && isTodaysDedaAndNotCompleted && !hasPlayStarted
+            ? 'Click PLAY to start today’s DEDA. Once you click, the timer will begin.'
+            : STEP_INFO[currentStep].hint;
 
     const media = (() => {
         switch (currentStep) {
@@ -420,11 +431,7 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                         data={recordings.data}
                         onDone={markReadRecordDone}
                     />
-                ) : (
-                    <Hint icon={<MenuBookOutlined />}>Read the text aloud.</Hint>
-                );
-            case 'watch':
-                return <Hint icon={<PlayArrow />}>The video plays on the page.</Hint>;
+                ) : null;
             case 'listenRead':
                 return recordings.active ? (
                     <DockTwoTracks
@@ -435,16 +442,6 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                 ) : (
                     <ListenPlayer key="listenRead" dedaId={dedaId} />
                 );
-            case 'write':
-                return (
-                    <Hint icon={<MenuBookOutlined />}>
-                        {shownWriteDay === todayDay
-                            ? `Day ${todayDay} — copy today’s passage into your notebook.`
-                            : `Viewing Day ${shownWriteDay} for reference. Today is Day ${todayDay}.`}
-                    </Hint>
-                );
-            case 'finish':
-                return <Hint icon={<FormatListBulleted />}>Rate the five variables, then save.</Hint>;
             default:
                 return null;
         }
@@ -475,13 +472,13 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                 onClick={completeStep}
             >
                 {currentStep === 'write' ? 'Finish' : 'Complete step'}
-                <ChevronRight aria-hidden />
+                <ChevronRight {...ICON} size={16} className="arrow" aria-hidden />
             </button>
         ) : (
             canNext && (
                 <button type="button" className="btn line" onClick={() => handleStepChange('next')}>
                     Next step
-                    <ChevronRight aria-hidden />
+                    <ChevronRight {...ICON} size={16} className="arrow" aria-hidden />
                 </button>
             )
         );
@@ -499,8 +496,8 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                         disabled={!canJumpTo(currentStep, step, rules) || saveInput.isPending}
                         onClick={() => goTo(step)}
                     >
-                        <i>{stepsProgress[step] ? <Check fontSize="small" /> : step === 'finish' ? 'S' : n}</i>
-                        {step === 'finish' ? 'Summary' : `${n}. ${STEP_INFO[step].name}`}
+                        <i>{stepsProgress[step] ? <Check {...ICON} size={14} /> : step === 'finish' ? 'S' : n}</i>
+                        {STEP_INFO[step].name}
                         {stepsProgress[step] && <small>Done</small>}
                     </button>
                 );
@@ -511,6 +508,7 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
     const drawerProps = {
         rootClassName: `deda-reader-drawer reader-theme-dark ${uiFont.className}`,
         rootStyle: { '--r-read-font': readFont.style.fontFamily } as React.CSSProperties,
+        closeIcon: <X {...ICON} aria-label="Close" />,
     };
 
     const studyContent = (() => {
@@ -521,7 +519,6 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                         ? 'Summary'
                         : `Step ${stepNumber(currentStep)} · ${STEP_INFO[currentStep].name}`}
                 </b>
-                {currentStep !== 'finish' && STEP_INFO[currentStep].hint}
             </p>
         );
         switch (currentStep) {
@@ -529,7 +526,7 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                 return (
                     <>
                         <div className="col">{eyebrow}</div>
-                        <ListenStage dedaId={dedaId} startMessage={isTodaysDedaAndNotCompleted && !hasPlayStarted} />
+                        <ListenStage dedaId={dedaId} />
                     </>
                 );
             case 'readRecord':
@@ -579,9 +576,12 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
     return (
         <div className="stage">
             {showStopwatch && timerSlot && createPortal(<ReaderTimer onStop={setDedaTime} />, timerSlot)}
-            <main className="scroll" ref={scrollRef} tabIndex={-1}>
-                <div className="study">{studyContent}</div>
-            </main>
+            <div className="body">
+                <main className="scroll" ref={scrollRef} tabIndex={-1}>
+                    <div className="study">{studyContent}</div>
+                </main>
+                {infoText && <StepInfo key={currentStep} text={infoText} />}
+            </div>
 
             <footer className="dock">
                 {isMobile ? (
@@ -605,24 +605,15 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                                 onClick={() => setStepsOpen(true)}
                                 disabled={currentStep === 'completed'}
                             >
-                                <i>
-                                    {currentStep === 'finish' ? (
-                                        <FormatListBulleted fontSize="small" />
-                                    ) : (
-                                        `${Math.min(stepNumber(currentStep), 5)}/5`
-                                    )}
-                                </i>
-                                <span>
-                                    <b>
-                                        {STEP_INFO[currentStep].name}
-                                        <ExpandLess fontSize="small" aria-hidden />
-                                    </b>
-                                    <small>
-                                        {currentStep === 'write' && shownWriteDay !== todayDay
-                                            ? `Viewing Day ${shownWriteDay}`
-                                            : 'All steps'}
-                                    </small>
-                                </span>
+                                <small>
+                                    {currentStep === 'write' && shownWriteDay !== todayDay
+                                        ? `Viewing Day ${shownWriteDay}`
+                                        : stepLabel}
+                                </small>
+                                <b>
+                                    <span>{STEP_INFO[currentStep].name}</span>
+                                    <ChevronUp {...ICON} size={16} aria-hidden />
+                                </b>
                             </button>
                             <div className="cta">{cta}</div>
                         </div>
@@ -650,7 +641,7 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                                     >
                                         <i>
                                             {done && !cur ? (
-                                                <Check aria-hidden />
+                                                <Check {...ICON} size={14} aria-hidden />
                                             ) : step === 'finish' ? (
                                                 'S'
                                             ) : (

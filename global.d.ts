@@ -23,6 +23,8 @@ declare global {
                     avatar_url: string;
                 },
             ) => void;
+            toggle?: (state?: 'open' | 'close') => void;
+            toggleBubbleVisibility?: (visibility: 'show' | 'hide') => void;
         };
         clarity?: (command: string, email: string, uuid: string) => void;
     }

@@ -87,7 +87,7 @@ export const sendRecording = async (item: QueuedRecording, onProgress?: (fractio
     };
     const { data } = await melpService.post<typeof meta, UploadUrlResponse>(`${base(item.userUid)}/upload-url`, meta);
     if (!data || typeof data.uploadId !== 'string' || !isSignedStorageUrl(data.uploadUrl)) {
-        throw new Error('upload-url inválido');
+        throw new Error('invalid upload-url');
     }
     const headers: Record<string, string> = { 'Content-Type': baseMimeType(item.mimeType) };
     for (const [name, value] of Object.entries(data.headers ?? {})) {
@@ -141,7 +141,7 @@ export const useRecordingPlayUrl = (recordingId?: string | null) => {
             const { data } = await melpService.get<{ url: string }>(
                 `${base(user?.uid as string)}/${encodeURIComponent(recordingId as string)}/play-url`,
             );
-            if (!isSignedStorageUrl(data?.url)) throw new Error('play-url inválido');
+            if (!isSignedStorageUrl(data?.url)) throw new Error('invalid play-url');
             return data.url;
         },
         enabled: RECORDER_FLAG_ON && !!user?.uid && !!recordingId,

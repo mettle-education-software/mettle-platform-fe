@@ -6,7 +6,8 @@ import { useDeviceSize } from 'hooks';
 import React from 'react';
 import { RecButton } from './ui';
 
-// Texto da versão CONSENT_VERSION (libs/dedaRecording). Decisão do André em 02-Out-2026: guardar por tempo
+// Texto da versão CONSENT_VERSION (libs/dedaRecording). O termo segue em português (decisão pendente do dono);
+// botões e mensagens em inglês, como o resto do Imerso. Decisão do André em 02-Out-2026: guardar por tempo
 // indeterminado e poder usar para melhorar o método e criar ferramentas, inclusive de IA. Revisar com o jurídico.
 const Body = styled.div`
     color: #2b2b2b;
@@ -91,15 +92,15 @@ export const RecordingConsent: React.FC<Props> = ({ open, loading, failed, onAcc
             </ul>
             {failed && (
                 <p role="alert" style={{ color: '#a1271d', fontWeight: 600 }}>
-                    Não deu para registrar a sua resposta. Confira a internet e tente de novo.
+                    We couldn’t save your answer. Check your connection and try again.
                 </p>
             )}
             <div className="actions">
                 <RecButton type="button" className="ghost" onClick={onDecline} disabled={loading}>
-                    Agora não
+                    Not now
                 </RecButton>
                 <RecButton type="button" onClick={onAccept} disabled={loading} aria-busy={loading}>
-                    {loading ? 'Registrando…' : 'Concordo e quero gravar'}
+                    {loading ? 'Saving…' : 'I agree, start recording'}
                 </RecButton>
             </div>
         </Body>

@@ -12,7 +12,8 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    background: #2b2b2b;
+    /* Mesmo fundo do que está atrás: o cartão branco no computador, a página no celular. */
+    background: #ffffff;
     padding-bottom: 0.5rem;
 
     &.sticky {
@@ -21,37 +22,39 @@ const Wrapper = styled.div`
         z-index: 1;
     }
 
+    /* Seletor de faixa no formato das pílulas da página: largura do player, alvo de 44 px. */
     .switch {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
-        max-width: 28rem;
+        gap: 0.25rem;
+        padding: 0.25rem;
+        border-radius: 50rem;
+        background: rgba(60, 54, 47, 0.08);
     }
 
     .switch button {
-        min-height: 48px;
-        border-radius: 0.5rem;
-        border: 2px solid #8a7a66;
+        min-height: 44px;
+        border-radius: 50rem;
+        border: none;
         background: transparent;
-        color: #ffffff;
+        color: #3c362f;
         font: inherit;
+        font-size: 1rem;
         font-weight: 600;
         cursor: pointer;
     }
 
     .switch button[aria-pressed='true'] {
         background: #b89261;
-        border-color: #b89261;
         color: #1f1b16;
     }
 
     .switch button.empty {
-        border-style: dashed;
-        color: #d9d2c7;
+        color: #6b6258;
     }
 
     .switch button:focus-visible {
-        outline: 3px solid #ffffff;
+        outline: 3px solid #3c362f;
         outline-offset: 2px;
     }
 
@@ -60,8 +63,17 @@ const Wrapper = styled.div`
         flex-wrap: wrap;
         align-items: center;
         gap: 0.5rem 1rem;
-        color: #e8dccb;
+        color: #3c362f;
         margin: 0;
+    }
+
+    .note .ghost {
+        color: #2b2b2b;
+        border-color: #6b6258;
+    }
+
+    .note button:focus-visible {
+        outline-color: #2b2b2b;
     }
 
     .track[hidden] {
@@ -69,9 +81,7 @@ const Wrapper = styled.div`
     }
 
     @media (max-width: 860px) {
-        .switch {
-            max-width: none;
-        }
+        background: #f5f5f5; /* fundo do Layout da Plataforma */
     }
 `;
 
@@ -88,7 +98,7 @@ interface Props {
 type Track = 'mine' | 'original';
 
 /**
- * Passo 4: um player, duas faixas — "Minha leitura" e "Original". Os dois players ficam montados
+ * Passo 4: um player, duas faixas — "My reading" e "Original". Os dois players ficam montados
  * (um escondido), então cada faixa lembra onde parou; trocar pausa a que estava tocando.
  */
 export const TwoTrackPlayer: React.FC<Props> = ({
@@ -122,19 +132,19 @@ export const TwoTrackPlayer: React.FC<Props> = ({
     const choose = (next: Track) => {
         (next === 'mine' ? originalRef : mineRef).current?.pause();
         setTrack(next);
-        setAnnounce(next === 'mine' ? 'Faixa: Minha leitura' : 'Faixa: Original');
+        setAnnounce(next === 'mine' ? 'Track: My reading' : 'Track: Original');
         if (next === 'mine') setFinishedMine(false);
     };
 
     const mineDuration = queued.data?.durationMs ?? mine?.durationMs ?? 0;
     const mineSubtitle =
         isCurrentDeda || !mine
-            ? `Minha leitura de hoje · ${formatDuration(mineDuration)}`
-            : `Minha leitura · ${formatRecordedOn(mine.recordedOn)} · ${formatDuration(mineDuration)}`;
+            ? `My reading today · ${formatDuration(mineDuration)}`
+            : `My reading · ${formatRecordedOn(mine.recordedOn)} · ${formatDuration(mineDuration)}`;
 
     return (
         <Wrapper className={sticky ? 'sticky' : undefined}>
-            <div className="switch" role="group" aria-label="Escolha a faixa">
+            <div className="switch" role="group" aria-label="Choose a track">
                 <button
                     type="button"
                     aria-pressed={current === 'mine'}
@@ -142,7 +152,7 @@ export const TwoTrackPlayer: React.FC<Props> = ({
                     aria-disabled={!hasMine && !(isCurrentDeda && onGoRecord)}
                     onClick={() => (hasMine ? choose('mine') : isCurrentDeda && onGoRecord?.())}
                 >
-                    Minha leitura
+                    My reading
                 </button>
                 <button type="button" aria-pressed={current === 'original'} onClick={() => choose('original')}>
                     Original
@@ -150,19 +160,19 @@ export const TwoTrackPlayer: React.FC<Props> = ({
             </div>
             {!hasMine && !recordings.isLoading && (
                 <p className="note">
-                    {isCurrentDeda ? 'Você ainda não gravou hoje.' : 'Você não gravou a leitura deste DEDA.'}
+                    {isCurrentDeda ? 'You haven’t recorded today yet.' : 'You didn’t record a reading for this DEDA.'}
                     {isCurrentDeda && onGoRecord && (
                         <RecButton type="button" className="ghost" onClick={onGoRecord}>
-                            Ir para o passo 2
+                            Go to step 2
                         </RecButton>
                     )}
                 </p>
             )}
             {finishedMine && current === 'mine' && (
                 <p className="note" role="status">
-                    Agora ouça o original.
+                    Now listen to the original.
                     <RecButton type="button" onClick={() => choose('original')}>
-                        Ouvir o original
+                        Listen to the original
                     </RecButton>
                 </p>
             )}
@@ -186,9 +196,7 @@ export const TwoTrackPlayer: React.FC<Props> = ({
                         />
                     ) : (
                         <p className="note" role={playUrl.isError ? 'alert' : undefined}>
-                            {playUrl.isError
-                                ? 'Não deu para carregar a sua gravação agora.'
-                                : 'Carregando a sua gravação…'}
+                            {playUrl.isError ? 'We couldn’t load your recording right now.' : 'Loading your recording…'}
                         </p>
                     )}
                 </div>

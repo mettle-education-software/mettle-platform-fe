@@ -49,6 +49,7 @@ export const ReadRecord: React.FC<ReadRecordProps> = ({ dedaId, onRecordDone }) 
 
     return (
         <Flex vertical gap="1rem">
+            {recorder}
             <ReadingCard>
                 <Flex justify="center">
                     <MaxTextWidth>
@@ -58,7 +59,6 @@ export const ReadRecord: React.FC<ReadRecordProps> = ({ dedaId, onRecordDone }) 
                     </MaxTextWidth>
                 </Flex>
             </ReadingCard>
-            {recorder}
         </Flex>
     );
 };

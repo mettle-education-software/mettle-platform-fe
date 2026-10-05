@@ -124,17 +124,17 @@ describe('datas e durações', () => {
         expect(brasiliaDate(new Date('2026-10-02T03:30:00Z'))).toBe('2026-10-02');
     });
     it('rótulo do dia', () => {
-        expect(formatRecordedOn('2026-09-30')).toBe('quarta, 30-Set');
-        expect(formatRecordedOn('2026-10-04')).toBe('domingo, 04-Out');
+        expect(formatRecordedOn('2026-09-30')).toBe('Wednesday, Sep 30');
+        expect(formatRecordedOn('2026-10-04')).toBe('Sunday, Oct 4');
         expect(formatRecordedOn('<img>')).toBe('');
     });
     it('durações', () => {
         expect(formatDuration(372_000)).toBe('6:12');
         expect(formatDuration(3_723_000)).toBe('1:02:03');
         expect(formatDuration(NaN)).toBe('0:00');
-        expect(spokenDuration(372_000)).toBe('6 minutos e 12 segundos');
-        expect(spokenDuration(60_000)).toBe('1 minuto');
-        expect(spokenDuration(0)).toBe('0 segundos');
+        expect(spokenDuration(372_000)).toBe('6 minutes and 12 seconds');
+        expect(spokenDuration(60_000)).toBe('1 minute');
+        expect(spokenDuration(0)).toBe('0 seconds');
         expect(formatDelta(-68_000)).toBe('−1:08');
         expect(formatDelta(42_000)).toBe('+0:42');
         expect(formatDelta(300)).toBe('0:00');

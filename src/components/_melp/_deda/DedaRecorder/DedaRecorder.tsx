@@ -22,6 +22,7 @@ import {
 } from 'libs/dedaRecording';
 import { idbQueue, QueuedRecording, queueKey } from 'libs/recordingQueue';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AudioPlayer as RawAudioPlayer } from 'react-audio-play';
 import { RecordingConsent } from './RecordingConsent';
 import { RecButton, SrOnly } from './ui';
 
@@ -34,15 +35,9 @@ const Bar = styled.section`
     flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem 1.25rem;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
 
-    /* Computador: preso na base da área visível enquanto o aluno lê o cartão. */
-    &.sticky {
-        position: sticky;
-        bottom: 1rem;
-        z-index: 2;
-    }
-
+    /* Computador: no topo do passo, como o player dos passos 1 e 4 (o texto rola dentro do cartão, sem nada por cima). */
+    /* Celular: preso acima da barra de navegação do DEDA. */
     &.fixed {
         position: fixed;
         left: 0;
@@ -53,6 +48,7 @@ const Bar = styled.section`
         padding: 0.75rem 1rem;
         max-height: 60vh;
         overflow-y: auto;
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
     }
 
     .status {
@@ -136,18 +132,23 @@ const Bar = styled.section`
         align-items: center;
     }
 
-    audio {
+    .player {
         width: 100%;
         max-width: 28rem;
-        height: 44px;
+        margin-top: 0.25rem;
     }
 
     @media (max-width: 480px) {
         .actions {
             width: 100%;
         }
+        /* Os botões dividem a linha e quebram para a de baixo quando não cabem (nunca cortam o texto). */
         .actions > button:not(.link) {
-            flex: 1 1 0;
+            flex: 1 1 auto;
+            padding: 0 1rem;
+        }
+        .player {
+            max-width: none;
         }
         .timer {
             font-size: 1.25rem;
@@ -287,7 +288,7 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
 
     const exitLink = (
         <RecButton type="button" className="link" onClick={() => setSkipped(true)}>
-            Não consigo gravar agora
+            I can’t record right now
         </RecButton>
     );
 
@@ -307,23 +308,23 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
     let announce = '';
 
     if (skipped) {
-        headline = 'Tudo bem, siga o DEDA sem gravar hoje.';
-        detail = 'Quando puder, volte ao passo 2 e grave a sua leitura.';
+        headline = 'No problem. Go on with the DEDA without recording today.';
+        detail = 'When you can, come back to step 2 and record your reading.';
         actions = (
             <RecButton type="button" className="ghost" onClick={() => setSkipped(false)}>
-                Gravar mesmo assim
+                Record anyway
             </RecButton>
         );
         announce = String(headline);
     } else if (confirmReset) {
-        headline = 'Descartar esta gravação e gravar de novo?';
+        headline = 'Discard this recording and record again?';
         actions = (
             <>
                 <RecButton type="button" className="ghost" onClick={() => setConfirmReset(false)}>
-                    Cancelar
+                    Cancel
                 </RecButton>
                 <RecButton type="button" onClick={discard}>
-                    Sim, regravar
+                    Yes, record again
                 </RecButton>
             </>
         );
@@ -333,36 +334,36 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
             case 'ready':
                 if (state.problem === 'denied') {
                     isError = true;
-                    headline = 'A Plataforma precisa do microfone.';
+                    headline = 'The Platform needs your microphone.';
                     detail = isMobile
-                        ? 'Toque no ícone ao lado do endereço do site, permita o microfone e tente de novo.'
-                        : 'Clique no cadeado ao lado do endereço do site e permita o microfone. No Mac e no Windows, confira também se o sistema libera o microfone para o navegador.';
+                        ? 'Tap the icon next to the site address, allow the microphone and try again.'
+                        : 'Click the lock next to the site address and allow the microphone. On Mac and Windows, also check that the system lets the browser use the microphone.';
                 } else if (state.problem === 'unsupported') {
                     isError = true;
-                    headline = 'Este navegador não grava áudio.';
+                    headline = 'This browser can’t record audio.';
                     detail = copied
-                        ? 'Endereço copiado. Cole no Chrome ou no Safari.'
-                        : 'Abra a Plataforma no Chrome ou no Safari para gravar.';
+                        ? 'Address copied. Paste it into Chrome or Safari.'
+                        : 'Open the Platform in Chrome or Safari to record.';
                 } else if (state.problem === 'nomic') {
                     isError = true;
-                    headline = 'Não encontramos um microfone.';
-                    detail = 'Conecte um microfone (ou feche outro aplicativo que esteja usando) e tente de novo.';
+                    headline = 'We couldn’t find a microphone.';
+                    detail = 'Connect a microphone (or close any other app that’s using it) and try again.';
                 } else if (showingToday && todayRecording) {
-                    headline = `Você já gravou hoje · ${formatDuration(todayRecording.durationMs)}`;
-                    detail = playUrl.isError ? 'Não deu para carregar o áudio agora.' : null;
+                    headline = `You recorded today · ${formatDuration(todayRecording.durationMs)}`;
+                    detail = playUrl.isError ? 'We couldn’t load the audio right now.' : null;
                 } else {
-                    headline = 'Grave a sua leitura em voz alta';
-                    detail = 'Leia o texto em voz alta enquanto grava. Você pode pausar quando quiser.';
+                    headline = 'Record yourself reading aloud';
+                    detail = 'Read the text aloud while you record. You can pause at any time.';
                 }
                 actions = state.problem ? (
                     <>
                         {state.problem === 'unsupported' ? (
                             <RecButton type="button" className="ghost" onClick={copyAddress}>
-                                Copiar endereço
+                                Copy address
                             </RecButton>
                         ) : (
                             <RecButton type="button" onClick={begin}>
-                                Tentar de novo
+                                Try again
                             </RecButton>
                         )}
                         {exitLink}
@@ -375,16 +376,16 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
                             onClick={() => setListen((v) => !v)}
                             aria-expanded={listen}
                         >
-                            <PlayArrow aria-hidden /> {listen ? 'Fechar' : 'Ouvir'}
+                            <PlayArrow aria-hidden /> {listen ? 'Close' : 'Listen'}
                         </RecButton>
                         <RecButton type="button" onClick={() => setRerecord(true)}>
-                            <Mic aria-hidden /> Regravar
+                            <Mic aria-hidden /> Record again
                         </RecButton>
                     </>
                 ) : (
                     <>
                         <RecButton type="button" className="record" onClick={begin}>
-                            <Mic aria-hidden /> Gravar
+                            <Mic aria-hidden /> Record
                         </RecButton>
                         {exitLink}
                     </>
@@ -395,15 +396,15 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
                 headline = (
                     <>
                         <span className="dot" aria-hidden />
-                        <span className="timer" role="timer" aria-label="Tempo gravado">
+                        <span className="timer" role="timer" aria-label="Recorded time">
                             {formatDuration(elapsed)}
                         </span>
-                        <span>Gravando</span>
+                        <span>Recording</span>
                     </>
                 );
                 detail =
                     elapsed >= WARN_RECORDING_MS ? (
-                        <>A gravação para sozinha aos 20 minutos.</>
+                        <>Recording stops automatically at 20 minutes.</>
                     ) : (
                         <span className="level" aria-hidden>
                             <span ref={(el) => void (rec.levelElRef.current = el)} />
@@ -412,72 +413,72 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
                 actions = (
                     <>
                         <RecButton type="button" className="ghost" onClick={() => rec.pause()}>
-                            <Pause aria-hidden /> Pausar
+                            <Pause aria-hidden /> Pause
                         </RecButton>
                         <RecButton type="button" onClick={() => rec.stop()}>
-                            <Stop aria-hidden /> Parar
+                            <Stop aria-hidden /> Stop
                         </RecButton>
                     </>
                 );
-                announce = `Gravando. ${spokenDuration(Math.floor(elapsed / 60_000) * 60_000)}`;
+                announce = `Recording. ${spokenDuration(Math.floor(elapsed / 60_000) * 60_000)}`;
                 if (elapsed >= WARN_RECORDING_MS)
-                    announce = 'Faltam 5 minutos: a gravação para sozinha aos 20 minutos.';
+                    announce = '5 minutes left: recording stops automatically at 20 minutes.';
                 break;
             case 'paused':
                 headline = (
                     <>
-                        <span className="timer" role="timer" aria-label="Tempo gravado">
+                        <span className="timer" role="timer" aria-label="Recorded time">
                             {formatDuration(elapsed)}
                         </span>
-                        <span>Pausado</span>
+                        <span>Paused</span>
                     </>
                 );
-                detail = state.problem === 'interrupted' ? 'A gravação foi pausada quando você saiu da página.' : null;
+                detail = state.problem === 'interrupted' ? 'Recording paused when you left the page.' : null;
                 actions = (
                     <>
                         <RecButton type="button" className="ghost" onClick={rec.resume}>
-                            <Mic aria-hidden /> Continuar
+                            <Mic aria-hidden /> Resume
                         </RecButton>
                         <RecButton type="button" onClick={() => rec.stop()}>
                             <Stop aria-hidden />{' '}
-                            {state.problem === 'interrupted' ? 'Parar e salvar o que gravou' : 'Parar'}
+                            {state.problem === 'interrupted' ? 'Stop and keep what you recorded' : 'Stop'}
                         </RecButton>
                     </>
                 );
-                announce = state.problem === 'interrupted' ? 'Gravação pausada.' : 'Pausado.';
+                announce = state.problem === 'interrupted' ? 'Recording paused.' : 'Paused.';
                 break;
             case 'review':
             case 'queued':
             case 'uploading': {
                 const restored = state.phase === 'queued' && !state.problem;
                 headline = restored
-                    ? `Você tem uma gravação de hoje não enviada (${formatDuration(state.accumulatedMs)})`
+                    ? `You have an unsent recording from today (${formatDuration(state.accumulatedMs)})`
                     : state.phase === 'uploading'
-                      ? `Enviando… ${Math.round(progress * 100)}%`
-                      : `Gravação de ${formatDuration(state.accumulatedMs)}`;
+                      ? `Uploading… ${Math.round(progress * 100)}%`
+                      : `Your recording · ${formatDuration(state.accumulatedMs)}`;
                 if (state.problem === 'tooShort') {
                     isError = true;
-                    detail = 'A gravação precisa ter pelo menos 5 segundos. Regrave a sua leitura.';
+                    detail = 'Your recording must be at least 5 seconds long. Please record again.';
                 } else if (state.problem === 'limit') {
-                    detail = 'A gravação parou aos 20 minutos. Ouça e salve.';
+                    detail = 'Recording stopped at 20 minutes. Listen and save it.';
                 } else if (state.problem === 'interrupted') {
                     detail =
-                        'A gravação foi interrompida (microfone desconectado). O que você gravou até ali está aqui.';
+                        'Recording was interrupted (microphone disconnected). Everything you recorded up to that point is here.';
                 } else if (state.problem === 'offline') {
                     isError = true;
                     detail = storedOnDevice
-                        ? 'Sem internet. Sua gravação está guardada neste aparelho e será enviada quando a conexão voltar. Você pode seguir o DEDA.'
-                        : 'Sem internet. Não feche esta página: tente de novo quando a conexão voltar.';
+                        ? 'No internet connection. Your recording is saved on this device and will be uploaded when you’re back online. You can go on with the DEDA.'
+                        : 'No internet connection. Don’t close this page: try again when you’re back online.';
                 } else if (state.problem === 'upload') {
                     isError = true;
                     detail = storedOnDevice
-                        ? 'Não deu para enviar agora. Sua gravação está guardada neste aparelho.'
-                        : 'Não deu para enviar agora. Não feche esta página e tente de novo.';
+                        ? 'We couldn’t upload it right now. Your recording is saved on this device.'
+                        : 'We couldn’t upload it right now. Don’t close this page and try again.';
                 } else if (state.problem === 'expired') {
                     isError = true;
-                    detail = 'Seu acesso ao Imerso venceu, então não é possível salvar novas gravações.';
+                    detail = 'Your Imerso access has expired, so new recordings cannot be saved.';
                 } else if (state.phase === 'review') {
-                    detail = 'Ouça antes de salvar. Se não gostar, regrave.';
+                    detail = 'Listen before saving. If you don’t like it, record again.';
                 }
                 const busy = state.phase === 'uploading';
                 actions =
@@ -492,7 +493,7 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
                                 aria-expanded={listen}
                                 disabled={busy || !blobUrl}
                             >
-                                <PlayArrow aria-hidden /> {listen ? 'Fechar' : 'Ouvir'}
+                                <PlayArrow aria-hidden /> {listen ? 'Close' : 'Listen'}
                             </RecButton>
                             <RecButton
                                 type="button"
@@ -500,24 +501,24 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
                                 onClick={() => setConfirmReset(true)}
                                 disabled={busy}
                             >
-                                <Mic aria-hidden /> {restored ? 'Descartar' : 'Regravar'}
+                                <Mic aria-hidden /> {restored ? 'Discard' : 'Record again'}
                             </RecButton>
                             {state.problem !== 'tooShort' && (
                                 <RecButton type="button" onClick={save} disabled={busy} aria-busy={busy}>
-                                    {state.phase === 'review' ? 'Salvar' : restored ? 'Enviar' : 'Tentar de novo'}
+                                    {state.phase === 'review' ? 'Save' : restored ? 'Upload' : 'Try again'}
                                 </RecButton>
                             )}
                         </>
                     );
-                announce = state.phase === 'uploading' ? 'Enviando a gravação.' : isError ? '' : String(headline);
+                announce = state.phase === 'uploading' ? 'Uploading your recording.' : isError ? '' : String(headline);
                 break;
             }
             case 'saved':
-                headline = `Gravação salva · ${formatDuration(state.accumulatedMs)}`;
-                detail = 'Pode seguir para o próximo passo.';
+                headline = `Recording saved · ${formatDuration(state.accumulatedMs)}`;
+                detail = 'You can move on to the next step.';
                 actions = (
                     <RecButton type="button" className="ghost" onClick={() => (rec.reset(), setRerecord(true))}>
-                        <Mic aria-hidden /> Regravar
+                        <Mic aria-hidden /> Record again
                     </RecButton>
                 );
                 announce = String(headline);
@@ -536,7 +537,7 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
 
     return (
         <>
-            <Bar className={isMobile ? 'fixed' : 'sticky'} aria-label="Gravador da leitura">
+            <Bar className={isMobile ? 'fixed' : undefined} aria-label="Reading recorder">
                 <div className="status">
                     <div className="headline">{headline}</div>
                     {detail && (
@@ -544,7 +545,16 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
                             {detail}
                         </p>
                     )}
-                    {audioSrc && <audio controls src={audioSrc} aria-label="Ouvir a sua gravação" />}
+                    {audioSrc && (
+                        <div className="player" role="group" aria-label="Listen to your recording">
+                            <RawAudioPlayer
+                                src={audioSrc}
+                                width="100%"
+                                sliderColor="var(--brown-bg)"
+                                style={{ boxShadow: 'none', borderRadius: '0.5rem', height: '3.5rem' }}
+                            />
+                        </div>
+                    )}
                 </div>
                 <div className="actions">{actions}</div>
                 <SrOnly aria-live="polite">{announce}</SrOnly>

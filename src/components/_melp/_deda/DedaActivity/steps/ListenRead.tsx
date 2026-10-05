@@ -29,7 +29,7 @@ export const ListenRead: React.FC<ListenReadProps> = ({ dedaId, isCurrentDeda = 
     const dedaListenReadResult = useDeda<DedaListenReadQueryResponse>('deda-listen-read', dedaId);
     const recordings = useDedaRecordings(dedaId);
     const item = dedaListenReadResult.data?.dedaContentCollection?.items[0];
-    // Gravador liberado para o aluno: um player com duas faixas ("Minha leitura" e "Original").
+    // Gravador liberado para o aluno: um player com duas faixas ("My reading" e "Original").
     const twoTracks = (sticky: boolean) =>
         recordings.active && !dedaListenReadResult.loading ? (
             <TwoTrackPlayer

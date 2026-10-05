@@ -1,6 +1,12 @@
 'use client';
 
-import { HomeOutlined, LogoutOutlined, MenuOutlined, SettingOutlined } from '@ant-design/icons';
+import {
+    CustomerServiceOutlined,
+    HomeOutlined,
+    LogoutOutlined,
+    MenuOutlined,
+    SettingOutlined,
+} from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Alert, Button, Drawer, Flex, Layout, Menu, Typography } from 'antd';
 import { Logo, NotificationsList } from 'components';
@@ -256,6 +262,22 @@ export const AppLayout = forwardRef<
                             router.push('/settings');
                         },
                     },
+                    // Celular: o chat sai do balão flutuante e abre por aqui (no computador o balão continua).
+                    ...(device === 'mobile'
+                        ? [
+                              {
+                                  key: 'support',
+                                  label: 'Suporte',
+                                  icon: <CustomerServiceOutlined />,
+                                  onClick: ({ domEvent }: { domEvent: React.SyntheticEvent }) => {
+                                      domEvent.preventDefault();
+                                      collapseOnMobile();
+                                      if (window.$chatwoot?.toggle) window.$chatwoot.toggle('open');
+                                      else router.push('/settings?tab=help');
+                                  },
+                              },
+                          ]
+                        : []),
                     {
                         key: 'logout',
                         label: 'Sair',

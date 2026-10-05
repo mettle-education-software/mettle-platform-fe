@@ -65,6 +65,16 @@ const MobileNavigationWrapper = styled.div`
         width: 100%;
         margin: 0;
         padding: 0;
+
+        /* Quatro abas (com a de gravações) cabem em 360 px sem rolar nem cair na reticência ("…"). */
+        .ant-tabs-tab {
+            padding-left: 0.625rem !important;
+            padding-right: 0.625rem !important;
+        }
+
+        .ant-tabs-tab-active .ant-tabs-tab-btn {
+            padding: 0 0.25rem !important;
+        }
     }
 `;
 

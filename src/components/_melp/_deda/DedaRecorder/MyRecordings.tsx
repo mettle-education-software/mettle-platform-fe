@@ -250,7 +250,7 @@ export const MyRecordings: React.FC<Props> = ({ dedaId, dedaTitle, coverSrc }) =
                                 </dd>
                             </div>
                             <div className="card">
-                                <dt>Time reading aloud</dt>
+                                <dt>Total time</dt>
                                 <dd>{formatDuration(ind.totalMs)}</dd>
                             </div>
                         </dl>

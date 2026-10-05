@@ -62,11 +62,11 @@ const Bar = styled.section`
         flex: 1 1 auto;
     }
     &.docked .detail {
-        color: #bdb4a8;
+        color: var(--r-muted);
         font-size: 0.875rem;
     }
     &.docked .error {
-        color: #f0b3a8;
+        color: var(--r-error);
     }
     &.docked .timer {
         font-size: 1.25rem;

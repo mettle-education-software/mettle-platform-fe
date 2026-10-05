@@ -1,16 +1,13 @@
 'use client';
 
 import { gql, useQuery } from '@apollo/client';
-import { Global } from '@emotion/react';
 import {
     AccessTime,
     Check,
     ChevronRight,
     ExpandLess,
-    ExpandMore,
     FormatListBulleted,
     Lock,
-    Menu as MenuIcon,
     MenuBookOutlined,
     PlayArrow,
 } from '@mui/icons-material';
@@ -24,12 +21,11 @@ import { useDeda } from 'hooks/queries/dedaQueries';
 import {
     DedaListenQueryResponse,
     DedaListenReadQueryResponse,
-    DedaNotesQueryResponse,
     DedaReadRecordQueryResponse,
     DedaWatchQueryResponse,
     DedaWriteQueryResponse,
 } from 'interfaces';
-import { getDayToday, handleLogout, padNumber } from 'libs';
+import { getDayToday, padNumber } from 'libs';
 import { contentfulImage } from 'libs/dedaHeader';
 import {
     canJumpTo,
@@ -46,12 +42,13 @@ import { Figtree } from 'next/font/google';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { font as uiFont } from 'themes/font';
 import { DedaActivitySummary, DedaStepsCompleted } from '../DedaActivity/steps';
 import { ReaderProse } from './ReaderProse';
-import { DrawerBody, readerTokens, Shell } from './readerStyles';
+import { DrawerBody } from './readerStyles';
 
-const readFont = Figtree({ subsets: ['latin'], weight: ['400', '500', '600'], style: ['normal', 'italic'] });
+export const readFont = Figtree({ subsets: ['latin'], weight: ['400', '500', '600'], style: ['normal', 'italic'] });
 
 // Texto da transcrição com as notas de contexto (entry-hyperlink) — só a página nova pede `entries`.
 const readerReadQuery = gql`
@@ -108,20 +105,10 @@ const STEP_INFO: Record<ReaderStep, { name: string; hint: string }> = {
 };
 const stepNumber = (step: ReaderStep) => READER_STEPS.indexOf(step) + 1;
 
-export interface ReaderTab {
-    key: string;
-    label: string;
-}
-
 interface Props {
     dedaId: string;
-    title?: string;
-    coverUrl?: string;
-    stripImageUrl?: string;
-    tabs: ReaderTab[];
-    activeTab: string;
-    onTab(key: string): void;
-    onClassic(): void;
+    /** Lugar do cronômetro na faixa do topo (DedaReaderPage): a faixa é da página, o cronômetro é do estudo. */
+    timerSlot: HTMLElement | null;
 }
 
 /** Cronômetro do dia: mesma contagem do StopWatch de DedaSteps (o valor vai ao Summary); aqui, discreto. */
@@ -316,16 +303,7 @@ const ListenPlayer = ({ dedaId, onPlay }: { dedaId: string; onPlay?(): void }) =
  * (mesmos passos, ordem, cronômetro, gravador e chamadas); só a apresentação muda: faixa fina no topo, texto como
  * protagonista numa rolagem só e uma barra fixa embaixo com passos, player/gravador e "Complete step".
  */
-export const DedaReaderStudy: React.FC<Props> = ({
-    dedaId,
-    title,
-    coverUrl,
-    stripImageUrl,
-    tabs,
-    activeTab,
-    onTab,
-    onClassic,
-}) => {
+export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
     const router = useRouter();
     const isMobile = useDeviceSize() === 'mobile';
     const { melpSummary, isTodaysDedaCompleted } = useMelpContext();
@@ -415,9 +393,6 @@ export const DedaReaderStudy: React.FC<Props> = ({
     const todayDay = writeDayToday();
     const [writeDay, setWriteDay] = useState<number>(todayDay);
     const shownWriteDay = openWriteDay(writeDay, todayDay);
-    const [menuOpen, setMenuOpen] = useState(false);
-    const [glossaryOpen, setGlossaryOpen] = useState(false);
-    const [tabsOpen, setTabsOpen] = useState(false);
     const [stepsOpen, setStepsOpen] = useState(false);
     const scrollRef = useRef<HTMLElement>(null);
     useEffect(() => {
@@ -427,12 +402,6 @@ export const DedaReaderStudy: React.FC<Props> = ({
         if (currentStep !== 'write') setWriteDay(todayDay);
     }, [currentStep, todayDay]);
 
-    const notes = useDeda<DedaNotesQueryResponse>('deda-notes', dedaId);
-    const glossary = notes.data?.dedaContentCollection?.items[0]?.dedaNotesGlossaryContent;
-
-    const thumb = contentfulImage(coverUrl, { w: 96, h: 96, fit: 'fill', fm: 'webp' });
-    const stripBg = contentfulImage(stripImageUrl, { w: 1600, fm: 'webp', q: 60 });
-    const weekDay = isTodaysDeda ? `Week ${melpSummary?.current_deda_week} · Day ${todayDay}` : '';
     const stepsShown = READER_STEPS.filter(
         (step) => step !== 'completed' && (step !== 'finish' || isTodaysDedaAndNotCompleted),
     );
@@ -539,23 +508,8 @@ export const DedaReaderStudy: React.FC<Props> = ({
         </div>
     );
 
-    const tabButtons = () =>
-        tabs.map((tab) => (
-            <button
-                key={tab.key}
-                type="button"
-                aria-current={tab.key === activeTab ? 'page' : undefined}
-                onClick={() => {
-                    setTabsOpen(false);
-                    if (tab.key !== activeTab) onTab(tab.key);
-                }}
-            >
-                {tab.label}
-            </button>
-        ));
-
     const drawerProps = {
-        rootClassName: `deda-reader-drawer ${uiFont.className}`,
+        rootClassName: `deda-reader-drawer reader-theme-dark ${uiFont.className}`,
         rootStyle: { '--r-read-font': readFont.style.fontFamily } as React.CSSProperties,
     };
 
@@ -623,59 +577,8 @@ export const DedaReaderStudy: React.FC<Props> = ({
     })();
 
     return (
-        <Shell
-            className={`deda-reader ${uiFont.className}`}
-            style={{ '--r-read-font': readFont.style.fontFamily } as React.CSSProperties}
-        >
-            <Global styles={readerTokens} />
-            <header className="strip">
-                {/* eslint-disable-next-line @next/next/no-img-element -- fundo decorativo */}
-                {stripBg && <img className="bg" src={stripBg} alt="" aria-hidden />}
-                <span className="shade" aria-hidden />
-                <button type="button" className="ib" aria-label="Menu" onClick={() => setMenuOpen(true)}>
-                    <MenuIcon />
-                </button>
-                <button
-                    type="button"
-                    className="idb"
-                    onClick={() => (isMobile ? setTabsOpen(true) : onTab(tabs[0].key))}
-                    aria-haspopup={isMobile ? 'dialog' : undefined}
-                    aria-label={isMobile ? `${title ?? 'DEDA'}. Open sections` : `Back to ${tabs[0].label}`}
-                >
-                    {/* eslint-disable-next-line @next/next/no-img-element -- miniatura do Contentful */}
-                    {thumb && <img src={thumb} alt="" />}
-                    <span>
-                        <b>
-                            {title}
-                            {isMobile && <ExpandMore fontSize="small" aria-hidden />}
-                        </b>
-                        {weekDay && <small>{weekDay}</small>}
-                    </span>
-                </button>
-                {!isMobile && (
-                    <nav className="tabs" aria-label="DEDA sections">
-                        {tabButtons()}
-                    </nav>
-                )}
-                <span className="sp" />
-                {showStopwatch && <ReaderTimer onStop={setDedaTime} />}
-                {isMobile ? (
-                    <button type="button" className="ib" aria-label="Glossary" onClick={() => setGlossaryOpen(true)}>
-                        <MenuBookOutlined />
-                    </button>
-                ) : (
-                    <>
-                        <button type="button" className="btn line" onClick={() => setGlossaryOpen(true)}>
-                            <MenuBookOutlined aria-hidden />
-                            Glossary
-                        </button>
-                        <button type="button" className="lnk" onClick={onClassic}>
-                            Classic view
-                        </button>
-                    </>
-                )}
-            </header>
-
+        <div className="stage">
+            {showStopwatch && timerSlot && createPortal(<ReaderTimer onStop={setDedaTime} />, timerSlot)}
             <main className="scroll" ref={scrollRef} tabIndex={-1}>
                 <div className="study">{studyContent}</div>
             </main>
@@ -770,69 +673,6 @@ export const DedaReaderStudy: React.FC<Props> = ({
 
             <Drawer
                 {...drawerProps}
-                open={menuOpen}
-                onClose={() => setMenuOpen(false)}
-                placement="left"
-                width={290}
-                title="Menu"
-            >
-                <DrawerBody>
-                    <div className="menu">
-                        <button type="button" onClick={() => router.push('/')}>
-                            Início
-                        </button>
-                        <button type="button" aria-current="page" onClick={() => router.push('/imerso')}>
-                            IMERSO
-                        </button>
-                        <button type="button" onClick={() => router.push('/settings')}>
-                            Ajustes
-                        </button>
-                        <button type="button" onClick={() => handleLogout()}>
-                            Sair
-                        </button>
-                    </div>
-                </DrawerBody>
-            </Drawer>
-
-            <Drawer
-                {...drawerProps}
-                open={glossaryOpen}
-                onClose={() => setGlossaryOpen(false)}
-                placement={isMobile ? 'bottom' : 'right'}
-                width={isMobile ? undefined : 420}
-                height={isMobile ? '86%' : undefined}
-                title="Glossary"
-            >
-                <DrawerBody className="glossary">
-                    {glossary ? (
-                        <ReaderProse rawContent={glossary.json} links={glossary.links as never} />
-                    ) : (
-                        <p className="hint">Loading…</p>
-                    )}
-                </DrawerBody>
-            </Drawer>
-
-            <Drawer
-                {...drawerProps}
-                open={tabsOpen}
-                onClose={() => setTabsOpen(false)}
-                placement="bottom"
-                height="auto"
-                title={[title, weekDay].filter(Boolean).join(' · ')}
-            >
-                <DrawerBody>
-                    <div className="menu">{tabButtons()}</div>
-                    <div className="menu">
-                        <hr />
-                        <button type="button" onClick={onClassic}>
-                            Classic view
-                        </button>
-                    </div>
-                </DrawerBody>
-            </Drawer>
-
-            <Drawer
-                {...drawerProps}
                 open={stepsOpen}
                 onClose={() => setStepsOpen(false)}
                 placement="bottom"
@@ -841,7 +681,7 @@ export const DedaReaderStudy: React.FC<Props> = ({
             >
                 <DrawerBody>{stepList}</DrawerBody>
             </Drawer>
-        </Shell>
+        </div>
     );
 };
 

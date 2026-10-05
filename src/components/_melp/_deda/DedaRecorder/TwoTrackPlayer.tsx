@@ -90,31 +90,31 @@ const Wrapper = styled.div`
         gap: 8px 12px;
     }
     &.docked .switch {
-        background: rgba(127, 120, 110, 0.2);
+        background: var(--r-pill);
         flex: none;
     }
     &.docked .switch button {
-        color: #bdb4a8;
+        color: var(--r-muted);
         padding: 0 14px;
         font-size: 0.875rem;
     }
     &.docked .switch button[aria-pressed='true'] {
-        color: #1f1b16;
+        color: var(--r-on-gold-alt);
     }
     &.docked .switch button.empty {
-        color: #8f877c;
+        color: var(--r-faint);
     }
     &.docked .switch button:focus-visible,
     &.docked .note button:focus-visible {
-        outline-color: #d3a878;
+        outline-color: var(--r-gold-hi);
     }
     &.docked .note {
-        color: #bdb4a8;
+        color: var(--r-muted);
         font-size: 0.875rem;
     }
     &.docked .note .ghost {
-        color: #ffffff;
-        border-color: #d9d2c7;
+        color: var(--r-strong);
+        border-color: var(--r-strong-line);
     }
     &.docked .track {
         flex: 1 1 12rem;

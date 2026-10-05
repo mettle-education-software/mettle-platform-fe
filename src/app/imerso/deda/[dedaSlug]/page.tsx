@@ -22,8 +22,8 @@ import React, { useState } from 'react';
 
 const { Title } = Typography;
 
-// Página nova do DEDA (modo de estudo), só para as contas de libs/dedaReader: carregada à parte, fora do bundle dos alunos.
-const DedaReaderStudy = dynamic(() => import('components/_melp/_deda/DedaReader/DedaReaderStudy'), {
+// Página nova do DEDA inteira (todas as abas), só para as contas de libs/dedaReader: carregada à parte, fora do bundle dos alunos.
+const DedaReaderPage = dynamic(() => import('components/_melp/_deda/DedaReader/DedaReaderPage'), {
     ssr: false,
     loading: () => <LoadingLayout />,
 });
@@ -200,6 +200,28 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
             : []),
     ];
 
+    // Chave ligada: a página inteira é a nova (uma casca em todas as abas). Desligada: a página atual, intocada.
+    if (reader.on)
+        return (
+            <AppLayout withMelpSummary>
+                <DedaReaderPage
+                    dedaId={dedaId}
+                    title={featuredDeda?.dedaTitle}
+                    coverUrl={featuredDeda?.dedaFeaturedImage?.url}
+                    headerImages={[headerImage, featuredDeda?.dedaFeaturedImage]}
+                    tabs={[
+                        { key: 'dedaNotes', label: 'DEDA Notes' },
+                        { key: 'dedaActivity', label: 'DEDA' },
+                        { key: 'dedaReview', label: 'Review' },
+                        ...(recordingsTab ? [{ key: 'dedaRecordings', label: 'My recordings' }] : []),
+                    ]}
+                    activeTab={activeTab}
+                    onTab={setActiveTab}
+                    onClassic={() => reader.setView('classic')}
+                />
+            </AppLayout>
+        );
+
     return (
         <AppLayout withMelpSummary>
             <HeaderSummary>
@@ -277,26 +299,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
 
             <Content>
                 {activeTab === 'dedaNotes' && <DedaNotes dedaId={dedaId} />}
-                {activeTab === 'dedaActivity' &&
-                    (reader.on ? (
-                        <DedaReaderStudy
-                            dedaId={dedaId}
-                            title={featuredDeda?.dedaTitle}
-                            coverUrl={featuredDeda?.dedaFeaturedImage?.url}
-                            stripImageUrl={headerImage?.url ?? featuredDeda?.dedaFeaturedImage?.url}
-                            tabs={[
-                                { key: 'dedaNotes', label: 'DEDA Notes' },
-                                { key: 'dedaActivity', label: 'DEDA' },
-                                { key: 'dedaReview', label: 'Review' },
-                                ...(recordingsTab ? [{ key: 'dedaRecordings', label: 'My recordings' }] : []),
-                            ]}
-                            activeTab={activeTab}
-                            onTab={setActiveTab}
-                            onClassic={() => reader.setView('classic')}
-                        />
-                    ) : (
-                        <DedaActivity dedaId={dedaId} />
-                    ))}
+                {activeTab === 'dedaActivity' && <DedaActivity dedaId={dedaId} />}
                 {activeTab === 'dedaReview' && <DedaReview dedaId={dedaId} />}
                 {activeTab === 'dedaRecordings' && recordingsTab && (
                     <MyRecordings

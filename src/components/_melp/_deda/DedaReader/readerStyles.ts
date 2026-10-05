@@ -26,6 +26,8 @@ export const readerTokens = css`
         --r-ring: rgba(255, 255, 255, 0.24);
         --r-track: rgba(255, 255, 255, 0.14);
         --r-hover: rgba(255, 255, 255, 0.06);
+        --r-hover-on-light: rgba(0, 0, 0, 0.06);
+        --r-danger: #e58f80;
         --r-text: #f3ede4;
         --r-muted: #bdb4a8;
         --r-faint: #8f877c;
@@ -177,6 +179,31 @@ export const readerTokens = css`
         font-weight: 400;
         letter-spacing: 0.02em;
         color: var(--r-muted);
+    }
+    /* nota aberta de dentro de uma folha: "‹" discreto + termo, no lugar do título */
+    .deda-reader-drawer .sheet-back {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        margin-left: -12px;
+        min-width: 0;
+    }
+    .deda-reader-drawer .sheet-back .ib {
+        display: inline-grid;
+        place-items: center;
+        flex: none;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: none;
+        color: var(--r-muted);
+        cursor: pointer;
+    }
+    .deda-reader-drawer .sheet-back .ib:hover {
+        background: var(--r-hover);
+        color: var(--r-text);
     }
     .deda-reader-drawer .brand {
         display: flex;
@@ -457,6 +484,27 @@ export const DrawerBody = styled.div`
         text-decoration-color: var(--r-gold-hi);
     }
 
+    &[hidden] {
+        display: none;
+    }
+    /* nota de contexto no lugar da citação: entra suave, na leitura das outras notas */
+    &.note {
+        max-width: 34em;
+        margin: 0 auto;
+        animation: r-sheet-swap 200ms ease;
+    }
+    &.note .ant-typography {
+        font-family: inherit;
+        font-size: calc(15.5px * var(--r-scale, 1));
+        line-height: 1.6;
+    }
+    @keyframes r-sheet-swap {
+        from {
+            opacity: 0;
+            transform: translateX(8px);
+        }
+    }
+
     .menu button {
         display: flex;
         align-items: center;
@@ -574,6 +622,47 @@ export const DrawerBody = styled.div`
     .appmenu .ant-menu-item-disabled {
         color: var(--r-faint) !important;
         opacity: 0.6;
+    }
+`;
+
+/** Seletor "Aa" (tamanho do texto): na faixa do topo e no cabeçalho do leitor de artigo do LinKnowledge. */
+const textSizeStyles = css`
+    /* "Aa": tamanho do texto de leitura */
+    .tsize {
+        display: inline-flex;
+    }
+    .tsize .panel {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 6px);
+        display: flex;
+        padding: 6px;
+        border: 1px solid var(--r-line);
+        border-radius: 14px;
+        background: var(--r-sheet-head);
+        box-shadow: 0 10px 30px var(--r-card-shadow);
+        animation: r-pop var(--r-ease);
+    }
+    .tsize .panel button {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 0;
+        border-radius: 10px;
+        background: none;
+        color: var(--r-muted);
+        font-family: var(--r-read-font), system-ui, sans-serif;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .tsize .panel button:hover {
+        color: var(--r-text);
+    }
+    .tsize .panel button[aria-checked='true'] {
+        background: var(--r-gold-tint);
+        color: var(--r-gold-hi);
     }
 `;
 
@@ -762,43 +851,7 @@ export const Shell = styled.div`
         clip: rect(0 0 0 0);
         white-space: nowrap;
     }
-    /* "Aa": tamanho do texto de leitura */
-    .tsize {
-        display: inline-flex;
-    }
-    .tsize .panel {
-        position: absolute;
-        right: 0;
-        top: calc(100% + 6px);
-        display: flex;
-        padding: 6px;
-        border: 1px solid var(--r-line);
-        border-radius: 14px;
-        background: var(--r-sheet-head);
-        box-shadow: 0 10px 30px var(--r-card-shadow);
-        animation: r-pop var(--r-ease);
-    }
-    .tsize .panel button {
-        display: grid;
-        place-items: center;
-        width: 44px;
-        height: 44px;
-        padding: 0;
-        border: 0;
-        border-radius: 10px;
-        background: none;
-        color: var(--r-muted);
-        font-family: var(--r-read-font), system-ui, sans-serif;
-        line-height: 1;
-        cursor: pointer;
-    }
-    .tsize .panel button:hover {
-        color: var(--r-text);
-    }
-    .tsize .panel button[aria-checked='true'] {
-        background: var(--r-gold-tint);
-        color: var(--r-gold-hi);
-    }
+    ${textSizeStyles};
 
     /* ---------- corpo da aba ---------- */
     /* aba DEDA: texto (a única rolagem) + barra fixa embaixo */
@@ -941,10 +994,22 @@ export const Shell = styled.div`
         color: var(--r-text);
         animation: r-pop var(--r-ease);
     }
+    /* sem espaço embaixo: o balão abre para cima da linha do rótulo */
+    .info .tip.up:not([hidden]) {
+        top: auto;
+        bottom: calc(100% + 10px);
+        animation-name: r-pop-up;
+    }
     @keyframes r-pop {
         from {
             opacity: 0;
             transform: translateY(-4px);
+        }
+    }
+    @keyframes r-pop-up {
+        from {
+            opacity: 0;
+            transform: translateY(4px);
         }
     }
 
@@ -1063,6 +1128,10 @@ export const Shell = styled.div`
     .days button small svg {
         width: 12px;
         height: 12px;
+    }
+    /* DEDA que já passou: só o número, centrado (não há "Today" nem cadeado) */
+    .days.all button {
+        min-height: 44px;
     }
     .days button.today {
         border-color: var(--r-gold);
@@ -1703,6 +1772,42 @@ export const Shell = styled.div`
         font-weight: 400;
         color: var(--r-muted);
     }
+    /* confirmação de "Remove" na própria linha: pergunta curta, dois botões finos; a ação destrutiva é discreta */
+    .rowc {
+        gap: 8px;
+        padding-left: 54px; /* a pergunta começa onde começa "Day N" nas outras linhas */
+        animation: r-fade 200ms ease;
+    }
+    .rowc .ask {
+        flex: 1;
+        min-width: 0;
+    }
+    .rowc .ask b {
+        display: block;
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 1.3;
+    }
+    .rowc .ask span {
+        display: block;
+        margin-top: 1px;
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        color: var(--r-muted);
+    }
+    .rowc .btn {
+        flex: none;
+        min-height: 36px;
+        padding: 0 14px;
+        font-size: 13px;
+    }
+    .btn.danger {
+        color: var(--r-danger);
+    }
+    .btn.danger:hover:not(:disabled) {
+        border-color: var(--r-danger);
+        color: var(--r-danger);
+    }
     .rowp .rap-container {
         flex: 1;
         min-width: 0;
@@ -1736,6 +1841,12 @@ export const Shell = styled.div`
         }
         .review .cards {
             grid-template-columns: minmax(0, 1fr);
+        }
+        .rowc {
+            padding-left: 0;
+        }
+        .rowc .ask span {
+            display: none; /* a pergunta basta; a linha fica numa altura só */
         }
         /* Summary: rótulo em cima, estrelas embaixo, tudo começando na margem do texto */
         .summary li {
@@ -1871,5 +1982,45 @@ export const Shell = styled.div`
         .cta .btn {
             padding: 0 16px;
         }
+    }
+`;
+
+/** "Aa" no cabeçalho claro do leitor de artigo: o gatilho herda a cor do cabeçalho; o painel é o mesmo, escuro. */
+export const ArticleTools = styled.span`
+    ${textSizeStyles};
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    font-family: var(--r-ui-font), system-ui, sans-serif;
+
+    /* computador (antd Modal): ao lado do X, no canto do popup */
+    .ant-modal-header & {
+        position: absolute;
+        top: 2px;
+        right: 48px;
+    }
+    .tsize {
+        position: relative;
+    }
+    .ib {
+        display: inline-grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: none;
+        color: inherit;
+        cursor: pointer;
+        transition: background-color var(--r-ease, 180ms ease);
+    }
+    .ib:hover {
+        background: var(--r-hover-on-light);
+    }
+    .ib:focus-visible,
+    .panel button:focus-visible {
+        outline: 2px solid var(--r-gold);
+        outline-offset: 2px;
     }
 `;

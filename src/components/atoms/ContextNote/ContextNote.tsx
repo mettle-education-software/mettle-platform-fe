@@ -3,7 +3,7 @@
 import styled from '@emotion/styled';
 import { Drawer, Typography } from 'antd';
 import Image from 'next/image';
-import { ReactNode, useRef, useState } from 'react';
+import { createContext, ReactNode, useContext, useRef, useState } from 'react';
 import { ContextNoteData } from '../../../libs/contextNotes';
 
 const { Paragraph } = Typography;
@@ -37,12 +37,32 @@ const NoteImage = styled(Image)`
 // Computador (>= 900 px): painel à direita; celular: folha de baixo. Decidido ao abrir.
 const isDesktop = () => window.matchMedia('(min-width: 900px)').matches;
 
+/**
+ * Página nova do DEDA: uma folha que já está aberta (a da citação) recebe a nota no próprio corpo, em vez de outra
+ * folha por cima — fechar é um clique só. Sem anfitrião (todo o resto da Plataforma), a nota abre a própria gaveta.
+ */
+export const ContextNoteHost = createContext<((note: ContextNoteData) => void) | null>(null);
+
+/** Imagem e parágrafos da nota (em inglês). */
+export const ContextNoteBody = ({ note }: { note: ContextNoteData }) => (
+    <>
+        {note.image && (
+            <NoteImage src={note.image.src} width={note.image.width} height={note.image.height} alt={note.image.alt} />
+        )}
+        {note.paragraphs.map((p, i) => (
+            <Paragraph key={i}>{p}</Paragraph>
+        ))}
+    </>
+);
+
 export const ContextNote = ({ note, children }: { note: ContextNoteData; children: ReactNode }) => {
+    const host = useContext(ContextNoteHost);
     const [open, setOpen] = useState(false);
     const placement = useRef<'right' | 'bottom'>('right');
     const content = useRef<HTMLDivElement>(null);
 
     const show = () => {
+        if (host) return host(note);
         placement.current = isDesktop() ? 'right' : 'bottom';
         // onOpen: ponto único para o evento de uso (nota, DEDA) — o projeto ainda não tem analytics.
         setOpen(true);
@@ -79,17 +99,7 @@ export const ContextNote = ({ note, children }: { note: ContextNoteData; childre
             >
                 {/* Interface e notas são em inglês; a Introdução ao redor é em português. */}
                 <div lang="en" ref={content} tabIndex={-1} style={{ outline: 'none' }}>
-                    {note.image && (
-                        <NoteImage
-                            src={note.image.src}
-                            width={note.image.width}
-                            height={note.image.height}
-                            alt={note.image.alt}
-                        />
-                    )}
-                    {note.paragraphs.map((p, i) => (
-                        <Paragraph key={i}>{p}</Paragraph>
-                    ))}
+                    <ContextNoteBody note={note} />
                 </div>
             </Drawer>
         </>

@@ -11,11 +11,13 @@ import {
     useQueuedRecording,
     useRecordingPlayUrl,
 } from 'hooks/melp/dedaRecording';
-import { useDedaRecorder } from 'hooks/useDedaRecorder';
+import { useDedaRecorder, useMicrophones } from 'hooks/useDedaRecorder';
 import {
     brasiliaDate,
+    dailyLimitHit,
     DedaRecordingsResponse,
     formatDuration,
+    markDailyLimit,
     pickMyReading,
     spokenDuration,
     WARN_RECORDING_MS,
@@ -23,6 +25,7 @@ import {
 import { idbQueue, QueuedRecording, queueKey } from 'libs/recordingQueue';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AudioPlayer as RawAudioPlayer } from 'react-audio-play';
+import { InfoTip } from '../DedaReader/ReaderInfo';
 import { RecordingConsent } from './RecordingConsent';
 import { RecButton, SrOnly } from './ui';
 
@@ -73,6 +76,60 @@ const Bar = styled.section`
     }
     &.docked .actions {
         flex: none;
+    }
+    /* uma linha por estado; o detalhe, quando existe, fica no ⓘ (abre para cima: a barra está no pé da tela) */
+    &.docked .headline {
+        position: relative;
+        font-weight: 400;
+    }
+    &.docked .headline.error {
+        color: var(--r-error);
+    }
+    &.docked .headline .info button {
+        margin: -12px 0 -12px -14px;
+    }
+    /* microfone (computador): discreto, ao lado de "Record" */
+    &.docked .mic {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        color: var(--r-muted);
+    }
+    &.docked .mic svg {
+        position: absolute;
+        left: 10px;
+        width: 16px;
+        height: 16px;
+        pointer-events: none;
+    }
+    &.docked .mic select {
+        appearance: none;
+        max-width: 13rem;
+        min-height: 36px;
+        padding: 0 12px 0 32px;
+        border: 1px solid var(--r-line);
+        border-radius: 999px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 13px;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        transition:
+            border-color var(--r-ease),
+            color var(--r-ease);
+    }
+    &.docked .mic:hover,
+    &.docked .mic:focus-within {
+        color: var(--r-text);
+    }
+    &.docked .mic select:hover {
+        border-color: var(--r-line-strong);
+    }
+    &.docked .mic option {
+        background: var(--r-sheet-head);
+        color: var(--r-text);
     }
     @media (max-width: 860px) {
         &.docked {
@@ -206,6 +263,8 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
     const isMobile = useDeviceSize() === 'mobile';
     const queryClient = useQueryClient();
     const rec = useDedaRecorder();
+    // Página nova, no computador: o aluno escolhe o microfone (no celular o sistema já decide bem).
+    const mics = useMicrophones(!!docked && !isMobile);
     const { state, dispatch, elapsed, blob } = rec;
 
     const today = brasiliaDate(new Date());
@@ -230,7 +289,11 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
             rec.setMimeType(queued.data.mimeType);
             recordedOnRef.current = queued.data.recordedOn;
             setStoredOnDevice(true);
-            dispatch({ type: 'restore', durationMs: queued.data.durationMs });
+            dispatch({
+                type: 'restore',
+                durationMs: queued.data.durationMs,
+                problem: dailyLimitHit(today) ? 'daily' : undefined,
+            });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [queued.data]);
@@ -263,22 +326,28 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
     useEffect(() => () => void (blobUrl && URL.revokeObjectURL(blobUrl)), [blobUrl]);
 
     const showingToday = !!todayRecording && !rerecord && state.phase === 'ready';
-    const playUrl = useRecordingPlayUrl(showingToday && listen ? todayRecording?.id : null);
+    // Página nova: o endereço já fica pronto, para "Listen" tocar no mesmo clique (sem esperar a rede).
+    const playUrl = useRecordingPlayUrl(showingToday && (listen || docked) ? todayRecording?.id : null);
+
+    const record = async () => {
+        recordedOnRef.current = brasiliaDate(new Date());
+        if (!docked || isMobile) return rec.start();
+        await rec.start({ deviceId: mics.deviceId, pick: mics.pick });
+        mics.refresh(); // com a permissão dada, os nomes dos microfones passam a existir
+    };
 
     const begin = () => {
         setListen(false);
         setSkipped(false);
         if (!data.consent.accepted) return setConsentOpen(true);
-        recordedOnRef.current = brasiliaDate(new Date());
-        rec.start();
+        record();
     };
 
     const acceptConsent = () =>
         consent.mutate(undefined, {
             onSuccess: () => {
                 setConsentOpen(false);
-                recordedOnRef.current = brasiliaDate(new Date());
-                rec.start();
+                record();
             },
         });
 
@@ -313,6 +382,7 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
             queryClient.invalidateQueries({ queryKey: ['deda-recording-queued', uid] });
         } catch (error) {
             const problem = uploadProblem(error);
+            if (problem === 'daily') markDailyLimit(brasiliaDate(new Date()));
             if (problem === 'expired') await idbQueue.delete(item.key).catch(() => undefined);
             dispatch({ type: 'queued', problem });
         }
@@ -325,11 +395,19 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
         setRerecord(true);
         queryClient.invalidateQueries({ queryKey: ['deda-recording-queued', uid] });
         rec.reset();
+        if (docked) begin(); // página nova: confirmar "Record again" já grava (um clique a menos)
+    };
+
+    /** "Record again" sem nada a descartar (já salvo): na página nova começa a gravar no mesmo clique. */
+    const recordAgain = () => {
+        rec.reset();
+        setRerecord(true);
+        if (docked) begin();
     };
 
     const exitLink = (
         <RecButton type="button" className="link" onClick={() => setSkipped(true)}>
-            I can’t record right now
+            {docked ? 'Skip today' : 'I can’t record right now'}
         </RecButton>
     );
 
@@ -342,30 +420,40 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
         }
     };
 
+    // Página nova (docked): uma linha curta por estado (`headline`); o detalhe, só quando ajuda, vai para o ⓘ (`more`).
+    // Página atual: os mesmos textos de sempre (`headline` + `detail`).
     let headline: React.ReactNode = null;
     let detail: React.ReactNode = null;
+    let more = '';
     let isError = false;
     let actions: React.ReactNode = null;
     let announce = '';
+    const time = formatDuration(state.accumulatedMs);
 
     if (skipped) {
-        headline = 'No problem. Go on with the DEDA without recording today.';
-        detail = 'When you can, come back to step 2 and record your reading.';
+        headline = docked ? 'Skipped for today' : 'No problem. Go on with the DEDA without recording today.';
+        detail = docked ? null : 'When you can, come back to step 2 and record your reading.';
         actions = (
-            <RecButton type="button" className="ghost" onClick={() => setSkipped(false)}>
-                Record anyway
+            <RecButton type="button" className="ghost" onClick={() => (docked ? begin() : setSkipped(false))}>
+                {docked ? (
+                    <>
+                        <Mic aria-hidden /> Record
+                    </>
+                ) : (
+                    'Record anyway'
+                )}
             </RecButton>
         );
         announce = String(headline);
     } else if (confirmReset) {
-        headline = 'Discard this recording and record again?';
+        headline = docked ? 'Discard this recording?' : 'Discard this recording and record again?';
         actions = (
             <>
                 <RecButton type="button" className="ghost" onClick={() => setConfirmReset(false)}>
                     Cancel
                 </RecButton>
                 <RecButton type="button" onClick={discard}>
-                    Yes, record again
+                    {docked ? 'Record again' : 'Yes, record again'}
                 </RecButton>
             </>
         );
@@ -375,26 +463,39 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
             case 'ready':
                 if (state.problem === 'denied') {
                     isError = true;
-                    headline = 'The Platform needs your microphone.';
+                    headline = docked ? 'Microphone blocked' : 'The Platform needs your microphone.';
                     detail = isMobile
                         ? 'Tap the icon next to the site address, allow the microphone and try again.'
                         : 'Click the lock next to the site address and allow the microphone. On Mac and Windows, also check that the system lets the browser use the microphone.';
                 } else if (state.problem === 'unsupported') {
                     isError = true;
-                    headline = 'This browser can’t record audio.';
-                    detail = copied
-                        ? 'Address copied. Paste it into Chrome or Safari.'
-                        : 'Open the Platform in Chrome or Safari to record.';
+                    headline = docked
+                        ? copied
+                            ? 'Copied — paste it into Chrome or Safari'
+                            : 'Can’t record here — use Chrome or Safari'
+                        : 'This browser can’t record audio.';
+                    detail = docked
+                        ? null
+                        : copied
+                          ? 'Address copied. Paste it into Chrome or Safari.'
+                          : 'Open the Platform in Chrome or Safari to record.';
                 } else if (state.problem === 'nomic') {
                     isError = true;
-                    headline = 'We couldn’t find a microphone.';
+                    headline = docked ? 'No microphone found' : 'We couldn’t find a microphone.';
                     detail = 'Connect a microphone (or close any other app that’s using it) and try again.';
                 } else if (showingToday && todayRecording) {
-                    headline = `You recorded today · ${formatDuration(todayRecording.durationMs)}`;
-                    detail = playUrl.isError ? 'We couldn’t load the audio right now.' : null;
+                    headline = docked
+                        ? `Recorded today · ${formatDuration(todayRecording.durationMs)}`
+                        : `You recorded today · ${formatDuration(todayRecording.durationMs)}`;
+                    if (playUrl.isError && docked && listen) {
+                        headline = 'Couldn’t load the audio';
+                        isError = true;
+                    } else if (playUrl.isError && !docked) {
+                        detail = 'We couldn’t load the audio right now.';
+                    }
                 } else {
-                    headline = 'Record yourself reading aloud';
-                    detail = 'Read the text aloud while you record. You can pause at any time.';
+                    headline = docked ? 'Read aloud and record' : 'Record yourself reading aloud';
+                    detail = docked ? null : 'Read the text aloud while you record. You can pause at any time.';
                 }
                 actions = state.problem ? (
                     <>
@@ -419,7 +520,7 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
                         >
                             <PlayArrow aria-hidden /> {listen ? 'Close' : 'Listen'}
                         </RecButton>
-                        <RecButton type="button" onClick={() => setRerecord(true)}>
+                        <RecButton type="button" onClick={() => (docked ? recordAgain() : setRerecord(true))}>
                             <Mic aria-hidden /> Record again
                         </RecButton>
                     </>
@@ -428,6 +529,23 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
                         <RecButton type="button" className="record" onClick={begin}>
                             <Mic aria-hidden /> Record
                         </RecButton>
+                        {mics.list.length > 1 && (
+                            <label className="mic">
+                                <Mic aria-hidden />
+                                <select
+                                    aria-label="Microphone"
+                                    value={mics.deviceId ?? ''}
+                                    onChange={(event) => mics.choose(event.target.value)}
+                                >
+                                    <option value="">System default</option>
+                                    {mics.list.map((mic) => (
+                                        <option key={mic.deviceId} value={mic.deviceId}>
+                                            {mic.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        )}
                         {exitLink}
                     </>
                 );
@@ -440,11 +558,11 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
                         <span className="timer" role="timer" aria-label="Recorded time">
                             {formatDuration(elapsed)}
                         </span>
-                        <span>Recording</span>
+                        <span>{docked && elapsed >= WARN_RECORDING_MS ? 'Stops at 20:00' : 'Recording'}</span>
                     </>
                 );
                 detail =
-                    elapsed >= WARN_RECORDING_MS ? (
+                    elapsed >= WARN_RECORDING_MS && !docked ? (
                         <>Recording stops automatically at 20 minutes.</>
                     ) : (
                         <span className="level" aria-hidden>
@@ -474,7 +592,7 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
                         <span>Paused</span>
                     </>
                 );
-                detail = state.problem === 'interrupted' ? 'Recording paused when you left the page.' : null;
+                detail = state.problem === 'interrupted' && !docked ? 'Recording paused when you left the page.' : null;
                 actions = (
                     <>
                         <RecButton type="button" className="ghost" onClick={rec.resume}>
@@ -482,7 +600,7 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
                         </RecButton>
                         <RecButton type="button" onClick={() => rec.stop()}>
                             <Stop aria-hidden />{' '}
-                            {state.problem === 'interrupted' ? 'Stop and keep what you recorded' : 'Stop'}
+                            {state.problem === 'interrupted' && !docked ? 'Stop and keep what you recorded' : 'Stop'}
                         </RecButton>
                     </>
                 );
@@ -493,34 +611,73 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
             case 'uploading': {
                 const restored = state.phase === 'queued' && !state.problem;
                 headline = restored
-                    ? `You have an unsent recording from today (${formatDuration(state.accumulatedMs)})`
+                    ? docked
+                        ? `Unsent recording from today · ${time}`
+                        : `You have an unsent recording from today (${time})`
                     : state.phase === 'uploading'
                       ? `Uploading… ${Math.round(progress * 100)}%`
-                      : `Your recording · ${formatDuration(state.accumulatedMs)}`;
+                      : `Your recording · ${time}`;
+                // [texto da página atual, linha da página nova, detalhe para o ⓘ da página nova]
+                let problem: [string, string, string?] | null = null;
                 if (state.problem === 'tooShort') {
                     isError = true;
-                    detail = 'Your recording must be at least 5 seconds long. Please record again.';
+                    problem = [
+                        'Your recording must be at least 5 seconds long. Please record again.',
+                        'Too short — record at least 5 seconds',
+                    ];
                 } else if (state.problem === 'limit') {
-                    detail = 'Recording stopped at 20 minutes. Listen and save it.';
+                    problem = ['Recording stopped at 20 minutes. Listen and save it.', `Stopped at 20:00 · ${time}`];
                 } else if (state.problem === 'interrupted') {
-                    detail =
-                        'Recording was interrupted (microphone disconnected). Everything you recorded up to that point is here.';
+                    problem = [
+                        'Recording was interrupted (microphone disconnected). Everything you recorded up to that point is here.',
+                        `Microphone disconnected · ${time} kept`,
+                    ];
                 } else if (state.problem === 'offline') {
                     isError = true;
-                    detail = storedOnDevice
-                        ? 'No internet connection. Your recording is saved on this device and will be uploaded when you’re back online. You can go on with the DEDA.'
-                        : 'No internet connection. Don’t close this page: try again when you’re back online.';
+                    problem = storedOnDevice
+                        ? [
+                              'No internet connection. Your recording is saved on this device and will be uploaded when you’re back online. You can go on with the DEDA.',
+                              'Offline — saved on this device',
+                              'It uploads by itself when you’re back online. You can go on with the DEDA.',
+                          ]
+                        : [
+                              'No internet connection. Don’t close this page: try again when you’re back online.',
+                              'Offline — keep this page open',
+                          ];
                 } else if (state.problem === 'upload') {
                     isError = true;
-                    detail = storedOnDevice
-                        ? 'We couldn’t upload it right now. Your recording is saved on this device.'
-                        : 'We couldn’t upload it right now. Don’t close this page and try again.';
+                    problem = storedOnDevice
+                        ? [
+                              'We couldn’t upload it right now. Your recording is saved on this device.',
+                              'Upload failed — saved on this device',
+                          ]
+                        : [
+                              'We couldn’t upload it right now. Don’t close this page and try again.',
+                              'Upload failed — keep this page open',
+                          ];
+                } else if (state.problem === 'daily') {
+                    // Limite diário de envios do servidor: tentar de novo hoje não adianta (por isso, sem "Try again").
+                    problem = storedOnDevice
+                        ? [
+                              'Daily recording limit reached. This one is saved on this device and will upload tomorrow.',
+                              'Daily limit reached — uploads tomorrow',
+                              'You can upload up to 10 recordings a day. This one is saved on this device and uploads by itself when you open the DEDA tomorrow. You can go on.',
+                          ]
+                        : [
+                              'Daily recording limit reached. This recording can’t be uploaded today.',
+                              'Daily limit reached — can’t upload today',
+                          ];
                 } else if (state.problem === 'expired') {
                     isError = true;
-                    detail = 'Your Imerso access has expired, so new recordings cannot be saved.';
-                } else if (state.phase === 'review') {
+                    problem = [
+                        'Your Imerso access has expired, so new recordings cannot be saved.',
+                        'Access expired — recordings can’t be saved',
+                    ];
+                } else if (state.phase === 'review' && !docked) {
                     detail = 'Listen before saving. If you don’t like it, record again.';
                 }
+                if (problem && docked) [, headline, more = ''] = problem;
+                else if (problem) [detail] = problem;
                 const busy = state.phase === 'uploading';
                 actions =
                     state.problem === 'expired' ? (
@@ -544,21 +701,27 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
                             >
                                 <Mic aria-hidden /> {restored ? 'Discard' : 'Record again'}
                             </RecButton>
-                            {state.problem !== 'tooShort' && (
+                            {state.problem !== 'tooShort' && state.problem !== 'daily' && (
                                 <RecButton type="button" onClick={save} disabled={busy} aria-busy={busy}>
                                     {state.phase === 'review' ? 'Save' : restored ? 'Upload' : 'Try again'}
                                 </RecButton>
                             )}
+                            {state.problem === 'daily' && !storedOnDevice && exitLink}
                         </>
                     );
-                announce = state.phase === 'uploading' ? 'Uploading your recording.' : isError ? '' : String(headline);
+                announce =
+                    state.phase === 'uploading'
+                        ? 'Uploading your recording.'
+                        : isError || state.problem === 'daily'
+                          ? ''
+                          : String(headline);
                 break;
             }
             case 'saved':
-                headline = `Recording saved · ${formatDuration(state.accumulatedMs)}`;
-                detail = 'You can move on to the next step.';
+                headline = docked ? `Saved · ${time}` : `Recording saved · ${time}`;
+                detail = docked ? null : 'You can move on to the next step.';
                 actions = (
-                    <RecButton type="button" className="ghost" onClick={() => (rec.reset(), setRerecord(true))}>
+                    <RecButton type="button" className="ghost" onClick={recordAgain}>
                         <Mic aria-hidden /> Record again
                     </RecButton>
                 );
@@ -566,6 +729,13 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
                 break;
         }
     }
+    // Página nova: o detalhe em texto vai para o ⓘ; só o medidor de nível continua na barra.
+    if (docked && typeof detail === 'string') {
+        more = more || detail;
+        detail = null;
+    }
+    // Erro (ou o aviso do limite diário) é anunciado na hora, esteja na linha (página nova) ou no detalhe (atual).
+    const alert = isError || state.problem === 'daily';
 
     const audioSrc =
         listen && !confirmReset && !skipped
@@ -580,9 +750,15 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
         <>
             <Bar className={docked ? 'docked' : floating ? 'fixed' : undefined} aria-label="Reading recorder">
                 <div className="status">
-                    <div className="headline">{headline}</div>
+                    <div
+                        className={`headline${docked && isError ? ' error' : ''}`}
+                        role={docked && alert ? 'alert' : undefined}
+                    >
+                        {headline}
+                        {more && <InfoTip key={more} text={more} label="More about this" />}
+                    </div>
                     {detail && (
-                        <p className={`detail${isError ? ' error' : ''}`} role={isError ? 'alert' : undefined}>
+                        <p className={`detail${isError ? ' error' : ''}`} role={alert ? 'alert' : undefined}>
                             {detail}
                         </p>
                     )}
@@ -590,6 +766,8 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
                         <div className="player" role="group" aria-label="Listen to your recording">
                             <RawAudioPlayer
                                 src={audioSrc}
+                                // página nova: "Listen" já toca (o clique que abriu o player é o gesto do aluno)
+                                autoPlay={docked}
                                 width="100%"
                                 sliderColor="var(--brown-bg)"
                                 style={{ boxShadow: 'none', borderRadius: '0.5rem', height: '3.5rem' }}

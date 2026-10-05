@@ -42,6 +42,7 @@ export type RecorderProblem =
     | 'interrupted' // ligação, troca de app, fone desconectado: pausou sozinho
     | 'offline' // sem internet ao salvar: ficou no aparelho
     | 'upload' // envio falhou: ficou no aparelho
+    | 'daily' // limite diário de envios do servidor (429): ficou no aparelho, sobe a partir de amanhã
     | 'expired' // acesso vencido: não grava
     | 'tooShort' // menos de 5 s
     | 'limit'; // chegou aos 20 min e parou
@@ -60,11 +61,11 @@ export type RecorderAction =
     | { type: 'pause'; now: number; interrupted?: boolean }
     | { type: 'resume'; now: number }
     | { type: 'stop'; now: number; limit?: boolean; interrupted?: boolean }
-    | { type: 'restore'; durationMs: number }
+    | { type: 'restore'; durationMs: number; problem?: 'daily' }
     | { type: 'problem'; problem: RecorderProblem }
     | { type: 'upload' }
     | { type: 'saved' }
-    | { type: 'queued'; problem: 'offline' | 'upload' | 'expired' }
+    | { type: 'queued'; problem: 'offline' | 'upload' | 'expired' | 'daily' }
     | { type: 'reset' };
 
 export const initialRecorderState: RecorderState = {
@@ -113,7 +114,12 @@ export const recorderReducer = (state: RecorderState, action: RecorderAction): R
         case 'restore':
             // Gravação que ficou no aparelho numa visita anterior: volta como "não enviada".
             if (state.phase !== 'ready') return state;
-            return { phase: 'queued', problem: null, accumulatedMs: action.durationMs, segmentStart: null };
+            return {
+                phase: 'queued',
+                problem: action.problem ?? null,
+                accumulatedMs: action.durationMs,
+                segmentStart: null,
+            };
         case 'problem':
             // Problema de microfone/navegador só faz sentido antes de gravar; os demais vêm com a própria ação.
             if (state.phase !== 'ready') return state;
@@ -128,6 +134,89 @@ export const recorderReducer = (state: RecorderState, action: RecorderAction): R
             return state.phase === 'uploading' ? { ...state, phase: 'queued', problem: action.problem } : state;
         case 'reset':
             return initialRecorderState;
+    }
+};
+
+// ---------- limite diário de envios ----------
+
+/**
+ * O servidor aceita um número limitado de pedidos de envio por aluno por dia (429 RATE_LIMITED em upload-url; zera à
+ * meia-noite de Brasília). Tentar de novo no mesmo dia não adianta: a gravação fica no aparelho e sobe a partir do
+ * dia seguinte.
+ */
+export const isDailyLimit = (error: unknown) => {
+    const response = (error as { response?: { status?: number; data?: { code?: string } } })?.response;
+    return response?.status === 429 || response?.data?.code === 'RATE_LIMITED';
+};
+
+export const DAILY_LIMIT_KEY = 'dedaRecordingLimitDay';
+
+/** O limite já foi atingido hoje (dia de Brasília) neste aparelho? Então nada é reenviado até amanhã. */
+export const dailyLimitHit = (today: string) => {
+    try {
+        return window.localStorage.getItem(DAILY_LIMIT_KEY) === today;
+    } catch {
+        return false;
+    }
+};
+
+export const markDailyLimit = (today: string) => {
+    try {
+        window.localStorage.setItem(DAILY_LIMIT_KEY, today);
+    } catch {
+        // armazenamento bloqueado: vale só a mensagem; a próxima abertura tenta uma vez e para de novo
+    }
+};
+
+// ---------- microfone (computador) ----------
+
+export const MIC_KEY = 'dedaRecorderMic';
+export interface MicDevice {
+    deviceId: string;
+    label: string;
+    kind?: string;
+}
+
+const PSEUDO_MICS = ['', 'default', 'communications']; // entradas-atalho do navegador, não aparelhos
+const PHONE_MIC = /iphone|ipad|continuity/i;
+const BUILT_IN_MIC = /built-?in|internal|macbook|imac|embutido|integrado|interno/i;
+
+/** Entradas de áudio reais e com nome (os nomes só existem depois da permissão do microfone). */
+export const listMicrophones = (devices: readonly MicDevice[]) =>
+    devices.filter((d) => (d.kind ?? 'audioinput') === 'audioinput' && !PSEUDO_MICS.includes(d.deviceId) && !!d.label);
+
+/**
+ * Microfone a pedir ao navegador (deviceId exato) ou null = o padrão do sistema.
+ * 1) a escolha guardada, se o aparelho ainda existe; 2) sem escolha (ou o aparelho sumiu): o padrão do sistema — a não
+ * ser que só haja indício de iPhone no padrão (Continuity do Mac) e exista alternativa: aí o embutido, ou o primeiro
+ * que não seja iPhone.
+ * ponytail: heurística por nome do aparelho (iPhone/iPad no rótulo); se o aluno renomeou o iPhone ou o navegador não
+ * dá nomes (antes da permissão), fica o padrão do sistema — o seletor resolve à mão.
+ */
+export const pickMicrophone = (devices: readonly MicDevice[], savedId?: string | null): string | null => {
+    const mics = listMicrophones(devices);
+    if (savedId && mics.some((d) => d.deviceId === savedId)) return savedId;
+    // Chrome nomeia o padrão ("Default - iPhone … Microphone"); nos outros, o primeiro da lista é o padrão.
+    const systemDefault = devices.find((d) => d.deviceId === 'default' && d.label) ?? mics[0];
+    if (!systemDefault || !PHONE_MIC.test(systemDefault.label)) return null;
+    const others = mics.filter((d) => !PHONE_MIC.test(d.label));
+    return (others.find((d) => BUILT_IN_MIC.test(d.label)) ?? others[0])?.deviceId ?? null;
+};
+
+export const readSavedMic = (): string | null => {
+    try {
+        return window.localStorage.getItem(MIC_KEY) || null;
+    } catch {
+        return null;
+    }
+};
+
+export const saveMic = (deviceId: string | null) => {
+    try {
+        if (deviceId) window.localStorage.setItem(MIC_KEY, deviceId);
+        else window.localStorage.removeItem(MIC_KEY);
+    } catch {
+        // armazenamento bloqueado: a escolha vale só nesta visita
     }
 };
 

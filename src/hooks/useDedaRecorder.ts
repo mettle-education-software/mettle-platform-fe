@@ -3,10 +3,14 @@
 import {
     elapsedMs,
     initialRecorderState,
+    listMicrophones,
     MAX_RECORDING_MS,
+    pickMicrophone,
     pickRecordingFormat,
+    readSavedMic,
     RecorderProblem,
     recorderReducer,
+    saveMic,
 } from 'libs/dedaRecording';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
@@ -84,53 +88,77 @@ export const useDedaRecorder = () => {
         }
     };
 
-    const start = useCallback(async () => {
-        const supported =
-            typeof window !== 'undefined' &&
-            typeof MediaRecorder !== 'undefined' &&
-            !!navigator.mediaDevices?.getUserMedia;
-        const format = supported ? pickRecordingFormat((t) => MediaRecorder.isTypeSupported(t)) : null;
-        if (!format) return dispatch({ type: 'problem', problem: 'unsupported' });
-        let stream: MediaStream;
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-            });
-        } catch (error) {
-            return dispatch({ type: 'problem', problem: micProblem(error) });
-        }
-        let recorder: MediaRecorder;
-        try {
-            recorder = new MediaRecorder(stream, format);
-        } catch {
-            stream.getTracks().forEach((t) => t.stop());
-            return dispatch({ type: 'problem', problem: 'unsupported' });
-        }
-        streamRef.current = stream;
-        recorderRef.current = recorder;
-        chunksRef.current = [];
-        setBlob(null);
-        const type = recorder.mimeType || format.mimeType;
-        setMimeType(type);
-        recorder.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
-        recorder.onstop = () => {
-            setBlob(new Blob(chunksRef.current, { type }));
-            releaseDevices();
-        };
-        // Fone desconectado, ligação que toma o microfone: para e guarda o que já foi gravado.
-        stream.getAudioTracks().forEach((track) =>
-            track.addEventListener('ended', () => {
-                if (recorder.state !== 'inactive') {
-                    recorder.stop();
-                    dispatch({ type: 'stop', now: Date.now(), interrupted: true });
+    /**
+     * `mic` (computador, página nova): `deviceId` é o microfone escolhido (null = padrão do sistema) e `pick` refaz a
+     * escolha com a lista de aparelhos — os nomes só existem depois da permissão, então na primeira vez a conferência
+     * acontece logo após o navegador liberar o microfone. Aparelho escolhido que sumiu: volta ao padrão, sem erro.
+     */
+    const start = useCallback(
+        async (mic?: { deviceId: string | null; pick(devices: MediaDeviceInfo[]): string | null }) => {
+            const supported =
+                typeof window !== 'undefined' &&
+                typeof MediaRecorder !== 'undefined' &&
+                !!navigator.mediaDevices?.getUserMedia;
+            const format = supported ? pickRecordingFormat((t) => MediaRecorder.isTypeSupported(t)) : null;
+            if (!format) return dispatch({ type: 'problem', problem: 'unsupported' });
+            const audio = { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+            const open = (deviceId?: string | null) =>
+                navigator.mediaDevices.getUserMedia({
+                    audio: deviceId ? { ...audio, deviceId: { exact: deviceId } } : audio,
+                });
+            let stream: MediaStream;
+            try {
+                stream = await open(mic?.deviceId).catch((error) => {
+                    if (mic?.deviceId && ['OverconstrainedError', 'NotFoundError'].includes(error?.name)) return open();
+                    throw error;
+                });
+                if (mic && !mic.deviceId) {
+                    const better = mic.pick(await navigator.mediaDevices.enumerateDevices().catch(() => []));
+                    if (better && better !== stream.getAudioTracks()[0]?.getSettings?.().deviceId) {
+                        const other = await open(better).catch(() => null);
+                        if (other) {
+                            stream.getTracks().forEach((t) => t.stop());
+                            stream = other;
+                        }
+                    }
                 }
-            }),
-        );
-        recorder.start(1000); // pedaços a cada segundo: uma falha no fim não perde tudo
-        startLevelMeter(stream);
-        requestWakeLock();
-        dispatch({ type: 'start', now: Date.now() });
-    }, [releaseDevices, requestWakeLock]);
+            } catch (error) {
+                return dispatch({ type: 'problem', problem: micProblem(error) });
+            }
+            let recorder: MediaRecorder;
+            try {
+                recorder = new MediaRecorder(stream, format);
+            } catch {
+                stream.getTracks().forEach((t) => t.stop());
+                return dispatch({ type: 'problem', problem: 'unsupported' });
+            }
+            streamRef.current = stream;
+            recorderRef.current = recorder;
+            chunksRef.current = [];
+            setBlob(null);
+            const type = recorder.mimeType || format.mimeType;
+            setMimeType(type);
+            recorder.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
+            recorder.onstop = () => {
+                setBlob(new Blob(chunksRef.current, { type }));
+                releaseDevices();
+            };
+            // Fone desconectado, ligação que toma o microfone: para e guarda o que já foi gravado.
+            stream.getAudioTracks().forEach((track) =>
+                track.addEventListener('ended', () => {
+                    if (recorder.state !== 'inactive') {
+                        recorder.stop();
+                        dispatch({ type: 'stop', now: Date.now(), interrupted: true });
+                    }
+                }),
+            );
+            recorder.start(1000); // pedaços a cada segundo: uma falha no fim não perde tudo
+            startLevelMeter(stream);
+            requestWakeLock();
+            dispatch({ type: 'start', now: Date.now() });
+        },
+        [releaseDevices, requestWakeLock],
+    );
 
     const pause = useCallback((interrupted = false) => {
         if (recorderRef.current?.state !== 'recording') return;
@@ -208,5 +236,42 @@ export const useDedaRecorder = () => {
         resume,
         stop,
         reset,
+    };
+};
+
+/**
+ * Microfones do computador para o seletor do gravador: lista (com nome só depois da permissão), escolha guardada no
+ * aparelho e atualização quando um aparelho entra ou sai. As regras de escolha ficam em libs/dedaRecording.
+ */
+export const useMicrophones = (enabled: boolean) => {
+    const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+    const [saved, setSaved] = useState<string | null>(null);
+
+    const refresh = useCallback(async () => {
+        const list = await navigator.mediaDevices?.enumerateDevices?.().catch(() => []);
+        setDevices((list ?? []).filter((d) => d.kind === 'audioinput'));
+    }, []);
+
+    useEffect(() => {
+        if (!enabled || !navigator.mediaDevices?.enumerateDevices) return;
+        setSaved(readSavedMic());
+        refresh();
+        navigator.mediaDevices.addEventListener?.('devicechange', refresh);
+        return () => navigator.mediaDevices.removeEventListener?.('devicechange', refresh);
+    }, [enabled, refresh]);
+
+    const pick = useCallback((list: readonly MediaDeviceInfo[]) => pickMicrophone(list, saved), [saved]);
+    return {
+        /** Vazio enquanto o navegador não dá os nomes (antes da permissão) ou fora do computador. */
+        list: enabled ? listMicrophones(devices) : [],
+        /** O que será usado ao gravar; null = padrão do sistema. */
+        deviceId: enabled ? pick(devices) : null,
+        pick,
+        /** "" volta ao automático. */
+        choose: (deviceId: string) => {
+            setSaved(deviceId || null);
+            saveMic(deviceId || null);
+        },
+        refresh,
     };
 };

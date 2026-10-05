@@ -1,6 +1,5 @@
 'use client';
 
-import { Popconfirm } from 'antd';
 import { AudioPlayer } from 'components';
 import { useDedaRecordings, useHideRecording, useRecordingPlayUrl } from 'hooks/melp/dedaRecording';
 import {
@@ -12,7 +11,7 @@ import {
     spokenDuration,
 } from 'libs/dedaRecording';
 import { Play, X } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ICON } from './readerStyles';
 
 /** A linha do dia tocando: o mesmo player dos passos 2 e 4, no lugar do conteúdo da linha. */
@@ -50,6 +49,14 @@ const RowPlayer = ({ recording }: { recording: DedaRecording }) => {
 export const ReaderRecordings = ({ dedaId }: { dedaId: string }) => {
     const recordings = useDedaRecordings(dedaId);
     const [playing, setPlaying] = useState<string | null>(null);
+    // "Remove": a confirmação acontece na própria linha (nada de caixa por cima); Esc cancela.
+    const [removing, setRemoving] = useState<string | null>(null);
+    useEffect(() => {
+        if (!removing) return;
+        const escape = (event: KeyboardEvent) => event.key === 'Escape' && setRemoving(null);
+        document.addEventListener('keydown', escape);
+        return () => document.removeEventListener('keydown', escape);
+    }, [removing]);
     const hide = useHideRecording();
     const ind = computeIndicators(recordings.data?.recordings ?? []);
     const longest = Math.max(1, ...ind.days.map((d) => d?.durationMs ?? 0));
@@ -125,6 +132,24 @@ export const ReaderRecordings = ({ dedaId }: { dedaId: string }) => {
                                     <X {...ICON} size={18} aria-hidden />
                                 </button>
                             </li>
+                        ) : d.id === removing ? (
+                            <li key={i} className="row rowc" role="group" aria-label={`Remove Day ${i + 1}?`}>
+                                <span className="ask">
+                                    <b>Remove Day {i + 1}?</b>
+                                    <span>It leaves your list and the player.</span>
+                                </span>
+                                <button type="button" className="btn ghost" autoFocus onClick={() => setRemoving(null)}>
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn line danger"
+                                    disabled={hide.isPending}
+                                    onClick={() => hide.mutate(d.id, { onSettled: () => setRemoving(null) })}
+                                >
+                                    Remove
+                                </button>
+                            </li>
                         ) : (
                             <li key={i} className="row">
                                 <button
@@ -142,22 +167,15 @@ export const ReaderRecordings = ({ dedaId }: { dedaId: string }) => {
                                     </span>
                                     <span className="duration">{formatDuration(d.durationMs)}</span>
                                 </button>
-                                <Popconfirm
-                                    title="Remove this recording?"
-                                    description="It will no longer appear in your list or in the player."
-                                    okText="Remove"
-                                    cancelText="Cancel"
-                                    onConfirm={() => hide.mutate(d.id)}
+                                <button
+                                    type="button"
+                                    className="lnk"
+                                    disabled={hide.isPending}
+                                    aria-label={`Remove Day ${i + 1}`}
+                                    onClick={() => setRemoving(d.id)}
                                 >
-                                    <button
-                                        type="button"
-                                        className="lnk"
-                                        disabled={hide.isPending}
-                                        aria-label={`Remove Day ${i + 1}`}
-                                    >
-                                        Remove
-                                    </button>
-                                </Popconfirm>
+                                    Remove
+                                </button>
                             </li>
                         ),
                     )}

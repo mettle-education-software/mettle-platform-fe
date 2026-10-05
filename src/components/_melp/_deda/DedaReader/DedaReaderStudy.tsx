@@ -24,6 +24,7 @@ import {
     READER_STEPS,
     ReaderStep,
     StepRules,
+    withAutoplay,
     WRITE_DAY_KEYS,
     writeDayState,
     writeDayToday,
@@ -85,12 +86,31 @@ const readerReadQuery = gql`
     }
 `;
 
+/**
+ * Os ⓘ dos cinco passos resumem o que o André ensina no HPEC — aulas "DEDA Method" (os passos) e "DEEP" (os
+ * protocolos de eficiência de cada passo): o porquê e o como, sem nada além do que está nas aulas.
+ */
 const STEP_INFO: Record<ReaderStep, { name: string; hint: string }> = {
-    listen: { name: 'Listen', hint: 'Just listen. Don’t read along yet.' },
-    readRecord: { name: 'Read + Record', hint: 'Read the text aloud and record your voice.' },
-    watch: { name: 'Watch', hint: 'Watch the talk.' },
-    listenRead: { name: 'Listen + Read', hint: 'Listen and follow the text with your eyes.' },
-    write: { name: 'Write', hint: 'Copy today’s passage by hand.' },
+    listen: {
+        name: 'Listen',
+        hint: 'Headphones on, eyes closed: just listen, straight through — don’t pause, go back or try to understand. When your mind starts translating, bring it back to the story from the Introduction (from Day 2 on, to the images of the video).',
+    },
+    readRecord: {
+        name: 'Read + Record',
+        hint: 'Read the whole text aloud and record it. Read with energy and expression, following the punctuation and breathing — it trains your speech; the focus is the process, not perfect pronunciation.',
+    },
+    watch: {
+        name: 'Watch',
+        hint: 'Watch in full screen, with headphones. Don’t force yourself to understand: let the English happen and map the images — faces, gestures, clothes, the whole setting — as if you had to draw them later.',
+    },
+    listenRead: {
+        name: 'Listen + Read',
+        hint: 'Mouth closed, follow the text with your eyes while you listen — first to your own recording, then to the original. Guide your eyes with a pen or a finger: this is where sound and spelling match.',
+    },
+    write: {
+        name: 'Write',
+        hint: 'Copy today’s part by hand in your DEDA notebook, looking at the text — it is not a dictation. Use your best handwriting: it shows your brain that this matters.',
+    },
     finish: {
         name: 'Summary',
         hint: 'Rate the quality of today’s DEDA: from 1 to 5, score each of the five variables. It is subjective — the more honest you are, the better your results.',
@@ -197,7 +217,9 @@ const WatchVideo = ({ dedaId }: { dedaId: string }) => {
             {!loading && link && (
                 <iframe
                     title="DEDA video"
-                    src={link}
+                    // O aluno chegou aqui por um clique ("Next step", "Complete step" ou o passo 3 na barra): o vídeo
+                    // começa sozinho, com som. Se o navegador recusar (iPhone), o player fica pronto, com o play grande.
+                    src={withAutoplay(link)}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                     allowFullScreen
                 />
@@ -210,11 +232,14 @@ const WriteDays = ({
     dedaId,
     day,
     today,
+    pastDeda,
     onDay,
 }: {
     dedaId: string;
     day: number;
     today: number;
+    /** DEDA que não é o da semana: os 7 dias abertos para consulta, sem cadeado e sem "Today". */
+    pastDeda: boolean;
     onDay(day: number): void;
 }) => {
     const { data } = useDeda<DedaWriteQueryResponse>('deda-write', dedaId);
@@ -222,9 +247,9 @@ const WriteDays = ({
     const content = days?.[WRITE_DAY_KEYS[day - 1]] as { json: unknown; links: never } | undefined;
     return (
         <>
-            <div className="days" role="group" aria-label="Passage of each day">
+            <div className={pastDeda ? 'days all' : 'days'} role="group" aria-label="Passage of each day">
                 {[1, 2, 3, 4, 5, 6, 7].map((d) => {
-                    const state = writeDayState(d, today);
+                    const state = writeDayState(d, today, pastDeda);
                     return (
                         <button
                             key={d}
@@ -241,14 +266,16 @@ const WriteDays = ({
                                 <span className="wd">Day </span>
                                 {d}
                             </b>
-                            <small>
-                                {state === 'today' ? 'Today' : state === 'locked' ? <Lock {...ICON} /> : null}
-                            </small>
+                            {!pastDeda && (
+                                <small>
+                                    {state === 'today' ? 'Today' : state === 'locked' ? <Lock {...ICON} /> : null}
+                                </small>
+                            )}
                         </button>
                     );
                 })}
             </div>
-            {day !== today && (
+            {!pastDeda && day !== today && (
                 <div className="past" role="status">
                     <span>
                         <b>Day {day}</b> · for reference. Today’s step is still Day {today}.
@@ -397,8 +424,11 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
 
     // ---- apresentação ----
     const todayDay = writeDayToday();
-    const [writeDay, setWriteDay] = useState<number>(todayDay);
-    const shownWriteDay = openWriteDay(writeDay, todayDay);
+    // Passo 5: no DEDA da semana abre o dia de hoje; num DEDA que já passou, os 7 dias ficam abertos e abre o Day 1.
+    const pastDeda = !isTodaysDeda;
+    const defaultWriteDay = pastDeda ? 1 : todayDay;
+    const [writeDay, setWriteDay] = useState<number>(defaultWriteDay);
+    const shownWriteDay = openWriteDay(writeDay, todayDay, pastDeda);
     const [stepsOpen, setStepsOpen] = useState(false);
     const scrollRef = useRef<HTMLElement>(null);
     useEffect(() => {
@@ -407,8 +437,8 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
         scrollRef.current?.focus({ preventScroll: true });
     }, [currentStep, shownWriteDay]);
     useEffect(() => {
-        if (currentStep !== 'write') setWriteDay(todayDay);
-    }, [currentStep, todayDay]);
+        if (currentStep !== 'write') setWriteDay(defaultWriteDay);
+    }, [currentStep, defaultWriteDay]);
 
     const stepsShown = READER_STEPS.filter(
         (step) => step !== 'completed' && (step !== 'finish' || isTodaysDedaAndNotCompleted),
@@ -417,7 +447,7 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
     // Instrução do passo, guardada no ⓘ (antes de começar o DEDA de hoje, o aviso do cronômetro).
     const infoText =
         currentStep === 'listen' && isTodaysDedaAndNotCompleted && !hasPlayStarted
-            ? 'Click PLAY to start today’s DEDA. Once you click, the timer will begin.'
+            ? `${STEP_INFO.listen.hint} The timer starts when you press play.`
             : STEP_INFO[currentStep].hint;
 
     const media = (() => {
@@ -548,7 +578,13 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                 return (
                     <div className="col">
                         {eyebrow}
-                        <WriteDays dedaId={dedaId} day={shownWriteDay} today={todayDay} onDay={setWriteDay} />
+                        <WriteDays
+                            dedaId={dedaId}
+                            day={shownWriteDay}
+                            today={todayDay}
+                            pastDeda={pastDeda}
+                            onDay={setWriteDay}
+                        />
                     </div>
                 );
             case 'finish':
@@ -607,7 +643,7 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                                 disabled={currentStep === 'completed'}
                             >
                                 <small>
-                                    {currentStep === 'write' && shownWriteDay !== todayDay
+                                    {currentStep === 'write' && !pastDeda && shownWriteDay !== todayDay
                                         ? `Viewing Day ${shownWriteDay}`
                                         : stepLabel}
                                 </small>

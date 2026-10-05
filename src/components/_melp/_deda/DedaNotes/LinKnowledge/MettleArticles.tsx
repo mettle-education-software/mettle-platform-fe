@@ -5,6 +5,7 @@ import { editionArticles, GENRE_LABELS } from 'libs/linknowledge';
 import Image from 'next/image';
 import React, { useState } from 'react';
 import { ArticleReaderModal } from '../../../ArticleFrame/ArticleFrame';
+import { ArticleTextSize } from '../../DedaReader/TextSize';
 import { LinKnowledgeCard, LinKnowledgeCardsRow } from './LinKnowledgeCard';
 import { METTLE_ARTICLE_TITLE_ID, MettleArticleReader } from './MettleArticleReader';
 
@@ -58,6 +59,8 @@ export const MettleArticles = ({
                 onClose={() => setOpenDay(null)}
                 title={articles[index]?.title ?? ''}
                 labelledBy={METTLE_ARTICLE_TITLE_ID}
+                // "Aa" no cabeçalho do leitor: só existe na página nova do DEDA (fora dela não renderiza nada)
+                tools={<ArticleTextSize />}
             >
                 {index >= 0 && (
                     <MettleArticleReader

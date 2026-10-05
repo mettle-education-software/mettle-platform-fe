@@ -4,16 +4,18 @@ import { Global } from '@emotion/react';
 import { Drawer, Menu } from 'antd';
 import { DedaQuote, Logo, RichTextRenderer } from 'components';
 import { LinKnowledge } from 'components/_melp/_deda/DedaNotes/LinKnowledge/LinKnowledge';
+import { ContextNoteBody, ContextNoteHost } from 'components/atoms/ContextNote/ContextNote';
 import { useAppMenu } from 'components/layouts/AppLayout/appMenu';
 import { useDeviceSize } from 'hooks';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaNotesQueryResponse } from 'interfaces';
+import { ContextNoteData } from 'libs/contextNotes';
 import { contentfulImage } from 'libs/dedaHeader';
-import { DEFAULT_TEXT_SCALE, readTextScale, saveTextScale, TEXT_SCALES, writeDayToday } from 'libs/dedaReader';
+import { DEFAULT_TEXT_SCALE, readTextScale, saveTextScale, writeDayToday } from 'libs/dedaReader';
 import {
-    ALargeSmall,
     BookOpen,
     ChevronDown,
+    ChevronLeft,
     Headset,
     House,
     LogOut,
@@ -24,12 +26,13 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { font as platformFont } from 'themes/font';
 import { DedaReaderStudy } from './DedaReaderStudy';
 import { ReaderProse } from './ReaderProse';
 import { ReaderRecordings } from './ReaderRecordings';
 import { ReaderReview } from './ReaderReview';
+import { TextSize, TextSizeContext } from './TextSize';
 import { readFont, uiFont } from './readerFonts';
 import { DrawerBody, ICON, readerTokens, Shell } from './readerStyles';
 
@@ -80,72 +83,6 @@ const MENU_ICONS: Record<string, React.ReactNode> = {
     settings: <Settings {...ICON} />,
     support: <Headset {...ICON} />,
     logout: <LogOut {...ICON} />,
-};
-
-/**
- * "Aa" da barra do topo: tamanho do texto de leitura (Introduction, Glossary, passos 2, 4 e 5, notas de contexto e
- * o artigo do LinKnowledge). A preferência fica no aparelho e vale por variável CSS (--r-scale, em readerStyles).
- */
-const TextSize = ({ scale, onScale }: { scale: number; onScale(scale: number): void }) => {
-    const [open, setOpen] = useState(false);
-    const box = useRef<HTMLSpanElement>(null);
-    const sizes = useRef<(HTMLButtonElement | null)[]>([]);
-    useEffect(() => {
-        if (!open) return;
-        const outside = (event: PointerEvent) => !box.current?.contains(event.target as Node) && setOpen(false);
-        const escape = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
-        document.addEventListener('pointerdown', outside);
-        document.addEventListener('keydown', escape);
-        return () => {
-            document.removeEventListener('pointerdown', outside);
-            document.removeEventListener('keydown', escape);
-        };
-    }, [open]);
-    const step = (event: React.KeyboardEvent, by: number) => {
-        event.preventDefault();
-        const next = Math.min(TEXT_SCALES.length - 1, Math.max(0, TEXT_SCALES.indexOf(scale as never) + by));
-        onScale(TEXT_SCALES[next]);
-        sizes.current[next]?.focus();
-    };
-    return (
-        <span className="tsize" ref={box}>
-            <button
-                type="button"
-                className="ib"
-                aria-label="Text size"
-                aria-haspopup="true"
-                aria-expanded={open}
-                onClick={() => setOpen((v) => !v)}
-            >
-                <ALargeSmall {...ICON} aria-hidden />
-            </button>
-            {open && (
-                <span className="panel" role="radiogroup" aria-label="Text size">
-                    {TEXT_SCALES.map((value, i) => (
-                        <button
-                            key={value}
-                            ref={(el) => {
-                                sizes.current[i] = el;
-                            }}
-                            type="button"
-                            role="radio"
-                            aria-checked={value === scale}
-                            aria-label={`${Math.round(value * 100)}%${value === DEFAULT_TEXT_SCALE ? ', default' : ''}`}
-                            tabIndex={value === scale ? 0 : -1}
-                            style={{ fontSize: Math.round(15 * value * value) }}
-                            onClick={() => onScale(value)}
-                            onKeyDown={(event) => {
-                                if (event.key === 'ArrowRight' || event.key === 'ArrowUp') step(event, 1);
-                                if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') step(event, -1);
-                            }}
-                        >
-                            A
-                        </button>
-                    ))}
-                </span>
-            )}
-        </span>
-    );
 };
 
 /** Aba DEDA Notes: sub-abas logo abaixo da barra do topo e o conteúdo (sem cabeçalho de imagem: o espaço é do texto). */
@@ -202,6 +139,9 @@ export const DedaReaderPage: React.FC<Props> = ({
     const [glossaryOpen, setGlossaryOpen] = useState(false);
     const [tabsOpen, setTabsOpen] = useState(false);
     const [quoteOpen, setQuoteOpen] = useState(false);
+    // Uma camada só: a nota de contexto aberta de dentro da citação troca o conteúdo da mesma folha ("‹" volta);
+    // X, toque fora ou Esc fecham tudo de uma vez.
+    const [quoteNote, setQuoteNote] = useState<ContextNoteData | null>(null);
     const menu = useAppMenu(() => setMenuOpen(false));
     const menuItems = menu.items.map((item) =>
         item?.key && MENU_ICONS[item.key as string] ? { ...item, icon: MENU_ICONS[item.key as string] } : item,
@@ -226,11 +166,17 @@ export const DedaReaderPage: React.FC<Props> = ({
             document.documentElement.style.removeProperty('--r-scale');
         };
     }, []);
-    const chooseTextScale = (scale: number) => {
-        setTextScale(scale);
-        saveTextScale(scale);
-        document.documentElement.style.setProperty('--r-scale', String(scale));
-    };
+    const textSize = useMemo(
+        () => ({
+            scale: textScale,
+            onScale: (scale: number) => {
+                setTextScale(scale);
+                saveTextScale(scale);
+                document.documentElement.style.setProperty('--r-scale', String(scale));
+            },
+        }),
+        [textScale],
+    );
 
     const notes = useDeda<DedaNotesQueryResponse>('deda-notes', dedaId);
     const glossary = notes.data?.dedaContentCollection?.items[0]?.dedaNotesGlossaryContent;
@@ -293,166 +239,193 @@ export const DedaReaderPage: React.FC<Props> = ({
     })();
 
     return (
-        <Shell
-            className={`deda-reader ${uiFont.className}`}
-            data-reader-theme="dark"
-            style={{ '--r-read-font': readFont.style.fontFamily } as React.CSSProperties}
-        >
-            <Global styles={readerTokens} />
-            <header className="strip">
-                {/* eslint-disable-next-line @next/next/no-img-element -- fundo decorativo */}
-                {stripBg && <img className="bg" src={stripBg} alt="" aria-hidden />}
-                <span className="shade" aria-hidden />
-                <button type="button" className="ib" aria-label="Menu" onClick={() => setMenuOpen(true)}>
-                    <MenuIcon {...ICON} />
-                </button>
-                <button
-                    type="button"
-                    className="idb"
-                    onClick={() => (isMobile ? setTabsOpen(true) : onTab(tabs[0].key))}
-                    aria-haspopup={isMobile ? 'dialog' : undefined}
-                    aria-label={isMobile ? `${title ?? 'DEDA'}. Open sections` : `Back to ${tabs[0].label}`}
-                >
-                    {/* eslint-disable-next-line @next/next/no-img-element -- miniatura do Contentful */}
-                    {thumb && <img src={thumb} alt="" />}
-                    <span>
-                        <b>
-                            <span>{title}</span>
-                            {isMobile && <ChevronDown {...ICON} size={16} aria-hidden />}
-                        </b>
-                        {weekDay && <small>{weekDay}</small>}
-                    </span>
-                </button>
-                {!isMobile && (
-                    <nav className="tabs" aria-label="DEDA sections">
-                        {tabButtons()}
-                    </nav>
-                )}
-                <span className="sp" />
-                {/* cronômetro do estudo (DedaReaderStudy) entra aqui */}
-                <span ref={setTimerSlot} style={{ display: 'contents' }} />
-                {(study || activeTab === tabs[0].key) && <TextSize scale={textScale} onScale={chooseTextScale} />}
-                {!study && activeTab === tabs[0].key && (
+        <TextSizeContext.Provider value={textSize}>
+            <Shell
+                className={`deda-reader ${uiFont.className}`}
+                data-reader-theme="dark"
+                style={{ '--r-read-font': readFont.style.fontFamily } as React.CSSProperties}
+            >
+                <Global styles={readerTokens} />
+                <header className="strip">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- fundo decorativo */}
+                    {stripBg && <img className="bg" src={stripBg} alt="" aria-hidden />}
+                    <span className="shade" aria-hidden />
+                    <button type="button" className="ib" aria-label="Menu" onClick={() => setMenuOpen(true)}>
+                        <MenuIcon {...ICON} />
+                    </button>
                     <button
                         type="button"
-                        className="ib"
-                        aria-label="Quote"
-                        aria-haspopup="dialog"
-                        onClick={() => setQuoteOpen(true)}
+                        className="idb"
+                        onClick={() => (isMobile ? setTabsOpen(true) : onTab(tabs[0].key))}
+                        aria-haspopup={isMobile ? 'dialog' : undefined}
+                        aria-label={isMobile ? `${title ?? 'DEDA'}. Open sections` : `Back to ${tabs[0].label}`}
                     >
-                        <Quote {...ICON} />
+                        {/* eslint-disable-next-line @next/next/no-img-element -- miniatura do Contentful */}
+                        {thumb && <img src={thumb} alt="" />}
+                        <span>
+                            <b>
+                                <span>{title}</span>
+                                {isMobile && <ChevronDown {...ICON} size={16} aria-hidden />}
+                            </b>
+                            {weekDay && <small>{weekDay}</small>}
+                        </span>
                     </button>
-                )}
-                {study &&
-                    (isMobile ? (
+                    {!isMobile && (
+                        <nav className="tabs" aria-label="DEDA sections">
+                            {tabButtons()}
+                        </nav>
+                    )}
+                    <span className="sp" />
+                    {/* cronômetro do estudo (DedaReaderStudy) entra aqui */}
+                    <span ref={setTimerSlot} style={{ display: 'contents' }} />
+                    {(study || activeTab === tabs[0].key) && <TextSize {...textSize} />}
+                    {!study && activeTab === tabs[0].key && (
                         <button
                             type="button"
                             className="ib"
-                            aria-label="Glossary"
-                            onClick={() => setGlossaryOpen(true)}
+                            aria-label="Quote"
+                            aria-haspopup="dialog"
+                            onClick={() => setQuoteOpen(true)}
                         >
-                            <BookOpen {...ICON} />
+                            <Quote {...ICON} />
                         </button>
-                    ) : (
-                        <button type="button" className="btn ghost" onClick={() => setGlossaryOpen(true)}>
-                            <BookOpen {...ICON} aria-hidden />
-                            Glossary
-                        </button>
-                    ))}
-                {!isMobile && (
-                    <button type="button" className="lnk" onClick={onClassic}>
-                        Classic view
-                    </button>
-                )}
-            </header>
-
-            {body}
-
-            <Drawer
-                {...drawerProps}
-                open={menuOpen}
-                onClose={() => setMenuOpen(false)}
-                placement="left"
-                width={290}
-                title={
-                    <button
-                        type="button"
-                        className="brand"
-                        aria-label="Mettle — Início"
-                        onClick={() => router.push('/')}
-                    >
-                        <Logo theme="light" />
-                    </button>
-                }
-            >
-                <DrawerBody>
-                    <Menu
-                        className="appmenu"
-                        mode="inline"
-                        inlineIndent={16}
-                        items={menuItems}
-                        selectedKeys={menu.selectedKeys}
-                        defaultOpenKeys={['imerso']}
-                    />
-                </DrawerBody>
-            </Drawer>
-
-            <Drawer
-                {...drawerProps}
-                open={glossaryOpen}
-                onClose={() => setGlossaryOpen(false)}
-                placement={isMobile ? 'bottom' : 'right'}
-                width={isMobile ? undefined : 420}
-                height={isMobile ? '86%' : undefined}
-                title="Glossary"
-            >
-                <DrawerBody className="glossary">
-                    {glossary ? (
-                        <ReaderProse rawContent={glossary.json} links={glossary.links as never} />
-                    ) : (
-                        <p className="hint">Loading…</p>
                     )}
-                </DrawerBody>
-            </Drawer>
-
-            <Drawer
-                {...drawerProps}
-                open={tabsOpen}
-                onClose={() => setTabsOpen(false)}
-                placement="bottom"
-                height="auto"
-                title={
-                    <span className="sheet-title">
-                        <b>{title}</b>
-                        {weekDay && <small>{weekDay}</small>}
-                    </span>
-                }
-            >
-                <DrawerBody>
-                    <div className="menu">{tabButtons()}</div>
-                    <div className="menu">
-                        <hr />
-                        <button type="button" onClick={onClassic}>
+                    {study &&
+                        (isMobile ? (
+                            <button
+                                type="button"
+                                className="ib"
+                                aria-label="Glossary"
+                                onClick={() => setGlossaryOpen(true)}
+                            >
+                                <BookOpen {...ICON} />
+                            </button>
+                        ) : (
+                            <button type="button" className="btn ghost" onClick={() => setGlossaryOpen(true)}>
+                                <BookOpen {...ICON} aria-hidden />
+                                Glossary
+                            </button>
+                        ))}
+                    {!isMobile && (
+                        <button type="button" className="lnk" onClick={onClassic}>
                             Classic view
                         </button>
-                    </div>
-                </DrawerBody>
-            </Drawer>
+                    )}
+                </header>
 
-            <Drawer
-                {...drawerProps}
-                open={quoteOpen}
-                onClose={() => setQuoteOpen(false)}
-                placement={isMobile ? 'bottom' : 'right'}
-                width={isMobile ? undefined : 420}
-                height={isMobile ? 'auto' : undefined}
-                title="Quote"
-            >
-                <DrawerBody className="quote">
-                    <DedaQuote dedaId={dedaId} />
-                </DrawerBody>
-            </Drawer>
-        </Shell>
+                {body}
+
+                <Drawer
+                    {...drawerProps}
+                    open={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    placement="left"
+                    width={290}
+                    title={
+                        <button
+                            type="button"
+                            className="brand"
+                            aria-label="Mettle — Início"
+                            onClick={() => router.push('/')}
+                        >
+                            <Logo theme="light" />
+                        </button>
+                    }
+                >
+                    <DrawerBody>
+                        <Menu
+                            className="appmenu"
+                            mode="inline"
+                            inlineIndent={16}
+                            items={menuItems}
+                            selectedKeys={menu.selectedKeys}
+                            defaultOpenKeys={['imerso']}
+                        />
+                    </DrawerBody>
+                </Drawer>
+
+                <Drawer
+                    {...drawerProps}
+                    open={glossaryOpen}
+                    onClose={() => setGlossaryOpen(false)}
+                    placement={isMobile ? 'bottom' : 'right'}
+                    width={isMobile ? undefined : 420}
+                    height={isMobile ? '86%' : undefined}
+                    title="Glossary"
+                >
+                    <DrawerBody className="glossary">
+                        {glossary ? (
+                            <ReaderProse rawContent={glossary.json} links={glossary.links as never} />
+                        ) : (
+                            <p className="hint">Loading…</p>
+                        )}
+                    </DrawerBody>
+                </Drawer>
+
+                <Drawer
+                    {...drawerProps}
+                    open={tabsOpen}
+                    onClose={() => setTabsOpen(false)}
+                    placement="bottom"
+                    height="auto"
+                    title={
+                        <span className="sheet-title">
+                            <b>{title}</b>
+                            {weekDay && <small>{weekDay}</small>}
+                        </span>
+                    }
+                >
+                    <DrawerBody>
+                        <div className="menu">{tabButtons()}</div>
+                        <div className="menu">
+                            <hr />
+                            <button type="button" onClick={onClassic}>
+                                Classic view
+                            </button>
+                        </div>
+                    </DrawerBody>
+                </Drawer>
+
+                <Drawer
+                    {...drawerProps}
+                    open={quoteOpen}
+                    onClose={() => setQuoteOpen(false)}
+                    placement={isMobile ? 'bottom' : 'right'}
+                    width={isMobile ? undefined : 420}
+                    height={isMobile ? 'auto' : undefined}
+                    afterOpenChange={(open) => !open && setQuoteNote(null)}
+                    title={
+                        quoteNote ? (
+                            <span className="sheet-back" lang="en">
+                                <button
+                                    type="button"
+                                    className="ib"
+                                    aria-label="Back to the quote"
+                                    onClick={() => setQuoteNote(null)}
+                                >
+                                    <ChevronLeft {...ICON} aria-hidden />
+                                </button>
+                                {quoteNote.term}
+                            </span>
+                        ) : (
+                            'Quote'
+                        )
+                    }
+                >
+                    {/* a citação continua montada (não recarrega ao voltar); a nota entra no lugar dela */}
+                    <DrawerBody className="quote" hidden={!!quoteNote}>
+                        <ContextNoteHost.Provider value={setQuoteNote}>
+                            <DedaQuote dedaId={dedaId} />
+                        </ContextNoteHost.Provider>
+                    </DrawerBody>
+                    {quoteNote && (
+                        <DrawerBody className="note" key={quoteNote.id}>
+                            <ContextNoteBody note={quoteNote} />
+                        </DrawerBody>
+                    )}
+                </Drawer>
+            </Shell>
+        </TextSizeContext.Provider>
     );
 };
 

@@ -2,14 +2,19 @@ import {
     baseMimeType,
     brasiliaDate,
     computeIndicators,
+    dailyLimitHit,
     DedaRecording,
     elapsedMs,
     formatDelta,
     formatDuration,
     formatRecordedOn,
     initialRecorderState,
+    isDailyLimit,
     isSignedStorageUrl,
+    listMicrophones,
+    markDailyLimit,
     MAX_RECORDING_MS,
+    pickMicrophone,
     pickMyReading,
     pickRecordingFormat,
     recorderReducer,
@@ -247,6 +252,115 @@ describe('flushQueue', () => {
         expect(await flushQueue(store, 'u1', '2026-10-02', send)).toEqual([]);
         expect(send).not.toHaveBeenCalled();
         expect(store.items.size).toBe(2);
+    });
+});
+
+describe('limite diário de envios (429 RATE_LIMITED)', () => {
+    const limited = { response: { status: 429, data: { code: 'RATE_LIMITED' } } };
+
+    it('reconhece o 429 e o código; outros erros não', () => {
+        expect(isDailyLimit(limited)).toBe(true);
+        expect(isDailyLimit({ response: { status: 429 } })).toBe(true);
+        expect(isDailyLimit({ response: { status: 403, data: { code: 'RATE_LIMITED' } } })).toBe(true);
+        expect(isDailyLimit({ response: { status: 500 } })).toBe(false);
+        expect(isDailyLimit(new Error('rede'))).toBe(false);
+    });
+
+    it('máquina de estados: o envio recusado pelo limite fica "guardado" com o problema próprio', () => {
+        let state = recorderReducer(initialRecorderState, { type: 'start', now: 0 });
+        state = recorderReducer(state, { type: 'stop', now: 9_000 });
+        state = recorderReducer(state, { type: 'upload' });
+        state = recorderReducer(state, { type: 'queued', problem: 'daily' });
+        expect(state).toMatchObject({ phase: 'queued', problem: 'daily', accumulatedMs: 9_000 });
+        // na visita seguinte do mesmo dia, a gravação guardada volta já com o aviso do limite (sem "Upload")
+        const restored = recorderReducer(initialRecorderState, {
+            type: 'restore',
+            durationMs: 9_000,
+            problem: 'daily',
+        });
+        expect(restored).toMatchObject({ phase: 'queued', problem: 'daily' });
+        expect(recorderReducer(initialRecorderState, { type: 'restore', durationMs: 9_000 }).problem).toBeNull();
+    });
+
+    it('marca o dia (Brasília) no aparelho: no mesmo dia não reenvia; no dia seguinte, sim', () => {
+        const g = globalThis as unknown as { window?: unknown };
+        const store = new Map<string, string>();
+        g.window = {
+            localStorage: {
+                getItem: (k: string) => store.get(k) ?? null,
+                setItem: (k: string, v: string) => store.set(k, v),
+            },
+        };
+        expect(dailyLimitHit('2026-10-05')).toBe(false);
+        markDailyLimit('2026-10-05');
+        expect(dailyLimitHit('2026-10-05')).toBe(true);
+        expect(dailyLimitHit('2026-10-06')).toBe(false);
+        delete g.window; // sem armazenamento: nunca trava, nunca lança
+        expect(dailyLimitHit('2026-10-05')).toBe(false);
+        expect(() => markDailyLimit('2026-10-05')).not.toThrow();
+    });
+
+    it('fila: ao bater no limite, para a rodada — não martela o servidor com os outros itens', async () => {
+        const items = ['2026-10-03', '2026-10-04', '2026-10-05'].map(
+            (recordedOn): QueuedRecording => ({
+                key: queueKey('u1', 'DEDA34', recordedOn),
+                userUid: 'u1',
+                dedaId: 'DEDA34',
+                recordedOn,
+                durationMs: 60_000,
+                mimeType: 'audio/webm',
+                blob: {} as Blob,
+                createdAt: 0,
+            }),
+        );
+        const map = new Map(items.map((i) => [i.key, i]));
+        const store: QueueStore = {
+            all: async () => [...map.values()],
+            put: async (i) => void map.set(i.key, i),
+            delete: async (k) => void map.delete(k),
+        };
+        const send = jest.fn(async (i: QueuedRecording) => {
+            if (i.recordedOn !== '2026-10-03') throw limited;
+        });
+        const sent = await flushQueue(store, 'u1', '2026-10-05', send, isDailyLimit);
+        expect(sent).toEqual(['u1|DEDA34|2026-10-03']);
+        expect(send).toHaveBeenCalledTimes(2); // o terceiro nem é tentado
+        expect(map.size).toBe(2); // nada se perde: continuam no aparelho
+    });
+});
+
+describe('escolha do microfone (computador)', () => {
+    const mic = (deviceId: string, label: string) => ({ deviceId, label, kind: 'audioinput' });
+    const builtIn = mic('a1', 'MacBook Pro Microphone (Built-in)');
+    const iphone = mic('b2', 'iPhone de André Microphone');
+    const usb = mic('c3', 'Yeti Stereo Microphone');
+
+    it('lista só entradas reais e com nome (antes da permissão não há nomes)', () => {
+        expect(listMicrophones([mic('default', 'Default - x'), mic('communications', 'y'), builtIn, usb])).toEqual([
+            builtIn,
+            usb,
+        ]);
+        expect(listMicrophones([mic('', ''), mic('z9', '')])).toEqual([]);
+        expect(listMicrophones([{ deviceId: 'v1', label: 'FaceTime HD Camera', kind: 'videoinput' }])).toEqual([]);
+    });
+
+    it('usa a escolha guardada enquanto o aparelho existe; se sumiu, volta ao padrão sem erro', () => {
+        expect(pickMicrophone([builtIn, usb], 'c3')).toBe('c3');
+        expect(pickMicrophone([builtIn], 'c3')).toBeNull();
+        expect(pickMicrophone([iphone, builtIn], 'b2')).toBe('b2'); // escolheu o iPhone de propósito: respeita
+    });
+
+    it('sem escolha: padrão do sistema; se o padrão é o iPhone (Continuity) e há alternativa, o embutido', () => {
+        expect(pickMicrophone([builtIn, usb], null)).toBeNull();
+        // Chrome: a entrada "default" diz quem é o padrão
+        expect(pickMicrophone([mic('default', 'Default - iPhone de André Microphone'), usb, builtIn, iphone])).toBe(
+            'a1',
+        );
+        expect(pickMicrophone([mic('default', 'Default - Yeti Stereo Microphone'), usb, builtIn, iphone])).toBeNull();
+        // Safari/Firefox: o primeiro da lista é o padrão
+        expect(pickMicrophone([iphone, usb])).toBe('c3');
+        expect(pickMicrophone([iphone])).toBeNull(); // sem alternativa: o que houver
+        expect(pickMicrophone([mic('', '')])).toBeNull(); // antes da permissão: nada a decidir
     });
 });
 

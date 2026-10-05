@@ -80,18 +80,29 @@ export const WRITE_DAY_KEYS = [
 export const writeDayToday = (date: Date = new Date()) => (date.getDay() === 0 ? 7 : date.getDay());
 
 export type WriteDayState = 'today' | 'past' | 'locked';
-export const writeDayState = (day: number, today: number): WriteDayState =>
-    day === today ? 'today' : day < today ? 'past' : 'locked';
+/** `pastDeda`: DEDA que não é o da semana — já passou, os 7 dias ficam abertos para consulta (nenhum é "hoje"). */
+export const writeDayState = (day: number, today: number, pastDeda = false): WriteDayState =>
+    pastDeda ? 'past' : day === today ? 'today' : day < today ? 'past' : 'locked';
 
-/** Dia mostrado: hoje por padrão; um dia anterior abre só para consulta; dia futuro nunca abre. */
-export const openWriteDay = (requested: number | null | undefined, today: number) =>
-    requested && Number.isInteger(requested) && requested >= 1 && requested < today ? requested : today;
+/**
+ * Dia mostrado. DEDA da semana: hoje por padrão; um dia anterior abre só para consulta; dia futuro nunca abre.
+ * DEDA que já passou: qualquer dia de 1 a 7; Day 1 por padrão.
+ */
+export const openWriteDay = (requested: number | null | undefined, today: number, pastDeda = false) => {
+    const valid = !!requested && Number.isInteger(requested) && requested >= 1;
+    if (pastDeda) return valid && (requested as number) <= 7 ? (requested as number) : 1;
+    return valid && (requested as number) < today ? (requested as number) : today;
+};
 
 // ---------- tamanho do texto de leitura ("Aa" na barra do topo): preferência por aparelho ----------
 
-/** Fatores aplicados ao texto de leitura (variável CSS --r-scale). O padrão é 1. */
+/**
+ * Fatores aplicados ao texto de leitura (variável CSS --r-scale). O padrão é o primeiro da lista (o menor); os
+ * demais são aumentos. Os valores não mudaram quando o padrão passou de 1 para 0,9: quem já tinha escolhido um
+ * tamanho continua vendo exatamente o mesmo; quem nunca escolheu passa a ver o novo padrão.
+ */
 export const TEXT_SCALES = [0.9, 1, 1.1, 1.2, 1.3] as const;
-export const DEFAULT_TEXT_SCALE = 1;
+export const DEFAULT_TEXT_SCALE: number = TEXT_SCALES[0];
 export const TEXT_SCALE_KEY = 'dedaReaderTextScale';
 
 /** Só os fatores da lista valem; qualquer outra coisa guardada (ou armazenamento bloqueado) cai no padrão. */
@@ -109,6 +120,22 @@ export const saveTextScale = (scale: number) => {
         window.localStorage.setItem(TEXT_SCALE_KEY, String(scale));
     } catch {
         // modo privado / armazenamento bloqueado: vale só nesta visita
+    }
+};
+
+// ---------- vídeo que começa sozinho (passo 3 e card de vídeo do LinKnowledge) ----------
+
+/**
+ * Endereço do player (Vimeo/YouTube) com autoplay=1 — com som: nunca pedimos mudo. Se o navegador recusar tocar com
+ * som (iPhone), o player fica pronto, com o play grande. Endereço inválido volta como veio.
+ */
+export const withAutoplay = (embedUrl: string) => {
+    try {
+        const url = new URL(embedUrl);
+        url.searchParams.set('autoplay', '1');
+        return url.toString();
+    } catch {
+        return embedUrl;
     }
 };
 

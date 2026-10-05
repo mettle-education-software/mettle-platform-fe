@@ -101,7 +101,8 @@ export const VideoFrame = ({
                     title={title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                     allowFullScreen
-                    src={`https://www.youtube.com/embed/${videoId}`}
+                    // O clique no card já pediu o vídeo: abre tocando (com som; o iframe só existe com o popup aberto).
+                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
                 />
             </Player>
         </ArticleReaderModal>

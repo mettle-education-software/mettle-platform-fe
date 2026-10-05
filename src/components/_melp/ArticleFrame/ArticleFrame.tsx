@@ -97,12 +97,15 @@ export const ArticleReaderModal = ({
     onClose,
     title,
     labelledBy,
+    tools,
     children,
 }: {
     open: boolean;
     onClose(): void;
     title: string;
     labelledBy?: string;
+    /** Controles no cabeçalho do popup (o "Aa" da página nova do DEDA); nada por padrão. */
+    tools?: React.ReactNode;
     children: React.ReactNode;
 }) => {
     const device = useDeviceSize();
@@ -116,7 +119,12 @@ export const ArticleReaderModal = ({
             destroyOnClose
             footer={null}
             width="70vw"
-            title={<VisuallyHidden>{title}</VisuallyHidden>}
+            title={
+                <>
+                    <VisuallyHidden>{title}</VisuallyHidden>
+                    {tools}
+                </>
+            }
         >
             {children}
         </Dialog>
@@ -130,6 +138,7 @@ export const ArticleReaderModal = ({
             placement="bottom"
             aria-labelledby={labelledBy}
             aria-label={labelledBy ? undefined : title}
+            extra={tools}
         >
             {children}
         </Drawer>

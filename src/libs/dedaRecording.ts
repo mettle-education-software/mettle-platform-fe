@@ -141,16 +141,17 @@ export const brasiliaDate = (date: Date) =>
         date,
     );
 
-const WEEKDAYS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
-const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+// O Programa Imerso é todo em inglês (só a introdução do DEDA é em português).
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** "2026-09-30" → "quarta, 30-Set". Datas inválidas devolvem "". */
+/** "2026-09-30" → "Wednesday, Sep 30". Datas inválidas devolvem "". */
 export const formatRecordedOn = (recordedOn: string) => {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(recordedOn);
     if (!match) return '';
     const date = new Date(Date.UTC(+match[1], +match[2] - 1, +match[3]));
     if (Number.isNaN(date.getTime())) return '';
-    return `${WEEKDAYS[date.getUTCDay()]}, ${match[3]}-${MONTHS[date.getUTCMonth()]}`;
+    return `${WEEKDAYS[date.getUTCDay()]}, ${MONTHS[date.getUTCMonth()]} ${Number(match[3])}`;
 };
 
 /** Duração para o aluno: "6:12" (ou "1:02:03"). */
@@ -162,15 +163,15 @@ export const formatDuration = (ms: number) => {
     return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
 };
 
-/** Para leitores de tela: "6 minutos e 12 segundos". */
+/** Para leitores de tela: "6 minutes and 12 seconds". */
 export const spokenDuration = (ms: number) => {
     const total = Number.isFinite(ms) && ms > 0 ? Math.floor(ms / 1000) : 0;
     const m = Math.floor(total / 60);
     const s = total % 60;
     const parts = [];
-    if (m) parts.push(`${m} ${m === 1 ? 'minuto' : 'minutos'}`);
-    if (s || !m) parts.push(`${s} ${s === 1 ? 'segundo' : 'segundos'}`);
-    return parts.join(' e ');
+    if (m) parts.push(`${m} ${m === 1 ? 'minute' : 'minutes'}`);
+    if (s || !m) parts.push(`${s} ${s === 1 ? 'second' : 'seconds'}`);
+    return parts.join(' and ');
 };
 
 // ---------- endereços ----------

@@ -38,17 +38,19 @@ export const ReadRecord: React.FC<ReadRecordProps> = ({ dedaId, onRecordDone }) 
     if (device === 'mobile')
         return (
             <Flex justify="center">
-                <MaxWidthContainer style={{ paddingBottom: recorder ? '16rem' : '5rem', paddingTop: '1rem' }}>
+                {/* Com o gravador: ele abre o passo; enquanto grava, desce para a base e o espaço extra deixa ler até o fim. */}
+                <MaxWidthContainer style={{ paddingBottom: recorder ? '13rem' : '5rem', paddingTop: '1rem' }}>
+                    {recorder && <div style={{ marginBottom: '1.5rem' }}>{recorder}</div>}
                     <Skeleton loading={dedaReadRecordResult.loading} active style={{ width: '100%' }}>
                         <RichTextRenderer rawContent={dedaReadRecordData?.json} links={dedaReadRecordData?.links} />
                     </Skeleton>
                 </MaxWidthContainer>
-                {recorder}
             </Flex>
         );
 
     return (
         <Flex vertical gap="1rem">
+            {recorder}
             <ReadingCard>
                 <Flex justify="center">
                     <MaxTextWidth>
@@ -58,7 +60,6 @@ export const ReadRecord: React.FC<ReadRecordProps> = ({ dedaId, onRecordDone }) 
                     </MaxTextWidth>
                 </Flex>
             </ReadingCard>
-            {recorder}
         </Flex>
     );
 };

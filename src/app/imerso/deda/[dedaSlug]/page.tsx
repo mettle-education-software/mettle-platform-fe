@@ -1,7 +1,7 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { ArrowBackIos } from '@mui/icons-material';
+import { ArrowBackIos, Mic } from '@mui/icons-material';
 import { Button, Flex, Typography } from 'antd';
 import { DedaActivity, DedaNotes, DedaQuote, DedaReview, MaxWidthContainer, TabNav, withRoles } from 'components';
 import { DedaHeaderBackdrop } from 'components/_melp/_deda/DedaHeaderBackdrop/DedaHeaderBackdrop';
@@ -65,6 +65,16 @@ const MobileNavigationWrapper = styled.div`
         width: 100%;
         margin: 0;
         padding: 0;
+
+        /* Quatro abas (com a de gravações) cabem em 360 px sem rolar nem cair na reticência ("…"). */
+        .ant-tabs-tab {
+            padding-left: 0.625rem !important;
+            padding-right: 0.625rem !important;
+        }
+
+        .ant-tabs-tab-active .ant-tabs-tab-btn {
+            padding: 0 0.25rem !important;
+        }
     }
 `;
 
@@ -92,7 +102,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     const featuredDeda = featuredDedaDataResult.data?.dedaContentCollection.items[0];
 
     const [activeTab, setActiveTab] = useState('dedaNotes');
-    // Aba "Minhas gravações": só com o gravador liberado para o aluno (hooks/melp/dedaRecording).
+    // Aba "My recordings": só com o gravador liberado para o aluno (hooks/melp/dedaRecording).
     const recordingsTab = useDedaRecordings(dedaId).active;
 
     const tabItems = [
@@ -142,7 +152,12 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                               className={activeTab === 'dedaRecordings' ? 'activeTab' : undefined}
                               style={{ color: '#FFFFFF', fontWeight: 400 }}
                           >
-                              {isDesktop ? 'Minhas gravações' : 'Gravações'}
+                              {isDesktop ? (
+                                  'My recordings'
+                              ) : (
+                                  // Celular: ícone, para as quatro abas caberem sem a reticência ("…") de 360 px em diante.
+                                  <Mic titleAccess="My recordings" style={{ verticalAlign: 'middle' }} />
+                              )}
                           </Title>
                       ),
                   },

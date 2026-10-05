@@ -86,3 +86,40 @@ export const writeDayState = (day: number, today: number): WriteDayState =>
 /** Dia mostrado: hoje por padrão; um dia anterior abre só para consulta; dia futuro nunca abre. */
 export const openWriteDay = (requested: number | null | undefined, today: number) =>
     requested && Number.isInteger(requested) && requested >= 1 && requested < today ? requested : today;
+
+// ---------- tamanho do texto de leitura ("Aa" na barra do topo): preferência por aparelho ----------
+
+/** Fatores aplicados ao texto de leitura (variável CSS --r-scale). O padrão é 1. */
+export const TEXT_SCALES = [0.9, 1, 1.1, 1.2, 1.3] as const;
+export const DEFAULT_TEXT_SCALE = 1;
+export const TEXT_SCALE_KEY = 'dedaReaderTextScale';
+
+/** Só os fatores da lista valem; qualquer outra coisa guardada (ou armazenamento bloqueado) cai no padrão. */
+export const readTextScale = (): number => {
+    try {
+        const saved = Number(window.localStorage.getItem(TEXT_SCALE_KEY));
+        return (TEXT_SCALES as readonly number[]).includes(saved) ? saved : DEFAULT_TEXT_SCALE;
+    } catch {
+        return DEFAULT_TEXT_SCALE;
+    }
+};
+
+export const saveTextScale = (scale: number) => {
+    try {
+        window.localStorage.setItem(TEXT_SCALE_KEY, String(scale));
+    } catch {
+        // modo privado / armazenamento bloqueado: vale só nesta visita
+    }
+};
+
+// ---------- Summary: tempos que seguem para o servidor sem campo na tela ----------
+
+/**
+ * Mesmos campos e unidades do Summary atual (DedaActivitySummary + InputWithTime): `dedaTime` em minutos inteiros
+ * (cronômetro do dia) e `readingTime` em segundos inteiros (duração da gravação de hoje no passo 2, como o aluno a vê: 6:12 → 372). Sem gravação hoje
+ * ("I can’t record right now" ou conta sem gravador): zero — decisão do dono; nenhum tempo é inventado.
+ */
+export const summaryTimes = (stopwatchSeconds: number, recordingMs?: number | null) => ({
+    dedaTime: Number.isFinite(stopwatchSeconds) && stopwatchSeconds > 0 ? Math.floor(stopwatchSeconds / 60) : 0,
+    readingTime: recordingMs && Number.isFinite(recordingMs) && recordingMs > 0 ? Math.floor(recordingMs / 1000) : 0,
+});

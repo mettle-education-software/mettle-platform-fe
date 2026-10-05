@@ -2,22 +2,34 @@
 
 import { Global } from '@emotion/react';
 import { Drawer, Menu } from 'antd';
-import { DedaQuote, DedaReview, Logo, RichTextRenderer } from 'components';
+import { DedaQuote, Logo, RichTextRenderer } from 'components';
 import { LinKnowledge } from 'components/_melp/_deda/DedaNotes/LinKnowledge/LinKnowledge';
-import { MyRecordings } from 'components/_melp/_deda/DedaRecorder/MyRecordings';
 import { useAppMenu } from 'components/layouts/AppLayout/appMenu';
 import { useDeviceSize } from 'hooks';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaNotesQueryResponse } from 'interfaces';
 import { contentfulImage } from 'libs/dedaHeader';
-import { writeDayToday } from 'libs/dedaReader';
-import { BookOpen, ChevronDown, Headset, House, LogOut, Menu as MenuIcon, Quote, Settings, X } from 'lucide-react';
+import { DEFAULT_TEXT_SCALE, readTextScale, saveTextScale, TEXT_SCALES, writeDayToday } from 'libs/dedaReader';
+import {
+    ALargeSmall,
+    BookOpen,
+    ChevronDown,
+    Headset,
+    House,
+    LogOut,
+    Menu as MenuIcon,
+    Quote,
+    Settings,
+    X,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { font as platformFont } from 'themes/font';
 import { DedaReaderStudy } from './DedaReaderStudy';
 import { ReaderProse } from './ReaderProse';
+import { ReaderRecordings } from './ReaderRecordings';
+import { ReaderReview } from './ReaderReview';
 import { readFont, uiFont } from './readerFonts';
 import { DrawerBody, ICON, readerTokens, Shell } from './readerStyles';
 
@@ -68,6 +80,72 @@ const MENU_ICONS: Record<string, React.ReactNode> = {
     settings: <Settings {...ICON} />,
     support: <Headset {...ICON} />,
     logout: <LogOut {...ICON} />,
+};
+
+/**
+ * "Aa" da barra do topo: tamanho do texto de leitura (Introduction, Glossary, passos 2, 4 e 5, notas de contexto e
+ * o artigo do LinKnowledge). A preferência fica no aparelho e vale por variável CSS (--r-scale, em readerStyles).
+ */
+const TextSize = ({ scale, onScale }: { scale: number; onScale(scale: number): void }) => {
+    const [open, setOpen] = useState(false);
+    const box = useRef<HTMLSpanElement>(null);
+    const sizes = useRef<(HTMLButtonElement | null)[]>([]);
+    useEffect(() => {
+        if (!open) return;
+        const outside = (event: PointerEvent) => !box.current?.contains(event.target as Node) && setOpen(false);
+        const escape = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
+        document.addEventListener('pointerdown', outside);
+        document.addEventListener('keydown', escape);
+        return () => {
+            document.removeEventListener('pointerdown', outside);
+            document.removeEventListener('keydown', escape);
+        };
+    }, [open]);
+    const step = (event: React.KeyboardEvent, by: number) => {
+        event.preventDefault();
+        const next = Math.min(TEXT_SCALES.length - 1, Math.max(0, TEXT_SCALES.indexOf(scale as never) + by));
+        onScale(TEXT_SCALES[next]);
+        sizes.current[next]?.focus();
+    };
+    return (
+        <span className="tsize" ref={box}>
+            <button
+                type="button"
+                className="ib"
+                aria-label="Text size"
+                aria-haspopup="true"
+                aria-expanded={open}
+                onClick={() => setOpen((v) => !v)}
+            >
+                <ALargeSmall {...ICON} aria-hidden />
+            </button>
+            {open && (
+                <span className="panel" role="radiogroup" aria-label="Text size">
+                    {TEXT_SCALES.map((value, i) => (
+                        <button
+                            key={value}
+                            ref={(el) => {
+                                sizes.current[i] = el;
+                            }}
+                            type="button"
+                            role="radio"
+                            aria-checked={value === scale}
+                            aria-label={`${Math.round(value * 100)}%${value === DEFAULT_TEXT_SCALE ? ', default' : ''}`}
+                            tabIndex={value === scale ? 0 : -1}
+                            style={{ fontSize: Math.round(15 * value * value) }}
+                            onClick={() => onScale(value)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'ArrowRight' || event.key === 'ArrowUp') step(event, 1);
+                                if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') step(event, -1);
+                            }}
+                        >
+                            A
+                        </button>
+                    ))}
+                </span>
+            )}
+        </span>
+    );
 };
 
 /** Aba DEDA Notes: sub-abas logo abaixo da barra do topo e o conteúdo (sem cabeçalho de imagem: o espaço é do texto). */
@@ -137,6 +215,23 @@ export const DedaReaderPage: React.FC<Props> = ({
         return () => document.body.classList.remove('deda-reader-shell-on');
     }, []);
 
+    // Tamanho do texto: lido do aparelho e aplicado antes da primeira pintura (não pisca). Fica no <html> para valer
+    // também nas gavetas e no leitor de artigo, que abrem fora da árvore; sai junto com a página nova.
+    const [textScale, setTextScale] = useState(DEFAULT_TEXT_SCALE);
+    useLayoutEffect(() => {
+        const saved = readTextScale();
+        setTextScale(saved);
+        document.documentElement.style.setProperty('--r-scale', String(saved));
+        return () => {
+            document.documentElement.style.removeProperty('--r-scale');
+        };
+    }, []);
+    const chooseTextScale = (scale: number) => {
+        setTextScale(scale);
+        saveTextScale(scale);
+        document.documentElement.style.setProperty('--r-scale', String(scale));
+    };
+
     const notes = useDeda<DedaNotesQueryResponse>('deda-notes', dedaId);
     const glossary = notes.data?.dedaContentCollection?.items[0]?.dedaNotesGlossaryContent;
 
@@ -175,16 +270,16 @@ export const DedaReaderPage: React.FC<Props> = ({
             case 'dedaReview':
                 return (
                     <main className="scroll" tabIndex={-1} key={activeTab}>
-                        <div className="tabpage r-review">
-                            <DedaReview dedaId={dedaId} />
+                        <div className="tabpage">
+                            <ReaderReview dedaId={dedaId} />
                         </div>
                     </main>
                 );
             case 'dedaRecordings':
                 return (
                     <main className="scroll" tabIndex={-1} key={activeTab}>
-                        <div className="tabpage r-recs">
-                            <MyRecordings dedaId={dedaId} dedaTitle={title} coverSrc={coverUrl} />
+                        <div className="tabpage">
+                            <ReaderRecordings dedaId={dedaId} />
                         </div>
                     </main>
                 );
@@ -236,6 +331,7 @@ export const DedaReaderPage: React.FC<Props> = ({
                 <span className="sp" />
                 {/* cronômetro do estudo (DedaReaderStudy) entra aqui */}
                 <span ref={setTimerSlot} style={{ display: 'contents' }} />
+                {(study || activeTab === tabs[0].key) && <TextSize scale={textScale} onScale={chooseTextScale} />}
                 {!study && activeTab === tabs[0].key && (
                     <button
                         type="button"

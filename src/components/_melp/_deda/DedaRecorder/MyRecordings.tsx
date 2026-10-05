@@ -130,6 +130,16 @@ const Layout = styled.div`
         color: #6b6258;
     }
 
+    /* Dia sem gravação: uma linha só, mais baixa. */
+    .row.none {
+        min-height: 44px;
+    }
+
+    .row.none .day strong {
+        display: inline;
+        margin-right: 0.5rem;
+    }
+
     .row.none .day span {
         color: #6b6258;
     }
@@ -225,7 +235,9 @@ export const MyRecordings: React.FC<Props> = ({ dedaId, dedaTitle, coverSrc }) =
                                 <dt>First → last day</dt>
                                 <dd>
                                     {ind.deltaMs === null || !ind.first || !ind.last ? (
-                                        '—'
+                                        <>
+                                            —<span className="sub">Needs 2 days</span>
+                                        </>
                                     ) : (
                                         <>
                                             {formatDelta(ind.deltaMs)}

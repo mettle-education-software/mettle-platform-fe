@@ -82,6 +82,11 @@ const Wrapper = styled.div`
 
     @media (max-width: 860px) {
         background: #f5f5f5; /* fundo do Layout da Plataforma */
+
+        /* Abaixo da barra de passos do DEDA (4rem, também presa no topo), sem cobri-la. */
+        &.sticky {
+            top: 4rem;
+        }
     }
 `;
 

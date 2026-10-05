@@ -37,7 +37,7 @@ const Bar = styled.section`
     gap: 0.75rem 1.25rem;
 
     /* Computador: no topo do passo, como o player dos passos 1 e 4 (o texto rola dentro do cartão, sem nada por cima). */
-    /* Celular: preso acima da barra de navegação do DEDA. */
+    /* Celular, enquanto grava: preso acima da barra de navegação do DEDA. */
     &.fixed {
         position: fixed;
         left: 0;
@@ -208,6 +208,9 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
 
     // Aviso ao fechar/recarregar com gravação não salva.
     const unsaved = ['recording', 'paused', 'review', 'uploading'].includes(state.phase);
+    // Celular: preso embaixo só enquanto grava (o aluno lê e precisa de Pausar/Parar à mão); fora disso fica no topo
+    // do passo e não cobre o texto.
+    const floating = isMobile && ['recording', 'paused'].includes(state.phase);
     useEffect(() => {
         if (!unsaved) return;
         const warn = (e: BeforeUnloadEvent) => {
@@ -537,7 +540,7 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
 
     return (
         <>
-            <Bar className={isMobile ? 'fixed' : undefined} aria-label="Reading recorder">
+            <Bar className={floating ? 'fixed' : undefined} aria-label="Reading recorder">
                 <div className="status">
                     <div className="headline">{headline}</div>
                     {detail && (

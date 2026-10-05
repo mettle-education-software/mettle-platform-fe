@@ -21,6 +21,8 @@ type AudioPlayerProps = Readonly<{
     coverSrc?: string;
     /** Só o controle (sem capa nem título), no escuro: barra fixa da página nova do DEDA. */
     compact?: boolean;
+    /** Só no modo compacto: começa a tocar ao montar (a linha de My recordings que vira player). */
+    autoPlay?: boolean;
 }>;
 
 const PlayerWrapper = styled.div`
@@ -51,7 +53,7 @@ const CoverImage = styled.div`
 
 /** O ref expõe play/pause/stop do player (usado pelo player de duas faixas do passo 4). */
 export const AudioPlayer = React.forwardRef<AudioPlayerRef | undefined, AudioPlayerProps>(function AudioPlayer(
-    { audioURL, onPlayStart, onEnd, onError, title, subtitle, coverSrc, compact },
+    { audioURL, onPlayStart, onEnd, onError, title, subtitle, coverSrc, compact, autoPlay },
     ref,
 ) {
     if (compact)
@@ -63,6 +65,7 @@ export const AudioPlayer = React.forwardRef<AudioPlayerRef | undefined, AudioPla
                 onEnd={onEnd}
                 onError={onError}
                 ref={ref}
+                autoPlay={autoPlay}
                 backgroundColor="transparent"
                 color="#f3ede4"
                 sliderColor="#b78a5b"

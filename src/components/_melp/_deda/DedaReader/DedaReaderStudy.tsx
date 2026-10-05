@@ -1,12 +1,12 @@
 'use client';
 
 import { gql, useQuery } from '@apollo/client';
-import { Drawer, Tooltip } from 'antd';
+import { Drawer } from 'antd';
 import { AudioPlayer } from 'components';
 import { DedaRecorder } from 'components/_melp/_deda/DedaRecorder/DedaRecorder';
 import { TwoTrackPlayer } from 'components/_melp/_deda/DedaRecorder/TwoTrackPlayer';
 import { SaveDedaInputMutationDedaData, useConfetti, useDeviceSize, useSaveDedaInput } from 'hooks';
-import { useDedaRecordings, useFlushRecordingQueue } from 'hooks/melp/dedaRecording';
+import { useDedaRecordings, useFlushRecordingQueue, useQueuedRecording } from 'hooks/melp/dedaRecording';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import {
     DedaListenQueryResponse,
@@ -28,13 +28,16 @@ import {
     writeDayState,
     writeDayToday,
 } from 'libs/dedaReader';
-import { Check, ChevronRight, ChevronUp, Clock, Info, Lock, X } from 'lucide-react';
+import { brasiliaDate, pickMyReading } from 'libs/dedaRecording';
+import { Check, ChevronRight, ChevronUp, Clock, Lock, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { DedaActivitySummary, DedaStepsCompleted } from '../DedaActivity/steps';
+import { DedaStepsCompleted } from '../DedaActivity/steps';
+import { InfoTip } from './ReaderInfo';
 import { ReaderProse } from './ReaderProse';
+import { ReaderSummary } from './ReaderSummary';
 import { readFont, uiFont } from './readerFonts';
 import { DrawerBody, ICON } from './readerStyles';
 
@@ -88,7 +91,10 @@ const STEP_INFO: Record<ReaderStep, { name: string; hint: string }> = {
     watch: { name: 'Watch', hint: 'Watch the talk.' },
     listenRead: { name: 'Listen + Read', hint: 'Listen and follow the text with your eyes.' },
     write: { name: 'Write', hint: 'Copy today’s passage by hand.' },
-    finish: { name: 'Summary', hint: 'Rate the quality of your study session today.' },
+    finish: {
+        name: 'Summary',
+        hint: 'Rate the quality of today’s DEDA: from 1 to 5, score each of the five variables. It is subjective — the more honest you are, the better your results.',
+    },
     completed: { name: 'Completed', hint: '' },
 };
 const stepNumber = (step: ReaderStep) => READER_STEPS.indexOf(step) + 1;
@@ -99,77 +105,62 @@ interface Props {
     timerSlot: HTMLElement | null;
 }
 
-/** Cronômetro do dia: mesma contagem do StopWatch de DedaSteps (o valor vai ao Summary); aqui, discreto. */
+const TIMER_STARTED = 'Your time has started and is now being tracked.';
+
+/**
+ * Cronômetro do dia: mesma contagem do StopWatch de DedaSteps (o valor vai ao Summary); aqui, discreto. Ao começar,
+ * o próprio cronômetro avisa por alguns segundos ("Timer started") — nada flutua sobre o rótulo do passo ou o texto.
+ */
 const ReaderTimer = ({ onStop }: { onStop(duration: number): void }) => {
     const [stopwatch, setStopwatch] = useState(0);
+    const latest = useRef(0);
+    latest.current = stopwatch;
     const [isOpen, setIsOpen] = useState(true);
-    const [tooltipOpen, setTooltipOpen] = useState(true);
+    const [notice, setNotice] = useState('');
 
+    // O total sobe para o estudo só quando o cronômetro sai de cena (fim dos passos): o texto e os players não
+    // são redesenhados a cada segundo.
     useEffect(() => {
         const interval = setInterval(() => setStopwatch((prev) => prev + 1), 1000);
         return () => {
             clearInterval(interval);
-            onStop(stopwatch);
+            onStop(latest.current);
         };
-    }, [stopwatch, onStop]);
+    }, [onStop]);
 
     useEffect(() => {
-        const tooltipTimeout = setTimeout(() => setTooltipOpen(false), 5000);
-        return () => clearTimeout(tooltipTimeout);
+        setNotice(TIMER_STARTED);
+        const timeout = setTimeout(() => setNotice(''), 4500);
+        return () => clearTimeout(timeout);
     }, []);
 
-    const time = `${padNumber(Math.floor(stopwatch / 3600))}:${padNumber(
-        Math.floor(stopwatch / 60) - Math.floor(stopwatch / 3600) * 60,
-    )}:${padNumber(stopwatch % 60)}`;
+    const hours = Math.floor(stopwatch / 3600);
+    const minutesSeconds = `${padNumber(Math.floor(stopwatch / 60) - hours * 60)}:${padNumber(stopwatch % 60)}`;
+    const time = `${padNumber(hours)}:${minutesSeconds}`;
 
     return (
-        <Tooltip title="Your time has started and is now being tracked." open={tooltipOpen}>
+        <>
             <button
                 type="button"
-                className="timer"
+                className={`timer${notice ? ' fresh' : ''}`}
                 aria-pressed={!isOpen}
                 aria-label={isOpen ? `Study time today ${time}. Hide timer` : 'Show timer'}
                 onClick={() => setIsOpen((v) => !v)}
             >
                 <Clock {...ICON} aria-hidden />
-                {isOpen && <span>{time}</span>}
+                {notice ? (
+                    <span>
+                        <span className="wd">Timer </span>started
+                    </span>
+                ) : (
+                    // a hora só aparece quando existe: a barra do celular fica com espaço para o título
+                    isOpen && <span>{hours ? time : minutesSeconds}</span>
+                )}
             </button>
-        </Tooltip>
-    );
-};
-
-/** ⓘ do passo: a instrução fica guardada aqui (toque ou teclado abre; tocar fora, Esc ou o próprio ⓘ fecha). */
-const StepInfo = ({ text }: { text: string }) => {
-    const [open, setOpen] = useState(false);
-    const box = useRef<HTMLDivElement>(null);
-    const id = useId();
-    useEffect(() => {
-        if (!open) return;
-        const outside = (event: PointerEvent) => !box.current?.contains(event.target as Node) && setOpen(false);
-        const escape = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
-        document.addEventListener('pointerdown', outside);
-        document.addEventListener('keydown', escape);
-        return () => {
-            document.removeEventListener('pointerdown', outside);
-            document.removeEventListener('keydown', escape);
-        };
-    }, [open]);
-    return (
-        <div className="info" ref={box}>
-            <button
-                type="button"
-                aria-label="Step instructions"
-                aria-expanded={open}
-                aria-controls={id}
-                onClick={() => setOpen((v) => !v)}
-            >
-                <Info {...ICON} size={16} aria-hidden />
-            </button>
-            {/* role=status: o leitor de tela anuncia o texto ao abrir */}
-            <p id={id} role="status" hidden={!open}>
-                {open && text}
-            </p>
-        </div>
+            <span className="sr" aria-live="polite">
+                {notice}
+            </span>
+        </>
     );
 };
 
@@ -351,7 +342,16 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
 
     const recordings = useDedaRecordings(dedaId);
     useFlushRecordingQueue(recordings.active, recordings.uid);
-    const recorderOn = recordings.active && isTodaysDeda;
+    // O gravador vale em qualquer DEDA já liberado (o aluno pode estar fazendo um DEDA antigo como o "da semana"
+    // dele); o servidor recusa DEDA não liberado. As regras de concluir passo, cronômetro e Summary não mudam.
+    const recorderOn = recordings.active;
+    const today = brasiliaDate(new Date());
+    const queuedToday = useQueuedRecording(recordings.uid, dedaId, today, recorderOn);
+    // Reading Time do Summary: a gravação de hoje (a que ficou no aparelho, se ainda não subiu); sem ela, zero.
+    const readingMs =
+        queuedToday.data?.durationMs ??
+        pickMyReading(recordings.data?.recordings ?? [], today, true)?.durationMs ??
+        null;
     const [readRecordDone, setReadRecordDone] = useState(false);
     const markReadRecordDone = useCallback(() => setReadRecordDone(true), []);
 
@@ -403,6 +403,8 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
     const scrollRef = useRef<HTMLElement>(null);
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: 0 });
+        // O foco vai para o texto a cada passo: rolar (toque, roda ou teclado) nunca depende de tocar no player.
+        scrollRef.current?.focus({ preventScroll: true });
     }, [currentStep, shownWriteDay]);
     useEffect(() => {
         if (currentStep !== 'write') setWriteDay(todayDay);
@@ -434,11 +436,7 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                 ) : null;
             case 'listenRead':
                 return recordings.active ? (
-                    <DockTwoTracks
-                        dedaId={dedaId}
-                        isCurrentDeda={isTodaysDeda}
-                        onGoRecord={recorderOn ? () => setCurrentStep('readRecord') : undefined}
-                    />
+                    <DockTwoTracks dedaId={dedaId} isCurrentDeda onGoRecord={() => setCurrentStep('readRecord')} />
                 ) : (
                     <ListenPlayer key="listenRead" dedaId={dedaId} />
                 );
@@ -512,14 +510,16 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
     };
 
     const studyContent = (() => {
+        // rótulo do passo e, na mesma linha, o ⓘ com a instrução
         const eyebrow = (
-            <p className="eyebrow">
+            <div className="eyebrow">
                 <b>
                     {currentStep === 'finish'
                         ? 'Summary'
                         : `Step ${stepNumber(currentStep)} · ${STEP_INFO[currentStep].name}`}
                 </b>
-            </p>
+                {infoText && <InfoTip key={currentStep} text={infoText} label="Step instructions" />}
+            </div>
         );
         switch (currentStep) {
             case 'listen':
@@ -535,7 +535,6 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                     <>
                         <div className="col">{eyebrow}</div>
                         <ReadText dedaId={dedaId} />
-                        <p className="endcap">End of the text.</p>
                     </>
                 );
             case 'watch':
@@ -556,12 +555,14 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                 return (
                     <div className="col form">
                         {eyebrow}
-                        <DedaActivitySummary
-                            defaultDedaTime={dedaTime}
-                            onInputs={setInputData}
-                            isDedaCompleted={!isTodaysDedaAndNotCompleted}
-                            loading={saveInput.isPending}
-                        />
+                        {isTodaysDedaAndNotCompleted && (
+                            <ReaderSummary
+                                stopwatchSeconds={dedaTime}
+                                recordingMs={readingMs}
+                                onInputs={setInputData}
+                                saving={saveInput.isPending}
+                            />
+                        )}
                     </div>
                 );
             default:
@@ -577,10 +578,10 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
         <div className="stage">
             {showStopwatch && timerSlot && createPortal(<ReaderTimer onStop={setDedaTime} />, timerSlot)}
             <div className="body">
-                <main className="scroll" ref={scrollRef} tabIndex={-1}>
+                {/* key: cada passo nasce com a própria área de rolagem, já com o conteúdo dentro */}
+                <main className="scroll" key={currentStep} ref={scrollRef} tabIndex={-1}>
                     <div className="study">{studyContent}</div>
                 </main>
-                {infoText && <StepInfo key={currentStep} text={infoText} />}
             </div>
 
             <footer className="dock">

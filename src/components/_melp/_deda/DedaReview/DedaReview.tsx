@@ -45,7 +45,8 @@ interface EditReviews {
     review3?: boolean;
 }
 
-export const DedaReview = ({ dedaId }: { dedaId: string }) => {
+/** Dados e gravação das revisões do DEDA: a mesma lógica para a página atual e para a página nova (ReaderReview). */
+export const useDedaReviews = (dedaId: string) => {
     const { melpSummary } = useMelpContext();
 
     const unlockedDEDAs = melpSummary?.unlocked_dedas ?? [];
@@ -158,6 +159,13 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [saveKey]);
+
+    return { unlockedDEDAs, inputData, isInputLoading, editReview, setEditReview, setSaveKey, saveInput };
+};
+
+export const DedaReview = ({ dedaId }: { dedaId: string }) => {
+    const { unlockedDEDAs, inputData, isInputLoading, editReview, setEditReview, setSaveKey, saveInput } =
+        useDedaReviews(dedaId);
 
     if (!inputData || isInputLoading)
         return (

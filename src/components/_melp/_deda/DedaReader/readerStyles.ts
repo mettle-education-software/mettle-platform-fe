@@ -52,7 +52,9 @@ export const readerTokens = css`
 
     .deda-reader,
     .deda-reader-drawer {
-        --r-read-size: 20px; /* texto do passo no computador: ~65 caracteres por linha na medida abaixo */
+        /* --r-scale: tamanho escolhido no "Aa" (0,9 a 1,3; padrão 1), posto no <html> enquanto a página nova está
+           aberta. A medida da coluna é em em: acompanha o tamanho. */
+        --r-read-size: calc(20px * var(--r-scale, 1)); /* computador: ~65 caracteres por linha na medida abaixo */
         --r-read-line: 1.7;
         --r-read-measure: 33.5em;
         --r-ui-size: 14.5px;
@@ -68,7 +70,7 @@ export const readerTokens = css`
     @media (max-width: 860px) {
         .deda-reader,
         .deda-reader-drawer {
-            --r-read-size: 18px;
+            --r-read-size: calc(18px * var(--r-scale, 1));
             --r-read-line: 1.66;
             --r-gap: 20px;
             --r-strip-h: 52px;
@@ -116,7 +118,7 @@ export const readerTokens = css`
     }
     .deda-reader-shell-on .context-note-drawer .ant-typography {
         font-family: inherit;
-        font-size: 15.5px;
+        font-size: calc(15.5px * var(--r-scale, 1));
         line-height: 1.6;
     }
     .deda-reader-drawer .ant-drawer-close,
@@ -189,6 +191,13 @@ export const readerTokens = css`
     .deda-reader-drawer .brand svg {
         width: 100%;
         height: auto;
+    }
+    /* Leitor de artigo do LinKnowledge (MettleArticleReader, sem alteração): só o texto do artigo segue o "Aa". */
+    .deda-reader-shell-on article:has(> #mettle-article-title) :is(p, li) {
+        font-size: calc(1.15rem * var(--r-scale, 1));
+    }
+    .deda-reader-shell-on article:has(> #mettle-article-title) blockquote p {
+        font-size: calc(1.3rem * var(--r-scale, 1));
     }
     @media (prefers-reduced-motion: reduce) {
         .deda-reader-drawer *,
@@ -270,6 +279,10 @@ const shared = css`
     }
     .btn.ghost:hover {
         color: var(--r-text);
+    }
+    .btn.tint {
+        background: var(--r-gold-tint);
+        color: var(--r-gold-hi);
     }
     .btn:disabled {
         opacity: 0.45;
@@ -370,12 +383,12 @@ const shared = css`
         border-left: 1px solid var(--r-gold);
         background: var(--r-surf);
         border-radius: var(--r-radius);
-        font-size: 15.5px;
+        font-size: calc(15.5px * var(--r-scale, 1));
         line-height: 1.55;
     }
     .inote h4 {
         margin: 0 0 4px;
-        font-size: 15px;
+        font-size: calc(15px * var(--r-scale, 1));
         font-weight: 600;
         color: var(--r-text);
     }
@@ -420,7 +433,7 @@ export const DrawerBody = styled.div`
     font-size: var(--r-ui-size);
 
     &.glossary .prose {
-        font-size: 16.5px;
+        font-size: calc(16.5px * var(--r-scale, 1));
         line-height: 1.6;
     }
     /* citação do DEDA: o componente atual (com a nota do autor), em leitura leve */
@@ -591,7 +604,7 @@ export const Shell = styled.div`
         padding: 0 16px;
         background: var(--r-bg2);
         border-bottom: 1px solid var(--r-line);
-        overflow: hidden;
+        z-index: 4; /* o seletor "Aa" abre por cima do corpo */
     }
     .strip > .bg {
         position: absolute;
@@ -729,6 +742,63 @@ export const Shell = styled.div`
         width: 16px;
         height: 16px;
     }
+    /* aviso de início: o próprio cronômetro diz "Timer started" por alguns segundos, em dourado */
+    .timer span {
+        animation: r-fade 240ms ease;
+    }
+    .timer.fresh {
+        color: var(--r-gold-hi);
+    }
+    @keyframes r-fade {
+        from {
+            opacity: 0;
+        }
+    }
+    .sr {
+        position: absolute !important;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+    /* "Aa": tamanho do texto de leitura */
+    .tsize {
+        display: inline-flex;
+    }
+    .tsize .panel {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 6px);
+        display: flex;
+        padding: 6px;
+        border: 1px solid var(--r-line);
+        border-radius: 14px;
+        background: var(--r-sheet-head);
+        box-shadow: 0 10px 30px var(--r-card-shadow);
+        animation: r-pop var(--r-ease);
+    }
+    .tsize .panel button {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 0;
+        border-radius: 10px;
+        background: none;
+        color: var(--r-muted);
+        font-family: var(--r-read-font), system-ui, sans-serif;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .tsize .panel button:hover {
+        color: var(--r-text);
+    }
+    .tsize .panel button[aria-checked='true'] {
+        background: var(--r-gold-tint);
+        color: var(--r-gold-hi);
+    }
 
     /* ---------- corpo da aba ---------- */
     /* aba DEDA: texto (a única rolagem) + barra fixa embaixo */
@@ -751,6 +821,9 @@ export const Shell = styled.div`
         overscroll-behavior: contain;
         min-height: 0;
     }
+    .scroll:focus {
+        outline: none; /* recebe o foco a cada passo/aba para o teclado rolar o texto; não é um controle */
+    }
     .study {
         padding: 28px 28px 80px;
     }
@@ -764,19 +837,21 @@ export const Shell = styled.div`
         font-size: inherit;
     }
     .col.form {
-        max-width: 680px;
+        max-width: 670px; /* a coluna de leitura no tamanho padrão */
         font-size: inherit;
-    }
-    .col.form .ant-typography,
-    .col.form input {
-        font-family: inherit;
     }
     .hint {
         font-size: 13.5px;
         color: var(--r-muted);
     }
+    /* rótulo do passo e, na mesma linha, o ⓘ (alvo de 44 px que não aumenta a altura da linha) */
     .eyebrow {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-height: 16px;
         margin: 0 0 20px;
+        font-size: var(--r-label-size);
         line-height: 1.4;
     }
     .eyebrow b {
@@ -820,64 +895,135 @@ export const Shell = styled.div`
         height: 100%;
         border: 0;
     }
-    .endcap {
-        max-width: var(--r-read-measure);
-        margin: 28px auto 0;
-        padding-top: 20px;
-        border-top: 1px solid var(--r-line);
-        font-size: 12.5px;
-        letter-spacing: 0.02em;
-        color: var(--r-faint);
-    }
-
-    /* ⓘ do passo: canto inferior esquerdo, logo acima da barra; abre a instrução do passo */
+    /* ⓘ: a explicação abre para baixo, alinhada ao começo da linha do rótulo (o contêiner com position: relative),
+       sem cobrir o rótulo e sem sair da coluna */
     .info {
-        position: absolute;
-        left: 4px;
-        bottom: 2px;
-        z-index: 3;
+        display: inline-flex;
+        flex: none;
     }
     .info button {
         display: grid;
         place-items: center;
         width: 44px;
         height: 44px;
+        margin: -14px 0 -14px -8px;
         padding: 0;
         border: 0;
+        border-radius: 50%;
         background: none;
         color: var(--r-faint);
         cursor: pointer;
-    }
-    .info button svg {
-        width: 15px;
-        height: 15px;
     }
     .info button:hover,
     .info button[aria-expanded='true'] {
         color: var(--r-gold-hi);
     }
-    .info p {
+    .info .tip:not([hidden]) {
         position: absolute;
-        left: 8px;
-        bottom: 48px;
+        left: 0;
+        top: calc(100% + 10px);
+        z-index: 3;
+        display: block;
         width: max-content;
-        max-width: min(300px, calc(100vw - 32px));
-        margin: 0;
+        max-width: min(340px, 100%);
         padding: 12px 14px;
         border: 1px solid var(--r-line);
         border-radius: var(--r-radius);
         background: var(--r-sheet-head);
         box-shadow: 0 10px 30px var(--r-card-shadow);
         font-size: 13.5px;
+        font-weight: 400;
         line-height: 1.5;
+        letter-spacing: 0;
+        text-transform: none;
+        text-align: left;
+        white-space: normal;
         color: var(--r-text);
         animation: r-pop var(--r-ease);
     }
     @keyframes r-pop {
         from {
             opacity: 0;
-            transform: translateY(4px);
+            transform: translateY(-4px);
         }
+    }
+
+    /* Summary: os cinco quesitos, de 1 a 5 */
+    .summary h2 {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 400;
+        line-height: 1.3;
+        letter-spacing: 0.005em;
+        color: var(--r-text);
+    }
+    .summary ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .summary li {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0 16px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--r-line);
+    }
+    .summary li:last-child {
+        border-bottom: 0;
+    }
+    .crit {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        font-size: 16px;
+        line-height: 1.4;
+        color: var(--r-text);
+    }
+    .stars {
+        display: flex;
+        align-items: center;
+        flex: none;
+        margin-right: -10px; /* a última estrela encosta na margem da coluna */
+    }
+    .stars button {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: none;
+        color: var(--r-line-strong);
+        cursor: pointer;
+    }
+    .stars button svg {
+        transition:
+            fill var(--r-ease),
+            stroke var(--r-ease);
+    }
+    .stars button.on svg {
+        fill: var(--r-gold);
+        stroke: var(--r-gold);
+    }
+    .stars button:not(.on):not(:disabled):hover {
+        color: var(--r-gold-hi);
+    }
+    .stars button:disabled {
+        cursor: default;
+        opacity: 0.6;
+    }
+    .stars .word {
+        order: -1;
+        min-width: 84px;
+        padding-right: 8px;
+        font-size: 12.5px;
+        letter-spacing: 0.02em;
+        text-align: right;
+        color: var(--r-muted);
     }
 
     /* passo 5: dias */
@@ -1056,15 +1202,15 @@ export const Shell = styled.div`
         flex: none;
     }
 
-    /* player (react-audio-play) na barra: botão dourado com o ícone no centro óptico, trilho fino, tempos discretos */
-    .dock .rap-container {
+    /* player compacto (react-audio-play) da barra e da linha de My recordings — os únicos players dentro da casca: botão dourado com o ícone no centro óptico, trilho fino, tempos discretos */
+    .rap-container {
         max-width: none;
         height: 44px;
         padding: 0;
         box-shadow: none;
         font-family: inherit;
     }
-    .dock .rap-container .rap-pp-button {
+    .rap-container .rap-pp-button {
         width: 40px;
         height: 40px;
         border-radius: 50%;
@@ -1074,22 +1220,22 @@ export const Shell = styled.div`
         flex: none;
         transition: background-color var(--r-ease);
     }
-    .dock .rap-container .rap-pp-button:hover {
+    .rap-container .rap-pp-button:hover {
         background: var(--r-gold-hi);
     }
-    .dock .rap-container .rap-pp-button svg {
+    .rap-container .rap-pp-button svg {
         display: block;
         width: 14px;
         height: 14px;
     }
-    .dock .rap-container .rap-pp-button svg path {
+    .rap-container .rap-pp-button svg path {
         fill: var(--r-on-gold);
     }
     /* centro óptico: o triângulo do play pesa para a esquerda; desloca 1/6 da largura (3 de 18 unidades). O pause é simétrico. */
-    .dock .rap-container .rap-pp-button svg path[d^='M18 12L0'] {
+    .rap-container .rap-pp-button svg path[d^='M18 12L0'] {
         transform: translateX(3px);
     }
-    .dock .rap-container .rap-controls {
+    .rap-container .rap-controls {
         margin: 0 0 0 14px;
         font-family: inherit;
         font-size: 12px;
@@ -1097,29 +1243,29 @@ export const Shell = styled.div`
         font-variant-numeric: tabular-nums;
         color: var(--r-muted);
     }
-    .dock .rap-container .rap-controls > .rap-slider {
+    .rap-container .rap-controls > .rap-slider {
         margin: 0 12px;
         height: 2px;
         border-radius: 2px;
         background: var(--r-track);
     }
-    .dock .rap-container .rap-controls > .rap-slider .rap-pin {
+    .rap-container .rap-controls > .rap-slider .rap-pin {
         width: 10px;
         height: 10px;
         top: -4px;
         right: -5px;
         box-shadow: none;
     }
-    .dock .rap-container .rap-slider .rap-progress .rap-pin {
+    .rap-container .rap-slider .rap-progress .rap-pin {
         background-color: var(--r-gold-hi);
     }
     /* tempo total e volume: respiro entre os dois; ícone do volume no peso do resto */
-    .dock .rap-container .rap-volume {
+    .rap-container .rap-volume {
         margin-left: 14px;
         display: grid;
         place-items: center;
     }
-    .dock .rap-container .rap-volume-btn svg {
+    .rap-container .rap-volume-btn svg {
         display: block;
         width: 20px;
         height: 20px;
@@ -1147,9 +1293,24 @@ export const Shell = styled.div`
         border-color: var(--r-line-strong);
         color: var(--r-text);
     }
+    /* "My reading | Original": pílula baixa e leve; a área de toque de cada lado continua com 44 px de altura */
     .dock .docked .switch {
+        padding: 2px;
         background: none;
         border: 1px solid var(--r-line);
+    }
+    .dock .docked .switch button {
+        position: relative;
+        min-height: 30px;
+        padding: 0 14px;
+        font-size: 13px;
+        font-weight: 400;
+        letter-spacing: 0.01em;
+    }
+    .dock .docked .switch button::after {
+        content: '';
+        position: absolute;
+        inset: -8px 0;
     }
     .dock .docked .switch button[aria-pressed='true'] {
         background: var(--r-gold-tint);
@@ -1265,60 +1426,298 @@ export const Shell = styled.div`
         padding-bottom: 48px;
     }
 
-    /* ---------- Review e My recordings: componentes atuais, acabamento do leitor ---------- */
+    /* ---------- Review e My recordings ---------- */
     .tabpage {
-        max-width: 1320px;
+        max-width: 1180px;
         margin: 0 auto;
-        padding: 28px 0 72px;
+        padding: 28px 28px 72px;
     }
-    .tabpage > * {
-        background: transparent !important;
-    }
-    .tabpage h4.ant-typography,
     .tabpage h2 {
-        font-family: inherit;
-        font-weight: 500;
-        color: var(--r-text) !important;
-    }
-    .r-recs h2 {
+        margin: 0;
         font-size: 20px;
+        font-weight: 400;
+        line-height: 1.3;
+        letter-spacing: 0.005em;
+        color: var(--r-text);
     }
-    .tabpage .ant-typography {
-        font-family: inherit;
+    .review .head {
+        position: relative;
+        display: flex;
+        align-items: center;
+        margin: 0 0 20px;
     }
-    .r-review .color-white {
-        color: var(--r-text) !important;
+    .review .head .info button {
+        margin: -9px 0 -9px -4px;
     }
-    /* My recordings foi feito para o fundo claro: no escuro, títulos, legendas e dias vazios com contraste AA. */
-    .r-recs .card,
-    .r-recs .row {
-        background: var(--r-surf);
+    .review .cards {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 32px 24px;
+    }
+    .review .cards li {
+        min-width: 0;
+    }
+    .review .when {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin: 0 0 10px;
+        font-size: var(--r-label-size);
+        letter-spacing: var(--r-label-track);
+        text-transform: uppercase;
+        line-height: 1.4;
+        color: var(--r-muted);
+    }
+    .review .when b {
+        font-weight: 500;
+        color: var(--r-text);
+    }
+    .review .video {
+        max-width: none;
         border-radius: var(--r-radius);
     }
-    .r-recs .card dt,
-    .r-recs .card .sub,
-    .r-recs .row .day span {
+    .review .video.placeholder {
+        display: grid;
+        place-items: center;
+        background: none;
+        border: 1px dashed var(--r-line-strong);
+        font-size: 13.5px;
+        color: var(--r-faint);
+    }
+    .review .meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 44px;
+        margin-top: 10px;
+    }
+    .review .name {
+        min-width: 0;
+    }
+    /* título longo: até duas linhas, depois reticências (o título inteiro fica no title) */
+    .review .name b {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 1.3;
+        color: var(--r-text);
+    }
+    .review .name small {
+        display: block;
+        margin-top: 2px;
+        font-size: 12px;
+        letter-spacing: 0.02em;
         color: var(--r-muted);
     }
-    .r-recs .bars li {
+    .review .meta .btn {
+        position: relative;
+        flex: none;
+        min-height: 36px;
+        padding: 0 14px;
+        font-size: 13px;
+    }
+    .review .meta .btn::after {
+        content: '';
+        position: absolute;
+        inset: -4px 0;
+    }
+    .review .empty {
+        margin: 0;
+        padding: 40px 24px;
+        border: 1px dashed var(--r-line-strong);
+        border-radius: var(--r-radius);
+        font-size: 15px;
+        line-height: 1.5;
         color: var(--r-muted);
     }
-    .r-recs .bar {
+
+    .recs {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 36px 56px;
+    }
+    @media (min-width: 861px) {
+        .recs {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+            align-items: start;
+        }
+    }
+    .recs h2 {
+        margin: 0 0 16px;
+    }
+    /* três indicadores numa linha só, separados por um fio: mesma altura, rótulo sem quebra */
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin: 0;
+    }
+    .stats > div {
+        min-width: 0;
+        padding: 0 0 0 14px;
+        border-left: 1px solid var(--r-line);
+    }
+    .stats > div:first-of-type {
+        padding-left: 0;
+        border-left: 0;
+    }
+    .stats dt {
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        color: var(--r-muted);
+    }
+    .stats dd {
+        margin: 4px 0 0;
+        font-size: 20px;
+        font-weight: 400;
+        line-height: 1.3;
+        font-variant-numeric: tabular-nums;
+        color: var(--r-text);
+    }
+    .stats small {
+        display: block;
+        margin-top: 2px;
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        color: var(--r-muted);
+    }
+    .bars {
+        list-style: none;
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        height: 112px;
+        margin: 28px 0 0;
+        padding: 0;
+    }
+    .bars li {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        color: var(--r-muted);
+    }
+    .bar {
+        width: 6px;
+        min-height: 6px;
+        border-radius: 3px;
         background: var(--r-gold);
     }
-    .r-recs .bar.none {
+    .bar.none {
+        width: 4px;
+        height: 4px;
+        min-height: 0;
+        border-radius: 50%;
         background: var(--r-track);
     }
-    .r-recs .row.none {
-        background: transparent;
-        border: 1px dashed var(--r-line-strong);
+    .list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        border-top: 1px solid var(--r-line);
+    }
+    /* a linha do dia e a mesma linha tocando têm a mesma altura: nada salta */
+    .row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 60px;
+        border-bottom: 1px solid var(--r-line);
+    }
+    .row .play {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-height: 60px;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--r-text);
+        text-align: left;
+        cursor: pointer;
+    }
+    .row .play i {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 40px;
+        height: 40px;
+        border: 1px solid var(--r-ring);
+        border-radius: 50%;
+        color: var(--r-gold-hi);
+        transition: border-color var(--r-ease);
+    }
+    .row .play i svg {
+        transform: translateX(1px); /* centro óptico do triângulo */
+    }
+    .row .play:hover i {
+        border-color: var(--r-gold-hi);
+    }
+    .row .day {
+        flex: 1;
+        min-width: 0;
+    }
+    .row .day b {
+        display: block;
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 1.3;
+    }
+    .row .day span {
+        display: block;
+        margin-top: 1px;
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
         color: var(--r-muted);
     }
-    .r-recs .row.none .day span {
+    .row .duration {
+        flex: none;
+        padding: 0 8px;
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
         color: var(--r-muted);
     }
-    .r-recs .row.active {
-        outline-color: var(--r-gold);
+    .row.none {
+        gap: 10px;
+        min-height: 44px;
+        padding-left: 54px; /* alinha "Day N" com o das linhas gravadas (botão de 40 + 14) */
+        font-size: 13.5px;
+        color: var(--r-faint);
+    }
+    .row.none b {
+        font-weight: 400;
+        color: var(--r-muted);
+    }
+    .rowp .rap-container {
+        flex: 1;
+        min-width: 0;
+    }
+    .rowp .rap-volume {
+        display: none;
+    }
+    .rowp .msg {
+        flex: 1;
+        margin: 0;
+        font-size: 13.5px;
+        color: var(--r-muted);
+    }
+    .hint.recs {
+        margin: 0;
     }
 
     /* ---------- celular ---------- */
@@ -1333,7 +1732,31 @@ export const Shell = styled.div`
             gap: 4px;
         }
         .tabpage {
-            padding: 20px 0 48px;
+            padding: 20px 22px 48px;
+        }
+        .review .cards {
+            grid-template-columns: minmax(0, 1fr);
+        }
+        /* Summary: rótulo em cima, estrelas embaixo, tudo começando na margem do texto */
+        .summary li {
+            flex-wrap: wrap;
+            padding: 12px 0 4px;
+        }
+        .crit {
+            flex: 1 1 100%;
+        }
+        .stars {
+            margin: 0 0 0 -10px;
+        }
+        .stars .word {
+            order: 0;
+            padding: 0 0 0 8px;
+            text-align: left;
+        }
+        /* toque: a área do passo é sempre rolável (1 px a mais que a tela), então o gesto nunca passa para a
+           página de trás nem depende do que acontece na barra */
+        .study {
+            min-height: calc(100% + 1px);
         }
         .strip {
             padding: 0 4px;
@@ -1345,12 +1768,6 @@ export const Shell = styled.div`
         .study {
             padding: 20px 22px 56px;
         }
-        .info {
-            left: -11px; /* o ícone cabe inteiro na margem do texto: não cobre a primeira letra */
-        }
-        .info p {
-            left: 23px;
-        }
         .stagecard h2 {
             font-size: 22px;
         }
@@ -1359,6 +1776,12 @@ export const Shell = styled.div`
         }
         .days button .wd {
             display: none;
+        }
+        .timer .wd {
+            display: none;
+        }
+        .timer.fresh span {
+            text-transform: capitalize;
         }
         .segs {
             display: grid;

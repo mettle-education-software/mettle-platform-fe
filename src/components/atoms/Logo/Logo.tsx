@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 const logos = {
     light: (
         <svg
@@ -93,6 +95,7 @@ const logos = {
     ),
 };
 
-export const Logo = ({ theme = 'light' }: { theme?: 'light' | 'dark' }) => {
-    return logos[theme];
+/** `mark`: só o símbolo (os primeiros 169 dos 639 px do desenho), para o menu recolhido da plataforma nova. */
+export const Logo = ({ theme = 'light', mark = false }: { theme?: 'light' | 'dark'; mark?: boolean }) => {
+    return mark ? React.cloneElement(logos[theme], { viewBox: '0 0 169 170' }) : logos[theme];
 };

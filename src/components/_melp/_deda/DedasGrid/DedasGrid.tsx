@@ -22,7 +22,11 @@ const Title = styled(Typography.Title)`
     font-weight: 500 !important;
 `;
 
-export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, customTitle, blockedDEDAs }) => {
+/**
+ * Dados das grades de DEDAs (mais recentes, próximos, todos): quais DEDAs, em que ordem, qual está bloqueado e a
+ * semana de cada um. Regras intocadas; a grade atual e a grade da plataforma nova (components/_new) leem daqui.
+ */
+export const useDedasGrid = (type: DedasGridProps['type'], blockedDEDAs?: boolean) => {
     const { user } = useAppContext();
 
     const { data: melpSummary, isLoading } = useMelpSummary(user?.uid as string);
@@ -76,6 +80,31 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
         : [];
 
     const showSkeleton = isLoading || lastDedasResult.loading || nextDedasResult.loading || allDedasResult.loading;
+
+    return {
+        melpSummary,
+        showSkeleton,
+        currentWeek,
+        unlockedDEDAs,
+        currentDeda,
+        lastDedas: sortedLastDedasResult,
+        nextDedas: nextDedasItems,
+        allDedas: sortedAllDedasResult,
+        /** "Next DEDAs" só com DEDAs liberados e programa não concluído. */
+        showNext: unlockedDEDAs.length > 0 && melpSummary?.melp_status !== 'DEDA_FINISHED',
+    };
+};
+
+export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, customTitle, blockedDEDAs }) => {
+    const {
+        melpSummary,
+        showSkeleton,
+        currentWeek,
+        unlockedDEDAs,
+        lastDedas: sortedLastDedasResult,
+        nextDedas: nextDedasItems,
+        allDedas: sortedAllDedasResult,
+    } = useDedasGrid(type, blockedDEDAs);
 
     const titles: { [key in DedasGridProps['type']]: React.ReactNode } = {
         lastDedas: unlockedDEDAs.length > 0 && (

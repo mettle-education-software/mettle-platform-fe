@@ -88,5 +88,6 @@ export const useAppMenu = (onNavigate: () => void = () => {}) => {
         { key: 'logout', label: 'Sair', icon: <LogoutOutlined />, onClick: go(() => handleLogout()) },
     ];
 
-    return { items, selectedKeys: pathname.split('/') };
+    // `goImerso`: a casca nova torna a linha inteira do IMERSO clicável (o mesmo destino do rótulo).
+    return { items, selectedKeys: pathname.split('/'), goImerso };
 };

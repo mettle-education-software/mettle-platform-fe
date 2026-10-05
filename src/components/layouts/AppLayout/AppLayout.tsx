@@ -6,8 +6,10 @@ import { Alert, Button, Drawer, Flex, Layout, Menu } from 'antd';
 import { Logo } from 'components';
 import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
+import { useNewDesign } from 'hooks/useNewDesign';
 import { SMALL_VIEWPORT } from 'libs';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { forwardRef, useEffect, useState } from 'react';
@@ -16,6 +18,9 @@ import { AdminActions } from '../AdminActions/AdminActions';
 import { useAppMenu } from './appMenu';
 
 const { Header, Content, Sider } = Layout;
+
+// Casca da plataforma nova (libs/newDesign), só para as contas da lista: carregada à parte, fora do bundle dos alunos.
+const NewAppLayout = dynamic(() => import('./NewAppLayout'), { ssr: false, loading: () => null });
 
 const AppHeader = styled(Header)`
     background: var(--tertiary);
@@ -83,7 +88,19 @@ const CustomMenu = styled(Menu)`
     }
 `;
 
-export const AppLayout = forwardRef<
+interface AppLayoutProps {
+    children: React.ReactNode;
+    withMelpSummary?: boolean;
+}
+
+/** Chave ligada (libs/newDesign): a casca nova; desligada: a casca atual, intocada. */
+export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>((props, ref) =>
+    useNewDesign() ? <NewAppLayout {...props} ref={ref} /> : <ClassicAppLayout {...props} ref={ref} />,
+);
+
+AppLayout.displayName = 'AppLayout';
+
+const ClassicAppLayout = forwardRef<
     HTMLDivElement,
     {
         children: React.ReactNode;
@@ -242,4 +259,4 @@ export const AppLayout = forwardRef<
     },
 );
 
-AppLayout.displayName = 'AppLayout';
+ClassicAppLayout.displayName = 'ClassicAppLayout';

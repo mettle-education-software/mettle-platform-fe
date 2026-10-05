@@ -6,9 +6,14 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { Button, Card, Col, Flex, Form, Input, Modal, Row, Tabs as AntTabs, Tooltip, Typography } from 'antd';
 import { AppLayout, MaxWidthContainer } from 'components';
 import { usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
+import { useNewDesign } from 'hooks/useNewDesign';
 import { passwordRules, withAuthentication } from 'libs';
+import dynamic from 'next/dynamic';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect } from 'react';
+
+// Configurações da plataforma nova (libs/newDesign), só para as contas da lista: fora do bundle dos alunos.
+const NewSettings = dynamic(() => import('components/_new/NewSettings'), { ssr: false, loading: () => null });
 
 const { Title, Text } = Typography;
 
@@ -405,6 +410,14 @@ const Settings = () => {
     const { user } = useAppContext();
 
     const isUserImerso = !!user && user.roles.includes('METTLE_STUDENT');
+
+    const newDesign = useNewDesign();
+    if (newDesign)
+        return (
+            <AppLayout>
+                <NewSettings />
+            </AppLayout>
+        );
 
     return (
         <AppLayout>

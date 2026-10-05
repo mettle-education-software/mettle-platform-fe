@@ -3,7 +3,8 @@
 // Falha do espelho = rede, tempo esgotado, HTTP não-2xx ou corpo que não é JSON GraphQL; essas contam para o
 // disjuntor. Erro GraphQL com 200 só cai no Contentful se for "o espelho não sabe responder" (ver mirrorCannotAnswer);
 // esse não conta para o disjuntor (o espelho está de pé). Se o Contentful também falhar, a resposta/erro dele segue
-// para quem chamou, como era antes: uma tentativa em cada lado, nunca laço.
+// para quem chamou, como era antes: uma tentativa em cada lado, nunca laço; e o disjuntor não abre (ou fecha na hora),
+// para nunca prender o site num Contentful fora (ex.: 402 da cota).
 import * as Sentry from '@sentry/nextjs';
 
 export const MIRROR_TIMEOUT_MS = 7000; // o espelho responde em < 1 s; 7 s cobre instância fria + KV lento sem prender a página
@@ -57,9 +58,26 @@ export const makeContentFetch = ({
         onOpen(reason, status);
     };
 
+    // Chamada única ao Contentful; o resultado (ok = 2xx) decide o disjuntor e a resposta/erro segue para quem chamou.
+    const viaFallback = async (init: RequestInit | undefined, done: (ok: boolean) => void) => {
+        let res: Response;
+        try {
+            res = await fetchImpl(fallback!, init);
+        } catch (e) {
+            done(false);
+            throw e;
+        }
+        done(res.ok);
+        return res;
+    };
+
     return async (input, init) => {
         if (!fallback || !mirror || String(input) !== mirror) return fetchImpl(input, init);
-        if (now() < openUntil) return fetchImpl(fallback, init);
+        // Aberto, mas o Contentful também falhou (ex.: 402 da cota): fecha já, a próxima consulta volta ao espelho.
+        if (now() < openUntil)
+            return viaFallback(init, (ok) => {
+                if (!ok) openUntil = failures = 0;
+            });
 
         const caller = init?.signal;
         const ctrl = new AbortController();
@@ -89,9 +107,11 @@ export const makeContentFetch = ({
             clearTimeout(timer);
             caller?.removeEventListener('abort', abort);
         }
-        if (reason === 'unsupported') failures = 0;
-        else failed(reason, status);
-        return fetchImpl(fallback, init);
+        // Só abre o disjuntor se o Contentful de fato responde: abrir para um Contentful fora prenderia o site nele.
+        return viaFallback(init, (ok) => {
+            if (reason === 'unsupported') failures = 0;
+            else if (ok) failed(reason, status);
+        });
     };
 };
 

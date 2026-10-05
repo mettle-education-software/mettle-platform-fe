@@ -72,6 +72,49 @@ describe('makeContentFetch', () => {
         expect(calls).toEqual(['mirror', 'mirror']);
     });
 
+    it('disjuntor aberto e Contentful em 402: fecha na hora, a próxima consulta volta ao espelho', async () => {
+        let up = false;
+        let cfOk = true;
+        const calls: string[] = [];
+        const opens: string[] = [];
+        const f = makeContentFetch({
+            mirror: M,
+            fallback: C,
+            onOpen: (r) => opens.push(r),
+            fetchImpl: async (input) => {
+                calls.push(input === M ? 'mirror' : 'contentful');
+                if (input === M) return up ? ok() : new Response('down', { status: 503 });
+                return cfOk ? ok() : new Response('{"errors":[]}', { status: 402 });
+            },
+        });
+        await f(M);
+        await f(M); // abre
+        cfOk = false;
+        expect((await f(M)).status).toBe(402); // aberto → Contentful 402 → fecha
+        up = true;
+        expect((await f(M)).status).toBe(200);
+        expect(calls).toEqual(['mirror', 'contentful', 'mirror', 'contentful', 'contentful', 'mirror']);
+        expect(opens).toEqual(['http']);
+    });
+
+    it('espelho e Contentful fora: o disjuntor não abre, cada consulta tenta o espelho', async () => {
+        const calls: string[] = [];
+        const opens: string[] = [];
+        const f = makeContentFetch({
+            mirror: M,
+            fallback: C,
+            onOpen: (r) => opens.push(r),
+            fetchImpl: async (input) => {
+                calls.push(input === M ? 'mirror' : 'contentful');
+                if (input === M) throw new TypeError('Failed to fetch');
+                return new Response('{"errors":[]}', { status: 402 });
+            },
+        });
+        for (let i = 0; i < 3; i++) expect((await f(M)).status).toBe(402);
+        expect(calls).toEqual(['mirror', 'contentful', 'mirror', 'contentful', 'mirror', 'contentful']);
+        expect(opens).toEqual([]);
+    });
+
     it('rede caída e Contentful com erro: uma tentativa de cada, devolve o erro do Contentful', async () => {
         const calls: string[] = [];
         const f = makeContentFetch({

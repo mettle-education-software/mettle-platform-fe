@@ -180,6 +180,8 @@ export const TwoTrackPlayer: React.FC<Props> = ({
     const current: Track = hasMine ? track : 'original';
     const choose = (next: Track) => {
         (next === 'mine' ? originalRef : mineRef).current?.pause();
+        // Página nova: escolher a faixa já toca (os dois players ficam montados; o clique é o gesto do aluno).
+        if (docked && next !== current) (next === 'mine' ? mineRef : originalRef).current?.play();
         setTrack(next);
         setAnnounce(next === 'mine' ? 'Track: My reading' : 'Track: Original');
         if (next === 'mine') setFinishedMine(false);

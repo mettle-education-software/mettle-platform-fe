@@ -35,6 +35,8 @@ export const flushQueue = async (
     userUid: string,
     today: string,
     send: (item: QueuedRecording) => Promise<unknown>,
+    /** Erro que encerra a rodada (limite diário do servidor): os demais itens nem são tentados. */
+    stopOn?: (error: unknown) => boolean,
 ) => {
     const sent: string[] = [];
     for (const item of await store.all()) {
@@ -44,8 +46,9 @@ export const flushQueue = async (
             await send(item);
             await store.delete(item.key);
             sent.push(item.key);
-        } catch {
+        } catch (error) {
             // continua na fila; próxima tentativa quando a internet voltar ou a página abrir de novo
+            if (stopOn?.(error)) break;
         }
     }
     return sent;

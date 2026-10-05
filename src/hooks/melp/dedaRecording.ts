@@ -4,9 +4,12 @@ import {
     baseMimeType,
     brasiliaDate,
     CONSENT_VERSION,
+    dailyLimitHit,
     DedaRecording,
     DedaRecordingsResponse,
+    isDailyLimit,
     isSignedStorageUrl,
+    markDailyLimit,
     recordingsOrDisabled,
 } from 'libs/dedaRecording';
 import { flushQueue, idbQueue, QueuedRecording } from 'libs/recordingQueue';
@@ -106,7 +109,8 @@ export const sendRecording = async (item: QueuedRecording, onProgress?: (fractio
 };
 
 /** Por que o envio falhou, para a mensagem certa. */
-export const uploadProblem = (error: unknown): 'offline' | 'expired' | 'upload' => {
+export const uploadProblem = (error: unknown): 'offline' | 'expired' | 'upload' | 'daily' => {
+    if (isDailyLimit(error)) return 'daily';
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'offline';
     const err = error as AxiosError<{ code?: string }>;
     if (err?.response?.status === 403 && err.response.data?.code === 'ACCESS_EXPIRED') return 'expired';
@@ -119,9 +123,16 @@ export const useFlushRecordingQueue = (active: boolean, uid?: string) => {
     const queryClient = useQueryClient();
     const flush = useCallback(async () => {
         if (!active || !uid || typeof indexedDB === 'undefined') return;
-        const sent = await flushQueue(idbQueue, uid, brasiliaDate(new Date()), (item) => sendRecording(item)).catch(
-            () => [],
-        );
+        const today = brasiliaDate(new Date());
+        // Limite diário já atingido hoje: nenhum pedido ao servidor até amanhã (não adianta e não se insiste).
+        if (dailyLimitHit(today)) return;
+        const sent = await flushQueue(
+            idbQueue,
+            uid,
+            today,
+            (item) => sendRecording(item),
+            (error) => isDailyLimit(error) && (markDailyLimit(today), true),
+        ).catch(() => []);
         if (sent.length) queryClient.invalidateQueries({ queryKey: ['deda-recordings', uid] });
     }, [active, uid, queryClient]);
 

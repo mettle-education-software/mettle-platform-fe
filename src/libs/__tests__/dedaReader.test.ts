@@ -3,6 +3,7 @@ import {
     DEDA_READER_UIDS,
     isDedaReaderAccount,
     nextBlocked,
+    DEFAULT_TEXT_SCALE,
     openWriteDay,
     readReaderView,
     readTextScale,
@@ -11,6 +12,7 @@ import {
     StepRules,
     summaryTimes,
     TEXT_SCALES,
+    withAutoplay,
     writeDayState,
     writeDayToday,
 } from '../dedaReader';
@@ -101,10 +103,21 @@ describe('passo 5: dias', () => {
         expect(openWriteDay(0, 4)).toBe(4);
         expect(openWriteDay(1.5, 4)).toBe(4);
     });
+
+    it('DEDA que já passou: os 7 dias abertos para consulta (sem "hoje", sem cadeado); abre no Day 1', () => {
+        for (let day = 1; day <= 7; day += 1) {
+            expect(writeDayState(day, 2, true)).toBe('past');
+            expect(openWriteDay(day, 2, true)).toBe(day);
+        }
+        expect(openWriteDay(null, 5, true)).toBe(1);
+        expect(openWriteDay(8, 5, true)).toBe(1);
+        expect(openWriteDay(0, 5, true)).toBe(1);
+        expect(openWriteDay(2.5, 5, true)).toBe(1);
+    });
 });
 
 describe('tamanho do texto', () => {
-    it('padrão 1; lembra um fator da lista; ignora valor estranho e armazenamento bloqueado', () => {
+    it('padrão = o primeiro (menor) da lista; lembra um fator da lista; ignora valor estranho e armazenamento bloqueado', () => {
         const g = globalThis as unknown as { window?: unknown };
         const store = new Map<string, string>();
         g.window = {
@@ -113,28 +126,54 @@ describe('tamanho do texto', () => {
                 setItem: (k: string, v: string) => store.set(k, v),
             },
         };
-        expect(readTextScale()).toBe(1);
+        expect(DEFAULT_TEXT_SCALE).toBe(TEXT_SCALES[0]);
+        expect(readTextScale()).toBe(0.9); // quem nunca escolheu vê o novo padrão
         for (const scale of TEXT_SCALES) {
             saveTextScale(scale);
             expect(readTextScale()).toBe(scale);
         }
         store.set('dedaReaderTextScale', '7');
-        expect(readTextScale()).toBe(1);
+        expect(readTextScale()).toBe(0.9);
         store.set('dedaReaderTextScale', 'big');
-        expect(readTextScale()).toBe(1);
+        expect(readTextScale()).toBe(0.9);
         g.window = {
             get localStorage(): never {
                 throw new Error('blocked');
             },
         };
-        expect(readTextScale()).toBe(1);
+        expect(readTextScale()).toBe(0.9);
         expect(() => saveTextScale(1.2)).not.toThrow();
         delete g.window;
-        expect(readTextScale()).toBe(1);
+        expect(readTextScale()).toBe(0.9);
     });
 
-    it('vai de 0,9× a 1,3× em passos de 10%, com o padrão na lista', () => {
+    it('migração: quem escolheu um tamanho antes da mudança do padrão continua com o mesmo tamanho visual', () => {
+        const g = globalThis as unknown as { window?: unknown };
+        // o que as versões anteriores gravavam (inclusive o antigo padrão "1", escolhido à mão)
+        for (const saved of ['0.9', '1', '1.1', '1.2', '1.3']) {
+            g.window = { localStorage: { getItem: () => saved, setItem: () => undefined } };
+            expect(readTextScale()).toBe(Number(saved));
+        }
+        delete g.window;
+    });
+
+    it('cinco opções: começa no padrão e só aumenta; a maior é a de sempre (1,3×)', () => {
         expect([...TEXT_SCALES]).toEqual([0.9, 1, 1.1, 1.2, 1.3]);
+        expect(Math.min(...TEXT_SCALES)).toBe(DEFAULT_TEXT_SCALE);
+    });
+});
+
+describe('vídeo que começa sozinho', () => {
+    it('acrescenta autoplay=1 sem perder os parâmetros do player e nunca pede mudo', () => {
+        expect(withAutoplay('https://player.vimeo.com/video/123?h=abc')).toBe(
+            'https://player.vimeo.com/video/123?h=abc&autoplay=1',
+        );
+        expect(withAutoplay('https://www.youtube.com/embed/xyz')).toBe('https://www.youtube.com/embed/xyz?autoplay=1');
+        expect(withAutoplay('https://player.vimeo.com/video/1?autoplay=0')).toBe(
+            'https://player.vimeo.com/video/1?autoplay=1',
+        );
+        expect(withAutoplay('https://player.vimeo.com/video/1')).not.toMatch(/muted/);
+        expect(withAutoplay('not a url')).toBe('not a url');
     });
 });
 

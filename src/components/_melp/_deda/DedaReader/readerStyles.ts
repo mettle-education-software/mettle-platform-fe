@@ -6,20 +6,52 @@ import styled from '@emotion/styled';
  * (.deda-reader) e nas gavetas/folhas que abrem por cima dela (.deda-reader-drawer, fora da árvore).
  */
 export const readerTokens = css`
-    .deda-reader,
-    .deda-reader-drawer {
+    /* Tema escuro (único por enquanto). Tema claro = outro bloco com os mesmos nomes, ex. [data-reader-theme='light']. */
+    [data-reader-theme='dark'],
+    .reader-theme-dark,
+    .deda-reader-shell-on .context-note-drawer {
         --r-bg: #2b2a29;
         --r-bg2: #232221;
         --r-surf: #363432;
         --r-surf2: #423f3c;
         --r-line: rgba(255, 255, 255, 0.11);
+        --r-line-strong: rgba(255, 255, 255, 0.38);
+        --r-ring: rgba(255, 255, 255, 0.3);
+        --r-rule: rgba(255, 255, 255, 0.22);
+        --r-track: rgba(255, 255, 255, 0.16);
+        --r-hover: rgba(255, 255, 255, 0.08);
         --r-text: #f3ede4;
         --r-muted: #bdb4a8;
+        --r-faint: #8f877c;
         --r-gold: #b78a5b;
         --r-gold-hi: #d3a878;
+        --r-gold-tint: rgba(183, 138, 91, 0.2);
+        --r-gold-tint-soft: rgba(183, 138, 91, 0.16);
+        --r-gold-tint-strong: rgba(183, 138, 91, 0.22);
+        --r-gold-glow: rgba(183, 138, 91, 0.28);
         --r-on-gold: #1d1a17;
+        --r-on-gold-alt: #1f1b16;
         --r-red: #c2402f;
+        --r-error: #f0b3a8;
+        --r-pill: rgba(127, 120, 110, 0.2);
+        --r-strong: #ffffff;
+        --r-strong-line: #d9d2c7;
+        --r-strip-shade: linear-gradient(
+            90deg,
+            rgba(28, 27, 26, 0.94),
+            rgba(28, 27, 26, 0.8) 50%,
+            rgba(28, 27, 26, 0.94)
+        );
+        --r-hero-shadow: rgba(0, 0, 0, 0.55);
+        --r-hero-quote-shadow: rgba(0, 0, 0, 0.6);
+        --r-card-shadow: rgba(0, 0, 0, 0.35);
+        --r-video-bg: #000000;
+        /* LinKnowledge entra sem alteração: o contêiner devolve o que ele herda na página atual (fundo claro do Layout). */
+        --r-lk-inherit-color: rgba(0, 0, 0, 0.88);
+    }
 
+    .deda-reader,
+    .deda-reader-drawer {
         --r-read-size: 20px; /* texto do passo no computador: ~65 caracteres por linha na medida abaixo */
         --r-read-line: 1.7;
         --r-read-measure: 33.5em;
@@ -28,6 +60,7 @@ export const readerTokens = css`
         --r-strip-h: 56px;
         --r-dock-h: 84px; /* cabe o gravador com duas linhas: a barra não muda de altura entre os estados */
         --r-radius: 12px;
+        --r-hero-h: 250px; /* cabeçalho de DEDA Notes, como na página atual */
     }
 
     @media (max-width: 860px) {
@@ -37,19 +70,24 @@ export const readerTokens = css`
             --r-read-line: 1.66;
             --r-gap: 20px;
             --r-strip-h: 52px;
+            --r-hero-h: 8vh; /* altura atual do cabeçalho no celular */
         }
     }
 
-    /* Gavetas e folhas (antd Drawer) no escuro do leitor. */
-    .deda-reader-drawer .ant-drawer-content {
+    /* Gavetas e folhas (antd Drawer) no escuro do leitor; a nota de contexto (ContextNote) também, enquanto a página nova está aberta. */
+    .deda-reader-drawer .ant-drawer-content,
+    .deda-reader-shell-on .context-note-drawer .ant-drawer-content {
         background: var(--r-bg);
         color: var(--r-text);
     }
-    .deda-reader-drawer .ant-drawer-header {
+    .deda-reader-drawer .ant-drawer-header,
+    .deda-reader-shell-on .context-note-drawer .ant-drawer-header {
         border-bottom: 1px solid var(--r-line);
     }
     .deda-reader-drawer .ant-drawer-title,
-    .deda-reader-drawer .ant-drawer-close {
+    .deda-reader-drawer .ant-drawer-close,
+    .deda-reader-shell-on .context-note-drawer .ant-drawer-title,
+    .deda-reader-shell-on .context-note-drawer .ant-drawer-close {
         color: var(--r-text);
     }
     .deda-reader-drawer .ant-drawer-close {
@@ -64,7 +102,8 @@ export const readerTokens = css`
     }
     .deda-reader-drawer .ant-typography,
     .deda-reader-drawer p,
-    .deda-reader-drawer li {
+    .deda-reader-drawer li,
+    .deda-reader-shell-on .context-note-drawer .ant-typography {
         color: var(--r-text);
     }
 `;
@@ -114,7 +153,7 @@ const shared = css`
         background: var(--r-gold-hi);
     }
     .btn.line {
-        border-color: rgba(255, 255, 255, 0.38);
+        border-color: var(--r-line-strong);
     }
     .btn.line:hover:not(:disabled) {
         border-color: var(--r-gold-hi);
@@ -139,7 +178,7 @@ const shared = css`
         line-height: 1;
     }
     .ib:hover {
-        background: rgba(255, 255, 255, 0.08);
+        background: var(--r-hover);
     }
     .lnk {
         background: none;
@@ -205,7 +244,7 @@ const shared = css`
     }
     .prose .term:hover,
     .prose .term[aria-expanded='true'] {
-        background: rgba(183, 138, 91, 0.22);
+        background: var(--r-gold-tint-strong);
     }
     .inote {
         position: relative;
@@ -297,7 +336,7 @@ export const DrawerBody = styled.div`
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        border: 1.5px solid rgba(255, 255, 255, 0.3);
+        border: 1.5px solid var(--r-ring);
         display: grid;
         place-items: center;
         font-weight: 600;
@@ -331,7 +370,7 @@ export const Shell = styled.div`
     height: 100vh;
     height: 100dvh;
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr); /* faixa fixa + corpo da aba (a faixa nunca remonta ao trocar de aba) */
     grid-template-columns: minmax(0, 1fr); /* nada da barra empurra a largura: sem rolagem horizontal */
     background: var(--r-bg);
     color: var(--r-text);
@@ -363,7 +402,7 @@ export const Shell = styled.div`
     .strip > .shade {
         position: absolute;
         inset: 0;
-        background: linear-gradient(90deg, rgba(28, 27, 26, 0.94), rgba(28, 27, 26, 0.8) 50%, rgba(28, 27, 26, 0.94));
+        background: var(--r-strip-shade);
         pointer-events: none;
     }
     .strip > :not(.bg):not(.shade) {
@@ -449,6 +488,7 @@ export const Shell = styled.div`
         flex: 1;
     }
     .timer {
+        position: relative; /* entra por portal num span sem caixa: precisa ficar acima da sombra da faixa */
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -468,7 +508,14 @@ export const Shell = styled.div`
         height: 16px;
     }
 
-    /* ---------- texto (a única rolagem) ---------- */
+    /* ---------- corpo da aba ---------- */
+    /* aba DEDA: texto (a única rolagem) + barra fixa embaixo */
+    .stage {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr);
+        min-height: 0;
+    }
     .scroll {
         overflow-y: auto;
         overflow-x: hidden;
@@ -519,7 +566,7 @@ export const Shell = styled.div`
         aspect-ratio: 16 / 9;
         object-fit: cover;
         border-radius: 16px;
-        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 18px 50px var(--r-card-shadow);
     }
     .stagecard h2 {
         margin: 22px 0 6px;
@@ -544,7 +591,7 @@ export const Shell = styled.div`
         aspect-ratio: 16 / 9;
         border-radius: 14px;
         overflow: hidden;
-        background: #000;
+        background: var(--r-video-bg);
     }
     .video iframe {
         width: 100%;
@@ -601,7 +648,7 @@ export const Shell = styled.div`
     }
     .days button[aria-pressed='true'] {
         border-color: var(--r-gold);
-        background: rgba(183, 138, 91, 0.2);
+        background: var(--r-gold-tint);
     }
     .days button:disabled {
         opacity: 0.42;
@@ -635,7 +682,7 @@ export const Shell = styled.div`
         margin: 0 0 20px;
         padding: 8px 8px 8px 16px;
         border-radius: var(--r-radius);
-        background: rgba(183, 138, 91, 0.16);
+        background: var(--r-gold-tint-soft);
         font-size: 14.5px;
         line-height: 1.4;
     }
@@ -677,7 +724,7 @@ export const Shell = styled.div`
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        border: 1.5px solid rgba(255, 255, 255, 0.3);
+        border: 1.5px solid var(--r-ring);
         display: grid;
         place-items: center;
         font-size: 13.5px;
@@ -697,7 +744,7 @@ export const Shell = styled.div`
     .pips button.cur i {
         border-color: var(--r-gold-hi);
         color: var(--r-gold-hi);
-        box-shadow: 0 0 0 3px rgba(183, 138, 91, 0.28);
+        box-shadow: 0 0 0 3px var(--r-gold-glow);
     }
     .pips button.cur.done i {
         color: var(--r-on-gold);
@@ -708,7 +755,7 @@ export const Shell = styled.div`
         left: -7px;
         width: 14px;
         height: 1.5px;
-        background: rgba(255, 255, 255, 0.22);
+        background: var(--r-rule);
     }
     .pips button:not(:disabled):hover i {
         border-color: var(--r-gold-hi);
@@ -787,8 +834,204 @@ export const Shell = styled.div`
         background-color: var(--r-gold-hi);
     }
 
+    /* ---------- DEDA Notes: cabeçalho, sub-abas e leitura ---------- */
+    .hero {
+        position: relative;
+        height: var(--r-hero-h);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        background: var(--r-bg);
+    }
+    .hero > :not([data-deda-backdrop]) {
+        position: relative;
+    }
+    .hero-in {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 32px;
+        width: 100%;
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0 32px 28px;
+    }
+    .hero h1 {
+        margin: 0;
+        font-size: 46px;
+        font-weight: 500;
+        line-height: 1.1;
+        color: var(--r-gold-hi);
+        text-shadow: 0 2px 8px var(--r-hero-shadow);
+        overflow-wrap: anywhere;
+    }
+    .hero .quote {
+        flex: 0 1 380px;
+        min-width: 260px;
+        font-size: 17px;
+        line-height: 1.5;
+        text-shadow: 0 1px 3px var(--r-hero-quote-shadow);
+    }
+    .hero .quote,
+    .hero .quote * {
+        color: var(--r-strong) !important;
+    }
+    .subnav {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        justify-content: center;
+        padding: 14px 16px;
+        background: var(--r-bg);
+        border-bottom: 1px solid var(--r-line);
+    }
+    .seg {
+        display: inline-flex;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 999px;
+        background: var(--r-surf);
+        max-width: 100%;
+    }
+    .seg button {
+        min-height: 44px;
+        padding: 0 18px;
+        border: 0;
+        border-radius: 999px;
+        background: none;
+        color: var(--r-muted);
+        font-size: 15px;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+    .seg button:hover {
+        color: var(--r-text);
+    }
+    .seg button[aria-pressed='true'] {
+        background: var(--r-gold);
+        color: var(--r-on-gold);
+    }
+    .notes {
+        padding: 36px 28px 80px;
+    }
+    /* Introdução e Glossário: o mesmo texto e as mesmas notas (RichTextRenderer + ContextNote), na tipografia do leitor. */
+    .rt {
+        max-width: var(--r-read-measure);
+        margin: 0 auto;
+        font-family: var(--r-read-font), system-ui, sans-serif;
+        font-size: var(--r-read-size);
+        line-height: var(--r-read-line);
+        color: var(--r-text);
+    }
+    .rt > div > *,
+    .rt .ant-typography {
+        text-align: left !important;
+        color: var(--r-text);
+        font-family: inherit;
+        font-size: inherit;
+        line-height: inherit;
+    }
+    .rt h1.ant-typography,
+    .rt h2.ant-typography,
+    .rt h3.ant-typography,
+    .rt h4.ant-typography,
+    .rt h5.ant-typography {
+        line-height: 1.3;
+        color: var(--r-gold-hi);
+        font-size: 1.15em;
+    }
+    .rt a {
+        color: var(--r-gold-hi);
+    }
+    .rt [role='button'][aria-haspopup='dialog'] {
+        text-decoration-color: var(--r-gold-hi);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 5px;
+    }
+    .rt li {
+        color: var(--r-text);
+    }
+    /* LinKnowledge: componentes sem nenhuma alteração; aqui só devolvemos o que eles herdam na página atual. */
+    .lk {
+        font-size: 16px;
+        line-height: normal;
+        color: var(--r-lk-inherit-color);
+        padding-bottom: 48px;
+    }
+
+    /* ---------- Review e My recordings: componentes atuais, acabamento do leitor ---------- */
+    .tabpage {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 32px 0 72px;
+    }
+    .tabpage > * {
+        background: transparent !important;
+    }
+    .tabpage h4.ant-typography,
+    .tabpage h2 {
+        font-family: inherit;
+        color: var(--r-text) !important;
+    }
+    .r-recs h2 {
+        font-size: 22px;
+        font-weight: 600;
+    }
+    .tabpage .ant-typography {
+        font-family: inherit;
+    }
+    .r-review .color-white {
+        color: var(--r-text) !important;
+    }
+    /* My recordings foi feito para o fundo claro: no escuro, títulos, legendas e dias vazios com contraste AA. */
+    .r-recs .card,
+    .r-recs .row {
+        background: var(--r-surf);
+        border-radius: var(--r-radius);
+    }
+    .r-recs .card dt,
+    .r-recs .card .sub,
+    .r-recs .row .day span {
+        color: var(--r-muted);
+    }
+    .r-recs .bars li {
+        color: var(--r-muted);
+    }
+    .r-recs .bar {
+        background: var(--r-gold);
+    }
+    .r-recs .bar.none {
+        background: var(--r-track);
+    }
+    .r-recs .row.none {
+        background: transparent;
+        border: 1px dashed var(--r-line-strong);
+        color: var(--r-muted);
+    }
+    .r-recs .row.none .day span {
+        color: var(--r-muted);
+    }
+    .r-recs .row.active {
+        outline-color: var(--r-gold);
+    }
+
     /* ---------- celular ---------- */
     @media (max-width: 860px) {
+        .notes {
+            padding: 24px 22px 56px;
+        }
+        .subnav {
+            padding: 10px 12px;
+        }
+        .seg button {
+            padding: 0 14px;
+            font-size: 14.5px;
+        }
+        .tabpage {
+            padding: 20px 0 48px;
+        }
         .strip {
             padding: 0 6px 0 4px;
             gap: 2px;
@@ -815,7 +1058,7 @@ export const Shell = styled.div`
             height: 3px;
         }
         .segs i {
-            background: rgba(255, 255, 255, 0.16);
+            background: var(--r-track);
         }
         .segs i.done {
             background: var(--r-gold);
@@ -893,6 +1136,10 @@ export const Shell = styled.div`
         }
     }
     @media (max-width: 380px) {
+        .seg button {
+            padding: 0 10px;
+            font-size: 14px;
+        }
         .stepchip {
             gap: 8px;
         }

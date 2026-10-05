@@ -1,25 +1,25 @@
 'use client';
 
 import { Global } from '@emotion/react';
-import { ExpandMore, Menu as MenuIcon, MenuBookOutlined } from '@mui/icons-material';
-import { Drawer } from 'antd';
-import { DedaQuote, DedaReview, RichTextRenderer } from 'components';
-import { DedaHeaderBackdrop } from 'components/_melp/_deda/DedaHeaderBackdrop/DedaHeaderBackdrop';
+import { Drawer, Menu } from 'antd';
+import { DedaQuote, DedaReview, Logo, RichTextRenderer } from 'components';
 import { LinKnowledge } from 'components/_melp/_deda/DedaNotes/LinKnowledge/LinKnowledge';
 import { MyRecordings } from 'components/_melp/_deda/DedaRecorder/MyRecordings';
+import { useAppMenu } from 'components/layouts/AppLayout/appMenu';
 import { useDeviceSize } from 'hooks';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaNotesQueryResponse } from 'interfaces';
-import { handleLogout } from 'libs';
-import { contentfulImage, HEADER_GRADIENT } from 'libs/dedaHeader';
+import { contentfulImage } from 'libs/dedaHeader';
 import { writeDayToday } from 'libs/dedaReader';
+import { BookOpen, ChevronDown, Headset, House, LogOut, Menu as MenuIcon, Quote, Settings, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
-import { font as uiFont } from 'themes/font';
-import { DedaReaderStudy, readFont } from './DedaReaderStudy';
+import { font as platformFont } from 'themes/font';
+import { DedaReaderStudy } from './DedaReaderStudy';
 import { ReaderProse } from './ReaderProse';
-import { DrawerBody, readerTokens, Shell } from './readerStyles';
+import { readFont, uiFont } from './readerFonts';
+import { DrawerBody, ICON, readerTokens, Shell } from './readerStyles';
 
 export interface ReaderTab {
     key: string;
@@ -62,32 +62,19 @@ const NotesText = ({ dedaId, section }: { dedaId: string; section: 'introduction
     );
 };
 
-/** Aba DEDA Notes: cabeçalho expandido (recolhe ao rolar), sub-abas e o conteúdo. */
-const NotesTab = ({
-    dedaId,
-    title,
-    headerImages,
-    isMobile,
-}: {
-    dedaId: string;
-    title?: string;
-    headerImages: HeaderImage[];
-    isMobile: boolean;
-}) => {
+/** Ícones de traço fino da gaveta do menu, por chave do item (os itens e destinos vêm do menu da Plataforma). */
+const MENU_ICONS: Record<string, React.ReactNode> = {
+    home: <House {...ICON} />,
+    settings: <Settings {...ICON} />,
+    support: <Headset {...ICON} />,
+    logout: <LogOut {...ICON} />,
+};
+
+/** Aba DEDA Notes: sub-abas logo abaixo da barra do topo e o conteúdo (sem cabeçalho de imagem: o espaço é do texto). */
+const NotesTab = ({ dedaId }: { dedaId: string }) => {
     const [section, setSection] = useState<NotesSection>('introduction');
     return (
         <>
-            <section className="hero" aria-label={title}>
-                <DedaHeaderBackdrop images={headerImages} gradient={HEADER_GRADIENT} />
-                {!isMobile && (
-                    <div className="hero-in">
-                        <h1>{title}</h1>
-                        <div className="quote">
-                            <DedaQuote dedaId={dedaId} />
-                        </div>
-                    </div>
-                )}
-            </section>
             <div className="subnav">
                 <div className="seg" role="group" aria-label="DEDA Notes">
                     {NOTES_SECTIONS.map((s) => (
@@ -103,7 +90,8 @@ const NotesTab = ({
                 </div>
             </div>
             {section === 'linknowledge' ? (
-                <div className="lk">
+                // LinKnowledge entra sem alteração, inclusive a fonte da Plataforma.
+                <div className={`lk ${platformFont.className}`}>
                     <LinKnowledge dedaId={dedaId} />
                 </div>
             ) : (
@@ -135,11 +123,17 @@ export const DedaReaderPage: React.FC<Props> = ({
     const [menuOpen, setMenuOpen] = useState(false);
     const [glossaryOpen, setGlossaryOpen] = useState(false);
     const [tabsOpen, setTabsOpen] = useState(false);
+    const [quoteOpen, setQuoteOpen] = useState(false);
+    const menu = useAppMenu(() => setMenuOpen(false));
+    const menuItems = menu.items.map((item) =>
+        item?.key && MENU_ICONS[item.key as string] ? { ...item, icon: MENU_ICONS[item.key as string] } : item,
+    );
     const [timerSlot, setTimerSlot] = useState<HTMLSpanElement | null>(null);
 
     // Notas de contexto (ContextNote, fora da árvore) no escuro do leitor enquanto a página nova está aberta.
     useEffect(() => {
         document.body.classList.add('deda-reader-shell-on');
+        document.body.style.setProperty('--r-ui-font', uiFont.style.fontFamily);
         return () => document.body.classList.remove('deda-reader-shell-on');
     }, []);
 
@@ -171,6 +165,7 @@ export const DedaReaderPage: React.FC<Props> = ({
     const drawerProps = {
         rootClassName: `deda-reader-drawer reader-theme-dark ${uiFont.className}`,
         rootStyle: { '--r-read-font': readFont.style.fontFamily } as React.CSSProperties,
+        closeIcon: <X {...ICON} aria-label="Close" />,
     };
 
     const body = (() => {
@@ -196,7 +191,7 @@ export const DedaReaderPage: React.FC<Props> = ({
             default:
                 return (
                     <main className="scroll" tabIndex={-1} key={activeTab}>
-                        <NotesTab dedaId={dedaId} title={title} headerImages={headerImages} isMobile={isMobile} />
+                        <NotesTab dedaId={dedaId} />
                     </main>
                 );
         }
@@ -214,7 +209,7 @@ export const DedaReaderPage: React.FC<Props> = ({
                 {stripBg && <img className="bg" src={stripBg} alt="" aria-hidden />}
                 <span className="shade" aria-hidden />
                 <button type="button" className="ib" aria-label="Menu" onClick={() => setMenuOpen(true)}>
-                    <MenuIcon />
+                    <MenuIcon {...ICON} />
                 </button>
                 <button
                     type="button"
@@ -227,8 +222,8 @@ export const DedaReaderPage: React.FC<Props> = ({
                     {thumb && <img src={thumb} alt="" />}
                     <span>
                         <b>
-                            {title}
-                            {isMobile && <ExpandMore fontSize="small" aria-hidden />}
+                            <span>{title}</span>
+                            {isMobile && <ChevronDown {...ICON} size={16} aria-hidden />}
                         </b>
                         {weekDay && <small>{weekDay}</small>}
                     </span>
@@ -241,6 +236,17 @@ export const DedaReaderPage: React.FC<Props> = ({
                 <span className="sp" />
                 {/* cronômetro do estudo (DedaReaderStudy) entra aqui */}
                 <span ref={setTimerSlot} style={{ display: 'contents' }} />
+                {!study && activeTab === tabs[0].key && (
+                    <button
+                        type="button"
+                        className="ib"
+                        aria-label="Quote"
+                        aria-haspopup="dialog"
+                        onClick={() => setQuoteOpen(true)}
+                    >
+                        <Quote {...ICON} />
+                    </button>
+                )}
                 {study &&
                     (isMobile ? (
                         <button
@@ -249,11 +255,11 @@ export const DedaReaderPage: React.FC<Props> = ({
                             aria-label="Glossary"
                             onClick={() => setGlossaryOpen(true)}
                         >
-                            <MenuBookOutlined />
+                            <BookOpen {...ICON} />
                         </button>
                     ) : (
-                        <button type="button" className="btn line" onClick={() => setGlossaryOpen(true)}>
-                            <MenuBookOutlined aria-hidden />
+                        <button type="button" className="btn ghost" onClick={() => setGlossaryOpen(true)}>
+                            <BookOpen {...ICON} aria-hidden />
                             Glossary
                         </button>
                     ))}
@@ -272,23 +278,26 @@ export const DedaReaderPage: React.FC<Props> = ({
                 onClose={() => setMenuOpen(false)}
                 placement="left"
                 width={290}
-                title="Menu"
+                title={
+                    <button
+                        type="button"
+                        className="brand"
+                        aria-label="Mettle — Início"
+                        onClick={() => router.push('/')}
+                    >
+                        <Logo theme="light" />
+                    </button>
+                }
             >
                 <DrawerBody>
-                    <div className="menu">
-                        <button type="button" onClick={() => router.push('/')}>
-                            Início
-                        </button>
-                        <button type="button" aria-current="page" onClick={() => router.push('/imerso')}>
-                            IMERSO
-                        </button>
-                        <button type="button" onClick={() => router.push('/settings')}>
-                            Ajustes
-                        </button>
-                        <button type="button" onClick={() => handleLogout()}>
-                            Sair
-                        </button>
-                    </div>
+                    <Menu
+                        className="appmenu"
+                        mode="inline"
+                        inlineIndent={16}
+                        items={menuItems}
+                        selectedKeys={menu.selectedKeys}
+                        defaultOpenKeys={['imerso']}
+                    />
                 </DrawerBody>
             </Drawer>
 
@@ -316,7 +325,12 @@ export const DedaReaderPage: React.FC<Props> = ({
                 onClose={() => setTabsOpen(false)}
                 placement="bottom"
                 height="auto"
-                title={[title, weekDay].filter(Boolean).join(' · ')}
+                title={
+                    <span className="sheet-title">
+                        <b>{title}</b>
+                        {weekDay && <small>{weekDay}</small>}
+                    </span>
+                }
             >
                 <DrawerBody>
                     <div className="menu">{tabButtons()}</div>
@@ -326,6 +340,20 @@ export const DedaReaderPage: React.FC<Props> = ({
                             Classic view
                         </button>
                     </div>
+                </DrawerBody>
+            </Drawer>
+
+            <Drawer
+                {...drawerProps}
+                open={quoteOpen}
+                onClose={() => setQuoteOpen(false)}
+                placement={isMobile ? 'bottom' : 'right'}
+                width={isMobile ? undefined : 420}
+                height={isMobile ? 'auto' : undefined}
+                title="Quote"
+            >
+                <DrawerBody className="quote">
+                    <DedaQuote dedaId={dedaId} />
                 </DrawerBody>
             </Drawer>
         </Shell>

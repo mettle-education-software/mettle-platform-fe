@@ -1,8 +1,8 @@
 import { withSentryConfig } from '@sentry/nextjs';
 
-// Contingência de 5-Out-2026: o Contentful bloqueou a API GraphQL do espaço (402, limite do plano gratuito).
-// Ligado, todas as consultas GraphQL (navegador e middleware) vão ao espelho somente-leitura
-// mettle-content-mirror (retrato do conteúdo publicado; mesmo token). Desligar = voltar a false.
+// Desde 5-Out-2026 todas as consultas GraphQL (navegador e middleware) vão ao espelho somente-leitura
+// mettle-content-mirror (retrato do conteúdo publicado; mesmo token). Se o espelho falhar, a mesma consulta vai ao
+// Contentful (GRAPHQL_FALLBACK_URI; ver src/libs/contentSource.ts). Desligar = false: só Contentful, sem fallback.
 const CONTENT_MIRROR = true;
 const CONTENTFUL_GRAPHQL_URI = CONTENT_MIRROR
     ? process.env.CONTENTFUL_GRAPHQL_URI?.replace(
@@ -28,6 +28,7 @@ const nextConfig = {
         METTLE_API_URL: process.env.METTLE_API_URL,
         SENTRY_DSN: process.env.SENTRY_DSN,
         GRAPHQL_URI: CONTENTFUL_GRAPHQL_URI,
+        GRAPHQL_FALLBACK_URI: CONTENT_MIRROR ? process.env.CONTENTFUL_GRAPHQL_URI : undefined,
         TAWK_TO_PROPERTY_ID: process.env.TAWK_TO_PROPERTY_ID,
         TAWK_TO_WIDGET_ID: process.env.TAWK_TO_WIDGET_ID,
         TAWK_TO_CHAT_LINK: process.env.TAWK_TO_CHAT_LINK,

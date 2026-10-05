@@ -1,12 +1,13 @@
 'use client';
 
-import { ApolloClient, InMemoryCache } from '@apollo/client';
+import { ApolloClient, HttpLink, InMemoryCache } from '@apollo/client';
 import { ApolloProvider } from '@apollo/react-hooks';
 import { NextFn } from '@firebase/util';
 import * as Sentry from '@sentry/nextjs';
 import { auth } from 'config/firebase';
 import { useFirstLoginEvent } from 'hooks/useEvents';
 import { FireUser } from 'interfaces';
+import { contentFetch } from 'libs/contentSource';
 import React, { useContext, createContext, useState, useEffect, useMemo } from 'react';
 
 interface ProviderProps {
@@ -20,7 +21,8 @@ interface IProviderContext {
 }
 
 const client = new ApolloClient({
-    uri: process.env.GRAPHQL_URI as string,
+    // Espelho de conteúdo com volta automática ao Contentful (libs/contentSource).
+    link: new HttpLink({ uri: process.env.GRAPHQL_URI as string, fetch: contentFetch }),
     cache: new InMemoryCache(),
 });
 

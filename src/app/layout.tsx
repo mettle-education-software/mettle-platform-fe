@@ -5,7 +5,6 @@ import { GoogleTagManager } from '@next/third-parties/google';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider, Spin, ThemeConfig } from 'antd';
 import { PWABanner } from 'components';
-import { SMALL_VIEWPORT } from 'libs';
 import Script from 'next/script';
 import { AccessCtaModal, AccessProvider, AppProvider, NotificationsProvider, useAppContext } from 'providers';
 import { MelpProvider } from 'providers/MelpProvider';
@@ -38,15 +37,6 @@ const App = ({ children }: { children: React.ReactNode }) => {
         }
     }, [user]);
 
-    // Celular: sem o balão flutuante do chat (ele cobre o conteúdo); o chat abre pelo item "Suporte" do menu.
-    // A escolha inicial vai em chatwootSettings (sem piscar o balão); aqui só acompanha a mudança de largura.
-    useEffect(() => {
-        const mobile = window.matchMedia(`(max-width: ${SMALL_VIEWPORT}px)`);
-        const sync = () => window.$chatwoot?.toggleBubbleVisibility?.(mobile.matches ? 'hide' : 'show');
-        mobile.addEventListener('change', sync);
-        return () => mobile.removeEventListener('change', sync);
-    }, []);
-
     return (
         <ConfigProvider theme={themeConfig}>
             <body>
@@ -60,7 +50,7 @@ const App = ({ children }: { children: React.ReactNode }) => {
           `}
                 </Script>
                 <Script id="chatwool">
-                    {`window.chatwootSettings = {"position":"left","type":"standard","launcherTitle":"","hideMessageBubble":window.matchMedia("(max-width: ${SMALL_VIEWPORT}px)").matches};
+                    {`window.chatwootSettings = {"position":"left","type":"standard","launcherTitle":"","hideMessageBubble":true};
                                    (function(d,t) {
                         var BASE_URL="https://support.mettle.com.br";
                         var g=d.createElement(t),s=d.getElementsByTagName(t)[0];

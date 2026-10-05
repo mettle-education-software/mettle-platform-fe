@@ -5,7 +5,6 @@ export * from './melp/lamp';
 export * from './useGetMetadata';
 export * from './useGetReadableArticle';
 export * from './queries/dedaQueries';
-export * from './notifications';
 export * from './recorder';
 export * from './queries';
 export * from './useAccounts';

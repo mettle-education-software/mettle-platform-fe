@@ -8,7 +8,6 @@ export { FrameThumbnail } from './FrameThumbnail/FrameThumbnail';
 export { TabNav } from './TabNav/TabNav';
 export { WidgetCard } from './WidgetCard/WidgetCard';
 export { CourseCard } from './CourseCard/CourseCard';
-export { NotificationsList } from './NotificationsList/NotificationsList';
 export { AudioPlayer } from './AudioPlayer/AudioPlayer';
 export { BackToTopButton } from './BackToTopButton/BackToTopButton';
 export { Chat } from './Chat/Chat';

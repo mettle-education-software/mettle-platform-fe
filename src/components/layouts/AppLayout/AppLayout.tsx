@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Alert, Button, Drawer, Flex, Layout, Menu, Typography } from 'antd';
-import { Logo, NotificationsList } from 'components';
+import { Logo } from 'components';
 import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
 import { handleLogout, SMALL_VIEWPORT } from 'libs';
@@ -262,22 +262,18 @@ export const AppLayout = forwardRef<
                             router.push('/settings');
                         },
                     },
-                    // Celular: o chat sai do balão flutuante e abre por aqui (no computador o balão continua).
-                    ...(device === 'mobile'
-                        ? [
-                              {
-                                  key: 'support',
-                                  label: 'Suporte',
-                                  icon: <CustomerServiceOutlined />,
-                                  onClick: ({ domEvent }: { domEvent: React.SyntheticEvent }) => {
-                                      domEvent.preventDefault();
-                                      collapseOnMobile();
-                                      if (window.$chatwoot?.toggle) window.$chatwoot.toggle('open');
-                                      else router.push('/settings?tab=help');
-                                  },
-                              },
-                          ]
-                        : []),
+                    // O chat não tem balão flutuante (hideMessageBubble no layout); abre por aqui.
+                    {
+                        key: 'support',
+                        label: 'Suporte',
+                        icon: <CustomerServiceOutlined />,
+                        onClick: ({ domEvent }) => {
+                            domEvent.preventDefault();
+                            collapseOnMobile();
+                            if (window.$chatwoot?.toggle) window.$chatwoot.toggle('open');
+                            else router.push('/settings?tab=help');
+                        },
+                    },
                     {
                         key: 'logout',
                         label: 'Sair',
@@ -300,9 +296,7 @@ export const AppLayout = forwardRef<
                             <Flex gap="0.5rem" align="center" justify="space-between" style={{ width: '100%' }}>
                                 {trigger}
                                 {withMelpSummary && <MelpSummary />}
-                                <Flex align="center" justify="flex-end" gap="1rem">
-                                    <NotificationsList />
-                                </Flex>
+                                <div />
                             </Flex>
                             <Drawer open={!collapsed} onClose={() => setCollapsed(true)}>
                                 {customMenu}

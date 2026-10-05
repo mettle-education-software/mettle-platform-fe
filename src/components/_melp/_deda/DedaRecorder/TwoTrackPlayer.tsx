@@ -80,6 +80,47 @@ const Wrapper = styled.div`
         display: none;
     }
 
+    /* Na barra fixa da página nova do DEDA: uma linha, no escuro. */
+    &.docked {
+        background: transparent;
+        padding: 0;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+    }
+    &.docked .switch {
+        background: rgba(127, 120, 110, 0.2);
+        flex: none;
+    }
+    &.docked .switch button {
+        color: #bdb4a8;
+        padding: 0 14px;
+        font-size: 0.875rem;
+    }
+    &.docked .switch button[aria-pressed='true'] {
+        color: #1f1b16;
+    }
+    &.docked .switch button.empty {
+        color: #8f877c;
+    }
+    &.docked .switch button:focus-visible,
+    &.docked .note button:focus-visible {
+        outline-color: #d3a878;
+    }
+    &.docked .note {
+        color: #bdb4a8;
+        font-size: 0.875rem;
+    }
+    &.docked .note .ghost {
+        color: #ffffff;
+        border-color: #d9d2c7;
+    }
+    &.docked .track {
+        flex: 1 1 12rem;
+        min-width: 0;
+    }
+
     @media (max-width: 860px) {
         background: #f5f5f5; /* fundo do Layout da Plataforma */
 
@@ -98,6 +139,8 @@ interface Props {
     originalUrl: string;
     onGoRecord?: () => void;
     sticky?: boolean;
+    /** Barra fixa da página nova do DEDA: player compacto, sem capa. */
+    docked?: boolean;
 }
 
 type Track = 'mine' | 'original';
@@ -114,6 +157,7 @@ export const TwoTrackPlayer: React.FC<Props> = ({
     originalUrl,
     onGoRecord,
     sticky,
+    docked,
 }) => {
     const recordings = useDedaRecordings(dedaId);
     const today = brasiliaDate(new Date());
@@ -148,7 +192,7 @@ export const TwoTrackPlayer: React.FC<Props> = ({
             : `My reading · ${formatRecordedOn(mine.recordedOn)} · ${formatDuration(mineDuration)}`;
 
     return (
-        <Wrapper className={sticky ? 'sticky' : undefined}>
+        <Wrapper className={docked ? 'docked' : sticky ? 'sticky' : undefined}>
             <div className="switch" role="group" aria-label="Choose a track">
                 <button
                     type="button"
@@ -190,6 +234,7 @@ export const TwoTrackPlayer: React.FC<Props> = ({
                             subtitle={mineSubtitle}
                             coverSrc={coverSrc}
                             audioURL={mineUrl}
+                            compact={docked}
                             onEnd={() => setFinishedMine(true)}
                             onError={() => {
                                 // O endereço vale 5 minutos: pede outro uma vez.
@@ -207,7 +252,13 @@ export const TwoTrackPlayer: React.FC<Props> = ({
                 </div>
             )}
             <div className="track" hidden={current !== 'original'}>
-                <AudioPlayer ref={originalRef} title={title} coverSrc={coverSrc} audioURL={originalUrl} />
+                <AudioPlayer
+                    ref={originalRef}
+                    title={title}
+                    coverSrc={coverSrc}
+                    audioURL={originalUrl}
+                    compact={docked}
+                />
             </div>
             <SrOnly aria-live="polite">{announce}</SrOnly>
         </Wrapper>

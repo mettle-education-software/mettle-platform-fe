@@ -19,6 +19,8 @@ type AudioPlayerProps = Readonly<{
     title?: string;
     artist?: string;
     coverSrc?: string;
+    /** Só o controle (sem capa nem título), no escuro: barra fixa da página nova do DEDA. */
+    compact?: boolean;
 }>;
 
 const PlayerWrapper = styled.div`
@@ -49,9 +51,24 @@ const CoverImage = styled.div`
 
 /** O ref expõe play/pause/stop do player (usado pelo player de duas faixas do passo 4). */
 export const AudioPlayer = React.forwardRef<AudioPlayerRef | undefined, AudioPlayerProps>(function AudioPlayer(
-    { audioURL, onPlayStart, onEnd, onError, title, subtitle, coverSrc },
+    { audioURL, onPlayStart, onEnd, onError, title, subtitle, coverSrc, compact },
     ref,
 ) {
+    if (compact)
+        return (
+            <RawAudioPlayer
+                width="100%"
+                src={audioURL}
+                onPlay={onPlayStart}
+                onEnd={onEnd}
+                onError={onError}
+                ref={ref}
+                backgroundColor="transparent"
+                color="#f3ede4"
+                sliderColor="#b78a5b"
+            />
+        );
+
     return (
         <PlayerWrapper>
             <CoverImage src={coverSrc} />

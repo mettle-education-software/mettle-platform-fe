@@ -7,17 +7,51 @@ import { DedaActivity, DedaNotes, DedaQuote, DedaReview, MaxWidthContainer, TabN
 import { DedaHeaderBackdrop } from 'components/_melp/_deda/DedaHeaderBackdrop/DedaHeaderBackdrop';
 import { MyRecordings } from 'components/_melp/_deda/DedaRecorder/MyRecordings';
 import { AppLayout } from 'components/layouts';
+import { LoadingLayout } from 'components/layouts/LoadingLayout/LoadingLayout';
 import { useDeviceSize } from 'hooks';
+import { useDedaReader } from 'hooks/melp/dedaReader';
 import { useDedaRecordings } from 'hooks/melp/dedaRecording';
 import { useDedaHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { withDedaSlug } from 'libs/authentication/withDedaSlug';
 import { withDedaUnlocked } from 'libs/authentication/withDedaUnlocked';
 import { HEADER_GRADIENT } from 'libs/dedaHeader';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 const { Title } = Typography;
+
+// Página nova do DEDA (modo de estudo), só para as contas de libs/dedaReader: carregada à parte, fora do bundle dos alunos.
+const DedaReaderStudy = dynamic(() => import('components/_melp/_deda/DedaReader/DedaReaderStudy'), {
+    ssr: false,
+    loading: () => <LoadingLayout />,
+});
+
+// Link discreto "Classic view" / "New view": só aparece para as contas da página nova.
+const ViewSwitch = styled.button`
+    /* && vence o "position: relative" que HeaderSummary dá aos filhos */
+    && {
+        position: absolute;
+    }
+    top: 0.5rem;
+    right: 1rem;
+    z-index: 1;
+    min-height: 44px;
+    padding: 0 0.5rem;
+    border: 0;
+    background: none;
+    color: #e8dccb;
+    font: inherit;
+    font-size: 0.8125rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid #ffffff;
+    }
+`;
 
 const HeaderSummary = styled.section`
     position: relative;
@@ -104,6 +138,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     const [activeTab, setActiveTab] = useState('dedaNotes');
     // Aba "My recordings": só com o gravador liberado para o aluno (hooks/melp/dedaRecording).
     const recordingsTab = useDedaRecordings(dedaId).active;
+    const reader = useDedaReader();
 
     const tabItems = [
         {
@@ -172,6 +207,11 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                     images={[headerImage, featuredDeda?.dedaFeaturedImage]}
                     gradient={HEADER_GRADIENT}
                 />
+                {reader.allowed && (
+                    <ViewSwitch type="button" onClick={() => reader.setView(reader.on ? 'classic' : 'new')}>
+                        {reader.on ? 'Classic view' : 'New view'}
+                    </ViewSwitch>
+                )}
                 <MaxWidthContainer style={{ marginBottom: '2rem' }}>
                     {isDesktop ? (
                         <Flex justify="space-between">
@@ -237,7 +277,26 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
 
             <Content>
                 {activeTab === 'dedaNotes' && <DedaNotes dedaId={dedaId} />}
-                {activeTab === 'dedaActivity' && <DedaActivity dedaId={dedaId} />}
+                {activeTab === 'dedaActivity' &&
+                    (reader.on ? (
+                        <DedaReaderStudy
+                            dedaId={dedaId}
+                            title={featuredDeda?.dedaTitle}
+                            coverUrl={featuredDeda?.dedaFeaturedImage?.url}
+                            stripImageUrl={headerImage?.url ?? featuredDeda?.dedaFeaturedImage?.url}
+                            tabs={[
+                                { key: 'dedaNotes', label: 'DEDA Notes' },
+                                { key: 'dedaActivity', label: 'DEDA' },
+                                { key: 'dedaReview', label: 'Review' },
+                                ...(recordingsTab ? [{ key: 'dedaRecordings', label: 'My recordings' }] : []),
+                            ]}
+                            activeTab={activeTab}
+                            onTab={setActiveTab}
+                            onClassic={() => reader.setView('classic')}
+                        />
+                    ) : (
+                        <DedaActivity dedaId={dedaId} />
+                    ))}
                 {activeTab === 'dedaReview' && <DedaReview dedaId={dedaId} />}
                 {activeTab === 'dedaRecordings' && recordingsTab && (
                     <MyRecordings

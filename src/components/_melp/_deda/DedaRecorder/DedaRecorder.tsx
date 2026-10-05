@@ -51,6 +51,42 @@ const Bar = styled.section`
         box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
     }
 
+    /* Na barra fixa da página nova do DEDA: sem cartão, uma linha no computador. */
+    &.docked {
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        flex-wrap: nowrap;
+    }
+    &.docked .status {
+        flex: 1 1 auto;
+    }
+    &.docked .detail {
+        color: #bdb4a8;
+        font-size: 0.875rem;
+    }
+    &.docked .error {
+        color: #f0b3a8;
+    }
+    &.docked .timer {
+        font-size: 1.25rem;
+    }
+    &.docked .actions {
+        flex: none;
+    }
+    @media (max-width: 860px) {
+        &.docked {
+            flex-wrap: wrap;
+        }
+        &.docked .actions {
+            width: 100%;
+        }
+        &.docked .actions > button:not(.link) {
+            flex: 1 1 auto;
+            padding: 0 1rem;
+        }
+    }
+
     .status {
         flex: 1 1 14rem;
         min-width: 0;
@@ -162,9 +198,11 @@ interface Props {
     data: DedaRecordingsResponse;
     /** Passo 2 pode ser concluído: gravação salva, guardada no aparelho, já feita hoje, ou o aluno usou a saída. */
     onDone(): void;
+    /** Barra fixa da página nova do DEDA (libs/dedaReader): só a apresentação muda. */
+    docked?: boolean;
 }
 
-export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => {
+export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docked }) => {
     const isMobile = useDeviceSize() === 'mobile';
     const queryClient = useQueryClient();
     const rec = useDedaRecorder();
@@ -540,7 +578,7 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone }) => 
 
     return (
         <>
-            <Bar className={floating ? 'fixed' : undefined} aria-label="Reading recorder">
+            <Bar className={docked ? 'docked' : floating ? 'fixed' : undefined} aria-label="Reading recorder">
                 <div className="status">
                     <div className="headline">{headline}</div>
                     {detail && (

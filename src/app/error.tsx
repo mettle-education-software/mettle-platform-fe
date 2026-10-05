@@ -4,8 +4,13 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/nextjs';
 import { Flex, Result, Button, Typography } from 'antd';
+import { useNewDesign } from 'hooks/useNewDesign';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useEffect } from 'react';
+
+// Página de erro da plataforma nova (libs/newDesign), só para as contas da lista: fora do bundle dos alunos.
+const NewStatus = dynamic(() => import('components/_new/NewStatus'), { ssr: false, loading: () => null });
 
 const ErrorContainer = styled.div`
     height: 100vh;
@@ -18,6 +23,21 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         Sentry.captureException(error);
         console.error(error);
     }, [error]);
+
+    const newDesign = useNewDesign();
+    if (newDesign)
+        return (
+            <NewStatus
+                title="Ops!"
+                text="Parece que algo deu errado."
+                detail={error.message}
+                action={
+                    <button type="button" className="btn line" onClick={reset}>
+                        Tentar de novo
+                    </button>
+                }
+            />
+        );
 
     return (
         <ErrorContainer>

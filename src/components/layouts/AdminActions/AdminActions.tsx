@@ -8,7 +8,12 @@ import { debounce } from 'ts-debounce';
 
 const { Title } = Typography;
 
-export const AdminActions: React.FC = () => {
+interface AdminActionsProps {
+    /** Plataforma nova: o botão que abre o painel vem da casca (ícone no menu); sem ele, o botão atual. */
+    trigger?: (open: () => void) => React.ReactNode;
+}
+
+export const AdminActions: React.FC<AdminActionsProps> = ({ trigger }) => {
     const { user } = useAppContext();
 
     const impersonating = user?.impersonating;
@@ -53,7 +58,7 @@ export const AdminActions: React.FC = () => {
 
     return (
         <React.Fragment>
-            <Button onClick={() => setVisible(true)}>Admin panel</Button>
+            {trigger ? trigger(() => setVisible(true)) : <Button onClick={() => setVisible(true)}>Admin panel</Button>}
             <Modal
                 okButtonProps={{ style: { display: 'none' } }}
                 open={visible}

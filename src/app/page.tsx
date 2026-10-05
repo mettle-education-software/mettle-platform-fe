@@ -3,9 +3,14 @@
 import styled from '@emotion/styled';
 import { Card, Col, Flex, Row, Typography } from 'antd';
 import { AppLayout, FreeHome, MaxWidthContainer, MettleCoursesList, withRoles } from 'components';
+import { useNewDesign } from 'hooks/useNewDesign';
 import { withAuthentication } from 'libs';
+import dynamic from 'next/dynamic';
 import { useAppContext } from 'providers';
 import React from 'react';
+
+// Home da plataforma nova (libs/newDesign), só para as contas da lista: carregada à parte, fora do bundle dos alunos.
+const NewHome = dynamic(() => import('components/_new/NewHome'), { ssr: false, loading: () => null });
 
 const { Title, Text } = Typography;
 
@@ -51,6 +56,14 @@ function Home() {
     const { user } = useAppContext();
 
     const [firstName] = user?.name ? user.name.split(' ') : [''];
+
+    const newDesign = useNewDesign();
+    if (newDesign)
+        return (
+            <AppLayout>
+                <NewHome />
+            </AppLayout>
+        );
 
     return (
         <AppLayout>

@@ -6,14 +6,19 @@ import { AppLayout, Chip, DedasGrid, MaxWidthContainer, withRoles } from 'compon
 import { DedaHeaderBackdrop } from 'components/_melp/_deda/DedaHeaderBackdrop/DedaHeaderBackdrop';
 import { useDeviceSize } from 'hooks';
 import { useDedaHeaderImage, useDedaHomeHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
+import { useNewDesign } from 'hooks/useNewDesign';
 import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { HEADER_GRADIENT, HOME_ART_OBJECT_POSITION, HOME_MOBILE_CROPS } from 'libs/dedaHeader';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useState } from 'react';
 
 const { Title } = Typography;
+
+// Lista de DEDAs da plataforma nova (libs/newDesign), só para as contas da lista: fora do bundle dos alunos.
+const NewDedaList = dynamic(() => import('components/_new/NewDedaList'), { ssr: false, loading: () => null });
 
 const HeaderSummary = styled.section`
     background-color: #2b2b2b;
@@ -84,6 +89,14 @@ function DedaPage() {
     const router = useRouter();
 
     const handleSelectedDeda = (dedaSlug: string) => router.push(dedaPath(dedaSlug));
+
+    const newDesign = useNewDesign();
+    if (newDesign)
+        return (
+            <AppLayout withMelpSummary>
+                <NewDedaList />
+            </AppLayout>
+        );
 
     return (
         <AppLayout withMelpSummary>

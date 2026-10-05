@@ -2,7 +2,15 @@
 
 import styled from '@emotion/styled';
 import Rive from '@rive-app/react-canvas';
+import { useNewDesign } from 'hooks/useNewDesign';
+import dynamic from 'next/dynamic';
 import React from 'react';
+
+// Carregando da plataforma nova (libs/newDesign), só para as contas da lista: fora do bundle dos alunos.
+const NewLoading = dynamic(() => import('components/_new/NewStatus').then((m) => m.NewLoading), {
+    ssr: false,
+    loading: () => null,
+});
 
 const Container = styled.div`
     width: 100vw;
@@ -22,6 +30,7 @@ const Centralize = styled.div`
 `;
 
 export const LoadingLayout: React.FC = () => {
+    if (useNewDesign()) return <NewLoading />;
     return (
         <Container>
             <Centralize>

@@ -2,7 +2,12 @@
 
 import styled from '@emotion/styled';
 import { Flex, Result, Button, Typography } from 'antd';
+import { useNewDesign } from 'hooks/useNewDesign';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
+
+// Página "não existe" da plataforma nova (libs/newDesign), só para as contas da lista: fora do bundle dos alunos.
+const NewStatus = dynamic(() => import('components/_new/NewStatus'), { ssr: false, loading: () => null });
 
 const ErrorContainer = styled.div`
     height: 100vh;
@@ -11,6 +16,20 @@ const ErrorContainer = styled.div`
 `;
 
 export default function NotFound() {
+    const newDesign = useNewDesign();
+    if (newDesign)
+        return (
+            <NewStatus
+                title="Ops!"
+                text="A página que você está procurando não existe."
+                action={
+                    <a className="btn line" href="/">
+                        Voltar
+                    </a>
+                }
+            />
+        );
+
     return (
         <ErrorContainer>
             <Flex

@@ -15,11 +15,16 @@ import {
     WeekZero,
     withRoles,
 } from 'components';
+import { useNewDesign } from 'hooks/useNewDesign';
 import { MelpStatus } from 'interfaces/melp';
 import { withAuthentication } from 'libs';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
+import dynamic from 'next/dynamic';
 import { useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React from 'react';
+
+// Home do IMERSO da plataforma nova (libs/newDesign), só para as contas da lista: fora do bundle dos alunos.
+const NewImersoHome = dynamic(() => import('components/_new/NewImersoHome'), { ssr: false, loading: () => null });
 
 const { Title } = Typography;
 
@@ -75,6 +80,14 @@ const MelpHome = () => {
     if (access(IMERSO_PRODUCT).state === 'expired') {
         renderStatus = 'DEDA_STARTED';
     }
+
+    const newDesign = useNewDesign();
+    if (newDesign)
+        return (
+            <AppLayout withMelpSummary>
+                <NewImersoHome />
+            </AppLayout>
+        );
 
     return (
         <AppLayout withMelpSummary>

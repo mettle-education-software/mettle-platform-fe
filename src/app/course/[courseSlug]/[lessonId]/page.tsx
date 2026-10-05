@@ -15,10 +15,15 @@ import {
 } from 'components';
 import { useDeviceSize, useGetCourseDetails } from 'hooks';
 import useGetLessonContent from 'hooks/queries/useGetLessonContent';
+import { useNewDesign } from 'hooks/useNewDesign';
 import { withAuthentication } from 'libs';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useProductAccess } from 'providers';
 import React, { useState } from 'react';
+
+// Aula de curso no molde de cursos da plataforma nova (libs/newDesign), só para as contas da lista: fora do bundle dos alunos.
+const NewCourseLesson = dynamic(() => import('components/_new/NewCourseLesson'), { ssr: false, loading: () => null });
 
 const { Title } = Typography;
 
@@ -56,6 +61,7 @@ const Lesson: React.FC<LessonProps> = ({ params: { courseSlug, lessonId } }) => 
     const { access } = useProductAccess();
     const [emptyVideo, setEmptyVideo] = useState(false);
     const device = useDeviceSize();
+    const newDesign = useNewDesign();
 
     if (lessonLoading || courseLoading) return <LoadingLayout />;
 
@@ -83,6 +89,13 @@ const Lesson: React.FC<LessonProps> = ({ params: { courseSlug, lessonId } }) => 
             </AppLayout>
         );
     }
+
+    if (newDesign)
+        return (
+            <AppLayout>
+                <NewCourseLesson courseSlug={courseSlug} lessonId={lessonId} />
+            </AppLayout>
+        );
 
     const lesson = lessonData?.singleLessonCollection?.items[0];
 

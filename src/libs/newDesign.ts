@@ -56,3 +56,146 @@ export const firstName = (name?: string | null) => (name ?? '').trim().split(/\s
 /** Aba inicial de /settings pelo `?tab=` (o item "Suporte" cai em `/settings?tab=help` sem o chat). */
 export const settingsTabFromQuery = (tab: string | null | undefined, keys: readonly string[]) =>
     tab && keys.includes(tab) ? tab : keys[0];
+
+// ---------- molde de cursos (HPEC, Masterclass e os próximos): aulas em sequência ----------
+
+export type CourseLesson = { id: string; title: string; href: string };
+export type CourseModule = {
+    id: string;
+    title: string;
+    lessons: CourseLesson[];
+    /** texto de liberação (só exibição: "Oct 12" / "Start DEDA to unlock this module"); ausente = módulo liberado */
+    locked?: string;
+};
+
+/** Aula atual, anterior e próxima entre as aulas LIBERADAS, na ordem dos módulos (a próxima fica a um clique). */
+export const lessonNeighbours = (modules: CourseModule[], lessonId: string) => {
+    const open = modules.filter((m) => !m.locked).flatMap((m) => m.lessons.map((l) => ({ ...l, module: m })));
+    const index = open.findIndex((l) => l.id === lessonId);
+    return {
+        current: index >= 0 ? open[index] : undefined,
+        previous: index > 0 ? open[index - 1] : undefined,
+        next: index >= 0 ? open[index + 1] : undefined,
+        position: index + 1,
+        total: open.length,
+    };
+};
+
+/** Módulo trancado da aula pedida pela URL (para o estado "unlocks on …"), ou undefined. */
+export const lockedModuleOf = (modules: CourseModule[], lessonId: string) =>
+    modules.find((m) => !!m.locked && m.lessons.some((l) => l.id === lessonId));
+
+/** Trilho de aulas aberto/recolhido no computador: preferência por aparelho. */
+export const LESSON_RAIL_KEY = 'lessonRailCollapsed';
+
+export const readLessonRailCollapsed = (): boolean => {
+    try {
+        return window.localStorage.getItem(LESSON_RAIL_KEY) === 'true';
+    } catch {
+        return false;
+    }
+};
+
+export const saveLessonRailCollapsed = (collapsed: boolean) => {
+    try {
+        window.localStorage.setItem(LESSON_RAIL_KEY, String(collapsed));
+    } catch {
+        // modo privado / armazenamento bloqueado: vale só nesta visita
+    }
+};
+
+/** Tamanho de arquivo legível (mesmas faixas do card de resources atual). */
+export const fileSizeLabel = (size: number) =>
+    size < 1024
+        ? `${size} B`
+        : size < 1024 * 1024
+          ? `${(size / 1024).toFixed(2)} KB`
+          : `${(size / (1024 * 1024)).toFixed(2)} MB`;
+
+// ---------- LAMP ----------
+
+/**
+ * Campo de tempo "HH:MM" digitado direto (sem modal). Mesmas regras do seletor atual (InputWithTime): horas 0–99,
+ * minutos 0–59. Aceita "1:30", "01:30", "130" e "90" (sem dois-pontos, os dois últimos dígitos são os minutos).
+ * Devolve o total em minutos, como o campo atual grava (reading time usa o mesmo par como MM:SS → segundos).
+ */
+export const parseHm = (text: string): number => {
+    const clean = text.trim();
+    if (!clean) return 0;
+    let h: number;
+    let m: number;
+    if (clean.includes(':')) {
+        const [a, b = ''] = clean.split(':');
+        h = Number(a.replace(/\D/g, '')) || 0;
+        m = Number(b.replace(/\D/g, '')) || 0;
+    } else {
+        const digits = clean.replace(/\D/g, '');
+        h = Number(digits.slice(0, -2)) || 0;
+        m = Number(digits.slice(-2)) || 0;
+    }
+    return Math.min(99, h) * 60 + Math.min(59, m);
+};
+
+export const formatHm = (minutes: number) =>
+    `${String(Math.floor((minutes || 0) / 60)).padStart(2, '0')}:${String((minutes || 0) % 60).padStart(2, '0')}`;
+
+/** Meta "HH:MM" da API em texto curto: "00:45" → "45 min", "01:45" → "1h45", "03:00" → "3h". */
+export const goalLabel = (hhmm?: string) => {
+    if (!hhmm) return '—';
+    const [h, m] = hhmm.split(':').map((n) => Number(n) || 0);
+    if (!h) return `${m} min`;
+    return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`;
+};
+
+export const WEEK_DAYS = [
+    { label: 'Monday', value: 'day1' },
+    { label: 'Tuesday', value: 'day2' },
+    { label: 'Wednesday', value: 'day3' },
+    { label: 'Thursday', value: 'day4' },
+    { label: 'Friday', value: 'day5' },
+    { label: 'Saturday', value: 'day6' },
+    { label: 'Sunday', value: 'day7' },
+] as const;
+
+/**
+ * Dias que o aluno pode escolher na LAMP (mesma regra do DedaWeekDaySelect atual): na semana em curso, só até hoje;
+ * nas semanas passadas, todos. `today` é 1 (segunda) a 7 (domingo).
+ */
+export const weekDayOptions = (selectedWeek: string, currentWeek: number | undefined, today: number) =>
+    Number(selectedWeek.replace('week', '')) === currentWeek ? WEEK_DAYS.slice(0, today) : [...WEEK_DAYS];
+
+/** O dia escolhido cai para hoje quando a semana em curso ainda não chegou nele (mesma regra atual). */
+export const clampWeekDay = (day: string, options: readonly { value: string }[]) =>
+    options.some((o) => o.value === day) ? day : options[options.length - 1].value;
+
+/** Semana e dia atuais do programa: "Week 05 · Monday". */
+export const lampDateLabel = (week: string, day: string) =>
+    `Week ${String(Number(week.replace('week', ''))).padStart(2, '0')} · ${
+        WEEK_DAYS.find((d) => d.value === day)?.label ?? ''
+    }`;
+
+/**
+ * Gráficos (ApexCharts) nas páginas novas: as mesmas séries e cores dos hooks da LAMP, só com a fonte da interface,
+ * rótulos em peso normal e tons do tema (os hooks ficam como estão).
+ */
+export const softChart = <T extends { chart?: object; grid?: object; tooltip?: object }>(
+    options: T,
+    fontFamily: string,
+    labelColor = '#bdb4a8',
+): T => {
+    const label = { colors: labelColor, fontFamily, fontWeight: 400 };
+    const axis = (a: unknown) => ({
+        ...(a as object),
+        labels: { ...((a as { labels?: { style?: object } })?.labels ?? {}), style: label },
+    });
+    const o = options as T & { xaxis?: unknown; yaxis?: unknown; legend?: object };
+    return {
+        ...o,
+        chart: { ...(o.chart ?? {}), fontFamily, background: 'transparent', foreColor: labelColor },
+        grid: { ...(o.grid ?? {}), borderColor: 'rgba(255, 255, 255, 0.07)' },
+        tooltip: { ...(o.tooltip ?? {}), theme: 'dark' },
+        legend: { ...(o.legend ?? {}), fontFamily, fontWeight: 400, labels: { colors: labelColor } },
+        xaxis: axis(o.xaxis),
+        yaxis: Array.isArray(o.yaxis) ? o.yaxis.map(axis) : axis(o.yaxis),
+    };
+};

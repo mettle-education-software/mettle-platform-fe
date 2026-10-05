@@ -61,6 +61,11 @@ export const Page = styled.div`
     &.narrow {
         max-width: 860px;
     }
+    /* molde de aula: trilho encostado à esquerda, sem a coluna centrada */
+    &.lesson {
+        max-width: none;
+        padding: 0;
+    }
 
     /* ---------- cabeçalho da página ---------- */
     .ph {
@@ -613,6 +618,10 @@ export const Page = styled.div`
     }
     @media (max-width: 860px) {
         padding: 20px 20px 56px;
+
+        &.lesson {
+            padding: 0;
+        }
 
         .ph {
             margin-bottom: 24px;

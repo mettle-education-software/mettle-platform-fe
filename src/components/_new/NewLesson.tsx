@@ -1,0 +1,969 @@
+'use client';
+
+import styled from '@emotion/styled';
+import { Drawer } from 'antd';
+import { LessonVideo } from 'components';
+import { ReaderProse } from 'components/_melp/_deda/DedaReader/ReaderProse';
+import { TextSize } from 'components/_melp/_deda/DedaReader/TextSize';
+import { readFont, uiFont } from 'components/_melp/_deda/DedaReader/readerFonts';
+import { useGetHpecResources } from 'hooks/queries/hpecQueries';
+import useGetLessonContent from 'hooks/queries/useGetLessonContent';
+import { useDeviceSize } from 'hooks/useDeviceSize';
+import { fileTypes, saveFile } from 'libs';
+import { readTextScale, saveTextScale } from 'libs/dedaReader';
+import {
+    CourseModule,
+    fileSizeLabel,
+    lessonNeighbours,
+    lockedModuleOf,
+    readLessonRailCollapsed,
+    saveLessonRailCollapsed,
+} from 'libs/newDesign';
+import {
+    ArrowRight,
+    ChevronLeft,
+    ChevronRight,
+    Download,
+    File,
+    FileArchive,
+    FileImage,
+    FileSpreadsheet,
+    FileText,
+    List,
+    Lock,
+    PanelLeftClose,
+    PanelLeftOpen,
+    Presentation,
+    X,
+} from 'lucide-react';
+import Link from 'next/link';
+import React, { useEffect, useState } from 'react';
+import { ICON, UI_FONT_VAR, ui } from 'themes/newDesign';
+import { NewPage } from './NewPage';
+
+/* ---------- textos da interface (Imerso em inglês; cursos gerais em português, como hoje) ---------- */
+
+const TEXTS = {
+    en: {
+        video: 'Video',
+        summary: 'Summary',
+        resources: 'Resources',
+        lessons: 'Lessons',
+        previous: 'Previous lesson',
+        next: 'Next lesson',
+        nextUp: 'Next',
+        unlocked: (n: number, total: number) => `${n} of ${total} lessons unlocked`,
+        lessonOf: (n: number, total: number) => `Lesson ${n} of ${total}`,
+        locked: 'This lesson is not available yet',
+        missing: 'This lesson does not exist',
+        missingHint: 'It may have moved. Pick a lesson from the list.',
+        goLatest: 'Go to the latest lesson',
+        goFirst: 'Go to the first lesson',
+        noVideo: 'This lesson has no video',
+        noSummary: 'This lesson has no text',
+        download: 'Download',
+        close: 'Close',
+    },
+    pt: {
+        video: 'Vídeo',
+        summary: 'Texto',
+        resources: 'Material',
+        lessons: 'Aulas',
+        previous: 'Aula anterior',
+        next: 'Próxima aula',
+        nextUp: 'A seguir',
+        unlocked: (n: number, total: number) => `${n} de ${total} aulas liberadas`,
+        lessonOf: (n: number, total: number) => `Aula ${n} de ${total}`,
+        locked: 'Esta aula ainda não está disponível',
+        missing: 'Esta aula não existe',
+        missingHint: 'Ela pode ter mudado de lugar. Escolha uma aula na lista.',
+        goLatest: 'Ir para a aula mais recente',
+        goFirst: 'Ir para a primeira aula',
+        noVideo: 'Esta aula não tem vídeo',
+        noSummary: 'Esta aula não tem texto',
+        download: 'Baixar',
+        close: 'Fechar',
+    },
+} as const;
+
+type Lang = keyof typeof TEXTS;
+type Tab = 'video' | 'summary' | 'resources';
+
+/* ---------- estilos ---------- */
+
+const Wrap = styled.div`
+    ${ui};
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    min-height: 100%;
+    transition: grid-template-columns var(--r-ease);
+
+    &.norail {
+        grid-template-columns: 0 minmax(0, 1fr);
+    }
+    &.norail .rail {
+        visibility: hidden;
+        opacity: 0;
+    }
+
+    /* ---------- trilho de aulas ---------- */
+    .rail {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: 100vh;
+        height: 100dvh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        border-right: 1px solid var(--r-line);
+        background: var(--r-bg2);
+        scrollbar-width: thin;
+        scrollbar-color: var(--r-track) transparent;
+        transition:
+            opacity var(--r-ease),
+            visibility var(--r-ease);
+    }
+    .rhead {
+        padding: 28px 24px 18px;
+    }
+    .rhead h2 {
+        margin-top: 6px;
+        font-size: 17px;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+    }
+    .prog {
+        margin-top: 14px;
+    }
+    .prog small {
+        display: block;
+        font-size: 12.5px;
+        letter-spacing: 0.01em;
+        color: var(--r-muted);
+    }
+    .prog span {
+        display: block;
+        height: 2px;
+        margin-top: 8px;
+        border-radius: 1px;
+        background: var(--r-track);
+        overflow: hidden;
+    }
+    .prog i {
+        display: block;
+        height: 100%;
+        background: var(--r-gold);
+        transition: width 400ms ease;
+    }
+    .mods {
+        padding: 0 0 24px;
+    }
+    .mod {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 36px;
+        margin: 10px 0 2px;
+        padding: 0 24px;
+        font-size: var(--r-label-size);
+        font-weight: 500;
+        letter-spacing: var(--r-label-track);
+        text-transform: uppercase;
+        line-height: 1.4;
+        color: var(--r-muted);
+    }
+    .mod.locked {
+        color: var(--r-faint);
+    }
+    .mod svg {
+        flex: none;
+    }
+    .mod .when {
+        display: block;
+        margin: -6px 0 8px;
+        padding: 0 24px;
+        font-size: 12.5px;
+        letter-spacing: 0.01em;
+        text-transform: none;
+        font-weight: 400;
+        color: var(--r-faint);
+    }
+    .mods ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .mods li a {
+        position: relative;
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        min-height: 44px;
+        padding: 8px 24px 8px 22px;
+        border-left: 2px solid transparent;
+        color: var(--r-muted);
+        font-size: 14px;
+        line-height: 1.35;
+        text-decoration: none;
+        transition:
+            color var(--r-ease),
+            background-color var(--r-ease);
+    }
+    .mods li a:hover {
+        color: var(--r-text);
+        background: var(--r-hover);
+    }
+    .mods li a[aria-current='page'] {
+        color: var(--r-text);
+        border-left-color: var(--r-gold);
+        background: var(--r-gold-tint);
+    }
+    .mods li a .n {
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        color: var(--r-faint);
+        text-align: right;
+    }
+    .mods li a[aria-current='page'] .n {
+        color: var(--r-gold-hi);
+    }
+    .mods li.skel {
+        height: 44px;
+        margin: 0 24px;
+        border-radius: 8px;
+        background: var(--r-surf);
+        opacity: 0.6;
+    }
+
+    /* ---------- conteúdo ---------- */
+    .body {
+        min-width: 0;
+        max-width: 1040px;
+        padding: 20px 40px 72px;
+    }
+    .lh {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 18px;
+    }
+    .lh .ib {
+        margin-left: -12px;
+        color: var(--r-muted);
+    }
+    .lh .ib:hover {
+        color: var(--r-text);
+    }
+    .lh .ttl {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .lh .eyebrow {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .lh h1 {
+        margin-top: 4px;
+        font-size: 22px;
+        overflow-wrap: anywhere;
+    }
+    .lh .pn {
+        display: flex;
+        flex: none;
+        gap: 2px;
+        margin-right: -12px;
+    }
+    .lh .pn .ib {
+        margin: 0;
+    }
+    .lh .pn .ib:disabled {
+        opacity: 0.3;
+        cursor: default;
+        background: none;
+    }
+
+    /* abas + "Aa" na mesma linha */
+    .tabs {
+        position: relative;
+        display: flex;
+        align-items: center;
+        margin: 0 0 24px;
+        border-bottom: 1px solid var(--r-line);
+    }
+    .tabs .seg {
+        flex: 1 1 auto;
+        margin: 0;
+        border: 0;
+    }
+    .tabs .tools {
+        flex: none;
+        display: flex;
+        align-items: center;
+        margin-right: -10px;
+    }
+    .tabs .tools .ib {
+        color: var(--r-muted);
+    }
+    .tsize {
+        position: relative;
+        display: inline-flex;
+    }
+    .tsize .panel {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 6px);
+        z-index: 5;
+        display: flex;
+        padding: 6px;
+        border: 1px solid var(--r-line);
+        border-radius: 14px;
+        background: var(--r-sheet-head);
+        box-shadow: 0 10px 30px var(--r-card-shadow);
+    }
+    .tsize .panel button {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 0;
+        border-radius: 10px;
+        background: none;
+        color: var(--r-muted);
+        font-family: var(--r-read-font), system-ui, sans-serif;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .tsize .panel button:hover {
+        color: var(--r-text);
+    }
+    .tsize .panel button[aria-checked='true'] {
+        background: var(--r-gold-tint);
+        color: var(--r-gold-hi);
+    }
+
+    /* vídeo (o componente atual, com os mesmos eventos de progresso) */
+    .video {
+        margin: 0 0 24px;
+    }
+    .video iframe {
+        display: block;
+        border-radius: var(--r-radius);
+        background: var(--r-video-bg);
+    }
+    .video h5 {
+        display: none;
+    }
+    .video .ant-skeleton {
+        aspect-ratio: 16 / 9;
+    }
+
+    /* leitura: a mesma coluna e a mesma tipografia da página do DEDA */
+    --r-read-size: calc(20px * var(--r-scale, 1));
+    --r-read-line: 1.7;
+    --r-read-measure: 33.5em;
+    .prose {
+        font-family: var(--r-read-font), system-ui, sans-serif;
+        font-size: var(--r-read-size);
+        line-height: var(--r-read-line);
+        color: var(--r-text);
+        max-width: var(--r-read-measure);
+        margin: 0;
+        text-align: left;
+        overflow-wrap: break-word;
+    }
+    .prose p {
+        margin: 0 0 1.15em;
+        white-space: break-spaces;
+    }
+    .prose h2,
+    .prose h3,
+    .prose h4 {
+        color: var(--r-text);
+        margin: 1.2em 0 0.5em;
+        font-size: 1.15em;
+        line-height: 1.3;
+        font-weight: 600;
+    }
+    .prose ul,
+    .prose ol {
+        margin: 0 0 1.15em;
+        padding-left: 1.4em;
+    }
+    .prose a {
+        color: var(--r-gold-hi);
+        text-decoration: underline;
+    }
+    .prose .embed {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 1em auto;
+        border-radius: var(--r-radius);
+    }
+    .prose .term {
+        cursor: pointer;
+        text-decoration: underline dotted;
+        text-decoration-thickness: 1.5px;
+        text-underline-offset: 5px;
+        text-decoration-color: var(--r-gold-hi);
+        border-radius: 2px;
+    }
+    .prose .term:hover,
+    .prose .term[aria-expanded='true'] {
+        background: var(--r-gold-tint);
+    }
+    .inote {
+        position: relative;
+        margin: -0.3em 0 1.3em;
+        padding: 14px 48px 14px 18px;
+        border: 1px solid var(--r-line);
+        border-left: 1px solid var(--r-gold);
+        background: var(--r-surf);
+        border-radius: var(--r-radius);
+        font-size: calc(15.5px * var(--r-scale, 1));
+        line-height: 1.55;
+    }
+    .inote h4 {
+        margin: 0 0 4px;
+        font-size: calc(15px * var(--r-scale, 1));
+        font-weight: 600;
+    }
+    .inote h4 small {
+        margin-left: 8px;
+        font-size: var(--r-label-size);
+        font-weight: 500;
+        letter-spacing: var(--r-label-track);
+        text-transform: uppercase;
+        color: var(--r-muted);
+    }
+    .inote p {
+        margin: 0 0 0.6em;
+    }
+    .inote p:last-of-type {
+        margin: 0;
+    }
+    .inote .inote-img {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 6px 0 10px;
+    }
+    .inote .inote-x {
+        position: absolute;
+        right: 2px;
+        top: 2px;
+        color: var(--r-muted);
+    }
+
+    /* resources: lista limpa */
+    .res {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        max-width: 640px;
+        border-top: 1px solid var(--r-line);
+    }
+    .res li {
+        border-bottom: 1px solid var(--r-line);
+    }
+    .res button {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr) 24px;
+        gap: 16px;
+        align-items: center;
+        width: 100%;
+        min-height: 60px;
+        padding: 10px 4px;
+        border: 0;
+        background: none;
+        color: var(--r-text);
+        text-align: left;
+        font: inherit;
+        cursor: pointer;
+        border-radius: 8px;
+    }
+    .res button:hover {
+        background: var(--r-hover);
+    }
+    .res button > svg:first-of-type {
+        color: var(--r-gold-hi);
+    }
+    .res button > svg:last-of-type {
+        color: var(--r-faint);
+        transition: color var(--r-ease);
+    }
+    .res button:hover > svg:last-of-type {
+        color: var(--r-text);
+    }
+    .res b {
+        display: block;
+        font-size: 14.5px;
+        font-weight: 500;
+        line-height: 1.35;
+    }
+    .res small {
+        display: block;
+        margin-top: 2px;
+        font-size: 12.5px;
+        letter-spacing: 0.01em;
+        color: var(--r-muted);
+    }
+
+    /* estados curtos: aula trancada, inexistente, sem vídeo/texto */
+    .state {
+        display: grid;
+        justify-items: start;
+        gap: 10px;
+        max-width: 36em;
+        padding: 40px 0;
+    }
+    .state svg {
+        color: var(--r-faint);
+    }
+    .state h1 {
+        font-size: 22px;
+    }
+    .state p {
+        font-size: 14.5px;
+        line-height: 1.5;
+        color: var(--r-muted);
+    }
+    .state .btn {
+        margin-top: 8px;
+    }
+    .empty {
+        padding: 24px 0;
+        font-size: 14.5px;
+        color: var(--r-muted);
+    }
+
+    /* próxima aula ao fim do conteúdo */
+    .after {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid var(--r-line);
+    }
+    .after .btn {
+        max-width: 100%;
+    }
+    .after .btn span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* ---------- celular: lista numa folha; conteúdo em coluna com o vídeo no topo ---------- */
+    @media (max-width: 860px) {
+        grid-template-columns: minmax(0, 1fr);
+        --r-read-size: calc(18px * var(--r-scale, 1));
+        --r-read-line: 1.66;
+
+        .rail {
+            display: none;
+        }
+        .body {
+            padding: 12px 20px 48px;
+        }
+        .lh {
+            margin-bottom: 14px;
+        }
+        .lh h1 {
+            font-size: 19px;
+        }
+        .tabs {
+            margin-bottom: 20px;
+        }
+        .video {
+            margin: 0 -20px 18px;
+        }
+        .video iframe {
+            border-radius: 0;
+        }
+        .res button {
+            gap: 12px;
+        }
+        .after {
+            margin-top: 32px;
+        }
+        .after .btn {
+            width: 100%;
+        }
+    }
+`;
+
+/* ---------- lista de aulas (trilho no computador, folha no celular) ---------- */
+
+const RailList: React.FC<{
+    t: (typeof TEXTS)[Lang];
+    course: { eyebrow?: string; title: string };
+    modules: CourseModule[];
+    loading: boolean;
+    lessonId: string;
+    progress?: { unlocked: number; total: number };
+    onPick?: () => void;
+}> = ({ t, course, modules, loading, lessonId, progress, onPick }) => {
+    let n = 0;
+    return (
+        <>
+            <div className="rhead">
+                {course.eyebrow && <p className="eyebrow">{course.eyebrow}</p>}
+                <h2>{course.title}</h2>
+                {progress && progress.total > 0 && (
+                    <div className="prog" aria-label={t.unlocked(progress.unlocked, progress.total)}>
+                        <small>{t.unlocked(progress.unlocked, progress.total)}</small>
+                        <span aria-hidden>
+                            <i style={{ width: `${Math.round((progress.unlocked / progress.total) * 100)}%` }} />
+                        </span>
+                    </div>
+                )}
+            </div>
+            <nav className="mods" aria-label={t.lessons} aria-busy={loading || undefined}>
+                {loading && (
+                    <ul>
+                        {[0, 1, 2, 3, 4].map((i) => (
+                            <li key={i} className="skel" aria-hidden />
+                        ))}
+                    </ul>
+                )}
+                {modules.map((m) => (
+                    <React.Fragment key={m.id}>
+                        <p className={`mod${m.locked ? ' locked' : ''}`}>
+                            {m.locked && <Lock {...ICON} size={14} aria-hidden />}
+                            {m.title}
+                        </p>
+                        {m.locked ? (
+                            <span className="mod when">{m.locked}</span>
+                        ) : (
+                            <ul>
+                                {m.lessons.map((l) => {
+                                    n += 1;
+                                    return (
+                                        <li key={l.id}>
+                                            <Link
+                                                href={l.href}
+                                                shallow
+                                                aria-current={l.id === lessonId ? 'page' : undefined}
+                                                onClick={onPick}
+                                            >
+                                                <span className="n" aria-hidden>
+                                                    {n}
+                                                </span>
+                                                <span>{l.title}</span>
+                                            </Link>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        )}
+                    </React.Fragment>
+                ))}
+            </nav>
+        </>
+    );
+};
+
+const resourceIcon = (contentType: string) => {
+    if (contentType === 'application/pdf' || /word|text\//.test(contentType)) return FileText;
+    if (contentType.startsWith('image/')) return FileImage;
+    if (/zip|rar|octet/.test(contentType)) return FileArchive;
+    if (/presentation|powerpoint/.test(contentType)) return Presentation;
+    if (/sheet|excel/.test(contentType)) return FileSpreadsheet;
+    return File;
+};
+
+/* ---------- molde ---------- */
+
+export interface NewLessonProps {
+    course: { eyebrow?: string; title: string };
+    modules: CourseModule[];
+    modulesLoading: boolean;
+    lessonId: string;
+    progress?: { unlocked: number; total: number };
+    lang: Lang;
+    /** Imerso expirado: o conteúdo dá lugar ao convite (a mesma peça das três abas atuais). */
+    lockedContent?: React.ReactNode;
+}
+
+/**
+ * Molde de aula dos Cursos (HPEC, Masterclass e os próximos): trilho de aulas à esquerda (recolhível) + conteúdo
+ * ao centro com medida de linha; no celular, lista numa folha e conteúdo em coluna com o vídeo no topo. Só
+ * apresentação: mesmos hooks, mesmas chamadas e os mesmos eventos de progresso do vídeo (LessonVideo).
+ */
+export const NewLesson: React.FC<NewLessonProps> = ({
+    course,
+    modules,
+    modulesLoading,
+    lessonId,
+    progress,
+    lang,
+    lockedContent,
+}) => {
+    const t = TEXTS[lang];
+    const isMobile = useDeviceSize() === 'mobile';
+    const { data, loading } = useGetLessonContent(lessonId);
+    const { data: resData } = useGetHpecResources(lessonId);
+
+    const [railCollapsed, setRailCollapsed] = useState(false);
+    const [sheet, setSheet] = useState(false);
+    const [tab, setTab] = useState<Tab>('video');
+    const [scale, setScale] = useState(1);
+    useEffect(() => {
+        setRailCollapsed(readLessonRailCollapsed());
+        setScale(readTextScale());
+    }, []);
+    useEffect(() => {
+        setSheet(false);
+    }, [lessonId]);
+
+    const lesson = data?.singleLessonCollection?.items[0];
+    const files = resData?.singleLessonCollection?.items[0]?.lessonResourcesCollection.items ?? [];
+    const hasVideo = !!lesson?.lessonVideoEmbedUrl;
+    const hasResources = files.length > 0;
+    const { current, previous, next, position, total } = lessonNeighbours(modules, lessonId);
+    const lockedModule = lockedModuleOf(modules, lessonId);
+    const open = modules.filter((m) => !m.locked).flatMap((m) => m.lessons);
+    const latest = open[open.length - 1];
+
+    // a aba de vídeo só existe no computador e só quando a aula tem vídeo; a de resources só quando há arquivos
+    const tabs: Tab[] = [
+        ...(hasVideo && !isMobile ? (['video'] as Tab[]) : []),
+        'summary',
+        ...(hasResources ? (['resources'] as Tab[]) : []),
+    ];
+    const active: Tab = tabs.includes(tab) ? tab : 'summary';
+
+    const onScale = (value: number) => {
+        setScale(value);
+        saveTextScale(value);
+    };
+    const toggleRail = () =>
+        setRailCollapsed((previousValue) => {
+            saveLessonRailCollapsed(!previousValue);
+            return !previousValue;
+        });
+
+    // celular: módulo e posição (o nome do curso está na folha); trilho recolhido: curso · módulo · aula n de N
+    const eyebrow = isMobile
+        ? [current?.module.title, current && `${position}/${total}`].filter(Boolean).join(' · ')
+        : [railCollapsed && course.title, current?.module.title, current && t.lessonOf(position, total)]
+              .filter(Boolean)
+              .join(' · ');
+
+    const list = (
+        <RailList
+            t={t}
+            course={course}
+            modules={modules}
+            loading={modulesLoading}
+            lessonId={lessonId}
+            progress={progress}
+            onPick={() => setSheet(false)}
+        />
+    );
+
+    const header = (
+        <header className="lh">
+            {isMobile ? (
+                <button type="button" className="ib" aria-label={t.lessons} onClick={() => setSheet(true)}>
+                    <List {...ICON} />
+                </button>
+            ) : (
+                <button
+                    type="button"
+                    className="ib"
+                    aria-label={t.lessons}
+                    aria-expanded={!railCollapsed}
+                    onClick={toggleRail}
+                >
+                    {railCollapsed ? <PanelLeftOpen {...ICON} /> : <PanelLeftClose {...ICON} />}
+                </button>
+            )}
+            <div className="ttl">
+                {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+                <h1>{lesson?.lessonTitle ?? current?.title ?? ' '}</h1>
+            </div>
+            <nav className="pn" aria-label={t.lessons}>
+                {previous ? (
+                    <Link href={previous.href} shallow className="ib" aria-label={t.previous} title={previous.title}>
+                        <ChevronLeft {...ICON} />
+                    </Link>
+                ) : (
+                    <button type="button" className="ib" aria-label={t.previous} disabled>
+                        <ChevronLeft {...ICON} />
+                    </button>
+                )}
+                {next ? (
+                    <Link href={next.href} shallow className="ib" aria-label={t.next} title={next.title}>
+                        <ChevronRight {...ICON} />
+                    </Link>
+                ) : (
+                    <button type="button" className="ib" aria-label={t.next} disabled>
+                        <ChevronRight {...ICON} />
+                    </button>
+                )}
+            </nav>
+        </header>
+    );
+
+    let body: React.ReactNode;
+    if (lockedContent) {
+        body = lockedContent;
+    } else if (lockedModule) {
+        body = (
+            <div className="state" role="status">
+                <Lock {...ICON} size={28} aria-hidden />
+                <h1>{t.locked}</h1>
+                <p>{lockedModule.locked}</p>
+                {latest && (
+                    <Link href={latest.href} className="btn line">
+                        {t.goLatest}
+                    </Link>
+                )}
+            </div>
+        );
+    } else if (!modulesLoading && !loading && !lesson) {
+        body = (
+            <div className="state" role="status">
+                <h1>{t.missing}</h1>
+                <p>{t.missingHint}</p>
+                {open[0] && (
+                    <Link href={open[0].href} className="btn line">
+                        {t.goFirst}
+                    </Link>
+                )}
+            </div>
+        );
+    } else {
+        body = (
+            <>
+                {isMobile && hasVideo && (
+                    <div className="video">
+                        <LessonVideo lessonId={lessonId} />
+                    </div>
+                )}
+                <div className="tabs">
+                    <div className="seg" role="tablist" aria-label={course.title}>
+                        {tabs.map((key) => (
+                            <button
+                                key={key}
+                                type="button"
+                                role="tab"
+                                aria-selected={key === active}
+                                aria-controls={`lesson-${key}`}
+                                onClick={() => setTab(key)}
+                            >
+                                {t[key]}
+                            </button>
+                        ))}
+                    </div>
+                    {active === 'summary' && (
+                        <div className="tools">
+                            <TextSize scale={scale} onScale={onScale} />
+                        </div>
+                    )}
+                </div>
+                {hasVideo && !isMobile && (
+                    <div id="lesson-video" role="tabpanel" className="video" hidden={active !== 'video'}>
+                        <LessonVideo lessonId={lessonId} />
+                    </div>
+                )}
+                <div id="lesson-summary" role="tabpanel" hidden={active !== 'summary'}>
+                    {lesson?.lessonContent?.json ? (
+                        <ReaderProse
+                            rawContent={lesson.lessonContent.json}
+                            links={lesson.lessonContent.links}
+                            lang={lang}
+                        />
+                    ) : (
+                        !loading && <p className="empty">{t.noSummary}</p>
+                    )}
+                </div>
+                {hasResources && (
+                    <div id="lesson-resources" role="tabpanel" hidden={active !== 'resources'}>
+                        <ul className="res">
+                            {files.map((file) => {
+                                const Icon = resourceIcon(file.contentType);
+                                return (
+                                    <li key={file.url}>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                saveFile(
+                                                    file.url,
+                                                    file.title,
+                                                    file.contentType as keyof typeof fileTypes,
+                                                )
+                                            }
+                                            aria-label={`${t.download}: ${file.title}`}
+                                        >
+                                            <Icon {...ICON} aria-hidden />
+                                            <span>
+                                                <b>{file.title}</b>
+                                                <small>
+                                                    {fileTypes[file.contentType as keyof typeof fileTypes] ??
+                                                        file.contentType}
+                                                    {' · '}
+                                                    {fileSizeLabel(file.size)}
+                                                </small>
+                                            </span>
+                                            <Download {...ICON} aria-hidden />
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+                )}
+                {next && (
+                    <div className="after">
+                        <Link href={next.href} shallow className="btn line" title={next.title}>
+                            {t.nextUp}: <span>{next.title}</span>
+                            <ArrowRight {...ICON} size={16} className="arrow" aria-hidden />
+                        </Link>
+                    </div>
+                )}
+            </>
+        );
+    }
+
+    return (
+        <NewPage className="wide lesson">
+            <Wrap
+                className={`${uiFont.className}${!isMobile && railCollapsed ? ' norail' : ''}`}
+                style={{ '--r-scale': scale, '--r-read-font': readFont.style.fontFamily } as React.CSSProperties}
+            >
+                {!isMobile && (
+                    <aside className="rail" aria-label={t.lessons} aria-hidden={railCollapsed || undefined}>
+                        {list}
+                    </aside>
+                )}
+                <div className="body">
+                    {header}
+                    {body}
+                </div>
+            </Wrap>
+            {isMobile && (
+                <Drawer
+                    rootClassName={`ui-new-drawer ${uiFont.className}`}
+                    rootStyle={UI_FONT_VAR}
+                    closeIcon={<X {...ICON} aria-label={t.close} />}
+                    open={sheet}
+                    onClose={() => setSheet(false)}
+                    placement="bottom"
+                    height="82%"
+                    title={t.lessons}
+                >
+                    <Wrap style={{ '--r-scale': scale } as React.CSSProperties}>
+                        <div className="sheet">{list}</div>
+                    </Wrap>
+                </Drawer>
+            )}
+        </NewPage>
+    );
+};
+
+export default NewLesson;

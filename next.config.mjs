@@ -51,8 +51,10 @@ export default withSentryConfig(nextConfig, {
     // For all available options, see:
     // https://github.com/getsentry/sentry-webpack-plugin#options
 
-    org: 'mettle-education-software',
-    project: 'plataforma-mettle',
+    // Conta própria da Mettle (org mettle-education, região UE). O upload de sourcemaps só ocorre com SENTRY_AUTH_TOKEN.
+    org: process.env.SENTRY_ORG || 'mettle-education',
+    project: process.env.SENTRY_PROJECT || 'plataforma-web',
+    sentryUrl: process.env.SENTRY_URL || 'https://de.sentry.io/',
 
     // Only print logs for uploading source maps in CI
     silent: !process.env.CI,
@@ -84,5 +86,6 @@ export default withSentryConfig(nextConfig, {
     // See the following for more information:
     // https://docs.sentry.io/product/crons/
     // https://vercel.com/docs/cron-jobs
-    automaticVercelMonitors: true,
+    // Monitores de cron da Vercel gastariam a única vaga de cron do plano gratuito.
+    automaticVercelMonitors: false,
 });

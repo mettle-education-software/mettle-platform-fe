@@ -166,28 +166,46 @@ export const Dash = styled.div`
         transform: translateX(2px);
     }
 
-    /* ---------- DEDAs recentes: uma fila fina ---------- */
+    /* ---------- DEDAs recentes: cards grandes 16:9, sempre UMA fila cheia (quantos cabem na largura) ---------- */
+    .rd {
+        container-type: inline-size;
+    }
     .recent {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 12px 20px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 20px;
         margin: 0;
         padding: 0;
         list-style: none;
     }
+    .recent li:nth-child(n + 5) {
+        display: none;
+    }
+    @container (min-width: 1200px) {
+        .recent {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+        .recent li:nth-child(5) {
+            display: block;
+        }
+    }
+    @container (max-width: 780px) {
+        .recent {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .recent li:nth-child(n + 4) {
+            display: none;
+        }
+    }
     .recent a {
-        display: grid;
-        grid-template-columns: 56px minmax(0, 1fr);
-        align-items: center;
-        gap: 0 12px;
-        min-height: 54px;
+        display: block;
         color: var(--r-text);
         text-decoration: none;
     }
     .recent .img {
         display: block;
-        aspect-ratio: 4 / 3;
-        border-radius: 8px;
+        aspect-ratio: 16 / 9;
+        border-radius: var(--r-radius);
         overflow: hidden;
         background: var(--r-surf);
     }
@@ -196,9 +214,14 @@ export const Dash = styled.div`
         width: 100%;
         height: 100%;
         object-fit: cover;
+        transition: transform 400ms ease;
+    }
+    .recent a:hover img {
+        transform: scale(1.03);
     }
     .recent small {
         display: block;
+        margin-top: 12px;
         font-size: var(--r-label-size);
         font-weight: 500;
         letter-spacing: var(--r-label-track);
@@ -209,22 +232,23 @@ export const Dash = styled.div`
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
-        margin-top: 2px;
+        margin-top: 3px;
         overflow: hidden;
         line-height: 1.3;
-        font-size: 14.5px;
+        font-size: 15.5px;
         font-weight: 500;
     }
     .recent a:hover b {
         color: var(--r-gold-hi);
     }
 
-    @media (max-width: 1100px) {
-        .recent {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* telas largas: a imagem do "Agora" acompanha a coluna maior */
+    @media (min-width: 1600px) {
+        .now .cc.today {
+            grid-template-columns: 288px minmax(0, 1fr);
         }
-        .recent li:nth-child(n + 4) {
-            display: none;
+        .now .cc.today b {
+            font-size: 18px;
         }
     }
     @media (max-width: 860px) {
@@ -264,12 +288,24 @@ export const Dash = styled.div`
         .kpis .go {
             justify-self: start;
         }
+        /* celular: cards grandes numa fila que rola de lado (todos os cinco) */
         .recent {
-            grid-template-columns: minmax(0, 1fr);
+            display: flex;
+            gap: 14px;
+            margin: 0 -20px;
+            padding: 0 20px 6px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-padding-inline: 20px;
+            scrollbar-width: none;
         }
-        /* celular: uma lista curta */
-        .recent li:nth-child(n + 4) {
+        .recent::-webkit-scrollbar {
             display: none;
+        }
+        .recent li:nth-child(n) {
+            display: block;
+            flex: 0 0 74%;
+            scroll-snap-align: start;
         }
     }
 `;
@@ -508,7 +544,7 @@ export const HpecSection: React.FC<{ trail?: Trail; loading: boolean; error: boo
 
 /* ---------- DEDAs recentes ---------- */
 
-/** Os DEDAs anteriores ao de hoje (mesma consulta da grade "Most recent"), numa fila fina. */
+/** Os DEDAs anteriores ao de hoje, em cards grandes: uma fila cheia no computador, fila que rola no celular. */
 export const RecentDedas: React.FC<{ title?: string; aside?: React.ReactNode; skipCurrent?: boolean }> = ({
     title = 'Recent DEDAs',
     aside,
@@ -528,7 +564,7 @@ export const RecentDedas: React.FC<{ title?: string; aside?: React.ReactNode; sk
         .slice(0, 5);
     if (!items.length && !grid.showSkeleton) return aside ? <div className="sh">{aside}</div> : null;
     return (
-        <section aria-label={title}>
+        <section aria-label={title} className="rd">
             <div className="sh">
                 <h2>{title}</h2>
                 {aside}
@@ -536,8 +572,8 @@ export const RecentDedas: React.FC<{ title?: string; aside?: React.ReactNode; sk
             <ul className="recent">
                 {items.map(({ deda, week: w }) => {
                     const src = contentfulImage(deda.dedaFeaturedImage?.url, {
-                        w: 144,
-                        h: 108,
+                        w: 640,
+                        h: 360,
                         fit: 'fill',
                         fm: 'webp',
                         q: 70,

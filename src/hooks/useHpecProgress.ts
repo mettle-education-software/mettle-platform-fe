@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
 import { clearWatched, DoneMap, HPEC_PROGRESS_URL, readWatched } from 'libs/hpecTrail';
 import { useAppContext } from 'providers';
+import { useRef } from 'react';
 
 const call = async (init?: RequestInit): Promise<DoneMap> => {
     const token = await auth.currentUser?.getIdToken();
@@ -45,11 +46,16 @@ export const useHpecProgress = () => {
         },
     });
 
+    const mutationKey = ['hpec-progress-set', uid];
+    // cliques seguidos com respostas em voo: no fim, uma leitura do Worker fecha a conta (a ordem das respostas não é garantida)
+    const overlapped = useRef(false);
     const mutation = useMutation({
+        mutationKey,
         mutationFn: ({ lessonId, done }: { lessonId: string; done: boolean }) =>
             call({ method: 'PUT', body: JSON.stringify({ set: { [lessonId]: done } }) }),
         // a marca aparece na hora; se o Worker recusar, volta ao que era
         onMutate: async ({ lessonId, done }) => {
+            if (queryClient.isMutating({ mutationKey }) > 1) overlapped.current = true;
             await queryClient.cancelQueries({ queryKey: key });
             const before = queryClient.getQueryData<DoneMap>(key);
             const next = { ...(before ?? {}) };
@@ -59,7 +65,17 @@ export const useHpecProgress = () => {
             return { before };
         },
         onError: (_e, _v, ctx) => queryClient.setQueryData(key, ctx?.before),
-        onSuccess: (done) => queryClient.setQueryData(key, done),
+        // cliques seguidos: resposta de um clique antigo não desfaz o seguinte
+        onSuccess: (done) => {
+            if (queryClient.isMutating({ mutationKey }) <= 1 && !overlapped.current)
+                queryClient.setQueryData(key, done);
+        },
+        onSettled: () => {
+            if (queryClient.isMutating({ mutationKey }) <= 1 && overlapped.current) {
+                overlapped.current = false;
+                queryClient.invalidateQueries({ queryKey: key });
+            }
+        },
     });
 
     const done = query.data ?? {};

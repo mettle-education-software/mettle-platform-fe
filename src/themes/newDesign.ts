@@ -2,44 +2,29 @@ import { css } from '@emotion/react';
 import { theme, ThemeConfig } from 'antd';
 import { uiFont } from 'components/_melp/_deda/DedaReader/readerFonts';
 import React from 'react';
+import { DARK, LIGHT } from './palette';
 
-/**
- * Tema da plataforma nova (só para as contas de libs/newDesign): os mesmos tokens da página nova do DEDA
- * (DedaReader/readerStyles.ts, `--r-*`), aplicados à plataforma inteira. Cores sempre em variáveis: o tema claro
- * entra depois como outro bloco com os mesmos nomes. Injetado uma vez pela casca nova (NewAppLayout) e pelas páginas
- * de erro/carregamento; nunca entra no bundle dos alunos.
- *
- * Quando o PR feat/deda-reader-r4 estiver na main, o bloco de tokens de readerStyles.ts passa a importar daqui
- * (mesmos nomes e valores: nada muda na página do DEDA).
- */
+export { DARK, LIGHT } from './palette';
+
+export const tokenText = (set: Record<string, string>) =>
+    Object.entries(set)
+        .map(([name, value]) => `${name}: ${value};`)
+        .join('\n');
+
+/** Seletor do tema claro (o <html> recebe data-theme antes da primeira pintura: libs/theme.ts). */
+export const LIGHT_ROOT = "html[data-theme='light']";
+
+/** Injetado uma vez pela casca nova (NewAppLayout) e pelas páginas de erro/carregamento; nunca no bundle dos alunos. */
 export const platformTokens = css`
     :root {
-        --r-bg: #2b2a29;
-        --r-bg2: #262524;
-        --r-surf: #363432;
-        --r-sheet: #353331;
-        --r-sheet-head: #413e3b;
-        --r-sheet-shadow: 0 0 48px rgba(0, 0, 0, 0.55);
-        --r-mask: rgba(0, 0, 0, 0.5);
-        --r-line: rgba(255, 255, 255, 0.09);
-        --r-line-strong: rgba(255, 255, 255, 0.28);
-        --r-ring: rgba(255, 255, 255, 0.24);
-        --r-track: rgba(255, 255, 255, 0.14);
-        --r-hover: rgba(255, 255, 255, 0.06);
-        --r-text: #f3ede4;
-        --r-muted: #bdb4a8;
-        --r-faint: #8f877c;
-        --r-gold: #b78a5b;
-        --r-gold-hi: #d3a878;
-        --r-gold-tint: rgba(183, 138, 91, 0.16);
-        --r-on-gold: #1d1a17;
-        --r-error: #f0b3a8;
-        --r-pill: rgba(127, 120, 110, 0.2);
-        --r-strong: #ffffff;
-        --r-card-shadow: rgba(0, 0, 0, 0.3);
-        --r-video-bg: #000000;
-        /* escurecimento de imagens de cabeçalho: termina no fundo da página */
-        --r-img-shade: linear-gradient(180deg, rgba(43, 42, 41, 0.15) 0%, rgba(43, 42, 41, 0.55) 55%, #2b2a29 100%);
+        ${tokenText(DARK)}
+        /* escurecimento de imagens de cabeçalho: termina no fundo da página (segue o tema) */
+        --r-img-shade: linear-gradient(
+            180deg,
+            rgba(var(--r-bg-rgb), 0.15) 0%,
+            rgba(var(--r-bg-rgb), 0.55) 55%,
+            var(--r-bg) 100%
+        );
 
         --r-ui-size: 14.5px;
         --r-label-size: 11px;
@@ -50,6 +35,11 @@ export const platformTokens = css`
         --r-sb-w: 236px; /* menu lateral aberto */
         --r-rail-w: 64px; /* menu recolhido (trilho de ícones) */
         --r-bar-h: 52px; /* barra do celular */
+        color-scheme: dark;
+    }
+    ${LIGHT_ROOT} {
+        ${tokenText(LIGHT)}
+        color-scheme: light;
     }
 `;
 
@@ -225,6 +215,7 @@ export const ui = css`
         }
     }
     @media (prefers-reduced-motion: reduce) {
+        &,
         * {
             animation: none !important;
             transition: none !important;
@@ -238,45 +229,59 @@ export const ui = css`
  * controles de 44 px. Envolve só as páginas novas (ConfigProvider local): a página do DEDA e as páginas atuais
  * dentro da casca continuam com o tema da Plataforma.
  */
-export const newAntdTheme: ThemeConfig = {
-    algorithm: theme.darkAlgorithm,
+const antdFor = (c: Record<keyof typeof DARK, string>, light: boolean): ThemeConfig => ({
+    algorithm: light ? theme.defaultAlgorithm : theme.darkAlgorithm,
     token: {
-        colorPrimary: '#b78a5b',
-        colorInfo: '#b78a5b',
-        colorBgBase: '#2b2a29',
-        colorBgContainer: '#363432',
-        colorBgElevated: '#413e3b',
-        colorText: '#f3ede4',
-        colorTextSecondary: '#bdb4a8',
-        colorTextTertiary: '#8f877c',
-        colorBorder: 'rgba(255, 255, 255, 0.28)',
-        colorBorderSecondary: 'rgba(255, 255, 255, 0.09)',
-        colorSplit: 'rgba(255, 255, 255, 0.09)',
+        colorPrimary: c['--r-gold'],
+        colorInfo: c['--r-gold'],
+        colorLink: c['--r-gold-hi'],
+        colorBgBase: c['--r-bg'],
+        colorBgContainer: c['--r-surf'],
+        colorBgElevated: light ? c['--r-surf'] : c['--r-sheet-head'],
+        colorText: c['--r-text'],
+        colorTextSecondary: c['--r-muted'],
+        colorTextTertiary: c['--r-faint'],
+        colorBorder: c['--r-line-strong'],
+        colorBorderSecondary: c['--r-line'],
+        colorSplit: c['--r-line'],
         borderRadius: 10,
         fontFamily: uiFont.style.fontFamily,
         fontSize: 14.5,
         controlHeight: 44,
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-        boxShadowSecondary: '0 10px 30px rgba(0, 0, 0, 0.3)',
+        boxShadow: `0 10px 30px ${c['--r-card-shadow']}`,
+        boxShadowSecondary: `0 10px 30px ${c['--r-card-shadow']}`,
         wireframe: false,
     },
     components: {
         Button: {
             borderRadius: 999,
             fontWeight: 500,
-            primaryColor: '#1d1a17',
+            primaryColor: c['--r-on-gold'],
             paddingContentHorizontal: 20,
             defaultBg: 'transparent',
-            defaultBorderColor: 'rgba(255, 255, 255, 0.28)',
+            defaultBorderColor: c['--r-line-strong'],
             primaryShadow: 'none',
             defaultShadow: 'none',
         },
         Input: { borderRadius: 10, paddingInline: 14 },
         Select: { borderRadius: 10 },
-        Modal: { borderRadiusLG: 16, titleFontSize: 18, fontWeightStrong: 500 },
-        Tooltip: { colorBgSpotlight: '#413e3b', colorTextLightSolid: '#f3ede4', borderRadius: 10 },
-        Rate: { starColor: '#b78a5b', starBg: 'rgba(255, 255, 255, 0.14)', starSize: 18, marginXS: 6 },
-        Form: { labelColor: '#bdb4a8', itemMarginBottom: 0 },
+        Modal: {
+            borderRadiusLG: 16,
+            titleFontSize: 18,
+            fontWeightStrong: 500,
+            ...(light ? { contentBg: c['--r-sheet'], headerBg: c['--r-sheet'] } : {}),
+        },
+        Tooltip: { colorBgSpotlight: c['--r-tip-bg'], colorTextLightSolid: c['--r-tip-text'], borderRadius: 10 },
+        Rate: { starColor: c['--r-gold'], starBg: c['--r-track'], starSize: 18, marginXS: 6 },
+        Form: { labelColor: c['--r-muted'], itemMarginBottom: 0 },
         Typography: { titleMarginBottom: 0, titleMarginTop: 0 },
     },
-};
+});
+
+/**
+ * antd nas páginas novas (formulários de Configurações, modal de início do DEDA): os mesmos tons do tema em vigor,
+ * dourado, Manrope, controles de 44 px. Envolve só as páginas novas (ConfigProvider local): as páginas atuais
+ * continuam com o tema da Plataforma. Use `useNewAntdTheme()` (hooks/useTheme) para seguir o tema escolhido.
+ */
+export const newAntdTheme: ThemeConfig = antdFor(DARK, false);
+export const newAntdThemeLight: ThemeConfig = antdFor(LIGHT, true);

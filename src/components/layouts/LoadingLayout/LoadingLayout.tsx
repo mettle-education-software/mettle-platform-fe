@@ -4,10 +4,17 @@ import styled from '@emotion/styled';
 import Rive from '@rive-app/react-canvas';
 import { useNewDesign } from 'hooks/useNewDesign';
 import dynamic from 'next/dynamic';
-import React from 'react';
+import React, { useContext } from 'react';
+import { InPersistentShell } from '../AppLayout/AppLayout';
 
 // Carregando da plataforma nova (libs/newDesign), só para as contas da lista: fora do bundle dos alunos.
 const NewLoading = dynamic(() => import('components/_new/NewStatus').then((m) => m.NewLoading), {
+    ssr: false,
+    loading: () => null,
+});
+
+// Dentro da casca persistente: só a área de conteúdo, discreta e só depois de ~300 ms (carregamento rápido não aparece).
+const NewContentLoading = dynamic(() => import('components/_new/NewStatus').then((m) => m.NewContentLoading), {
     ssr: false,
     loading: () => null,
 });
@@ -30,7 +37,8 @@ const Centralize = styled.div`
 `;
 
 export const LoadingLayout: React.FC = () => {
-    if (useNewDesign()) return <NewLoading />;
+    const inShell = useContext(InPersistentShell);
+    if (useNewDesign()) return inShell ? <NewContentLoading /> : <NewLoading />;
     return (
         <Container>
             <Centralize>

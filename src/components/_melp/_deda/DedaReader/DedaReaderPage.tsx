@@ -8,6 +8,7 @@ import { ContextNoteBody, ContextNoteHost } from 'components/atoms/ContextNote/C
 import { useAppMenu } from 'components/layouts/AppLayout/appMenu';
 import { useDeviceSize } from 'hooks';
 import { useDeda } from 'hooks/queries/dedaQueries';
+import { useLogoTheme } from 'hooks/useTheme';
 import { DedaNotesQueryResponse } from 'interfaces';
 import { ContextNoteData } from 'libs/contextNotes';
 import { contentfulImage } from 'libs/dedaHeader';
@@ -133,6 +134,7 @@ export const DedaReaderPage: React.FC<Props> = ({
     onClassic,
 }) => {
     const router = useRouter();
+    const logoTheme = useLogoTheme();
     const isMobile = useDeviceSize() === 'mobile';
     const { melpSummary } = useMelpContext();
     // Aba Review só com revisão liberada (libs/dedaReader.hasReviews). Até o resumo chegar, a barra de abas fica
@@ -339,7 +341,7 @@ export const DedaReaderPage: React.FC<Props> = ({
                             aria-label="Mettle — Início"
                             onClick={() => router.push('/')}
                         >
-                            <Logo theme="light" />
+                            <Logo theme={logoTheme} />
                         </button>
                     }
                 >

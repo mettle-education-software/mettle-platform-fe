@@ -13,6 +13,29 @@ export const NEW_DESIGN_FORCED_OFF = DEDA_READER_FORCED_OFF;
 export const isNewDesignAccount = (uid?: string | null, forcedOff = NEW_DESIGN_FORCED_OFF) =>
     isDedaReaderAccount(uid, forcedOff);
 
+// ---------- casca persistente ----------
+
+/**
+ * Rotas que vivem dentro da casca (as que usam AppLayout). Na plataforma nova a casca fica montada no layout raiz e
+ * só o conteúdo troca entre essas rotas: menu, barra e fundo nunca piscam.
+ */
+export const isShellRoute = (pathname: string | null | undefined) =>
+    !!pathname && (pathname === '/' || /^\/(imerso|course|settings|guia)(\/|$)/.test(pathname));
+
+/**
+ * O aplicativo já hidratou? Antes disso, nada pode depender da sessão (o servidor não a conhece): a casca persistente
+ * e o atalho de withAuthentication só valem a partir do primeiro efeito no navegador (sem erro de hidratação).
+ */
+let hydrated = false;
+export const markHydrated = () => {
+    hydrated = true;
+};
+export const isHydrated = () => hydrated;
+
+/** Aula a partir do endereço (/imerso/hpec/<aula>, /course/<curso>/<aula>): o último trecho do caminho. */
+export const lessonIdFromPath = (pathname: string | null | undefined, fallback: string) =>
+    pathname?.split('?')[0].split('/').filter(Boolean).pop() || fallback;
+
 // ---------- menu lateral: item ativo e estado "recolhido" ----------
 
 /**
@@ -247,6 +270,7 @@ export const softChart = <T extends { chart?: object; grid?: object; tooltip?: o
     options: T,
     fontFamily: string,
     labelColor = '#bdb4a8',
+    light = false,
 ): T => {
     const label = { colors: labelColor, fontFamily, fontWeight: 400 };
     const axis = (a: unknown) => ({
@@ -257,8 +281,8 @@ export const softChart = <T extends { chart?: object; grid?: object; tooltip?: o
     return {
         ...o,
         chart: { ...(o.chart ?? {}), fontFamily, background: 'transparent', foreColor: labelColor },
-        grid: { ...(o.grid ?? {}), borderColor: 'rgba(255, 255, 255, 0.07)' },
-        tooltip: { ...(o.tooltip ?? {}), theme: 'dark' },
+        grid: { ...(o.grid ?? {}), borderColor: light ? 'rgba(52, 40, 26, 0.1)' : 'rgba(255, 255, 255, 0.07)' },
+        tooltip: { ...(o.tooltip ?? {}), theme: light ? 'light' : 'dark' },
         legend: { ...(o.legend ?? {}), fontFamily, fontWeight: 400, labels: { colors: labelColor } },
         xaxis: axis(o.xaxis),
         yaxis: Array.isArray(o.yaxis) ? o.yaxis.map(axis) : axis(o.yaxis),

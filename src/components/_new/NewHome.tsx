@@ -9,6 +9,7 @@ import { EBOOK, EBOOK_PATH, EBOOK_PRODUCT, ebookOpen } from 'libs/ebook';
 import { firstName } from 'libs/newDesign';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { ArrowRight, Lock } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React from 'react';
@@ -131,13 +132,13 @@ export const NewHome: React.FC = () => {
                                           {body}
                                       </button>
                                   ) : (
-                                      <a key={card.key} className={className} href={card.href}>
+                                      <Link key={card.key} className={className} href={card.href}>
                                           {body}
-                                      </a>
+                                      </Link>
                                   );
                               })}
                         {!loading && ebook && (
-                            <a className="cc" href={EBOOK_PATH}>
+                            <Link className="cc" href={EBOOK_PATH}>
                                 <span className="img" style={{ display: 'grid', placeItems: 'center' }}>
                                     <EbookCover width={96} />
                                 </span>
@@ -148,7 +149,7 @@ export const NewHome: React.FC = () => {
                                 <span className="act">
                                     Ler <ArrowRight {...ICON} size={16} aria-hidden />
                                 </span>
-                            </a>
+                            </Link>
                         )}
                     </div>
                 )}

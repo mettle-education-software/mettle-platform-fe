@@ -31,6 +31,7 @@ import {
 } from 'libs/dedaReader';
 import { brasiliaDate, pickMyReading } from 'libs/dedaRecording';
 import { Check, ChevronRight, ChevronUp, Clock, Lock, X } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -467,9 +468,9 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
 
     const cta =
         currentStep === 'completed' ? (
-            <a className="btn gold" href="/imerso/deda">
+            <Link className="btn gold" href="/imerso/deda">
                 Go back
-            </a>
+            </Link>
         ) : currentStep === 'finish' ? (
             isTodaysDedaAndNotCompleted && (
                 <button

@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import styled from '@emotion/styled';
+import { DARK, LIGHT, LIGHT_ROOT, tokenText } from 'themes/newDesign';
 
 /** Ícones da página nova (lucide): traço fino e um tamanho só; exceções passam `size`. */
 export const ICON = { size: 20, strokeWidth: 1.5 } as const;
@@ -9,47 +10,20 @@ export const ICON = { size: 20, strokeWidth: 1.5 } as const;
  * (.deda-reader) e nas gavetas/folhas que abrem por cima dela (.deda-reader-drawer, fora da árvore).
  */
 export const readerTokens = css`
-    /* Tema escuro (único por enquanto). Tema claro = outro bloco com os mesmos nomes, ex. [data-reader-theme='light']. */
+    /* Cores nos dois temas: as mesmas da plataforma nova (themes/newDesign: DARK e LIGHT). */
     [data-reader-theme='dark'],
     .reader-theme-dark,
     .deda-reader-shell-on .context-note-drawer {
-        --r-bg: #2b2a29;
-        --r-bg2: #262524;
-        --r-surf: #363432;
-        /* folhas e gavetas: corpo mais claro que a página, cabeçalho mais claro que o corpo */
-        --r-sheet: #353331;
-        --r-sheet-head: #413e3b;
-        --r-sheet-shadow: 0 0 48px rgba(0, 0, 0, 0.55);
-        --r-mask: rgba(0, 0, 0, 0.5);
-        --r-line: rgba(255, 255, 255, 0.09);
-        --r-line-strong: rgba(255, 255, 255, 0.28);
-        --r-ring: rgba(255, 255, 255, 0.24);
-        --r-track: rgba(255, 255, 255, 0.14);
-        --r-hover: rgba(255, 255, 255, 0.06);
-        --r-hover-on-light: rgba(0, 0, 0, 0.06);
-        --r-danger: #e58f80;
-        --r-text: #f3ede4;
-        --r-muted: #bdb4a8;
-        --r-faint: #8f877c;
-        --r-gold: #b78a5b;
-        --r-gold-hi: #d3a878;
-        --r-gold-tint: rgba(183, 138, 91, 0.16);
-        --r-on-gold: #1d1a17;
-        --r-on-gold-alt: #1f1b16;
-        --r-error: #f0b3a8;
-        --r-pill: rgba(127, 120, 110, 0.2);
-        --r-strong: #ffffff;
-        --r-strong-line: #d9d2c7;
-        --r-strip-shade: linear-gradient(
-            90deg,
-            rgba(28, 27, 26, 0.95),
-            rgba(28, 27, 26, 0.82) 50%,
-            rgba(28, 27, 26, 0.95)
-        );
-        --r-card-shadow: rgba(0, 0, 0, 0.3);
-        --r-video-bg: #000000;
+        ${tokenText(DARK)}
         /* LinKnowledge entra sem alteração: o contêiner devolve o que ele herda na página atual (fundo claro do Layout). */
         --r-lk-inherit-color: rgba(0, 0, 0, 0.88);
+        color-scheme: dark;
+    }
+    ${LIGHT_ROOT} [data-reader-theme='dark'],
+    ${LIGHT_ROOT} .reader-theme-dark,
+    ${LIGHT_ROOT} .deda-reader-shell-on .context-note-drawer {
+        ${tokenText(LIGHT)}
+        color-scheme: light;
     }
 
     .deda-reader,
@@ -447,6 +421,7 @@ const shared = css`
     }
 
     @media (prefers-reduced-motion: reduce) {
+        &,
         * {
             animation: none !important;
             transition: none !important;
@@ -671,6 +646,7 @@ export const Shell = styled.div`
     position: fixed;
     inset: 0;
     z-index: 900; /* acima do layout da Plataforma; abaixo das gavetas e modais do antd (1000) */
+    animation: r-fade 160ms ease-out; /* entra sobre a casca com um esmaecer curto, sem corte seco */
     height: 100vh;
     height: 100dvh;
     display: grid;
@@ -873,6 +849,13 @@ export const Shell = styled.div`
         overflow-x: hidden;
         overscroll-behavior: contain;
         min-height: 0;
+        /* troca de aba: o corpo novo entra com um esmaecer curto (a faixa do topo fica) */
+        animation: r-tab-in 160ms ease-out;
+    }
+    @keyframes r-tab-in {
+        from {
+            opacity: 0.4;
+        }
     }
     .scroll:focus {
         outline: none; /* recebe o foco a cada passo/aba para o teclado rolar o texto; não é um controle */
@@ -1469,6 +1452,15 @@ export const Shell = styled.div`
         line-height: normal;
         color: var(--r-lk-inherit-color);
         padding-bottom: 48px;
+    }
+    /* Tema claro: o LinKnowledge entra como está (cards, carrosséis e podcasts escuros, regra do dono) — vira um bloco
+       de mídia escuro, recuado e com cantos, em vez de uma faixa escura de ponta a ponta. */
+    ${LIGHT_ROOT} & .lk {
+        padding: 20px 20px 48px;
+    }
+    ${LIGHT_ROOT} & .lk > * {
+        border-radius: 16px;
+        overflow: hidden;
     }
 
     /* ---------- Review e My recordings ---------- */

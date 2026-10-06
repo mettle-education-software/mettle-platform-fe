@@ -5,6 +5,7 @@ import { getWeekDay } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { contentfulImage, pickHeaderImage } from 'libs/dedaHeader';
 import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -58,9 +59,9 @@ export const NewDedaList: React.FC = () => {
                             </p>
                             <h1>{featured.dedaTitle}</h1>
                         </div>
-                        <a className="btn gold" href={dedaPath(featured.dedaSlug)}>
+                        <Link className="btn gold" href={dedaPath(featured.dedaSlug)}>
                             Open DEDA <ArrowRight {...ICON} size={18} className="arrow" aria-hidden />
-                        </a>
+                        </Link>
                     </div>
                 </section>
             )}

@@ -9,6 +9,7 @@ import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewPage } from './NewPage';
+import { ThemeSwitch } from './ThemeSwitch';
 
 /* ---------- abas: mesmos campos, regras, textos e chamadas de app/settings/page.tsx ---------- */
 
@@ -39,6 +40,14 @@ const PersonalInformation: React.FC = () => {
                         >
                             <Input id="s-email" type="email" placeholder={user?.email} disabled />
                         </Tooltip>
+                    </div>
+                </div>
+                <div className="row">
+                    <span className="lab" id="s-theme">
+                        Tema
+                    </span>
+                    <div className="field" aria-labelledby="s-theme">
+                        <ThemeSwitch labels />
                     </div>
                 </div>
             </div>

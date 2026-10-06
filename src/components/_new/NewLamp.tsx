@@ -12,22 +12,40 @@ import {
     useGoalGraphOptions,
     useOverallProgress,
 } from 'hooks';
+import { useTheme } from 'hooks/useTheme';
 import { OverallStatsEnum } from 'interfaces';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
 import { statisticsColors } from 'libs';
 import { goalLabel, softChart } from 'libs/newDesign';
 import { Info } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect, useRef, useState } from 'react';
-import { ICON } from 'themes/newDesign';
+import { DARK, ICON, LIGHT } from 'themes/newDesign';
 import { NewLampInput } from './NewLampInput';
 import { NewPage } from './NewPage';
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 const FONT = uiFont.style.fontFamily;
+
+/** Gráficos no tema em vigor (rótulos, grade e balão claros ou escuros). */
+const useSoftChart = () => {
+    const light = useTheme().resolved === 'light';
+    return <T extends { chart?: object; grid?: object; tooltip?: object }>(options: T): T => {
+        const o = softChart(options, FONT, (light ? LIGHT : DARK)['--r-muted'], light);
+        // anéis do Overall: o trilho escuro de cada série some no claro; um trilho neutro e leve no lugar
+        const plot = (o as { plotOptions?: { radialBar?: { track?: object } } }).plotOptions;
+        if (!light || !plot?.radialBar?.track) return o;
+        return {
+            ...o,
+            plotOptions: {
+                ...plot,
+                radialBar: { ...plot.radialBar, track: { ...plot.radialBar.track, background: LIGHT['--r-track'] } },
+            },
+        };
+    };
+};
 
 /* ---------- estilos da LAMP (dentro de .ui-new-page.lamp) ---------- */
 
@@ -54,7 +72,7 @@ const lampStyles = css`
     }
     .help b {
         font-weight: 500;
-        color: #d3a878;
+        color: var(--r-gold-hi);
     }
     .ui-new-page.lamp .hint-i {
         width: 32px;
@@ -438,6 +456,7 @@ const Legend: React.FC<{ name: string; color: string; value?: number | null }> =
 );
 
 const Overall: React.FC = () => {
+    const soft = useSoftChart();
     const { user } = useAppContext();
     const { overallGraph, isLoading, overallData } = useOverallProgress(user?.uid);
     if (isLoading || !overallData) return <div className="skel" aria-busy />;
@@ -445,7 +464,7 @@ const Overall: React.FC = () => {
         <div>
             <div className="chart">
                 <ReactApexChart
-                    options={softChart(overallGraph.options, FONT)}
+                    options={soft(overallGraph.options)}
                     series={overallGraph.series}
                     type="radialBar"
                     width="100%"
@@ -468,17 +487,18 @@ const Overall: React.FC = () => {
 };
 
 const Weekly: React.FC = () => {
+    const soft = useSoftChart();
     const { user } = useAppContext();
     const { weeklyDevelopment, isLoading, weeklyDevelopmentData } = useGeneralWeeklyDevelopment(user?.uid);
     if (isLoading || !weeklyDevelopmentData) return <div className="skel" aria-busy />;
     // até 100+ semanas no eixo: uma marca a cada ~10, sem rótulos inclinados
-    const soft = softChart(weeklyDevelopment.options, FONT);
+    const base = soft(weeklyDevelopment.options);
     const options = {
-        ...soft,
+        ...base,
         xaxis: {
-            ...soft.xaxis,
+            ...base.xaxis,
             tickAmount: 10,
-            labels: { ...soft.xaxis?.labels, rotate: 0, hideOverlappingLabels: true },
+            labels: { ...base.xaxis?.labels, rotate: 0, hideOverlappingLabels: true },
         },
     };
     return (
@@ -489,6 +509,7 @@ const Weekly: React.FC = () => {
 };
 
 const DedaStats: React.FC<{ week?: string }> = ({ week }) => {
+    const soft = useSoftChart();
     const [daily, setDaily] = useState<'dedaTime' | 'readingTime'>('dedaTime');
     const { weeklyPerformanceGraph, dailyPerformanceGraph, isLoading, graphsData } = useGetWeeklyPerformance(
         daily,
@@ -502,7 +523,7 @@ const DedaStats: React.FC<{ week?: string }> = ({ week }) => {
                     <h3>Weekly</h3>
                 </div>
                 <ReactApexChart
-                    options={softChart(weeklyPerformanceGraph.options, FONT)}
+                    options={soft(weeklyPerformanceGraph.options)}
                     series={weeklyPerformanceGraph.series}
                     type="bar"
                     width="100%"
@@ -526,7 +547,7 @@ const DedaStats: React.FC<{ week?: string }> = ({ week }) => {
                     </div>
                 </div>
                 <ReactApexChart
-                    options={softChart(dailyPerformanceGraph.options, FONT)}
+                    options={soft(dailyPerformanceGraph.options)}
                     series={dailyPerformanceGraph.series}
                     type="bar"
                     width="100%"
@@ -661,6 +682,7 @@ const GOALS_HELP = (
 );
 
 const Goals: React.FC<{ level: DedaDifficulty; onLevel(level: DedaDifficulty): void }> = ({ level, onLevel }) => {
+    const soft = useSoftChart();
     const { melpSummary } = useMelpContext();
     const { data, isLoading } = useGetGoalByLevel(level);
     // a tabela abre com a semana atual à vista
@@ -733,7 +755,7 @@ const Goals: React.FC<{ level: DedaDifficulty; onLevel(level: DedaDifficulty): v
                 ) : (
                     <div className="chart">
                         <ReactApexChart
-                            options={softChart(goalGraph.options, FONT)}
+                            options={soft(goalGraph.options)}
                             series={goalGraph.series}
                             type="line"
                             width="100%"
@@ -795,7 +817,6 @@ type TabKey = (typeof TABS)[number]['key'];
  * da página atual; textos de instrução viram ⓘ; tabela larga rola no próprio container.
  */
 const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
-    const router = useRouter();
     const { melpSummary } = useMelpContext();
     const [tab, setTab] = useState<TabKey>(
         TABS.some((t) => t.key === initialTab) ? (initialTab as TabKey) : 'performance',
@@ -821,7 +842,8 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
                         role="tab"
                         aria-selected={t.key === tab}
                         onClick={() => {
-                            router.replace(`/imerso/lamp?lampTab=${t.key}`);
+                            // só o endereço muda (o roteador do Next acompanha): sem ida ao servidor nem remontar a página
+                            window.history.replaceState(null, '', `/imerso/lamp?lampTab=${t.key}`);
                             setTab(t.key);
                         }}
                     >

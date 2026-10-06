@@ -11,6 +11,7 @@ import useGetLessonContent from 'hooks/queries/useGetLessonContent';
 import { useDeviceSize } from 'hooks/useDeviceSize';
 import { fileTypes, saveFile } from 'libs';
 import { readTextScale, saveTextScale } from 'libs/dedaReader';
+import { markWatched, WATCHED_AT } from 'libs/hpecTrail';
 import {
     CourseModule,
     fileSizeLabel,
@@ -814,6 +815,8 @@ export const NewLesson: React.FC<NewLessonProps> = ({
     const [scale, setScale] = useState(() => (typeof window !== 'undefined' ? readTextScale() : 1));
     const wrapRef = useRef<HTMLDivElement>(null);
     const firstLesson = useRef(lessonId);
+    // "?play" (vindo do "Agora" da home do IMERSO): a aula de entrada já toca; as seguintes, não
+    const [playOnOpen] = useState(() => typeof window !== 'undefined' && /[?&]play\b/.test(window.location.search));
     useEffect(() => {
         setSheet(false);
         // aula nova: volta ao topo (a troca no lugar não passa pelo roteador, que faria isso)
@@ -947,7 +950,13 @@ export const NewLesson: React.FC<NewLessonProps> = ({
             <>
                 {isMobile && hasVideo && (
                     <div className="video">
-                        <LessonVideo lessonId={shownId} />
+                        <LessonVideo
+                            key={shownId}
+                            lessonId={shownId}
+                            onWatched={() => markWatched(shownId)}
+                            watchedAt={WATCHED_AT}
+                            autoplay={playOnOpen && shownId === firstLesson.current}
+                        />
                     </div>
                 )}
                 <div className="tabs">
@@ -973,7 +982,13 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                 </div>
                 {hasVideo && !isMobile && (
                     <div id="lesson-video" role="tabpanel" className="video" hidden={active !== 'video'}>
-                        <LessonVideo lessonId={shownId} />
+                        <LessonVideo
+                            key={shownId}
+                            lessonId={shownId}
+                            onWatched={() => markWatched(shownId)}
+                            watchedAt={WATCHED_AT}
+                            autoplay={playOnOpen && shownId === firstLesson.current}
+                        />
                     </div>
                 )}
                 <div id="lesson-summary" role="tabpanel" hidden={active !== 'summary'}>

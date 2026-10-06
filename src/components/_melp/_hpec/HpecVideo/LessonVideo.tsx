@@ -16,6 +16,11 @@ interface LessonVideoProps {
     lessonId: string;
     onEmptyVideo?: () => void;
     productId?: string;
+    /** Plataforma nova: chamado uma vez ao passar de `watchedAt`% do vídeo (aula vista). */
+    onWatched?: () => void;
+    watchedAt?: number;
+    /** Plataforma nova: toca ao abrir (o clique que trouxe o aluno até aqui já foi o "play"). */
+    autoplay?: boolean;
 }
 
 const VideoWrapper = styled.div`
@@ -33,7 +38,13 @@ const VideoIFrame = styled.iframe`
     }
 `;
 
-export const LessonVideo: React.FC<LessonVideoProps> = ({ lessonId, onEmptyVideo }) => {
+export const LessonVideo: React.FC<LessonVideoProps> = ({
+    lessonId,
+    onEmptyVideo,
+    onWatched,
+    watchedAt = 90,
+    autoplay,
+}) => {
     const { data, loading } = useGetLessonContent(lessonId);
     const { user } = useAppContext();
     const device = useDeviceSize();
@@ -61,9 +72,17 @@ export const LessonVideo: React.FC<LessonVideoProps> = ({ lessonId, onEmptyVideo
 
         const milestones = [25, 50, 75, 90, 95, 100];
         const triggeredMilestones = new Set<number>();
+        let watchedSent = false;
+        // o navegador pode recusar tocar com som: fica o play do próprio player
+        if (autoplay) player.play().catch(() => {});
 
         const onTimeUpdate = async (data: { percent: number }) => {
             const watchedPercent = Math.floor(data.percent * 100);
+
+            if (onWatched && !watchedSent && watchedPercent >= watchedAt) {
+                watchedSent = true;
+                onWatched();
+            }
 
             for (const milestone of milestones) {
                 if (watchedPercent >= milestone && !triggeredMilestones.has(milestone)) {
@@ -91,7 +110,12 @@ export const LessonVideo: React.FC<LessonVideoProps> = ({ lessonId, onEmptyVideo
 
     return (
         <VideoWrapper>
-            <VideoIFrame ref={iframeRef} allowFullScreen src={lesson.lessonVideoEmbedUrl} />
+            <VideoIFrame
+                ref={iframeRef}
+                allowFullScreen
+                src={lesson.lessonVideoEmbedUrl}
+                allow={autoplay ? 'autoplay; fullscreen; picture-in-picture' : undefined}
+            />
 
             {device === 'mobile' && (
                 <Title level={5} className="color-white">

@@ -1,0 +1,79 @@
+import { IHPECLesson } from 'interfaces';
+import { hpecTrail, markWatched, opensLabel, readWatched } from '../hpecTrail';
+
+const mod = (order: number, ids: string[]): IHPECLesson => ({
+    hpecId: `HPEC${order}`,
+    hpecTitle: `M${order}`,
+    moduleOrder: order,
+    drippingDayBeforeDedaStart: 0,
+    drippingDayAfterDedaStart: 0,
+    hpecLessonsCollection: {
+        items: ids.map((id) => ({ lessonId: id, lessonTitle: id, lessonFeaturedText: '', lessonVideoEmbedUrl: '' })),
+    },
+});
+const lock = (order: number, ids: string[], unlockDate = 'Available on: 10/12/2026') => ({
+    ...mod(order, ids),
+    unlockDate,
+});
+
+describe('hpecTrail', () => {
+    it('orders modules by moduleOrder and marks states', () => {
+        const t = hpecTrail([mod(2, ['c']), mod(1, ['a', 'b'])], [lock(3, ['d'])], new Set(['a']));
+        expect(t.modules.map((m) => m.id)).toEqual(['HPEC1', 'HPEC2', 'HPEC3']);
+        expect(t.modules.flatMap((m) => m.lessons.map((l) => l.state))).toEqual(['done', 'here', 'open', 'locked']);
+        expect(t.here?.lesson.id).toBe('b');
+        expect(t.next).toBeUndefined();
+        expect([t.watched, t.total]).toEqual([1, 4]);
+    });
+
+    it('here is the earliest unwatched even if later ones are watched', () => {
+        const t = hpecTrail([mod(1, ['a', 'b', 'c'])], [], new Set(['a', 'c']));
+        expect(t.modules[0].lessons.map((l) => l.state)).toEqual(['done', 'here', 'done']);
+    });
+
+    it('all unlocked watched: next is the first locked lesson with its date', () => {
+        const t = hpecTrail([mod(1, ['a'])], [lock(2, ['b', 'c'])], new Set(['a']));
+        expect(t.here).toBeUndefined();
+        expect(t.next?.lesson.id).toBe('b');
+        expect(t.next?.module.unlockDate).toBe('Available on: 10/12/2026');
+    });
+
+    it('watched ids inside locked modules stay locked (drip wins)', () => {
+        const t = hpecTrail([], [lock(1, ['a'])], new Set(['a']));
+        expect(t.modules[0].lessons[0].state).toBe('locked');
+        expect(t.watched).toBe(0);
+    });
+
+    it('empty', () => {
+        expect(hpecTrail([], [], new Set())).toMatchObject({ modules: [], watched: 0, total: 0 });
+    });
+});
+
+describe('opensLabel', () => {
+    const now = new Date(2026, 9, 6);
+    it('formats getUnlockedDate text', () => {
+        expect(opensLabel('Available on: 10/12/2026', now)).toBe('Opens Oct 12');
+        expect(opensLabel('Available on: 1/3/2027', now)).toBe('Opens Jan 3, 2027');
+    });
+    it('keeps other texts', () => {
+        expect(opensLabel('Start DEDA to unlock this module', now)).toBe('Start DEDA to unlock this module');
+        expect(opensLabel(undefined, now)).toBe('');
+    });
+});
+
+describe('watched storage', () => {
+    it('round-trips and ignores junk', () => {
+        // roda em jsdom ou em node (sem jsdom instalado): um localStorage mínimo basta
+        const store: Record<string, string> = {};
+        const localStorage = {
+            getItem: (k: string) => store[k] ?? null,
+            setItem: (k: string, v: string) => void (store[k] = v),
+        };
+        Object.defineProperty(globalThis, 'window', { value: { localStorage }, configurable: true });
+        localStorage.setItem('lessonsWatched', '{"x":1}');
+        expect(readWatched().size).toBe(0);
+        markWatched('a');
+        markWatched('a');
+        expect([...readWatched()]).toEqual(['a']);
+    });
+});

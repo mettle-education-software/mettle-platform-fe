@@ -1,0 +1,563 @@
+'use client';
+
+import styled from '@emotion/styled';
+import { useQuery } from '@tanstack/react-query';
+import { useDedasGrid } from 'components/_melp/_deda/DedasGrid/DedasGrid';
+import { useGetHpecsModules, useOverallProgress } from 'hooks';
+import { useHpecProgress } from 'hooks/useHpecProgress';
+import { statisticsColors } from 'libs';
+import { dedaPath, hpecLessonPath } from 'libs/cleanUrls';
+import { contentfulImage } from 'libs/dedaHeader';
+import { hpecTrail, opensLabel } from 'libs/hpecTrail';
+import { vimeoIdOf, vimeoOembedUrl, vumbnailUrl } from 'libs/newDesign';
+import { ArrowRight, Play } from 'lucide-react';
+import Link from 'next/link';
+import { useAppContext, useMelpContext } from 'providers';
+import React, { useMemo, useState } from 'react';
+import { ICON } from 'themes/newDesign';
+import { NewHpecTrail } from './NewHpecTrail';
+
+/* Estilos só desta página (as classes comuns de components/_new/ui ficam como estão). */
+export const Dash = styled.div`
+    /* anel de foco explícito nos links desta página (um estilo global de links vence o :focus-visible geral) */
+    a:focus-visible {
+        outline: 2px solid var(--r-gold-hi);
+        outline-offset: 2px;
+    }
+
+    .ph h1 {
+        font-size: 22px;
+    }
+
+    /* ---------- Agora: DEDA de hoje + aula do HPEC ---------- */
+    .now {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+        gap: 20px 28px;
+    }
+    /* texto centrado na altura da imagem: linhas elásticas em volta de selo, título e ação */
+    /* as duas imagens do mesmo tamanho, em 16:9 inteiro (a miniatura do Vimeo traz o logo com margem própria) */
+    .now .cc.today {
+        grid-template-columns: 224px minmax(0, 1fr);
+        grid-template-rows: 1fr auto auto auto 1fr;
+        max-width: none;
+    }
+    .now .cc.today .img {
+        grid-row: 1 / 6;
+        aspect-ratio: 16 / 9;
+    }
+    .now .cc.today .meta {
+        grid-area: 2 / 2;
+    }
+    .now .cc.today b {
+        grid-area: 3 / 2;
+    }
+    .now .cc.today .act {
+        grid-area: 4 / 2;
+    }
+    .now .cc.today b {
+        font-size: 17px;
+    }
+    .now .cc.today .act svg.play {
+        width: 13px;
+        height: 13px;
+        fill: currentColor;
+    }
+    .now .cc.wait {
+        cursor: default;
+    }
+    .now .cc.wait .act {
+        color: var(--r-muted);
+    }
+    .now .cc.wait img {
+        opacity: 0.55;
+        filter: saturate(0.6);
+    }
+
+    /* ---------- KPIs: a faixa inteira leva à LAMP ---------- */
+    .kpis {
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0 56px;
+        padding: 20px 0;
+        border-top: 1px solid var(--r-line);
+        border-bottom: 1px solid var(--r-line);
+        color: var(--r-text);
+        text-decoration: none;
+    }
+    .kpi {
+        min-width: 0;
+    }
+    .kpi .v {
+        display: block;
+        font-size: 34px;
+        font-weight: 300;
+        line-height: 1.1;
+        letter-spacing: -0.01em;
+    }
+    .kpi .v small {
+        margin-left: 2px;
+        font-size: 15px;
+        font-weight: 400;
+        letter-spacing: 0;
+        color: var(--r-muted);
+    }
+    .kpi .k {
+        display: block;
+        margin-top: 6px;
+        font-size: var(--r-label-size);
+        font-weight: 500;
+        letter-spacing: var(--r-label-track);
+        text-transform: uppercase;
+        color: var(--r-muted);
+    }
+    /* as quatro frentes da LAMP: rótulo e valor numa linha, barra fina com a cor da LAMP embaixo */
+    .cats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px 28px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .cats li {
+        min-width: 0;
+    }
+    .cats .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 13px;
+        letter-spacing: 0.01em;
+        color: var(--r-muted);
+    }
+    .cats .row b {
+        font-weight: 500;
+        color: var(--r-text);
+    }
+    .cats .bar {
+        display: block;
+        height: 2px;
+        margin-top: 8px;
+        border-radius: 1px;
+        background: var(--r-track);
+        overflow: hidden;
+    }
+    .cats .bar i {
+        display: block;
+        height: 100%;
+        min-width: 2px;
+        border-radius: inherit;
+    }
+    .kpis .go {
+        justify-self: end;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13.5px;
+        letter-spacing: 0.01em;
+        color: var(--r-gold-hi);
+    }
+    .kpis .go svg {
+        transition: transform var(--r-ease);
+    }
+    .kpis:hover .go svg {
+        transform: translateX(2px);
+    }
+
+    /* ---------- DEDAs recentes: uma fila fina ---------- */
+    .recent {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px 20px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .recent a {
+        display: grid;
+        grid-template-columns: 56px minmax(0, 1fr);
+        align-items: center;
+        gap: 0 12px;
+        min-height: 54px;
+        color: var(--r-text);
+        text-decoration: none;
+    }
+    .recent .img {
+        display: block;
+        aspect-ratio: 4 / 3;
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--r-surf);
+    }
+    .recent img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .recent small {
+        display: block;
+        font-size: var(--r-label-size);
+        font-weight: 500;
+        letter-spacing: var(--r-label-track);
+        text-transform: uppercase;
+        color: var(--r-muted);
+    }
+    .recent b {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        margin-top: 2px;
+        overflow: hidden;
+        line-height: 1.3;
+        font-size: 14.5px;
+        font-weight: 500;
+    }
+    .recent a:hover b {
+        color: var(--r-gold-hi);
+    }
+
+    @media (max-width: 1100px) {
+        .recent {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .recent li:nth-child(n + 4) {
+            display: none;
+        }
+    }
+    @media (max-width: 860px) {
+        .hp .sh {
+            flex-wrap: wrap;
+        }
+        .hp .sh > div {
+            flex: 1 1 100%;
+        }
+        .ph h1 {
+            font-size: 20px;
+        }
+        .now {
+            grid-template-columns: minmax(0, 1fr);
+        }
+        .now .cc.today {
+            grid-template-columns: 144px minmax(0, 1fr);
+        }
+        .now .cc.today b {
+            font-size: 15.5px;
+        }
+        .kpis {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 16px;
+            padding: 18px 0 12px;
+        }
+        .cats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px 24px;
+        }
+        .kpi .v {
+            font-size: 28px;
+        }
+        .kpi .v small {
+            font-size: 13px;
+        }
+        .kpis .go {
+            justify-self: start;
+        }
+        .recent {
+            grid-template-columns: minmax(0, 1fr);
+        }
+        /* celular: uma lista curta */
+        .recent li:nth-child(n + 4) {
+            display: none;
+        }
+    }
+`;
+
+/** Miniatura do Vimeo (oEmbed; vumbnail se o oEmbed não der; sem imagem, o fundo neutro do card). */
+const Thumb: React.FC<{ embedUrl: string }> = ({ embedUrl }) => {
+    const id = vimeoIdOf(embedUrl);
+    const [failed, setFailed] = useState(false);
+    const { data: oembed, isPending } = useQuery({
+        queryKey: ['vimeo-oembed', id],
+        queryFn: () =>
+            fetch(vimeoOembedUrl(id as string))
+                .then((r) => (r.ok ? r.json() : null))
+                .then((j: { thumbnail_url?: string } | null) => j?.thumbnail_url ?? null)
+                .catch(() => null),
+        enabled: !!id,
+        staleTime: Infinity,
+        gcTime: Infinity,
+        retry: false,
+    });
+    if (!id || isPending || failed) return null;
+    return (
+        // eslint-disable-next-line @next/next/no-img-element -- miniatura do Vimeo
+        <img src={oembed || vumbnailUrl(id)} alt="" loading="lazy" onError={() => setFailed(true)} />
+    );
+};
+
+const Skel: React.FC = () => (
+    <div className="cc today skel" aria-hidden>
+        <span className="img" />
+    </div>
+);
+
+/* ---------- Agora ---------- */
+
+/** DEDA de hoje: o atual (último liberado), da mesma consulta da grade de recentes; um clique abre. */
+export const NowDeda: React.FC = () => {
+    const { isTodaysDedaCompleted } = useMelpContext();
+    const grid = useDedasGrid('lastDedas');
+    const deda = grid.lastDedas[0];
+    if (!deda) return grid.showSkeleton ? <Skel /> : null;
+    const thumb = contentfulImage(deda.dedaFeaturedImage?.url, { w: 448, h: 252, fit: 'fill', fm: 'webp', q: 70 });
+    return (
+        <Link className="cc today" href={dedaPath(deda.dedaSlug)} aria-label={`Today’s DEDA: ${deda.dedaTitle}`}>
+            <span className="img">
+                {/* eslint-disable-next-line @next/next/no-img-element -- imagem do Contentful */}
+                {thumb && <img src={thumb} alt="" />}
+            </span>
+            <span className="meta">
+                <small>Today’s DEDA</small>
+                {isTodaysDedaCompleted && <em>Done today</em>}
+            </span>
+            <b>{deda.dedaTitle}</b>
+            <span className="act">
+                Open DEDA <ArrowRight {...ICON} size={16} aria-hidden />
+            </span>
+        </Link>
+    );
+};
+
+type Trail = ReturnType<typeof hpecTrail>;
+
+/** Aula do HPEC para agora: a primeira liberada não vista; tudo visto = a próxima a liberar (com a data). */
+const NowHpec: React.FC<{ trail?: Trail; error?: boolean }> = ({ trail, error }) => {
+    if (error) return null;
+    if (!trail) return <Skel />;
+    const { here, next } = trail;
+    if (here)
+        return (
+            <Link
+                className="cc today"
+                href={`${hpecLessonPath(here.lesson.id)}?play`}
+                aria-label={`Watch HPEC: ${here.lesson.title}`}
+            >
+                <span className="img">
+                    <Thumb embedUrl={here.lesson.embedUrl} />
+                </span>
+                <span className="meta">
+                    <small>HPEC · Module {here.module.order}</small>
+                </span>
+                <b>{here.lesson.title}</b>
+                <span className="act">
+                    <Play {...ICON} size={13} className="play" aria-hidden /> Watch
+                </span>
+            </Link>
+        );
+    if (next)
+        return (
+            <div className="cc today wait">
+                <span className="img">
+                    <Thumb embedUrl={next.lesson.embedUrl} />
+                </span>
+                <span className="meta">
+                    <small>HPEC · Module {next.module.order}</small>
+                </span>
+                <b>{next.lesson.title}</b>
+                <span className="act">{opensLabel(next.module.unlockDate)}</span>
+            </div>
+        );
+    if (!trail.total) return null;
+    // tudo liberado e visto: rever a partir do começo
+    const first = trail.modules[0].lessons[0];
+    return (
+        <Link className="cc today" href={hpecLessonPath(first.id)}>
+            <span className="img">
+                <Thumb embedUrl={first.embedUrl} />
+            </span>
+            <span className="meta">
+                <small>HPEC</small>
+                <em>Complete</em>
+            </span>
+            <b>{first.title}</b>
+            <span className="act">
+                Watch again <ArrowRight {...ICON} size={16} aria-hidden />
+            </span>
+        </Link>
+    );
+};
+
+/** Percurso do HPEC (mesma liberação de useGetHpecsModules) + aulas vistas neste aparelho. */
+export const useTrail = () => {
+    const { melpSummary } = useMelpContext();
+    const { unlockedModules, lockedModules, loading, error } = useGetHpecsModules();
+    // aulas concluídas de verdade (Worker, todos os aparelhos); sem elas, vale só a regra por módulo
+    const { done } = useHpecProgress();
+    const ready = !!melpSummary && !loading && !error;
+    const trail = useMemo(
+        () => (ready ? hpecTrail(unlockedModules, lockedModules, new Set(Object.keys(done))) : undefined),
+        [ready, unlockedModules, lockedModules, done],
+    );
+    return {
+        trail,
+        loading: !error && (loading || !melpSummary),
+        error: !!error,
+    };
+};
+
+export const NowRow: React.FC<{ withDeda: boolean; trail?: Trail; error?: boolean }> = ({ withDeda, trail, error }) => (
+    <section aria-label="Now" className="now">
+        {withDeda && <NowDeda />}
+        <NowHpec trail={trail} error={error} />
+    </section>
+);
+
+/* ---------- KPIs ---------- */
+
+/**
+ * O "Overall" da LAMP: o total e as quatro frentes (DEDA, Active, Passive, Review), da mesma consulta da página da
+ * LAMP (useOverallProgress, mesma chave) e no mesmo formato dela (total com duas casas; frentes arredondadas; Review
+ * só quando existe). A faixa inteira abre a LAMP.
+ */
+export const Kpis: React.FC = () => {
+    const { user } = useAppContext();
+    const { overallData } = useOverallProgress(user?.uid);
+    const by = overallData?.byActivity;
+    const cats: [string, number | null | undefined, string][] = [
+        ['DEDA', by?.deda, statisticsColors.DEDA],
+        ['Active', by?.active, statisticsColors.Active],
+        ['Passive', by?.passive, statisticsColors.Passive],
+        ...(by && by.review !== null && by.review !== undefined
+            ? ([['Review', by.review, statisticsColors.Review]] as [string, number, string][])
+            : []),
+    ];
+    const total = overallData?.overallPerformance;
+    return (
+        <Link href="/imerso/lamp" className="kpis" aria-label="Overall progress — open LAMP">
+            <span className="kpi">
+                <span className="v">
+                    {typeof total === 'number' ? total.toFixed(2) : '—'}
+                    {typeof total === 'number' && <small>%</small>}
+                </span>
+                <span className="k">Overall</span>
+            </span>
+            <ul className="cats">
+                {cats.map(([name, value, color]) => (
+                    <li key={name}>
+                        <span className="row">
+                            {name}
+                            <b>{typeof value === 'number' ? `${Math.round(value)}%` : '—'}</b>
+                        </span>
+                        <span className="bar" aria-hidden>
+                            <i style={{ width: `${Math.min(100, Math.max(0, value ?? 0))}%`, background: color }} />
+                        </span>
+                    </li>
+                ))}
+            </ul>
+            <span className="go">
+                LAMP <ArrowRight {...ICON} size={16} aria-hidden />
+            </span>
+        </Link>
+    );
+};
+
+/* ---------- HPEC ---------- */
+
+export const HpecSection: React.FC<{ trail?: Trail; loading: boolean; error: boolean }> = ({
+    trail,
+    loading,
+    error,
+}) => {
+    const title = (
+        <>
+            HPEC
+            {!!trail?.moduleNumber && (
+                <span>
+                    Module {trail.moduleNumber} of {trail.moduleCount}
+                </span>
+            )}
+        </>
+    );
+    return (
+        <section aria-label="HPEC" aria-busy={loading || undefined} className="hp">
+            {trail && trail.total > 0 && !error ? (
+                <NewHpecTrail modules={trail.modules} title={title} />
+            ) : (
+                <>
+                    <div className="sh">
+                        <h2>{title}</h2>
+                    </div>
+                    {error ? (
+                        <p className="hint">Couldn’t load the HPEC lessons. Please try again later.</p>
+                    ) : loading || !trail ? (
+                        <div className="hrow" aria-hidden>
+                            <div className="hc skel">
+                                <span className="img" />
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="hint">No HPEC lessons yet.</p>
+                    )}
+                </>
+            )}
+        </section>
+    );
+};
+
+/* ---------- DEDAs recentes ---------- */
+
+/** Os DEDAs anteriores ao de hoje (mesma consulta da grade "Most recent"), numa fila fina. */
+export const RecentDedas: React.FC<{ title?: string; aside?: React.ReactNode; skipCurrent?: boolean }> = ({
+    title = 'Recent DEDAs',
+    aside,
+    skipCurrent = true,
+}) => {
+    // os DEDAs vêm da lista completa (a mesma consulta de "Explore all DEDAs", em cache entre as páginas); a ordem é a
+    // de liberação (melp summary), do mais recente para trás
+    const grid = useDedasGrid('allDedas');
+    const week = grid.currentWeek as number;
+    const byId = new Map((grid.allDedas ?? []).map((deda) => [deda.dedaId, deda]));
+    const items = grid.unlockedDEDAs
+        .slice()
+        .reverse()
+        .map((id, index) => ({ deda: byId.get(id), week: week - index }))
+        .slice(skipCurrent ? 1 : 0)
+        .filter((x): x is { deda: NonNullable<typeof x.deda>; week: number } => !!x.deda)
+        .slice(0, 5);
+    if (!items.length && !grid.showSkeleton) return aside ? <div className="sh">{aside}</div> : null;
+    return (
+        <section aria-label={title}>
+            <div className="sh">
+                <h2>{title}</h2>
+                {aside}
+            </div>
+            <ul className="recent">
+                {items.map(({ deda, week: w }) => {
+                    const src = contentfulImage(deda.dedaFeaturedImage?.url, {
+                        w: 144,
+                        h: 108,
+                        fit: 'fill',
+                        fm: 'webp',
+                        q: 70,
+                    });
+                    return (
+                        <li key={deda.dedaSlug}>
+                            <Link href={dedaPath(deda.dedaSlug)}>
+                                <span className="img">
+                                    {/* eslint-disable-next-line @next/next/no-img-element -- imagem do Contentful */}
+                                    {src && <img src={src} alt="" loading="lazy" />}
+                                </span>
+                                <span>
+                                    <small>Week {w}</small>
+                                    <b>{deda.dedaTitle}</b>
+                                </span>
+                            </Link>
+                        </li>
+                    );
+                })}
+            </ul>
+        </section>
+    );
+};

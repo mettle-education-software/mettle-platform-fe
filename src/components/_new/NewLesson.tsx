@@ -11,6 +11,7 @@ import useGetLessonContent from 'hooks/queries/useGetLessonContent';
 import { useDeviceSize } from 'hooks/useDeviceSize';
 import { fileTypes, saveFile } from 'libs';
 import { readTextScale, saveTextScale } from 'libs/dedaReader';
+import { WATCHED_AT } from 'libs/hpecTrail';
 import {
     CourseModule,
     fileSizeLabel,
@@ -100,6 +101,12 @@ type Tab = 'video' | 'summary' | 'resources';
 
 const Wrap = styled.div`
     ${ui};
+    /* anel de foco explícito (um estilo global de links vence o :focus-visible geral); por dentro, para o trilho
+       (overflow) não cortar */
+    a:focus-visible {
+        outline: 2px solid var(--r-gold-hi);
+        outline-offset: -2px;
+    }
     display: grid;
     grid-template-columns: 300px minmax(0, 1fr);
     min-height: 100%;
@@ -249,11 +256,11 @@ const Wrap = styled.div`
     .mods li a .n {
         font-size: 12px;
         font-variant-numeric: tabular-nums;
-        color: var(--r-faint);
+        color: var(--r-muted);
         text-align: right;
     }
     .mods li a[aria-current='page'] .n {
-        color: var(--r-gold-hi);
+        color: var(--r-text);
     }
     .mods li.skel {
         height: 44px;
@@ -584,13 +591,25 @@ const Wrap = styled.div`
     /* próxima aula ao fim do conteúdo */
     .after {
         display: flex;
+        flex-wrap: wrap;
+        align-items: center;
         justify-content: flex-end;
+        gap: 12px 16px;
         margin-top: 40px;
         padding-top: 20px;
         border-top: 1px solid var(--r-line);
     }
     .after .btn {
         max-width: 100%;
+    }
+    /* "concluída" à esquerda, próxima aula à direita */
+    .after .done-toggle {
+        margin-right: auto;
+    }
+    .after .done-toggle[aria-pressed='true'] {
+        border-color: transparent;
+        background: var(--r-gold-tint);
+        color: var(--r-gold-hi);
     }
     .after .btn span {
         overflow: hidden;
@@ -779,6 +798,10 @@ export interface NewLessonProps {
     lang: Lang;
     /** Imerso expirado: o conteúdo dá lugar ao convite (a mesma peça das três abas atuais). */
     lockedContent?: React.ReactNode;
+    /** Vídeo assistido (90% ou fim): o curso decide o que fazer (HPEC: marca a aula como concluída). */
+    onWatched?: (lessonId: string) => void;
+    /** Controle "concluída" da aula (HPEC), ao lado da próxima aula. */
+    doneToggle?: (lessonId: string) => React.ReactNode;
 }
 
 /**
@@ -794,6 +817,8 @@ export const NewLesson: React.FC<NewLessonProps> = ({
     progress,
     lang,
     lockedContent,
+    onWatched,
+    doneToggle,
 }) => {
     const t = TEXTS[lang];
     const isMobile = useDeviceSize() === 'mobile';
@@ -814,6 +839,8 @@ export const NewLesson: React.FC<NewLessonProps> = ({
     const [scale, setScale] = useState(() => (typeof window !== 'undefined' ? readTextScale() : 1));
     const wrapRef = useRef<HTMLDivElement>(null);
     const firstLesson = useRef(lessonId);
+    // "?play" (vindo do "Agora" da home do IMERSO): a aula de entrada já toca; as seguintes, não
+    const [playOnOpen] = useState(() => typeof window !== 'undefined' && /[?&]play\b/.test(window.location.search));
     useEffect(() => {
         setSheet(false);
         // aula nova: volta ao topo (a troca no lugar não passa pelo roteador, que faria isso)
@@ -947,7 +974,13 @@ export const NewLesson: React.FC<NewLessonProps> = ({
             <>
                 {isMobile && hasVideo && (
                     <div className="video">
-                        <LessonVideo lessonId={shownId} />
+                        <LessonVideo
+                            key={shownId}
+                            lessonId={shownId}
+                            onWatched={onWatched && (() => onWatched(shownId))}
+                            watchedAt={WATCHED_AT}
+                            autoplay={playOnOpen && shownId === firstLesson.current}
+                        />
                     </div>
                 )}
                 <div className="tabs">
@@ -973,7 +1006,13 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                 </div>
                 {hasVideo && !isMobile && (
                     <div id="lesson-video" role="tabpanel" className="video" hidden={active !== 'video'}>
-                        <LessonVideo lessonId={shownId} />
+                        <LessonVideo
+                            key={shownId}
+                            lessonId={shownId}
+                            onWatched={onWatched && (() => onWatched(shownId))}
+                            watchedAt={WATCHED_AT}
+                            autoplay={playOnOpen && shownId === firstLesson.current}
+                        />
                     </div>
                 )}
                 <div id="lesson-summary" role="tabpanel" hidden={active !== 'summary'}>
@@ -1023,12 +1062,15 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                         </ul>
                     </div>
                 )}
-                {next && (
+                {(next || doneToggle) && (
                     <div className="after">
-                        <LessonLink href={next.href} className="btn line" title={next.title}>
-                            {t.nextUp}: <span>{next.title}</span>
-                            <ArrowRight {...ICON} size={16} className="arrow" aria-hidden />
-                        </LessonLink>
+                        {doneToggle?.(shownId)}
+                        {next && (
+                            <LessonLink href={next.href} className="btn line" title={next.title}>
+                                {t.nextUp}: <span>{next.title}</span>
+                                <ArrowRight {...ICON} size={16} className="arrow" aria-hidden />
+                            </LessonLink>
+                        )}
                     </div>
                 )}
             </>

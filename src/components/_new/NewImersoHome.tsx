@@ -3,7 +3,7 @@
 import { Button, Modal, Select } from 'antd';
 import { useResumeDeda, useStartDeda } from 'hooks';
 import { DedaDifficulties, DedaDifficulty, MelpStatus } from 'interfaces/melp';
-import { getWeekDay, nextMondayDate } from 'libs';
+import { nextMondayDate } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { firstName, IntensityLang, readIntensityLang, saveIntensityLang } from 'libs/newDesign';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
@@ -13,7 +13,7 @@ import { useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewDedasGrid } from './NewDedasGrid';
-import { NewHpecRow } from './NewHpecRow';
+import { Dash, HpecSection, Kpis, NowRow, RecentDedas, useTrail } from './NewImersoDash';
 import { NewPage } from './NewPage';
 
 /* ---------- estados (mesmo conteúdo, mesmas ações e mesmas chamadas de components/_melp/_melpHome) ---------- */
@@ -152,82 +152,71 @@ const CanStart: React.FC = () => {
                     Confirm DEDA start
                 </Button>
             </div>
-            <NewHpecRow />
-            <Grid customTitle="DEDA week zero" />
         </>
     );
 };
 
 const Waiting: React.FC = () => (
-    <>
-        <div className="notice">
-            <div>
-                <b>Great!</b>
-                <p>
-                    You have confirmed the start of DEDA. Come back on{' '}
-                    <strong>{nextMondayDate().toLocaleDateString()}</strong> to start.
-                </p>
-            </div>
+    <div className="notice">
+        <div>
+            <b>Great!</b>
+            <p>
+                You have confirmed the start of DEDA. Come back on{' '}
+                <strong>{nextMondayDate().toLocaleDateString()}</strong> to start.
+            </p>
         </div>
-        <NewHpecRow />
-    </>
-);
-
-const Started: React.FC = () => (
-    <>
-        <NewHpecRow />
-        <Grid aside={<ExploreAll />} />
-    </>
+    </div>
 );
 
 const Paused: React.FC = () => {
     const resumeDeda = useResumeDeda();
     return (
-        <>
-            <div className="notice">
-                <div>
-                    <b>Feel like getting back to DEDA?</b>
-                    <p>
-                        You can return to the DEDA program. The next available date is{' '}
-                        <strong>{nextMondayDate().toLocaleDateString()}</strong>
-                    </p>
-                </div>
-                <Button type="primary" onClick={() => resumeDeda.mutate()} loading={resumeDeda.isPending}>
-                    Return to DEDA
-                </Button>
+        <div className="notice">
+            <div>
+                <b>Feel like getting back to DEDA?</b>
+                <p>
+                    You can return to the DEDA program. The next available date is{' '}
+                    <strong>{nextMondayDate().toLocaleDateString()}</strong>
+                </p>
             </div>
-            <NewHpecRow />
-            <Grid />
-        </>
+            <Button type="primary" onClick={() => resumeDeda.mutate()} loading={resumeDeda.isPending}>
+                Return to DEDA
+            </Button>
+        </div>
     );
 };
 
 const Finished: React.FC = () => (
-    <>
-        <div className="notice">
-            <div>
-                <b>Well done!</b>
-                <p>You have completed all DEDA weeks!</p>
-            </div>
+    <div className="notice">
+        <div>
+            <b>Well done!</b>
+            <p>You have completed all DEDA weeks!</p>
         </div>
-        <NewHpecRow />
-        <Grid customTitle="Dive back again" aside={<ExploreAll />} />
-    </>
+    </div>
 );
 
-const VIEWS: Partial<Record<MelpStatus, React.ReactNode>> = {
-    MELP_BEGIN: <NewHpecRow />,
-    WEEK_ZERO: (
-        <>
-            <NewHpecRow />
-            <Grid customTitle="DEDA week zero" />
-        </>
-    ),
-    CAN_START_DEDA: <CanStart />,
-    DEDA_STARTED_NOT_BEGUN: <Waiting />,
-    DEDA_STARTED: <Started />,
-    DEDA_PAUSED: <Paused />,
-    DEDA_FINISHED: <Finished />,
+/** O que cada estado mostra: aviso (como hoje), "Agora", números da LAMP, percurso do HPEC e DEDAs. */
+type View = {
+    notice?: React.ReactNode;
+    /** DEDA de hoje no "Agora" (só com o DEDA em andamento) */
+    deda?: boolean;
+    /** números da LAMP (há semanas de DEDA registradas) */
+    kpis?: boolean;
+    dedas?: React.ReactNode;
+};
+
+const VIEWS: Partial<Record<MelpStatus, View>> = {
+    MELP_BEGIN: {},
+    WEEK_ZERO: { dedas: <Grid customTitle="DEDA week zero" /> },
+    CAN_START_DEDA: { notice: <CanStart />, dedas: <Grid customTitle="DEDA week zero" /> },
+    DEDA_STARTED_NOT_BEGUN: { notice: <Waiting /> },
+    DEDA_STARTED: { deda: true, kpis: true, dedas: <RecentDedas aside={<ExploreAll />} /> },
+    DEDA_PAUSED: { notice: <Paused />, kpis: true, dedas: <RecentDedas skipCurrent={false} aside={<ExploreAll />} /> },
+    DEDA_FINISHED: {
+        notice: <Finished />,
+        kpis: true,
+        dedas: <RecentDedas title="Dive back again" skipCurrent={false} aside={<ExploreAll />} />,
+    },
 };
 
 /**
@@ -250,20 +239,31 @@ export const NewImersoHome: React.FC = () => {
         renderStatus = 'DEDA_STARTED';
     }
 
+    const view = VIEWS[renderStatus];
+    const { trail, loading, error } = useTrail();
+
     return (
         <NewPage>
-            <header className="ph">
-                <p className="eyebrow">IMERSO</p>
-                <h1>Welcome, {firstName(user?.name)}</h1>
-                {melpStatus === 'DEDA_STARTED' && (
-                    <p className="ctx">
-                        DEDA <b>{melpSummary.currentDedaName}</b> · Week {melpSummary.current_deda_week} · Day{' '}
-                        {getWeekDay()}
-                    </p>
+            <Dash>
+                <header className="ph">
+                    <h1>Welcome, {firstName(user?.name)}</h1>
+                </header>
+                {view ? (
+                    <>
+                        {view.notice}
+                        <NowRow withDeda={!!view.deda} trail={trail} error={error} />
+                        {view.kpis && (
+                            <section aria-label="Your numbers">
+                                <Kpis />
+                            </section>
+                        )}
+                        <HpecSection trail={trail} loading={loading} error={error} />
+                        {view.dedas}
+                    </>
+                ) : (
+                    melpStatus === 'MELP_SUSPENDED' && <p className="hint">Your IMERSO access is suspended.</p>
                 )}
-            </header>
-            {VIEWS[renderStatus] ??
-                (melpStatus === 'MELP_SUSPENDED' && <p className="hint">Your IMERSO access is suspended.</p>)}
+            </Dash>
         </NewPage>
     );
 };

@@ -61,7 +61,6 @@ export const NewEbookReader: React.FC = () => {
     const [index, setIndex] = useState(0);
     const [scale, setScale] = useState(1);
     const [toc, setToc] = useState(false);
-    const [barHidden, setBarHidden] = useState(false);
     const [progress, setProgress] = useState(0);
 
     const root = useRef<HTMLDivElement>(null);
@@ -108,17 +107,14 @@ export const NewEbookReader: React.FC = () => {
         }
     }, [book]);
 
-    // rolagem: progresso, barra que some/volta, posição salva (aparelho sempre; servidor a cada 15 s e ao sair)
+    // rolagem: progresso, posição salva (aparelho sempre; servidor a cada 15 s e ao sair)
     useEffect(() => {
         const main = scroller();
         if (!main || !chapter) return;
-        let prevTop = main.scrollTop;
         const onScroll = () => {
             const max = main.scrollHeight - main.clientHeight;
             const y = max > 0 ? Math.min(1, main.scrollTop / max) : 0;
             setProgress((index + y) / chapters.length);
-            if (Math.abs(main.scrollTop - prevTop) > 6) setBarHidden(main.scrollTop > prevTop && main.scrollTop > 120);
-            prevTop = main.scrollTop;
             last.current = { c: chapter.slug, y: Math.round(y * 10000) / 10000, at: new Date().toISOString() };
             saveLocalPosition(last.current);
             if (Date.now() - sentAt.current > 15_000) flush();
@@ -144,7 +140,6 @@ export const NewEbookReader: React.FC = () => {
         flush();
         pendingY.current = 0;
         setToc(false);
-        setBarHidden(false);
         setIndex(i);
     };
 
@@ -210,7 +205,7 @@ export const NewEbookReader: React.FC = () => {
                 className={uiFont.className}
                 style={{ '--r-scale': scale, '--r-read-font': readFont.style.fontFamily } as React.CSSProperties}
             >
-                <header className={`bar${barHidden ? ' off' : ''}`}>
+                <header className="bar">
                     <button type="button" className="ib" aria-label="Índice" onClick={() => setToc(true)}>
                         <List {...ICON} />
                     </button>
@@ -305,7 +300,7 @@ const State = styled.div`
 `;
 
 const Wrap = styled.div`
-    /* barra fina, presa no topo da rolagem da casca; some ao descer, volta ao subir */
+    /* barra fina, sempre presa no topo da rolagem da casca */
     .bar {
         position: sticky;
         top: 0;
@@ -316,10 +311,6 @@ const Wrap = styled.div`
         height: 52px;
         padding: 0 12px;
         background: var(--r-bg);
-        transition: transform var(--r-ease);
-    }
-    .bar.off {
-        transform: translateY(-100%);
     }
     .bar .sp {
         flex: 1;

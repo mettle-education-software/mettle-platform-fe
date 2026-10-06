@@ -5,6 +5,7 @@ import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { getWeekDay } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { contentfulImage } from 'libs/dedaHeader';
+import { EBOOK, EBOOK_PATH, EBOOK_PRODUCT, ebookOpen } from 'libs/ebook';
 import { firstName } from 'libs/newDesign';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { ArrowRight, Lock } from 'lucide-react';
@@ -12,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React from 'react';
 import { ICON } from 'themes/newDesign';
+import { EbookCover } from './NewEbook';
 import { NewPage } from './NewPage';
 
 /** DEDA de hoje em um clique: só com o DEDA em andamento e o IMERSO ativo (mesmo destino da home do IMERSO). */
@@ -59,6 +61,7 @@ export const NewHome: React.FC = () => {
     const { cards, loading, error, openCta } = useCourseCards();
     const imersoState = access(IMERSO_PRODUCT).state;
     const imersoOpen = imersoState === 'active' || imersoState === 'grace';
+    const ebook = ebookOpen(access(EBOOK_PRODUCT).state);
 
     return (
         <NewPage className="home">
@@ -133,6 +136,20 @@ export const NewHome: React.FC = () => {
                                       </a>
                                   );
                               })}
+                        {!loading && ebook && (
+                            <a className="cc" href={EBOOK_PATH}>
+                                <span className="img" style={{ display: 'grid', placeItems: 'center' }}>
+                                    <EbookCover width={96} />
+                                </span>
+                                <span className="meta">
+                                    <small>E-book</small>
+                                </span>
+                                <b>{EBOOK.title}</b>
+                                <span className="act">
+                                    Ler <ArrowRight {...ICON} size={16} aria-hidden />
+                                </span>
+                            </a>
+                        )}
                     </div>
                 )}
             </section>

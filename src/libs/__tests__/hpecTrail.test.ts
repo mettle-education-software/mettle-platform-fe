@@ -1,5 +1,5 @@
 import { IHPECLesson } from 'interfaces';
-import { hpecTrail, markWatched, opensLabel, readWatched } from '../hpecTrail';
+import { clearWatched, hpecTrail, opensLabel, readWatched } from '../hpecTrail';
 
 const mod = (order: number, ids: string[]): IHPECLesson => ({
     hpecId: `HPEC${order}`,
@@ -66,19 +66,21 @@ describe('opensLabel', () => {
     });
 });
 
-describe('watched storage', () => {
-    it('round-trips and ignores junk', () => {
+describe('old device marks (migrated once)', () => {
+    it('reads, ignores junk and clears', () => {
         // roda em jsdom ou em node (sem jsdom instalado): um localStorage mínimo basta
         const store: Record<string, string> = {};
         const localStorage = {
             getItem: (k: string) => store[k] ?? null,
             setItem: (k: string, v: string) => void (store[k] = v),
+            removeItem: (k: string) => void delete store[k],
         };
         Object.defineProperty(globalThis, 'window', { value: { localStorage }, configurable: true });
         localStorage.setItem('lessonsWatched', '{"x":1}');
         expect(readWatched().size).toBe(0);
-        markWatched('a');
-        markWatched('a');
-        expect([...readWatched()]).toEqual(['a']);
+        localStorage.setItem('lessonsWatched', '["a",1,"b"]');
+        expect([...readWatched()]).toEqual(['a', 'b']);
+        clearWatched();
+        expect(readWatched().size).toBe(0);
     });
 });

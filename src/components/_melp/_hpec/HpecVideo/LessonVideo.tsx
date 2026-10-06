@@ -93,9 +93,18 @@ export const LessonVideo: React.FC<LessonVideoProps> = ({
         };
 
         player.on('timeupdate', onTimeUpdate);
+        // fim do vídeo também conta como vista (pulou para o fim, vídeo curto)
+        const onEnded = () => {
+            if (onWatched && !watchedSent) {
+                watchedSent = true;
+                onWatched();
+            }
+        };
+        if (onWatched) player.on('ended', onEnded);
 
         return () => {
             player.off('timeupdate', onTimeUpdate);
+            if (onWatched) player.off('ended', onEnded);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [iframeRef.current, user]);

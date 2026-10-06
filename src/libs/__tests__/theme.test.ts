@@ -1,6 +1,14 @@
-import { DARK, LIGHT } from '../../themes/palette';
+import { DARK, LIGHT, LK_LIGHT } from '../../themes/palette';
 import { isShellRoute, lessonIdFromPath } from '../newDesign';
-import { parseThemePref, readThemePref, resolveTheme, saveThemePref, THEME_BOOT_SCRIPT, THEME_KEY } from '../theme';
+import {
+    chatwootScheme,
+    parseThemePref,
+    readThemePref,
+    resolveTheme,
+    saveThemePref,
+    THEME_BOOT_SCRIPT,
+    THEME_KEY,
+} from '../theme';
 
 // localStorage mínimo (os testes rodam com --testEnvironment node)
 const store = new Map<string, string>();
@@ -83,9 +91,13 @@ const PAIRS: [keyof typeof DARK, keyof typeof DARK, number][] = [
     ['--r-muted', '--r-bg', 4.5],
     ['--r-muted', '--r-bg2', 4.5],
     ['--r-muted', '--r-sheet', 4.5],
-    ['--r-faint', '--r-bg', 3], // só detalhes grandes/secundários (texto auxiliar)
+    ['--r-faint', '--r-bg', 4.5], // texto auxiliar também passa em AA (auditoria de contraste de 6-Out-2026)
     ['--r-gold-hi', '--r-bg', 4.5],
     ['--r-gold-hi', '--r-bg2', 4.5],
+    ['--r-gold-hi', '--r-surf', 4.5],
+    ['--r-gold-hi', '--r-sheet', 4.5],
+    ['--r-faint', '--r-bg2', 4.5],
+    ['--r-faint', '--r-surf', 4.5],
     ['--r-on-gold', '--r-gold', 4.5],
     ['--r-error', '--r-bg', 4.5],
     ['--r-tip-text', '--r-tip-bg', 4.5],
@@ -100,6 +112,33 @@ describe.each([
         // eslint-disable-next-line no-console
         if (process.env.SHOW_CONTRAST) console.log(_name, fg, bg, ratio.toFixed(2));
         expect(ratio).toBeGreaterThanOrEqual(min);
+    });
+});
+
+describe('chat de suporte', () => {
+    it('segue o tema só na plataforma nova; nas demais contas é sempre claro', () => {
+        expect(chatwootScheme(true, 'dark')).toBe('dark');
+        expect(chatwootScheme(true, 'light')).toBe('light');
+        expect(chatwootScheme(false, 'dark')).toBe('light');
+    });
+});
+
+describe('LinKnowledge no tema claro (AA)', () => {
+    it.each([
+        ['título do painel', LK_LIGHT.text, LK_LIGHT.panel],
+        ['título do card', LK_LIGHT.text, LK_LIGHT.card],
+        ['título do card (hover)', LK_LIGHT.text, LK_LIGHT.cardHover],
+        ['setas do carrossel', LK_LIGHT.arrow, LK_LIGHT.panel],
+        ['"Day N · gênero"', LIGHT['--r-gold-hi'], LK_LIGHT.card],
+        ['"Day N · gênero" (hover)', LIGHT['--r-gold-hi'], LK_LIGHT.cardHover],
+        ['card do dia: título e meta', LK_LIGHT.todayText, LK_LIGHT.today],
+    ])('%s', (_label, fg, bg) => {
+        expect(contrast(fg, bg)).toBeGreaterThanOrEqual(4.5);
+    });
+    it('a superfície é um tom acima do fundo da página e não é branca', () => {
+        expect(LK_LIGHT.bg).not.toBe('#ffffff');
+        expect(lum(LK_LIGHT.bg)).toBeLessThan(lum(LIGHT['--r-bg']));
+        expect(lum(LK_LIGHT.card)).toBeGreaterThan(lum(LK_LIGHT.bg));
     });
 });
 

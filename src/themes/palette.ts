@@ -23,7 +23,7 @@ export const DARK = {
     '--r-danger': '#e58f80',
     '--r-text': '#f3ede4',
     '--r-muted': '#bdb4a8',
-    '--r-faint': '#8f877c',
+    '--r-faint': '#a39b8f',
     '--r-gold': '#b78a5b',
     '--r-gold-hi': '#d3a878',
     '--r-gold-tint': 'rgba(183, 138, 91, 0.16)',
@@ -44,6 +44,22 @@ export const DARK = {
     '--r-readalong-text': '#1d1a17',
 } as const;
 
+/**
+ * LinKnowledge no tema claro (rodapé de Notes): superfície marfim um tom acima do fundo da página (não branco), painéis
+ * mais claros e cards claros com texto escuro; o card do dia continua dourado (`--secondary`) com texto escuro.
+ * No tema escuro o bloco fica como é (cores próprias dos componentes). Conferido em libs/__tests__/theme.test.ts.
+ */
+export const LK_LIGHT = {
+    bg: '#ece4d6',
+    panel: '#f4eee3',
+    card: '#fffdf9',
+    cardHover: '#ffffff',
+    text: '#2a2622',
+    arrow: '#5f574d',
+    today: '#b89261', // = --secondary (globals.css)
+    todayText: '#2b2b2b',
+} as const;
+
 export const LIGHT: Record<keyof typeof DARK, string> = {
     '--r-bg': '#f7f3ec',
     '--r-bg-rgb': '247, 243, 236',
@@ -62,9 +78,9 @@ export const LIGHT: Record<keyof typeof DARK, string> = {
     '--r-danger': '#a8402f',
     '--r-text': '#2a2622',
     '--r-muted': '#5f574d',
-    '--r-faint': '#736a5f',
+    '--r-faint': '#6b6257',
     '--r-gold': '#8c6434',
-    '--r-gold-hi': '#85602f',
+    '--r-gold-hi': '#7a5829',
     '--r-gold-tint': 'rgba(140, 100, 52, 0.12)',
     '--r-on-gold': '#fffaf2',
     '--r-on-gold-alt': '#fffaf2',

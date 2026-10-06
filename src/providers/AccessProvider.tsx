@@ -1,7 +1,11 @@
 'use client';
 
+import { Global } from '@emotion/react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Flex, Modal, Typography } from 'antd';
+import { Button, ConfigProvider, Flex, Modal, Typography } from 'antd';
+import { popupStyles } from 'components/_new/ui';
+import { useNewDesign } from 'hooks/useNewDesign';
+import { useNewAntdTheme } from 'hooks/useTheme';
 import {
     ACCESS_DENIED_EVENT,
     IMERSO_PRODUCT,
@@ -103,10 +107,27 @@ export const useProductAccess = () => useContext(Context);
 // Renderizado dentro do ConfigProvider do App (tema da Plataforma).
 export const AccessCtaModal: React.FC = () => {
     const { cta, openCta, imerso } = useProductAccess();
-    return (
-        <Modal open={!!cta} footer={null} onCancel={() => openCta(null)} destroyOnClose>
+    const newDesign = useNewDesign();
+    const antdTheme = useNewAntdTheme();
+    const modal = (
+        <Modal
+            open={!!cta}
+            footer={null}
+            onCancel={() => openCta(null)}
+            destroyOnClose
+            className={newDesign ? 'ui-new-modal' : undefined}
+        >
             {cta && <CtaContent target={cta} imerso={imerso} onClose={() => openCta(null)} />}
         </Modal>
+    );
+    // Plataforma nova: o convite segue o tema escolhido (Claro/Escuro) e o acabamento dos demais modais.
+    return newDesign ? (
+        <ConfigProvider theme={antdTheme}>
+            <Global styles={popupStyles} />
+            {modal}
+        </ConfigProvider>
+    ) : (
+        modal
     );
 };
 

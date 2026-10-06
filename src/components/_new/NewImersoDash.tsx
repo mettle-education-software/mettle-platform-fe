@@ -3,10 +3,12 @@
 import styled from '@emotion/styled';
 import { useQuery } from '@tanstack/react-query';
 import { useDedasGrid } from 'components/_melp/_deda/DedasGrid/DedasGrid';
-import { useGeneralWeeklyDevelopment, useGetHpecsModules, useGetWeeklyPerformance } from 'hooks';
+import { useGetHpecsModules, useOverallProgress } from 'hooks';
+import { useHpecProgress } from 'hooks/useHpecProgress';
+import { statisticsColors } from 'libs';
 import { dedaPath, hpecLessonPath } from 'libs/cleanUrls';
 import { contentfulImage } from 'libs/dedaHeader';
-import { hpecTrail, opensLabel, readWatched } from 'libs/hpecTrail';
+import { hpecTrail, opensLabel } from 'libs/hpecTrail';
 import { vimeoIdOf, vimeoOembedUrl, vumbnailUrl } from 'libs/newDesign';
 import { ArrowRight, Play } from 'lucide-react';
 import Link from 'next/link';
@@ -30,17 +32,19 @@ export const Dash = styled.div`
     /* ---------- Agora: DEDA de hoje + aula do HPEC ---------- */
     .now {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
         gap: 20px 28px;
     }
     /* texto centrado na altura da imagem: linhas elásticas em volta de selo, título e ação */
+    /* as duas imagens do mesmo tamanho, em 16:9 inteiro (a miniatura do Vimeo traz o logo com margem própria) */
     .now .cc.today {
-        grid-template-columns: 168px minmax(0, 1fr);
+        grid-template-columns: 224px minmax(0, 1fr);
         grid-template-rows: 1fr auto auto auto 1fr;
         max-width: none;
     }
     .now .cc.today .img {
         grid-row: 1 / 6;
+        aspect-ratio: 16 / 9;
     }
     .now .cc.today .meta {
         grid-area: 2 / 2;
@@ -73,9 +77,9 @@ export const Dash = styled.div`
     /* ---------- KPIs: a faixa inteira leva à LAMP ---------- */
     .kpis {
         display: grid;
-        grid-template-columns: repeat(2, minmax(150px, max-content)) 1fr;
+        grid-template-columns: max-content minmax(0, 1fr) auto;
         align-items: center;
-        gap: 0 64px;
+        gap: 0 56px;
         padding: 20px 0;
         border-top: 1px solid var(--r-line);
         border-bottom: 1px solid var(--r-line);
@@ -108,6 +112,44 @@ export const Dash = styled.div`
         text-transform: uppercase;
         color: var(--r-muted);
     }
+    /* as quatro frentes da LAMP: rótulo e valor numa linha, barra fina com a cor da LAMP embaixo */
+    .cats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px 28px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .cats li {
+        min-width: 0;
+    }
+    .cats .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 13px;
+        letter-spacing: 0.01em;
+        color: var(--r-muted);
+    }
+    .cats .row b {
+        font-weight: 500;
+        color: var(--r-text);
+    }
+    .cats .bar {
+        display: block;
+        height: 2px;
+        margin-top: 8px;
+        border-radius: 1px;
+        background: var(--r-track);
+        overflow: hidden;
+    }
+    .cats .bar i {
+        display: block;
+        height: 100%;
+        min-width: 2px;
+        border-radius: inherit;
+    }
     .kpis .go {
         justify-self: end;
         display: inline-flex;
@@ -124,28 +166,46 @@ export const Dash = styled.div`
         transform: translateX(2px);
     }
 
-    /* ---------- DEDAs recentes: uma fila fina ---------- */
+    /* ---------- DEDAs recentes: cards grandes 16:9, sempre UMA fila cheia (quantos cabem na largura) ---------- */
+    .rd {
+        container-type: inline-size;
+    }
     .recent {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px 24px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 20px;
         margin: 0;
         padding: 0;
         list-style: none;
     }
+    .recent li:nth-child(n + 5) {
+        display: none;
+    }
+    @container (min-width: 1200px) {
+        .recent {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+        .recent li:nth-child(5) {
+            display: block;
+        }
+    }
+    @container (max-width: 780px) {
+        .recent {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .recent li:nth-child(n + 4) {
+            display: none;
+        }
+    }
     .recent a {
-        display: grid;
-        grid-template-columns: 72px minmax(0, 1fr);
-        align-items: center;
-        gap: 0 14px;
-        min-height: 54px;
+        display: block;
         color: var(--r-text);
         text-decoration: none;
     }
     .recent .img {
         display: block;
-        aspect-ratio: 4 / 3;
-        border-radius: 8px;
+        aspect-ratio: 16 / 9;
+        border-radius: var(--r-radius);
         overflow: hidden;
         background: var(--r-surf);
     }
@@ -154,9 +214,14 @@ export const Dash = styled.div`
         width: 100%;
         height: 100%;
         object-fit: cover;
+        transition: transform 400ms ease;
+    }
+    .recent a:hover img {
+        transform: scale(1.03);
     }
     .recent small {
         display: block;
+        margin-top: 12px;
         font-size: var(--r-label-size);
         font-weight: 500;
         letter-spacing: var(--r-label-track);
@@ -164,18 +229,28 @@ export const Dash = styled.div`
         color: var(--r-muted);
     }
     .recent b {
-        display: block;
-        margin-top: 2px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        margin-top: 3px;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: 14.5px;
+        line-height: 1.3;
+        font-size: 15.5px;
         font-weight: 500;
     }
     .recent a:hover b {
         color: var(--r-gold-hi);
     }
 
+    /* telas largas: a imagem do "Agora" acompanha a coluna maior */
+    @media (min-width: 1600px) {
+        .now .cc.today {
+            grid-template-columns: 288px minmax(0, 1fr);
+        }
+        .now .cc.today b {
+            font-size: 18px;
+        }
+    }
     @media (max-width: 860px) {
         .hp .sh {
             flex-wrap: wrap;
@@ -190,15 +265,19 @@ export const Dash = styled.div`
             grid-template-columns: minmax(0, 1fr);
         }
         .now .cc.today {
-            grid-template-columns: 120px minmax(0, 1fr);
+            grid-template-columns: 144px minmax(0, 1fr);
         }
         .now .cc.today b {
             font-size: 15.5px;
         }
         .kpis {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 16px;
+            padding: 18px 0 12px;
+        }
+        .cats {
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0 24px;
-            padding: 16px 0 12px;
+            gap: 14px 24px;
         }
         .kpi .v {
             font-size: 28px;
@@ -208,11 +287,25 @@ export const Dash = styled.div`
         }
         .kpis .go {
             justify-self: start;
-            grid-column: 1 / -1;
-            margin-top: 10px;
         }
+        /* celular: cards grandes numa fila que rola de lado (todos os cinco) */
         .recent {
-            grid-template-columns: minmax(0, 1fr);
+            display: flex;
+            gap: 14px;
+            margin: 0 -20px;
+            padding: 0 20px 6px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-padding-inline: 20px;
+            scrollbar-width: none;
+        }
+        .recent::-webkit-scrollbar {
+            display: none;
+        }
+        .recent li:nth-child(n) {
+            display: block;
+            flex: 0 0 74%;
+            scroll-snap-align: start;
         }
     }
 `;
@@ -254,7 +347,7 @@ export const NowDeda: React.FC = () => {
     const grid = useDedasGrid('lastDedas');
     const deda = grid.lastDedas[0];
     if (!deda) return grid.showSkeleton ? <Skel /> : null;
-    const thumb = contentfulImage(deda.dedaFeaturedImage?.url, { w: 336, h: 210, fit: 'fill', fm: 'webp', q: 70 });
+    const thumb = contentfulImage(deda.dedaFeaturedImage?.url, { w: 448, h: 252, fit: 'fill', fm: 'webp', q: 70 });
     return (
         <Link className="cc today" href={dedaPath(deda.dedaSlug)} aria-label={`Today’s DEDA: ${deda.dedaTitle}`}>
             <span className="img">
@@ -336,12 +429,12 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean }> = ({ trail, error })
 export const useTrail = () => {
     const { melpSummary } = useMelpContext();
     const { unlockedModules, lockedModules, loading, error } = useGetHpecsModules();
-    // página só no navegador (next/dynamic sem SSR): o que já foi visto é lido já no primeiro quadro
-    const [watched] = useState<ReadonlySet<string>>(readWatched);
+    // aulas concluídas de verdade (Worker, todos os aparelhos); sem elas, vale só a regra por módulo
+    const { done } = useHpecProgress();
     const ready = !!melpSummary && !loading && !error;
     const trail = useMemo(
-        () => (ready ? hpecTrail(unlockedModules, lockedModules, watched) : undefined),
-        [ready, unlockedModules, lockedModules, watched],
+        () => (ready ? hpecTrail(unlockedModules, lockedModules, new Set(Object.keys(done))) : undefined),
+        [ready, unlockedModules, lockedModules, done],
     );
     return {
         trail,
@@ -359,40 +452,46 @@ export const NowRow: React.FC<{ withDeda: boolean; trail?: Trail; error?: boolea
 
 /* ---------- KPIs ---------- */
 
-const Kpi: React.FC<{ value?: string; unit: string; label: string }> = ({ value, unit, label }) => (
-    <span className="kpi">
-        <span className="v">
-            {value ?? '—'}
-            {value !== undefined && <small>{unit}</small>}
-        </span>
-        <span className="k">{label}</span>
-    </span>
-);
-
 /**
- * Dois números da LAMP, das mesmas consultas da página da LAMP (mesmas chaves do react-query), no mesmo formato
- * dela: progresso desta semana (gráfico "Weekly progress": porcentagem 0–100, eixo em `toFixed(0)%`) e dias com
- * DEDA registrado nesta semana (gráfico "Daily"). O "Overall" ficou de fora: a LAMP o mostra com duas casas
- * ("0.03%"), o que lido sozinho parece defeito. A faixa inteira abre a LAMP.
+ * O "Overall" da LAMP: o total e as quatro frentes (DEDA, Active, Passive, Review), da mesma consulta da página da
+ * LAMP (useOverallProgress, mesma chave) e no mesmo formato dela (total com duas casas; frentes arredondadas; Review
+ * só quando existe). A faixa inteira abre a LAMP.
  */
 export const Kpis: React.FC = () => {
     const { user } = useAppContext();
-    const { melpSummary } = useMelpContext();
-    const week = melpSummary?.current_deda_week;
-    const { weeklyDevelopmentData } = useGeneralWeeklyDevelopment(user?.uid);
-    const { graphsData } = useGetWeeklyPerformance('dedaTime', week ? `week${week}` : undefined);
-
-    const weekIndex = weeklyDevelopmentData?.[0]?.indexOf(`W${week}`) ?? -1;
-    const weekValue = weekIndex >= 0 ? weeklyDevelopmentData?.[1]?.[weekIndex] : undefined;
-    const thisWeek = typeof weekValue === 'number' && Number.isFinite(weekValue) ? weekValue.toFixed(0) : undefined;
-    const days = graphsData?.dedaDaily
-        ? String(graphsData.dedaDaily.filter((d) => d.dedaTime > 0 || d.readingTime > 0).length)
-        : undefined;
-
+    const { overallData } = useOverallProgress(user?.uid);
+    const by = overallData?.byActivity;
+    const cats: [string, number | null | undefined, string][] = [
+        ['DEDA', by?.deda, statisticsColors.DEDA],
+        ['Active', by?.active, statisticsColors.Active],
+        ['Passive', by?.passive, statisticsColors.Passive],
+        ...(by && by.review !== null && by.review !== undefined
+            ? ([['Review', by.review, statisticsColors.Review]] as [string, number, string][])
+            : []),
+    ];
+    const total = overallData?.overallPerformance;
     return (
-        <Link href="/imerso/lamp" className="kpis" aria-label="Your numbers — open LAMP">
-            <Kpi value={thisWeek} unit="%" label="This week" />
-            <Kpi value={days} unit="/7" label="DEDA days" />
+        <Link href="/imerso/lamp" className="kpis" aria-label="Overall progress — open LAMP">
+            <span className="kpi">
+                <span className="v">
+                    {typeof total === 'number' ? total.toFixed(2) : '—'}
+                    {typeof total === 'number' && <small>%</small>}
+                </span>
+                <span className="k">Overall</span>
+            </span>
+            <ul className="cats">
+                {cats.map(([name, value, color]) => (
+                    <li key={name}>
+                        <span className="row">
+                            {name}
+                            <b>{typeof value === 'number' ? `${Math.round(value)}%` : '—'}</b>
+                        </span>
+                        <span className="bar" aria-hidden>
+                            <i style={{ width: `${Math.min(100, Math.max(0, value ?? 0))}%`, background: color }} />
+                        </span>
+                    </li>
+                ))}
+            </ul>
             <span className="go">
                 LAMP <ArrowRight {...ICON} size={16} aria-hidden />
             </span>
@@ -445,21 +544,27 @@ export const HpecSection: React.FC<{ trail?: Trail; loading: boolean; error: boo
 
 /* ---------- DEDAs recentes ---------- */
 
-/** Os DEDAs anteriores ao de hoje (mesma consulta da grade "Most recent"), numa fila fina. */
+/** Os DEDAs anteriores ao de hoje, em cards grandes: uma fila cheia no computador, fila que rola no celular. */
 export const RecentDedas: React.FC<{ title?: string; aside?: React.ReactNode; skipCurrent?: boolean }> = ({
     title = 'Recent DEDAs',
     aside,
     skipCurrent = true,
 }) => {
-    const grid = useDedasGrid('lastDedas');
+    // os DEDAs vêm da lista completa (a mesma consulta de "Explore all DEDAs", em cache entre as páginas); a ordem é a
+    // de liberação (melp summary), do mais recente para trás
+    const grid = useDedasGrid('allDedas');
     const week = grid.currentWeek as number;
-    const items = grid.lastDedas
-        .map((deda, index) => ({ deda, week: week - index }))
-        .filter((x) => !!x.deda)
-        .slice(skipCurrent ? 1 : 0);
+    const byId = new Map((grid.allDedas ?? []).map((deda) => [deda.dedaId, deda]));
+    const items = grid.unlockedDEDAs
+        .slice()
+        .reverse()
+        .map((id, index) => ({ deda: byId.get(id), week: week - index }))
+        .slice(skipCurrent ? 1 : 0)
+        .filter((x): x is { deda: NonNullable<typeof x.deda>; week: number } => !!x.deda)
+        .slice(0, 5);
     if (!items.length && !grid.showSkeleton) return aside ? <div className="sh">{aside}</div> : null;
     return (
-        <section aria-label={title}>
+        <section aria-label={title} className="rd">
             <div className="sh">
                 <h2>{title}</h2>
                 {aside}
@@ -467,8 +572,8 @@ export const RecentDedas: React.FC<{ title?: string; aside?: React.ReactNode; sk
             <ul className="recent">
                 {items.map(({ deda, week: w }) => {
                     const src = contentfulImage(deda.dedaFeaturedImage?.url, {
-                        w: 144,
-                        h: 108,
+                        w: 640,
+                        h: 360,
                         fit: 'fill',
                         fm: 'webp',
                         q: 70,

@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import styled from '@emotion/styled';
-import { DARK, LIGHT, LIGHT_ROOT, tokenText } from 'themes/newDesign';
+import { DARK, LIGHT, LIGHT_ROOT, LK_LIGHT, tokenText } from 'themes/newDesign';
 
 /** Ícones da página nova (lucide): traço fino e um tamanho só; exceções passam `size`. */
 export const ICON = { size: 20, strokeWidth: 1.5 } as const;
@@ -199,6 +199,84 @@ export const readerTokens = css`
     }
     .deda-reader-shell-on article:has(> #mettle-article-title) blockquote p {
         font-size: calc(1.3rem * var(--r-scale, 1));
+    }
+    /* Leitores do LinKnowledge (artigo e vídeo; ArticleReaderModal, fora da árvore): seguem o tema da conta, escuro no
+       escuro e claro no claro (folha, cabeçalho e texto). Só valem com a página nova aberta (classe no <body>). */
+    .deda-reader-shell-on .article-reader :is(.ant-modal-content, .ant-drawer-content) {
+        background: var(--r-sheet);
+        color: var(--r-text);
+        box-shadow: var(--r-sheet-shadow);
+    }
+    .deda-reader-shell-on .article-reader .ant-drawer-header {
+        background: var(--r-sheet-head);
+        border-bottom: 1px solid var(--r-line);
+    }
+    .deda-reader-shell-on .article-reader :is(.ant-drawer-close, .ant-modal-close) {
+        color: var(--r-muted);
+    }
+    .deda-reader-shell-on .article-reader :is(.ant-drawer-close, .ant-modal-close):hover {
+        color: var(--r-text);
+        background: var(--r-hover);
+    }
+    .deda-reader-shell-on .article-reader .ant-modal-mask,
+    .deda-reader-shell-on .article-reader .ant-drawer-mask {
+        background: var(--r-mask);
+    }
+    .deda-reader-shell-on .article-reader :is(h1, h2, h3, h4, h5, h6, .ant-typography, article) {
+        color: var(--r-text);
+    }
+    .deda-reader-shell-on .article-reader :is(.ant-typography-secondary, article > span.ant-typography) {
+        color: var(--r-muted) !important;
+    }
+    .deda-reader-shell-on .article-reader :is(p, li, blockquote, figcaption) {
+        color: var(--r-text);
+    }
+    /* botões do leitor (Day N anterior/seguinte): o leitor abre fora do tema antd da casca, então o branco do antd claro vazava */
+    .deda-reader-shell-on .article-reader .ant-btn-default {
+        background: transparent;
+        color: var(--r-text);
+        border-color: var(--r-line-strong);
+    }
+    .deda-reader-shell-on .article-reader .ant-btn-default:hover {
+        background: var(--r-hover);
+        color: var(--r-text);
+        border-color: var(--r-gold-hi);
+    }
+    .deda-reader-shell-on .article-reader .ant-btn-primary {
+        background: var(--r-gold);
+        color: var(--r-on-gold);
+    }
+    .deda-reader-shell-on .article-reader .ant-btn-primary:hover {
+        background: var(--r-gold-hi);
+        color: var(--r-on-gold);
+    }
+    /* termo de consentimento do gravador (modal/folha, fora da árvore): segue o tema */
+    .deda-reader-shell-on .recording-consent :is(.ant-modal-content, .ant-drawer-content) {
+        background: var(--r-sheet);
+        color: var(--r-text);
+        box-shadow: var(--r-sheet-shadow);
+    }
+    .deda-reader-shell-on .recording-consent :is(h2, p, li, div) {
+        color: var(--r-text);
+    }
+    .deda-reader-shell-on .recording-consent [role='alert'] {
+        color: var(--r-error) !important;
+    }
+    .deda-reader-shell-on .recording-consent .actions .ghost {
+        color: var(--r-text);
+        border-color: var(--r-line-strong);
+    }
+    .deda-reader-shell-on .recording-consent .actions button:focus-visible {
+        outline-color: var(--r-gold-hi);
+    }
+    .deda-reader-shell-on .article-reader a {
+        color: var(--r-gold-hi);
+    }
+    .deda-reader-shell-on .article-reader :is(hr, blockquote) {
+        border-color: var(--r-line-strong);
+    }
+    .deda-reader-shell-on .article-reader article blockquote {
+        border-left-color: var(--secondary);
     }
     @media (prefers-reduced-motion: reduce) {
         .deda-reader-drawer *,
@@ -637,7 +715,7 @@ const textSizeStyles = css`
     }
     .tsize .panel button[aria-checked='true'] {
         background: var(--r-gold-tint);
-        color: var(--r-gold-hi);
+        color: var(--r-text);
     }
 `;
 
@@ -1308,6 +1386,16 @@ export const Shell = styled.div`
     .dock [aria-label='Reading recorder'] .timer {
         font-weight: 500;
     }
+    /* "Skip today" e o foco dos botões do gravador seguem o tema (os do componente são claros, feitos para o cartão escuro) */
+    .dock [aria-label='Reading recorder'] .link {
+        color: var(--r-muted);
+    }
+    .dock [aria-label='Reading recorder'] .link:hover {
+        color: var(--r-text);
+    }
+    .dock [aria-label='Reading recorder'] button:focus-visible {
+        outline-color: var(--r-gold-hi);
+    }
     .dock [aria-label='Reading recorder'] button,
     .dock .switch button,
     .dock .note button {
@@ -1490,14 +1578,87 @@ export const Shell = styled.div`
         color: var(--r-lk-inherit-color);
         padding-bottom: 48px;
     }
-    /* Tema claro: o LinKnowledge entra como está (cards, carrosséis e podcasts escuros, regra do dono) — vira um bloco
-       de mídia escuro, recuado e com cantos, em vez de uma faixa escura de ponta a ponta. */
+    /* Tema claro: o LinKnowledge troca só as cores (mesma estrutura, carrosséis e comportamento): superfície marfim um
+       tom acima do fundo (não branca), painéis e cards claros com texto escuro; o card do dia segue dourado. Recuado e
+       com cantos, em vez de uma faixa escura de ponta a ponta. */
     ${LIGHT_ROOT} & .lk {
         padding: 20px 20px 48px;
     }
     ${LIGHT_ROOT} & .lk > * {
         border-radius: 16px;
         overflow: hidden;
+        background: ${LK_LIGHT.bg};
+    }
+    ${LIGHT_ROOT} & .lk .ant-card {
+        background: ${LK_LIGHT.panel};
+        border-color: var(--r-line);
+    }
+    ${LIGHT_ROOT} & .lk .ant-card h4,
+    ${LIGHT_ROOT} & .lk .ant-card .ant-card-head-title {
+        color: ${LK_LIGHT.text};
+    }
+    ${LIGHT_ROOT} & .lk .ant-card .ant-btn {
+        color: ${LK_LIGHT.arrow};
+    }
+    ${LIGHT_ROOT} & .lk button[aria-label^='Day '] {
+        background: ${LK_LIGHT.card};
+        color: ${LK_LIGHT.text};
+        box-shadow: 0 1px 0 var(--r-line);
+    }
+    ${LIGHT_ROOT} & .lk button[aria-label^='Day ']:hover,
+    ${LIGHT_ROOT} & .lk button[aria-label^='Day ']:focus-visible {
+        background: ${LK_LIGHT.cardHover};
+    }
+    ${LIGHT_ROOT} & .lk button[aria-label^='Day ']:not([aria-current]) > div:last-child > span {
+        color: ${LK_LIGHT.text};
+    }
+    /* pílula "TODAY" e podcasts no tema claro: nada de caixa escura (a pílula vira clara; o card de podcast, claro com o dourado
+       nos controles) */
+    ${LIGHT_ROOT} & .lk button[aria-label^='Day '] > div:last-child span[aria-hidden] {
+        background: ${LK_LIGHT.card};
+        color: ${LK_LIGHT.todayText};
+    }
+    ${LIGHT_ROOT} & .lk [role='group'] {
+        background: ${LK_LIGHT.card} !important;
+        color: ${LK_LIGHT.text};
+        box-shadow: 0 1px 0 var(--r-line);
+    }
+    ${LIGHT_ROOT} & .lk [role='group']:focus-visible {
+        box-shadow: 0 0 0 2px var(--r-gold-hi);
+    }
+    ${LIGHT_ROOT} & .lk [role='group'] input[type='range'] {
+        accent-color: var(--r-gold);
+        background: linear-gradient(
+                to right,
+                var(--r-gold) 0 var(--progress, 0%),
+                var(--r-track) var(--progress, 0%) 100%
+            )
+            center / 100% 4px no-repeat;
+    }
+    ${LIGHT_ROOT} & .lk [role='group'] input[type='range']::-webkit-slider-thumb {
+        background: var(--r-gold);
+    }
+    ${LIGHT_ROOT} & .lk [role='group'] input[type='range']::-moz-range-thumb {
+        background: var(--r-gold);
+    }
+    ${LIGHT_ROOT} & .lk [role='group'] div button {
+        background: var(--r-hover);
+        color: ${LK_LIGHT.text};
+    }
+    ${LIGHT_ROOT} & .lk [role='group'] > button {
+        background: var(--r-gold);
+        color: var(--r-on-gold);
+    }
+    /* "Day N · gênero" nos cards comuns: dourado do tema com contraste AA nos dois temas (o do dia mantém o escuro) */
+    .lk button[aria-label^='Day ']:not([aria-current]) .ant-typography {
+        color: var(--r-gold-hi) !important;
+    }
+    /* podcasts: duração e tempos em branco pleno e botões num tom mais fundo do fundo do card (AA nos dois temas) */
+    .lk [role='group'] :is(span, div) {
+        opacity: 1;
+    }
+    .lk [role='group'] div button {
+        background: rgba(0, 0, 0, 0.2);
     }
 
     /* ---------- Review e My recordings ---------- */

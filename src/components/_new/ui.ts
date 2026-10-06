@@ -9,6 +9,27 @@ const pulse = keyframes`
 
 /** Modais e balões das páginas novas (antd, fora da árvore): corpo em grade, rótulos e destaque do nível. */
 export const popupStyles = css`
+    @media (max-width: 860px) {
+        .ui-new-modal input,
+        .ui-new-modal select,
+        .ui-new-modal textarea,
+        .ui-new-modal .ant-select-selection-item,
+        .ui-new-modal .ant-select-selection-placeholder,
+        .ui-new-modal .ant-select-selection-search-input,
+        .ant-select-dropdown .ant-select-item,
+        .ant-select-dropdown input {
+            font-size: 16px;
+        }
+    }
+    .ui-new-modal .ant-btn-primary:not(:disabled) {
+        background: var(--r-gold);
+        color: var(--r-on-gold);
+    }
+    .ui-new-modal .ant-btn-primary:not(:disabled):hover,
+    .ui-new-modal .ant-btn-primary:not(:disabled):active {
+        background: var(--r-gold-hi);
+        color: var(--r-on-gold);
+    }
     .ui-new-modal .ant-modal-content {
         padding: 24px 24px 20px;
     }
@@ -18,6 +39,15 @@ export const popupStyles = css`
         padding: 12px 0 8px;
         font-size: 14.5px;
         line-height: 1.5;
+    }
+    /* o corpo é uma grade: sem isto a coluna cresce com o texto longo (ex.: nome + e-mail) e empurra o botão para fora */
+    .ui-new-modal .modal-body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .ui-new-modal .ant-select-selection-item {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .ui-new-modal .modal-body p {
         margin: 0;
@@ -38,6 +68,9 @@ export const popupStyles = css`
     .ui-new-modal .modal-body .level strong {
         font-weight: 500;
         color: var(--r-gold-hi);
+    }
+    .ui-new-modal .ant-select-selection-placeholder {
+        color: var(--r-muted);
     }
     .ui-new-modal .modal-body .hint {
         font-size: 13px;
@@ -103,6 +136,10 @@ export const Page = styled.div`
 
     &.wide {
         max-width: 1320px;
+    }
+    /* painel (home do IMERSO): até 1440px nas telas grandes; nos notebooks a coluna disponível já é menor */
+    &.xwide {
+        max-width: 1440px;
     }
     &.narrow {
         max-width: 860px;
@@ -465,8 +502,7 @@ export const Page = styled.div`
         overflow-wrap: anywhere;
     }
     .cur .eyebrow {
-        color: var(--r-text);
-        opacity: 0.85;
+        color: var(--r-muted);
     }
     .cur .eyebrow em {
         font-style: normal;

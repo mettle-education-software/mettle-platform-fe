@@ -67,8 +67,8 @@ export const AudioPlayer = React.forwardRef<AudioPlayerRef | undefined, AudioPla
                 ref={ref}
                 autoPlay={autoPlay}
                 backgroundColor="transparent"
-                color="#f3ede4"
-                sliderColor="#b78a5b"
+                color="var(--r-text, #f3ede4)"
+                sliderColor="var(--r-gold, #b78a5b)"
             />
         );
 

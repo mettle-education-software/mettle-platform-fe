@@ -47,5 +47,9 @@ export const applyTheme = (pref: ThemePref) => {
     return resolved;
 };
 
+/** Chat de suporte (Chatwoot): segue o tema escolhido só na plataforma nova; para os demais é sempre claro, como antes. */
+export const chatwootScheme = (newDesign: boolean, resolved: ResolvedTheme): ResolvedTheme =>
+    newDesign ? resolved : 'light';
+
 /** Script inline do <head>: mesma regra de resolveTheme, antes da primeira pintura (sem piscar). */
 export const THEME_BOOT_SCRIPT = `(function(){try{var p=localStorage.getItem('${THEME_KEY}');var d=p==='dark'||(p!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light')}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();`;

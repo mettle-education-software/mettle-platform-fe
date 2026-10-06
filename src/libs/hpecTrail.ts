@@ -67,13 +67,18 @@ export const opensLabel = (unlockDate?: string, now = new Date()) => {
     return `Opens ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) })}`;
 };
 
-// ---------- aulas vistas: neste aparelho ----------
-// ponytail: nenhuma API devolve "aula vista" (os marcos do vídeo só vão ao n8n), então fica no aparelho; quando o
-// backend expuser o progresso, trocar só estas duas funções.
+// ---------- aulas concluídas: por aluno, no Worker (todos os aparelhos) ----------
+// O backend da Plataforma não guarda isso; o Worker mettle-events guarda por uid verificado (GET/PUT, D1).
 
-export const WATCHED_KEY = 'lessonsWatched';
-/** Fração do vídeo que conta como vista (o mesmo marco de 90% enviado pelo LessonVideo). */
+export const HPEC_PROGRESS_URL = 'https://events.mettle.com.br/plataforma/hpec/progress';
+/** Fração do vídeo que conta como vista (o mesmo marco de 90% enviado pelo LessonVideo); o fim do vídeo também conta. */
 export const WATCHED_AT = 90;
+
+/** { lessonId: data da conclusão } */
+export type DoneMap = Record<string, string>;
+
+/** Marcas antigas, só deste aparelho (até 6-Out-2026): sobem uma vez para o Worker e saem daqui. */
+export const WATCHED_KEY = 'lessonsWatched';
 
 export const readWatched = (): Set<string> => {
     try {
@@ -84,13 +89,10 @@ export const readWatched = (): Set<string> => {
     }
 };
 
-export const markWatched = (lessonId: string) => {
+export const clearWatched = () => {
     try {
-        const set = readWatched();
-        if (set.has(lessonId)) return;
-        set.add(lessonId);
-        window.localStorage.setItem(WATCHED_KEY, JSON.stringify([...set]));
+        window.localStorage.removeItem(WATCHED_KEY);
     } catch {
-        // modo privado / armazenamento bloqueado: vale só nesta visita
+        // armazenamento bloqueado: nada a limpar
     }
 };

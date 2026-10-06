@@ -1,6 +1,6 @@
 'use client';
 
-import { css, Global } from '@emotion/react';
+import { css, Global, keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
 import { Button, ConfigProvider, Drawer, Flex, Modal, Select } from 'antd';
 import { ThemeCycle, ThemeSwitch } from 'components/_new/ThemeSwitch';
@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
-import React, { forwardRef, useEffect, useState } from 'react';
+import React, { forwardRef, useEffect, useMemo, useState } from 'react';
 import { ICON, platformTokens, UI_FONT_CLASS, UI_FONT_VAR, ui } from 'themes/newDesign';
 import { useAdminImpersonation } from '../AdminActions/AdminActions';
 import { useAppMenu } from './appMenu';
@@ -167,18 +167,22 @@ const chrome = css`
         height: 100%;
         object-fit: cover;
     }
+    /* rodapé: avatar + nome completo numa linha (reticências só se for enorme) e o seletor de tema na linha de baixo */
     .who {
         display: flex;
-        align-items: center;
+        flex-direction: column;
+        align-items: stretch;
         gap: 4px;
         min-width: 0;
     }
     .who .user {
-        flex: 1;
+        flex: none;
         min-width: 0;
     }
     .who .theme {
         flex: none;
+        align-self: flex-start;
+        margin-left: 12px;
     }
     .user .lbl {
         min-width: 0;
@@ -187,6 +191,11 @@ const chrome = css`
         white-space: nowrap;
     }
 `;
+
+/* recolher/expandir o menu: UMA transição só (largura da coluna + largura dos itens + rótulos), 200 ms ease-out */
+const MENU_MS = '200ms';
+const MENU_EASE = 'ease-out';
+const railFade = keyframes`from { opacity: 0; } to { opacity: 1; }`;
 
 const Frame = styled.div`
     ${ui};
@@ -197,7 +206,7 @@ const Frame = styled.div`
     width: 100%;
     overflow: hidden;
     background: var(--r-bg);
-    transition: grid-template-columns var(--r-ease);
+    transition: grid-template-columns ${MENU_MS} ${MENU_EASE};
 
     &.rail {
         grid-template-columns: var(--r-rail-w) minmax(0, 1fr);
@@ -227,12 +236,21 @@ const Frame = styled.div`
         border-right: 1px solid var(--r-line);
     }
     .brand {
+        position: relative;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 4px;
         min-height: 64px;
         padding: 10px 10px 6px 24px;
+        transition:
+            min-height ${MENU_MS} ${MENU_EASE},
+            padding ${MENU_MS} ${MENU_EASE};
+    }
+    /* o botão de recolher fica sempre no canto; ao recolher só desce para baixo do símbolo */
+    .brand .ib {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        transition: top ${MENU_MS} ${MENU_EASE};
     }
     .logo {
         display: flex;
@@ -241,21 +259,54 @@ const Frame = styled.div`
         width: 112px;
         color: inherit;
         border-radius: 8px;
+        transition: width ${MENU_MS} ${MENU_EASE};
+    }
+    .logo:focus-visible {
+        outline: 2px solid var(--r-gold-hi);
+        outline-offset: 2px;
     }
     .logo svg {
         display: block;
         width: 100%;
         height: auto;
     }
+    .sb .nav {
+        padding: 0 10px;
+    }
     .sb .foot {
         display: grid;
         gap: 2px;
         margin-top: auto;
-        padding: 8px 12px 14px;
+        padding: 8px 10px 14px;
     }
     .sb .foot .melp {
-        margin: 0 -12px 6px;
+        margin: 0 -10px 6px;
         padding: 12px 24px;
+    }
+    /* itens: a largura e o rótulo mudam juntos; o rótulo continua no lugar (só some em fade), sem salto */
+    .sb .it,
+    .sb .user {
+        overflow: hidden;
+        transition:
+            width ${MENU_MS} ${MENU_EASE},
+            padding ${MENU_MS} ${MENU_EASE},
+            background-color var(--r-ease),
+            color var(--r-ease),
+            opacity var(--r-ease);
+    }
+    .sb .it .lbl,
+    .sb .user .lbl {
+        transition: opacity ${MENU_MS} ${MENU_EASE};
+    }
+    .sb .it:focus-visible {
+        outline-offset: -2px;
+    }
+    .sb .sub {
+        max-height: 200px;
+        overflow: hidden;
+        transition:
+            max-height ${MENU_MS} ${MENU_EASE},
+            opacity ${MENU_MS} ${MENU_EASE};
     }
     .sb .ib {
         color: var(--r-muted);
@@ -264,11 +315,13 @@ const Frame = styled.div`
         color: var(--r-text);
     }
 
-    /* recolhido: trilho de ícones; rótulos saem, cada item vira um quadrado de 44 px centrado */
+    /* recolhido: trilho de ícones; cada item encolhe a um quadrado de 44 px (o ícone não se mexe) e o rótulo some em fade */
     &.rail .brand {
-        flex-direction: column;
-        justify-content: center;
-        padding: 10px 0 6px;
+        min-height: 112px;
+        padding-left: 10px;
+    }
+    &.rail .brand .ib {
+        top: 62px;
     }
     &.rail .logo {
         width: 44px;
@@ -277,54 +330,86 @@ const Frame = styled.div`
     &.rail .logo svg {
         width: 26px;
     }
-    &.rail .nav,
-    &.rail .foot {
-        padding-left: 10px;
-        padding-right: 10px;
-    }
-    &.rail .it {
-        justify-content: center;
-        gap: 0;
-        padding: 0;
+    &.rail .it:not(.s) {
+        width: 44px;
     }
     &.rail .it .lbl,
-    &.rail .user .lbl,
+    &.rail .user .lbl {
+        opacity: 0;
+    }
     &.rail .melp {
         display: none;
     }
     &.rail .user {
-        justify-content: center;
-        padding: 0;
+        width: 44px;
+        padding: 0 8px;
     }
     &.rail .who {
-        flex-direction: column;
+        align-items: center;
         gap: 2px;
     }
-    /* IMERSO recolhido: HPEC/DEDA/LAMP num balão ao lado, ao passar o mouse ou focar pelo teclado */
+    &.rail .who .theme {
+        margin-left: 0;
+        align-self: center;
+    }
+    /* o que troca de forma ao recolher (símbolo, rodapé) entra em fade; A/B reinicia a animação a cada clique */
+    &.swapA .logo,
+    &.swapA .who,
+    &.swapA .melp {
+        animation: ${railFade} ${MENU_MS} ${MENU_EASE};
+    }
+    &.swapB .logo,
+    &.swapB .who,
+    &.swapB .melp {
+        animation: ${railFade} ${MENU_MS} ${MENU_EASE} 0.001s;
+    }
+    /* IMERSO recolhido: a lista fecha em altura/fade; HPEC/DEDA/LAMP voltam num balão ao lado, ao passar o mouse ou focar */
     &.rail .sub {
-        display: none;
+        max-height: 0;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition:
+            max-height ${MENU_MS} ${MENU_EASE},
+            opacity ${MENU_MS} ${MENU_EASE},
+            visibility 0s linear ${MENU_MS};
+    }
+    /* o menu recolhido corta o que passa da borda; só depois da animação o balão do IMERSO pode sair dele (antes ficava
+       cortado e aparecia só uma faixa clara fina na borda interna) */
+    &.rail.settled .sb {
+        overflow: visible;
+    }
+    &.rail .grp:hover .sub,
+    &.rail .grp:focus-within .sub {
+        display: grid;
         position: absolute;
         left: calc(100% + 6px);
         top: 0;
         z-index: 6;
         min-width: 160px;
+        max-height: none;
+        overflow: visible;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
         padding: 6px;
         border: 1px solid var(--r-line);
         border-radius: 12px;
         background: var(--r-sheet-head);
         box-shadow: 0 10px 30px var(--r-card-shadow);
+        transition: none;
     }
-    &.rail .sub::before {
+    &.rail .sub .it .lbl {
+        opacity: 1;
+    }
+    &.rail .grp:hover .sub::before,
+    &.rail .grp:focus-within .sub::before {
         content: '';
         position: absolute;
         left: -8px;
         top: 0;
         width: 8px;
         height: 100%;
-    }
-    &.rail .grp:hover .sub,
-    &.rail .grp:focus-within .sub {
-        display: grid;
     }
     &.rail .it.s {
         justify-content: flex-start;
@@ -604,7 +689,7 @@ const AdminItem: React.FC = () => {
                                 </Button>
                             </Flex>
                         ) : (
-                            <Flex gap={8}>
+                            <Flex gap={8} wrap style={{ width: '100%' }}>
                                 <Select
                                     aria-labelledby="admin-impersonate"
                                     loading={admin.isMettleUsersLoading}
@@ -615,11 +700,14 @@ const AdminItem: React.FC = () => {
                                     filterOption={false}
                                     onSelect={(value) => admin.setSelectedUserToImpersonate(value)}
                                     value={admin.selectedUserToImpersonate}
-                                    style={{ flex: 1, minWidth: 0 }}
+                                    style={{ flex: '1 1 220px', minWidth: 0 }}
+                                    popupMatchSelectWidth={false}
+                                    dropdownStyle={{ maxWidth: 'min(520px, 92vw)' }}
                                     placeholder="Nome ou e-mail do aluno"
                                     options={admin.options}
                                 />
                                 <Button
+                                    style={{ flex: 'none' }}
                                     type="primary"
                                     loading={admin.impersonate.isPending}
                                     onClick={admin.handleImpersonate}
@@ -639,13 +727,14 @@ const AdminItem: React.FC = () => {
 const User: React.FC = () => {
     const { user } = useAppContext();
     const name = firstName(user?.name);
+    const fullName = (user?.name ?? '').trim().replace(/\s+/g, ' ') || name;
     return (
         <div className="user" title={user?.name ?? undefined}>
             <span className="av" aria-hidden>
                 {/* eslint-disable-next-line @next/next/no-img-element -- foto do perfil (Firebase) */}
                 {user?.profileImageSrc ? <img src={user.profileImageSrc} alt="" /> : name[0]}
             </span>
-            <span className="lbl">{name}</span>
+            <span className="lbl">{fullName}</span>
         </div>
     );
 };
@@ -660,10 +749,20 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
         const isMobile = useDeviceSize() === 'mobile';
         const [rail, setRail] = useState(() => typeof window !== 'undefined' && readMenuCollapsed());
         const [open, setOpen] = useState(false);
+        const [swap, setSwap] = useState<'' | 'swapA' | 'swapB'>('');
+        const [settled, setSettled] = useState(true);
         const router = useRouter();
         const pathname = usePathname();
         const menu = useAppMenu(() => setOpen(false));
         const active = activeMenuKeys(pathname);
+        // Na casca nova: Início, IMERSO, Suporte, Configurações, Sair (o menu atual mantém a ordem de sempre)
+        const navItems = useMemo(() => {
+            const items = [...(menu.items as MenuItem[])];
+            const settings = items.findIndex((item) => item.key === 'settings');
+            const support = items.findIndex((item) => item.key === 'support');
+            if (settings >= 0 && support > settings) items.splice(settings, 0, items.splice(support, 1)[0]);
+            return items;
+        }, [menu.items]);
         const { access, openCta } = useProductAccess();
         const antdTheme = useNewAntdTheme();
         const logoTheme = useLogoTheme();
@@ -693,11 +792,15 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, []);
 
-        const toggleRail = () =>
+        const toggleRail = () => {
+            setSwap((previous) => (previous === 'swapA' ? 'swapB' : 'swapA'));
+            setSettled(false);
+            window.setTimeout(() => setSettled(true), 260);
             setRail((previous) => {
                 saveMenuCollapsed(!previous);
                 return !previous;
             });
+        };
         const goImerso = (event: React.MouseEvent) => {
             setOpen(false);
             menu.goImerso(event);
@@ -756,7 +859,10 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
         );
 
         return (
-            <Frame className={`ui-new${isMobile ? ' m' : rail ? ' rail' : ''}`} style={UI_FONT_VAR}>
+            <Frame
+                className={`ui-new${isMobile ? ' m' : rail ? ' rail' : ''}${isMobile ? '' : ` ${swap}${settled ? ' settled' : ''}`}`}
+                style={UI_FONT_VAR}
+            >
                 <Global styles={[platformTokens, drawerStyles]} />
                 {isMobile ? (
                     <>
@@ -777,7 +883,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                             width={290}
                             title={brand}
                         >
-                            <Nav items={menu.items as MenuItem[]} active={active} rail={false} goImerso={goImerso} />
+                            <Nav items={navItems} active={active} rail={false} goImerso={goImerso} />
                             {foot}
                         </Drawer>
                     </>
@@ -795,7 +901,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                                 {rail ? <PanelLeftOpen {...ICON} /> : <PanelLeftClose {...ICON} />}
                             </button>
                         </div>
-                        <Nav items={menu.items as MenuItem[]} active={active} rail={rail} goImerso={goImerso} />
+                        <Nav items={navItems} active={active} rail={rail} goImerso={goImerso} />
                         {foot}
                     </aside>
                 )}

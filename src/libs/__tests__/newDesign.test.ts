@@ -14,6 +14,9 @@ import {
     lockedNotes,
     NEW_DESIGN_UIDS,
     parseHm,
+    rankActivities,
+    reportHm,
+    reportMinutes,
     readMenuCollapsed,
     saveMenuCollapsed,
     settingsTabFromQuery,
@@ -203,5 +206,25 @@ describe('miniatura do Vimeo', () => {
         expect(vimeoIdOf('https://vimeo.com/522761378')).toBe('522761378');
         expect(vimeoIdOf('https://www.youtube.com/embed/_5hdGgtKLpM')).toBeUndefined();
         expect(vimeoIdOf(undefined)).toBeUndefined();
+    });
+});
+
+describe('relatório da LAMP (Overall stats)', () => {
+    it('lê e escreve o tempo no formato do servidor', () => {
+        expect(reportMinutes('123h 05m')).toBe(7385);
+        expect(reportMinutes('00h 00m')).toBe(0);
+        expect(reportMinutes(undefined)).toBe(0);
+        expect(reportHm(90)).toBe('01h 30m');
+        expect(reportHm(reportMinutes('123h 05m'))).toBe('123h 05m');
+    });
+    it('ranqueia por tempo e separa as atividades sem tempo', () => {
+        const rows = [
+            { k: 'a', minutes: 10 },
+            { k: 'b', minutes: 0 },
+            { k: 'c', minutes: 30 },
+        ];
+        expect(rankActivities(rows, 'time').done.map((r) => r.k)).toEqual(['c', 'a']);
+        expect(rankActivities(rows, 'default').done.map((r) => r.k)).toEqual(['a', 'c']);
+        expect(rankActivities(rows, 'time').idle.map((r) => r.k)).toEqual(['b']);
     });
 });

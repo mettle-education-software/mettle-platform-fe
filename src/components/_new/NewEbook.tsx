@@ -120,8 +120,8 @@ export const NewEbook: React.FC = () => {
     return (
         <NewPage className="narrow">
             <Product>
-                {/* eslint-disable-next-line @next/next/no-img-element -- livro 3D (public/img), o mesmo do card da Home */}
-                <img src="/img/ebook-livro-3d.webp" alt="" className="cover" width={300} style={{ height: "auto", maxWidth: "100%" }} />
+                {/* eslint-disable-next-line @next/next/no-img-element -- a imagem do livro feita pelo André, sem edição (public/img) */}
+                <img src="/img/ebook-livro-andre.webp" alt="" className="cover" width={300} style={{ height: "auto", maxWidth: "100%" }} />
                 <div className="info">
                     <p className="eyebrow">E-book · {EBOOK.pages} páginas</p>
                     <h1>{EBOOK.title}</h1>
@@ -155,6 +155,14 @@ export const NewEbook: React.FC = () => {
 };
 
 const Product = styled.div`
+    /* imagem do André sem edição: no tema claro o branco do fundo some no fundo da página (multiply) e a sombra dele fica */
+    .cover {
+        mix-blend-mode: multiply;
+    }
+    [data-theme='dark'] & .cover {
+        mix-blend-mode: normal;
+        border-radius: var(--r-radius);
+    }
     display: grid;
     grid-template-columns: 240px minmax(0, 1fr);
     gap: 48px;

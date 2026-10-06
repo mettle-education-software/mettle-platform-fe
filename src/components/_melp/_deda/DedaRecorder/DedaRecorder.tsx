@@ -2,6 +2,7 @@
 
 import styled from '@emotion/styled';
 import { Mic, Pause, PlayArrow, Stop } from '@mui/icons-material';
+import * as Sentry from '@sentry/nextjs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDeviceSize } from 'hooks';
 import {
@@ -382,6 +383,8 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
             queryClient.invalidateQueries({ queryKey: ['deda-recording-queued', uid] });
         } catch (error) {
             const problem = uploadProblem(error);
+            // Só falha inesperada vai ao Sentry (sem internet, limite diário e acesso vencido são esperados).
+            if (problem === 'upload') Sentry.captureException(error, { tags: { feature: 'recorder', problem } });
             if (problem === 'daily') markDailyLimit(brasiliaDate(new Date()));
             if (problem === 'expired') await idbQueue.delete(item.key).catch(() => undefined);
             dispatch({ type: 'queued', problem });

@@ -113,6 +113,7 @@ export const ArticleReaderModal = ({
     return device === 'desktop' ? (
         // O rc-dialog só liga aria-labelledby ao próprio título: título oculto visualmente.
         <Dialog
+            rootClassName="article-reader"
             open={open}
             onCancel={onClose}
             onOk={onClose}
@@ -130,6 +131,7 @@ export const ArticleReaderModal = ({
         </Dialog>
     ) : (
         <Drawer
+            rootClassName="article-reader"
             open={open}
             onClose={onClose}
             destroyOnClose

@@ -37,7 +37,7 @@ import { useAppContext, useMelpContext } from 'providers';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { DedaStepsCompleted } from '../DedaActivity/steps';
-import { ReadAlong } from './ReadAlong';
+import { ReadAlong, ReadAlongModes } from './ReadAlong';
 import { InfoTip } from './ReaderInfo';
 import { ReaderProse } from './ReaderProse';
 import { ReaderSummary } from './ReaderSummary';
@@ -460,7 +460,10 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                 return recordings.active ? (
                     <DockTwoTracks dedaId={dedaId} isCurrentDeda onGoRecord={() => setCurrentStep('readRecord')} />
                 ) : (
-                    <ListenPlayer key="listenRead" dedaId={dedaId} />
+                    <>
+                        <ListenPlayer key="listenRead" dedaId={dedaId} />
+                        <ReadAlongModes />
+                    </>
                 );
             default:
                 return null;

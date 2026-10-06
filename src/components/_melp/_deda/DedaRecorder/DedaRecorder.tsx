@@ -58,6 +58,8 @@ const Bar = styled.section`
     /* Na barra fixa da página nova do DEDA: sem cartão, uma linha no computador. */
     &.docked {
         background: transparent;
+        /* o texto segue o tema (o cartão da página atual é escuro e branco; aqui o fundo é o da barra, claro ou escuro) */
+        color: var(--r-text);
         padding: 0;
         border-radius: 0;
         flex-wrap: nowrap;
@@ -74,6 +76,9 @@ const Bar = styled.section`
     }
     &.docked .timer {
         font-size: 1.25rem;
+    }
+    &.docked .level {
+        background: var(--r-track);
     }
     &.docked .actions {
         flex: none;

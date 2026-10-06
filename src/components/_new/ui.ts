@@ -9,6 +9,18 @@ const pulse = keyframes`
 
 /** Modais e balões das páginas novas (antd, fora da árvore): corpo em grade, rótulos e destaque do nível. */
 export const popupStyles = css`
+    @media (max-width: 860px) {
+        .ui-new-modal input,
+        .ui-new-modal select,
+        .ui-new-modal textarea,
+        .ui-new-modal .ant-select-selection-item,
+        .ui-new-modal .ant-select-selection-placeholder,
+        .ui-new-modal .ant-select-selection-search-input,
+        .ant-select-dropdown .ant-select-item,
+        .ant-select-dropdown input {
+            font-size: 16px;
+        }
+    }
     .ui-new-modal .ant-btn-primary:not(:disabled) {
         background: var(--r-gold);
         color: var(--r-on-gold);
@@ -278,8 +290,7 @@ export const Page = styled.div`
     }
     /* e-book: vitrine. Pôr do sol da capa: âmbar profundo para café, brilho atrás do livro, sombra no chão */
     .cc .img.book {
-        background:
-            radial-gradient(58% 68% at 50% 44%, rgba(244, 190, 112, 0.55), transparent 72%),
+        background: radial-gradient(58% 68% at 50% 44%, rgba(244, 190, 112, 0.55), transparent 72%),
             linear-gradient(165deg, #9c6733 0%, #5d3c22 46%, #2a1c13 100%);
     }
     .cc .img.book::after {

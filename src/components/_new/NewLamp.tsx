@@ -413,6 +413,9 @@ const lampStyles = css`
         }
     }
     @media (max-width: 860px) {
+        .ui-new-page.lamp .hm {
+            font-size: 16px; /* menos que isso o Safari do iPhone amplia a página ao tocar */
+        }
         .ui-new-page.lamp .two,
         .ui-new-page.lamp .cols3 {
             grid-template-columns: minmax(0, 1fr);

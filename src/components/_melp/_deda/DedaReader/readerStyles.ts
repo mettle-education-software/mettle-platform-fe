@@ -231,6 +231,25 @@ export const readerTokens = css`
     .deda-reader-shell-on .article-reader :is(p, li, blockquote, figcaption) {
         color: var(--r-text);
     }
+    /* botões do leitor (Day N anterior/seguinte): o leitor abre fora do tema antd da casca, então o branco do antd claro vazava */
+    .deda-reader-shell-on .article-reader .ant-btn-default {
+        background: transparent;
+        color: var(--r-text);
+        border-color: var(--r-line-strong);
+    }
+    .deda-reader-shell-on .article-reader .ant-btn-default:hover {
+        background: var(--r-hover);
+        color: var(--r-text);
+        border-color: var(--r-gold-hi);
+    }
+    .deda-reader-shell-on .article-reader .ant-btn-primary {
+        background: var(--r-gold);
+        color: var(--r-on-gold);
+    }
+    .deda-reader-shell-on .article-reader .ant-btn-primary:hover {
+        background: var(--r-gold-hi);
+        color: var(--r-on-gold);
+    }
     .deda-reader-shell-on .article-reader a {
         color: var(--r-gold-hi);
     }
@@ -1348,6 +1367,16 @@ export const Shell = styled.div`
     .dock [aria-label='Reading recorder'] .timer {
         font-weight: 500;
     }
+    /* "Skip today" e o foco dos botões do gravador seguem o tema (os do componente são claros, feitos para o cartão escuro) */
+    .dock [aria-label='Reading recorder'] .link {
+        color: var(--r-muted);
+    }
+    .dock [aria-label='Reading recorder'] .link:hover {
+        color: var(--r-text);
+    }
+    .dock [aria-label='Reading recorder'] button:focus-visible {
+        outline-color: var(--r-gold-hi);
+    }
     .dock [aria-label='Reading recorder'] button,
     .dock .switch button,
     .dock .note button {
@@ -1563,6 +1592,43 @@ export const Shell = styled.div`
     }
     ${LIGHT_ROOT} & .lk button[aria-label^='Day ']:not([aria-current]) > div:last-child > span {
         color: ${LK_LIGHT.text};
+    }
+    /* pílula "TODAY" e podcasts no tema claro: nada de caixa escura (a pílula vira clara; o card de podcast, claro com o dourado
+       nos controles) */
+    ${LIGHT_ROOT} & .lk button[aria-label^='Day '] > div:last-child span[aria-hidden] {
+        background: ${LK_LIGHT.card};
+        color: ${LK_LIGHT.todayText};
+    }
+    ${LIGHT_ROOT} & .lk [role='group'] {
+        background: ${LK_LIGHT.card} !important;
+        color: ${LK_LIGHT.text};
+        box-shadow: 0 1px 0 var(--r-line);
+    }
+    ${LIGHT_ROOT} & .lk [role='group']:focus-visible {
+        box-shadow: 0 0 0 2px var(--r-gold-hi);
+    }
+    ${LIGHT_ROOT} & .lk [role='group'] input[type='range'] {
+        accent-color: var(--r-gold);
+        background: linear-gradient(
+                to right,
+                var(--r-gold) 0 var(--progress, 0%),
+                var(--r-track) var(--progress, 0%) 100%
+            )
+            center / 100% 4px no-repeat;
+    }
+    ${LIGHT_ROOT} & .lk [role='group'] input[type='range']::-webkit-slider-thumb {
+        background: var(--r-gold);
+    }
+    ${LIGHT_ROOT} & .lk [role='group'] input[type='range']::-moz-range-thumb {
+        background: var(--r-gold);
+    }
+    ${LIGHT_ROOT} & .lk [role='group'] div button {
+        background: var(--r-hover);
+        color: ${LK_LIGHT.text};
+    }
+    ${LIGHT_ROOT} & .lk [role='group'] > button {
+        background: var(--r-gold);
+        color: var(--r-on-gold);
     }
     /* "Day N · gênero" nos cards comuns: dourado do tema com contraste AA nos dois temas (o do dia mantém o escuro) */
     .lk button[aria-label^='Day ']:not([aria-current]) .ant-typography {

@@ -257,6 +257,10 @@ const Frame = styled.div`
         border-radius: 8px;
         transition: width ${MENU_MS} ${MENU_EASE};
     }
+    .logo:focus-visible {
+        outline: 2px solid var(--r-gold-hi);
+        outline-offset: 2px;
+    }
     .logo svg {
         display: block;
         width: 100%;
@@ -361,6 +365,11 @@ const Frame = styled.div`
             max-height ${MENU_MS} ${MENU_EASE},
             opacity ${MENU_MS} ${MENU_EASE},
             visibility 0s linear ${MENU_MS};
+    }
+    /* o menu recolhido corta o que passa da borda; só depois da animação o balão do IMERSO pode sair dele (antes ficava
+       cortado e aparecia só uma faixa clara fina na borda interna) */
+    &.rail.settled .sb {
+        overflow: visible;
     }
     &.rail .grp:hover .sub,
     &.rail .grp:focus-within .sub {
@@ -732,6 +741,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
         const [rail, setRail] = useState(() => typeof window !== 'undefined' && readMenuCollapsed());
         const [open, setOpen] = useState(false);
         const [swap, setSwap] = useState<'' | 'swapA' | 'swapB'>('');
+        const [settled, setSettled] = useState(true);
         const router = useRouter();
         const pathname = usePathname();
         const menu = useAppMenu(() => setOpen(false));
@@ -767,6 +777,8 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
 
         const toggleRail = () => {
             setSwap((previous) => (previous === 'swapA' ? 'swapB' : 'swapA'));
+            setSettled(false);
+            window.setTimeout(() => setSettled(true), 260);
             setRail((previous) => {
                 saveMenuCollapsed(!previous);
                 return !previous;
@@ -831,7 +843,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
 
         return (
             <Frame
-                className={`ui-new${isMobile ? ' m' : rail ? ' rail' : ''}${isMobile ? '' : ` ${swap}`}`}
+                className={`ui-new${isMobile ? ' m' : rail ? ' rail' : ''}${isMobile ? '' : ` ${swap}${settled ? ' settled' : ''}`}`}
                 style={UI_FONT_VAR}
             >
                 <Global styles={[platformTokens, drawerStyles]} />

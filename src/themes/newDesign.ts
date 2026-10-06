@@ -74,7 +74,9 @@ export const ui = css`
             color var(--r-ease),
             opacity var(--r-ease);
     }
-    :focus-visible {
+    /* o aninhado do emotion sem "&" só valia para a própria raiz: o anel de foco tem de valer para todos os controles dentro dela */
+    &:focus-visible,
+    & :focus-visible {
         outline: 2px solid var(--r-gold-hi);
         outline-offset: 2px;
     }
@@ -204,6 +206,10 @@ export const ui = css`
     .ant-select {
         max-width: 100%;
     }
+    /* seletor aberto: o valor atual aparece esmaecido pelo antd (placeholder); aqui continua legível */
+    .ant-select-single.ant-select-open .ant-select-selection-item {
+        color: var(--r-muted) !important;
+    }
     .ant-select-single .ant-select-selector .ant-select-selection-item,
     .ant-select-single .ant-select-selector .ant-select-selection-placeholder {
         overflow: hidden;
@@ -220,6 +226,19 @@ export const ui = css`
     .ant-btn-primary:not(:disabled):active {
         background: var(--r-gold-hi);
         color: var(--r-on-gold);
+    }
+    /* celular: campos com menos de 16 px fazem o Safari do iPhone ampliar a página ao tocar; 16 px evita (sem travar o zoom) */
+    @media (max-width: 860px) {
+        input,
+        select,
+        textarea,
+        .ant-input,
+        .ant-input-affix-wrapper input,
+        .ant-select-selection-item,
+        .ant-select-selection-placeholder,
+        .ant-select-selection-search-input {
+            font-size: 16px;
+        }
     }
     .sr {
         position: absolute !important;

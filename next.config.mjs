@@ -51,10 +51,15 @@ export default withSentryConfig(nextConfig, {
     // For all available options, see:
     // https://github.com/getsentry/sentry-webpack-plugin#options
 
-    // Conta própria da Mettle (org mettle-education, região UE). O upload de sourcemaps só ocorre com SENTRY_AUTH_TOKEN.
-    org: process.env.SENTRY_ORG || 'mettle-education',
-    project: process.env.SENTRY_PROJECT || 'plataforma-web',
-    sentryUrl: process.env.SENTRY_URL || 'https://de.sentry.io/',
+    // Enquanto SENTRY_ORG/SENTRY_PROJECT não existirem na Vercel, vale a conta antiga; a troca é só definir as variáveis.
+    org: process.env.SENTRY_ORG || 'mettle-education-software',
+    project: process.env.SENTRY_PROJECT || 'plataforma-mettle',
+    ...(process.env.SENTRY_URL ? { sentryUrl: process.env.SENTRY_URL } : {}),
+
+    // Subir sourcemaps nunca derruba o build (token de outra org, região errada, Sentry fora do ar): só avisa.
+    unstable_sentryWebpackPluginOptions: {
+        errorHandler: err => console.warn(`[sentry] upload de sourcemaps ignorado: ${err.message.split('\n')[0]}`),
+    },
 
     // Only print logs for uploading source maps in CI
     silent: !process.env.CI,

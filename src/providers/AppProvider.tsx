@@ -44,7 +44,8 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
 
             const splitName = (claims?.name as string).split(' ');
 
-            const impersonating = claims.impersonating;
+            // A claim fica no token depois que a impersonação vence; só vale enquanto não expirou.
+            const impersonating = !!claims.impersonating && (claims.expires as number) > Date.now();
 
             const contextUser = {
                 impersonating,
@@ -60,7 +61,7 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
                 id: contextUser.uid,
             });
 
-            if (impersonating && (claims.expires as number) > Date.now()) {
+            if (impersonating) {
                 // @ts-ignore
                 contextUser.email = claims.impersonatedUser?.email as string;
                 // @ts-ignore

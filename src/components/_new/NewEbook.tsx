@@ -155,14 +155,6 @@ export const NewEbook: React.FC = () => {
 };
 
 const Product = styled.div`
-    /* imagem do André sem edição: no tema claro o branco do fundo some no fundo da página (multiply) e a sombra dele fica */
-    .cover {
-        mix-blend-mode: multiply;
-    }
-    html[data-theme='dark'] & .cover {
-        mix-blend-mode: normal;
-        border-radius: var(--r-radius);
-    }
     display: grid;
     grid-template-columns: 240px minmax(0, 1fr);
     gap: 48px;

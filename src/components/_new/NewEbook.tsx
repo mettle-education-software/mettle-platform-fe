@@ -120,7 +120,8 @@ export const NewEbook: React.FC = () => {
     return (
         <NewPage className="narrow">
             <Product>
-                <EbookCover width={240} className="cover" />
+                {/* eslint-disable-next-line @next/next/no-img-element -- livro 3D (public/img), o mesmo do card da Home */}
+                <img src="/img/ebook-livro-3d.webp" alt="" className="cover" width={300} style={{ height: "auto", maxWidth: "100%" }} />
                 <div className="info">
                     <p className="eyebrow">E-book · {EBOOK.pages} páginas</p>
                     <h1>{EBOOK.title}</h1>
@@ -204,8 +205,7 @@ const Product = styled.div`
 
         /* capa menor no celular: largura e escala juntas (o tamanho base vem inline) */
         .cover {
-            width: 168px !important;
-            font-size: 16.8px !important;
+            width: 220px !important;
             margin: 0 auto;
         }
         h1 {

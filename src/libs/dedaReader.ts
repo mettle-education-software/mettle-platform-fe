@@ -94,6 +94,17 @@ export const openWriteDay = (requested: number | null | undefined, today: number
     return valid && (requested as number) < today ? (requested as number) : today;
 };
 
+// ---------- aba Review: só quando há revisão liberada ----------
+
+/**
+ * A mesma regra de DedaReview/ReaderReview ("No reviews available at this stage"): as revisões começam no quinto DEDA
+ * liberado (week4 — o servidor só cria review1 a partir dele). Antes disso a aba não aparece; a regra não muda, só a
+ * exibição. `undefined` = resumo ainda não chegou (decidir depois, sem piscar).
+ */
+export const REVIEW_FROM_INDEX = 4;
+export const hasReviews = (unlockedDedas: readonly string[] | undefined, dedaId: string): boolean | undefined =>
+    unlockedDedas ? unlockedDedas.indexOf(dedaId) >= REVIEW_FROM_INDEX : undefined;
+
 // ---------- tamanho do texto de leitura ("Aa" na barra do topo): preferência por aparelho ----------
 
 /**

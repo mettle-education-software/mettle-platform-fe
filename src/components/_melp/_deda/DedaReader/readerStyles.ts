@@ -1144,30 +1144,6 @@ export const Shell = styled.div`
         opacity: 0.4;
         cursor: default;
     }
-    .past {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px 14px;
-        margin: 0 0 24px;
-        padding: 8px 8px 8px 16px;
-        border: 1px solid var(--r-line);
-        border-radius: var(--r-radius);
-        font-size: 13.5px;
-        line-height: 1.4;
-        color: var(--r-muted);
-    }
-    .past b {
-        font-weight: 500;
-        color: var(--r-text);
-    }
-    .past .btn {
-        min-height: 36px;
-        padding: 0 14px;
-        font-size: 13px;
-    }
-
     /* ---------- barra fixa ---------- */
     .dock {
         background: var(--r-bg2);

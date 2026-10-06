@@ -8,12 +8,8 @@ import { debounce } from 'ts-debounce';
 
 const { Title } = Typography;
 
-interface AdminActionsProps {
-    /** Plataforma nova: o botão que abre o painel vem da casca (ícone no menu); sem ele, o botão atual. */
-    trigger?: (open: () => void) => React.ReactNode;
-}
-
-export const AdminActions: React.FC<AdminActionsProps> = ({ trigger }) => {
+/** Estado e ações do painel de administração (impersonar alunos): os mesmos para o painel atual e o da plataforma nova. */
+export const useAdminImpersonation = () => {
     const { user } = useAppContext();
 
     const impersonating = user?.impersonating;
@@ -54,11 +50,57 @@ export const AdminActions: React.FC<AdminActionsProps> = ({ trigger }) => {
         stopImpersonate.mutate();
     };
 
-    if (!user || !user?.roles?.includes('METTLE_ADMIN')) return null;
+    const handleClear = () => {
+        setSearchQuery(undefined);
+        setSelectedUserToImpersonate(undefined);
+    };
+
+    return {
+        isAdmin: !!user?.roles?.includes('METTLE_ADMIN'),
+        impersonating,
+        visible,
+        setVisible,
+        handleClose,
+        handleSearch,
+        handleClear,
+        selectedUserToImpersonate,
+        setSelectedUserToImpersonate,
+        isMettleUsersLoading,
+        options: mettleUsersList?.data.map((user) => ({
+            label: `${user.first_name} ${user.last_name} - ${user.email}`,
+            value: user.user_uid,
+        })),
+        impersonate,
+        stopImpersonate,
+        handleImpersonate,
+        handleStopImpersonating,
+    };
+};
+
+export const AdminActions: React.FC = () => {
+    const {
+        isAdmin,
+        impersonating,
+        visible,
+        setVisible,
+        handleClose,
+        handleSearch,
+        handleClear,
+        selectedUserToImpersonate,
+        setSelectedUserToImpersonate,
+        isMettleUsersLoading,
+        options,
+        impersonate,
+        stopImpersonate,
+        handleImpersonate,
+        handleStopImpersonating,
+    } = useAdminImpersonation();
+
+    if (!isAdmin) return null;
 
     return (
         <React.Fragment>
-            {trigger ? trigger(() => setVisible(true)) : <Button onClick={() => setVisible(true)}>Admin panel</Button>}
+            <Button onClick={() => setVisible(true)}>Admin panel</Button>
             <Modal
                 okButtonProps={{ style: { display: 'none' } }}
                 open={visible}
@@ -87,20 +129,14 @@ export const AdminActions: React.FC<AdminActionsProps> = ({ trigger }) => {
                                         loading={isMettleUsersLoading}
                                         showSearch
                                         allowClear
-                                        onClear={() => {
-                                            setSearchQuery(undefined);
-                                            setSelectedUserToImpersonate(undefined);
-                                        }}
+                                        onClear={handleClear}
                                         onSearch={handleSearch}
                                         filterOption={false}
                                         onSelect={(value) => setSelectedUserToImpersonate(value)}
                                         value={selectedUserToImpersonate}
                                         style={{ width: '70%' }}
                                         placeholder="Selecione um aluno para impersonar"
-                                        options={mettleUsersList?.data.map((user) => ({
-                                            label: `${user.first_name} ${user.last_name} - ${user.email}`,
-                                            value: user.user_uid,
-                                        }))}
+                                        options={options}
                                     />
 
                                     <Button

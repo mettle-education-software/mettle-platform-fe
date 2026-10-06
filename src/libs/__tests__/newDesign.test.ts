@@ -6,15 +6,18 @@ import {
     firstName,
     formatHm,
     goalLabel,
+    isModuleOpen,
     isNewDesignAccount,
     lampDateLabel,
     lessonNeighbours,
     lockedModuleOf,
+    lockedNotes,
     NEW_DESIGN_UIDS,
     parseHm,
     readMenuCollapsed,
     saveMenuCollapsed,
     settingsTabFromQuery,
+    vimeoIdOf,
     softChart,
     weekDayOptions,
 } from '../newDesign';
@@ -170,5 +173,35 @@ describe('gráficos', () => {
         expect(soft.xaxis).toMatchObject({ categories: ['W1'], labels: { style: { fontFamily: 'Manrope' } } });
         expect((soft.yaxis as { labels: { formatter: unknown } }).labels.formatter).toBe(formatter);
         expect(options.xaxis.labels.style.colors).toBe('#FFF'); // o original não muda
+    });
+});
+
+describe('trilho de aulas: módulos abertos e trancados', () => {
+    it('padrão = só o módulo da aula atual; o que o aluno mudou prevalece', () => {
+        expect(isModuleOpen({}, 'm1', 'm1')).toBe(true);
+        expect(isModuleOpen({}, 'm2', 'm1')).toBe(false);
+        expect(isModuleOpen({ m1: false }, 'm1', 'm1')).toBe(false);
+        expect(isModuleOpen({ m2: true }, 'm2', 'm1')).toBe(true);
+        expect(isModuleOpen({}, 'm1', undefined)).toBe(false);
+    });
+
+    it('texto de liberação só quando muda de um trancado para o seguinte', () => {
+        const mods = [
+            { id: 'a', title: 'A', lessons: [] },
+            { id: 'b', title: 'B', lessons: [], locked: 'Oct 12' },
+            { id: 'c', title: 'C', lessons: [], locked: 'Start DEDA to unlock this module' },
+            { id: 'd', title: 'D', lessons: [], locked: 'Start DEDA to unlock this module' },
+        ];
+        expect(lockedNotes(mods)).toEqual([undefined, 'Oct 12', 'Start DEDA to unlock this module', undefined]);
+    });
+});
+
+describe('miniatura do Vimeo', () => {
+    it('id numérico do endereço de embed (o HPEC grava com "?" no fim)', () => {
+        expect(vimeoIdOf('https://player.vimeo.com/video/678384632?')).toBe('678384632');
+        expect(vimeoIdOf('https://player.vimeo.com/video/1055330506')).toBe('1055330506');
+        expect(vimeoIdOf('https://vimeo.com/522761378')).toBe('522761378');
+        expect(vimeoIdOf('https://www.youtube.com/embed/_5hdGgtKLpM')).toBeUndefined();
+        expect(vimeoIdOf(undefined)).toBeUndefined();
     });
 });

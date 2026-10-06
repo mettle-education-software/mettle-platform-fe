@@ -50,7 +50,7 @@ const App = ({ children }: { children: React.ReactNode }) => {
           `}
                 </Script>
                 <Script id="chatwool">
-                    {`window.chatwootSettings = {"position":"left","type":"standard","launcherTitle":"","hideMessageBubble":true};
+                    {`window.chatwootSettings = {"position":"left","type":"standard","launcherTitle":"","hideMessageBubble":true,"darkMode":"auto"};
                                    (function(d,t) {
                         var BASE_URL="https://support.mettle.com.br";
                         var g=d.createElement(t),s=d.getElementsByTagName(t)[0];

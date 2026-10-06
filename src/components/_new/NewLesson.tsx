@@ -14,13 +14,18 @@ import { readTextScale, saveTextScale } from 'libs/dedaReader';
 import {
     CourseModule,
     fileSizeLabel,
+    isModuleOpen,
     lessonNeighbours,
     lockedModuleOf,
+    lockedNotes,
     readLessonRailCollapsed,
+    readOpenModules,
     saveLessonRailCollapsed,
+    saveOpenModules,
 } from 'libs/newDesign';
 import {
     ArrowRight,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
     Download,
@@ -37,7 +42,7 @@ import {
     X,
 } from 'lucide-react';
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { ICON, UI_FONT_VAR, ui } from 'themes/newDesign';
 import { NewPage } from './NewPage';
 
@@ -162,31 +167,51 @@ const Wrap = styled.div`
         display: flex;
         align-items: center;
         gap: 8px;
-        min-height: 36px;
-        margin: 10px 0 2px;
-        padding: 0 24px;
+        width: 100%;
+        min-height: 44px;
+        margin: 6px 0 0;
+        padding: 0 20px 0 24px;
+        border: 0;
+        background: none;
         font-size: var(--r-label-size);
         font-weight: 500;
         letter-spacing: var(--r-label-track);
         text-transform: uppercase;
         line-height: 1.4;
+        text-align: left;
         color: var(--r-muted);
+        cursor: pointer;
     }
-    .mod.locked {
-        color: var(--r-faint);
+    .mod:hover {
+        color: var(--r-text);
+    }
+    .mod > span {
+        flex: 1 1 auto;
+        min-width: 0;
     }
     .mod svg {
         flex: none;
+        transition: transform var(--r-ease);
     }
-    .mod .when {
-        display: block;
-        margin: -6px 0 8px;
-        padding: 0 24px;
-        font-size: 12.5px;
-        letter-spacing: 0.01em;
-        text-transform: none;
-        font-weight: 400;
+    .mod[aria-expanded='false'] svg {
+        transform: rotate(-90deg);
+    }
+    /* trancado: cadeado + uma linha discreta (o texto de liberação só quando muda) */
+    .lockd {
+        display: grid;
+        grid-template-columns: 14px minmax(0, 1fr);
+        gap: 2px 10px;
+        align-items: center;
+        margin: 0;
+        padding: 10px 24px;
+        font-size: 13.5px;
+        line-height: 1.35;
         color: var(--r-faint);
+    }
+    .lockd small {
+        grid-column: 2;
+        font-size: 12px;
+        letter-spacing: 0.01em;
     }
     .mods ul {
         list-style: none;
@@ -606,6 +631,17 @@ const RailList: React.FC<{
     progress?: { unlocked: number; total: number };
     onPick?: () => void;
 }> = ({ t, course, modules, loading, lessonId, progress, onPick }) => {
+    const currentModuleId = modules.find((m) => m.lessons.some((l) => l.id === lessonId))?.id;
+    const notes = lockedNotes(modules);
+    // Lido antes da primeira pintura (sem piscar): o que o aluno abriu/fechou neste aparelho.
+    const [saved, setSaved] = useState<Record<string, boolean>>({});
+    useLayoutEffect(() => setSaved(readOpenModules()), []);
+    const toggle = (id: string) =>
+        setSaved((previous) => {
+            const next = { ...previous, [id]: !isModuleOpen(previous, id, currentModuleId) };
+            saveOpenModules(next);
+            return next;
+        });
     let n = 0;
     return (
         <>
@@ -629,19 +665,33 @@ const RailList: React.FC<{
                         ))}
                     </ul>
                 )}
-                {modules.map((m) => (
-                    <React.Fragment key={m.id}>
-                        <p className={`mod${m.locked ? ' locked' : ''}`}>
-                            {m.locked && <Lock {...ICON} size={14} aria-hidden />}
-                            {m.title}
-                        </p>
-                        {m.locked ? (
-                            <span className="mod when">{m.locked}</span>
-                        ) : (
-                            <ul>
-                                {m.lessons.map((l) => {
-                                    n += 1;
-                                    return (
+                {modules.map((m, i) => {
+                    if (m.locked)
+                        return (
+                            <p key={m.id} className="lockd">
+                                <Lock {...ICON} size={14} aria-label="Locked" />
+                                <span>{m.title}</span>
+                                {notes[i] && <small>{notes[i]}</small>}
+                            </p>
+                        );
+                    const open = isModuleOpen(saved, m.id, currentModuleId);
+                    const first = n;
+                    n += m.lessons.length;
+                    return (
+                        <React.Fragment key={m.id}>
+                            <button
+                                type="button"
+                                className="mod"
+                                aria-expanded={open}
+                                aria-controls={open ? `mod-${m.id}` : undefined}
+                                onClick={() => toggle(m.id)}
+                            >
+                                <span>{m.title}</span>
+                                <ChevronDown {...ICON} size={16} aria-hidden />
+                            </button>
+                            {open && (
+                                <ul id={`mod-${m.id}`}>
+                                    {m.lessons.map((l, j) => (
                                         <li key={l.id}>
                                             <Link
                                                 href={l.href}
@@ -650,17 +700,17 @@ const RailList: React.FC<{
                                                 onClick={onPick}
                                             >
                                                 <span className="n" aria-hidden>
-                                                    {n}
+                                                    {first + j + 1}
                                                 </span>
                                                 <span>{l.title}</span>
                                             </Link>
                                         </li>
-                                    );
-                                })}
-                            </ul>
-                        )}
-                    </React.Fragment>
-                ))}
+                                    ))}
+                                </ul>
+                            )}
+                        </React.Fragment>
+                    );
+                })}
             </nav>
         </>
     );

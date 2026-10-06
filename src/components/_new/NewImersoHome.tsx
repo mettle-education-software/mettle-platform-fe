@@ -5,12 +5,12 @@ import { useResumeDeda, useStartDeda } from 'hooks';
 import { DedaDifficulties, DedaDifficulty, MelpStatus } from 'interfaces/melp';
 import { getWeekDay, nextMondayDate } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
-import { firstName } from 'libs/newDesign';
+import { firstName, IntensityLang, readIntensityLang, saveIntensityLang } from 'libs/newDesign';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext, useProductAccess } from 'providers';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewDedasGrid } from './NewDedasGrid';
 import { NewHpecRow } from './NewHpecRow';
@@ -39,58 +39,105 @@ const Grid: React.FC<{ customTitle?: string; aside?: React.ReactNode }> = ({ cus
     );
 };
 
+/**
+ * Textos do modal de intensidade em inglês (os de hoje) e em português (tradução, mesmos números). Ficam no código:
+ * não vêm do conteúdo (Contentful).
+ */
+const INTENSITY_TEXTS = {
+    en: {
+        title: 'Choose your intensity level',
+        options: 'Intensity level options',
+        intro: 'The intensity level you select determines how quickly you’ll reach your daily targets and, ultimately, achieve your goal of English fluency:',
+        levels: {
+            EASY: 'A gradual pace, reaching 3 hours/day (1 hour 15 minutes active, 1 hour 45 minutes passive) within 10 months (41 weeks).',
+            MEDIUM: 'A moderate pace, reaching 4 hours/day (1 hour 30 minutes active, 2 hours 30 minutes passive) within 8 months (33 weeks).',
+            HARD: 'An accelerated pace, reaching 5 hours/day (2 hours active, 3 hours passive) within 6 months (25 weeks).',
+        } as Record<DedaDifficulty, string>,
+        targets:
+            'These targets help you structure your routine effectively, ensuring steady progress based on your commitment level.',
+        note: 'Note: You can only select your intensity level at the start of the program or when restarting it using one of your reset options.',
+        confirm: (name: string) => `Confirm ${name}`,
+        cancel: 'Cancel',
+    },
+    pt: {
+        title: 'Escolha seu nível de intensidade',
+        options: 'Níveis de intensidade',
+        intro: 'O nível de intensidade que você escolher determina em quanto tempo você vai atingir suas metas diárias e, assim, alcançar seu objetivo de fluência em inglês:',
+        levels: {
+            EASY: 'Um ritmo gradual, chegando a 3 horas por dia (1 hora e 15 minutos de ativo, 1 hora e 45 minutos de passivo) em 10 meses (41 semanas).',
+            MEDIUM: 'Um ritmo moderado, chegando a 4 horas por dia (1 hora e 30 minutos de ativo, 2 horas e 30 minutos de passivo) em 8 meses (33 semanas).',
+            HARD: 'Um ritmo acelerado, chegando a 5 horas por dia (2 horas de ativo, 3 horas de passivo) em 6 meses (25 semanas).',
+        } as Record<DedaDifficulty, string>,
+        targets:
+            'Essas metas ajudam você a organizar sua rotina com eficiência, garantindo um progresso constante de acordo com o seu nível de comprometimento.',
+        note: 'Observação: você só pode escolher o nível de intensidade no início do programa ou ao reiniciá-lo usando uma das suas opções de reinício.',
+        confirm: (name: string) => `Confirmar ${name}`,
+        cancel: 'Cancelar',
+    },
+};
+
 /** CAN_START_DEDA: confirmar o início (modal de intensidade, mesmos textos e a mesma chamada de useStartDeda). */
 const CanStart: React.FC = () => {
     const [open, setOpen] = useState(false);
     const [level, setLevel] = useState<DedaDifficulty>('EASY');
-    const confirmDedaStart = useStartDeda();
-
-    const levelTexts: Record<DedaDifficulty, React.ReactNode> = {
-        EASY: 'A gradual pace, reaching 3 hours/day (1 hour 15 minutes active, 1 hour 45 minutes passive) within 10 months (41 weeks).',
-        MEDIUM: 'A moderate pace, reaching 4 hours/day (1 hour 30 minutes active, 2 hours 30 minutes passive) within 8 months (33 weeks).',
-        HARD: 'An accelerated pace, reaching 5 hours/day (2 hours active, 3 hours passive) within 6 months (25 weeks).',
+    const [lang, setLang] = useState<IntensityLang>('en');
+    useEffect(() => setLang(readIntensityLang()), []);
+    const pickLang = (value: IntensityLang) => {
+        setLang(value);
+        saveIntensityLang(value);
     };
+    const t = INTENSITY_TEXTS[lang];
+    const confirmDedaStart = useStartDeda();
 
     return (
         <>
             <Modal
                 maskClosable
                 destroyOnClose
-                title="Choose your intensity level"
+                title={
+                    <div className="title-row">
+                        <span lang={lang}>{t.title}</span>
+                        <span className="lang" role="group" aria-label="Language / Idioma">
+                            {(['en', 'pt'] as const).map((value) => (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    lang={value}
+                                    aria-pressed={lang === value}
+                                    onClick={() => pickLang(value)}
+                                >
+                                    {value.toUpperCase()}
+                                </button>
+                            ))}
+                        </span>
+                    </div>
+                }
                 open={open}
                 onOk={() => confirmDedaStart.mutate({ userGoalLevel: level }, { onSuccess: () => setOpen(false) })}
                 okButtonProps={{ loading: confirmDedaStart.isPending }}
                 onCancel={() => setOpen(false)}
-                okText={`Confirm ${DedaDifficulties[level]}`}
-                cancelText="Cancel"
+                okText={t.confirm(DedaDifficulties[level])}
+                cancelText={t.cancel}
             >
-                <div className="modal-body">
-                    <p className="eyebrow">Intensity level options</p>
+                <div className="modal-body" lang={lang}>
+                    <p className="eyebrow">{t.options}</p>
                     <Select
                         className="full-width"
                         value={level}
                         onChange={(value) => setLevel(value)}
+                        aria-label={t.options}
                         options={Object.keys(DedaDifficulties).map((key) => ({
                             label: DedaDifficulties[key as DedaDifficulty],
                             value: key,
                         }))}
                     />
-                    <p>
-                        The intensity level you select determines how quickly you’ll reach your daily targets and,
-                        ultimately, achieve your goal of English fluency:
-                    </p>
+                    <p>{t.intro}</p>
                     <p className="level">
                         <strong>{DedaDifficulties[level]}: </strong>
-                        {levelTexts[level]}
+                        {t.levels[level]}
                     </p>
-                    <p>
-                        These targets help you structure your routine effectively, ensuring steady progress based on
-                        your commitment level.
-                    </p>
-                    <p className="hint">
-                        Note: You can only select your intensity level at the start of the program or when restarting it
-                        using one of your reset options.
-                    </p>
+                    <p>{t.targets}</p>
+                    <p className="hint">{t.note}</p>
                 </div>
             </Modal>
             <div className="notice">

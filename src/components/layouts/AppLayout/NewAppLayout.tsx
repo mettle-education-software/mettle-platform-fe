@@ -2,7 +2,8 @@
 
 import { css, Global } from '@emotion/react';
 import styled from '@emotion/styled';
-import { ConfigProvider, Drawer } from 'antd';
+import { Button, ConfigProvider, Drawer, Flex, Modal, Select } from 'antd';
+import { popupStyles } from 'components/_new/ui';
 import { Logo } from 'components/atoms/Logo/Logo';
 import { useDeviceSize } from 'hooks';
 import { getWeekDay } from 'libs';
@@ -25,7 +26,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { forwardRef, useState } from 'react';
 import { ICON, newAntdTheme, platformTokens, UI_FONT_CLASS, UI_FONT_VAR, ui } from 'themes/newDesign';
-import { AdminActions } from '../AdminActions/AdminActions';
+import { useAdminImpersonation } from '../AdminActions/AdminActions';
 import { useAppMenu } from './appMenu';
 
 /* ---------- estilos ---------- */
@@ -544,16 +545,76 @@ const MelpMini: React.FC = () => {
     );
 };
 
-const AdminItem: React.FC = () => (
-    <AdminActions
-        trigger={(open) => (
-            <button type="button" className="it" onClick={open} title="Admin panel">
+/**
+ * Painel de administração (impersonar alunos): as mesmas funções do AdminActions atual (useAdminImpersonation), na
+ * linguagem nova — escuro, Manrope, campo e botão finos, sem moldura de card e sem "Cancelar" (X, Esc e fora fecham).
+ */
+const AdminItem: React.FC = () => {
+    const admin = useAdminImpersonation();
+    if (!admin.isAdmin) return null;
+    return (
+        <>
+            <button type="button" className="it" onClick={() => admin.setVisible(true)} title="Admin panel">
                 <ShieldCheck {...ICON} aria-hidden />
                 <span className="lbl">Admin panel</span>
             </button>
-        )}
-    />
-);
+            <ConfigProvider theme={newAntdTheme}>
+                <Global styles={popupStyles} />
+                <Modal
+                    open={admin.visible}
+                    onCancel={admin.handleClose}
+                    footer={null}
+                    title="Painel de administração"
+                    className={`ui-new-modal ${UI_FONT_CLASS}`}
+                    width={520}
+                >
+                    <div className="modal-body">
+                        <p className="eyebrow" id="admin-impersonate">
+                            Impersonar alunos
+                        </p>
+                        {admin.impersonating ? (
+                            <Flex gap={12} align="center" justify="space-between" wrap>
+                                <p>Você está impersonando.</p>
+                                <Button
+                                    type="primary"
+                                    onClick={admin.handleStopImpersonating}
+                                    loading={admin.stopImpersonate.isPending}
+                                >
+                                    Retornar à conta normal
+                                </Button>
+                            </Flex>
+                        ) : (
+                            <Flex gap={8}>
+                                <Select
+                                    aria-labelledby="admin-impersonate"
+                                    loading={admin.isMettleUsersLoading}
+                                    showSearch
+                                    allowClear
+                                    onClear={admin.handleClear}
+                                    onSearch={admin.handleSearch}
+                                    filterOption={false}
+                                    onSelect={(value) => admin.setSelectedUserToImpersonate(value)}
+                                    value={admin.selectedUserToImpersonate}
+                                    style={{ flex: 1, minWidth: 0 }}
+                                    placeholder="Nome ou e-mail do aluno"
+                                    options={admin.options}
+                                />
+                                <Button
+                                    type="primary"
+                                    loading={admin.impersonate.isPending}
+                                    onClick={admin.handleImpersonate}
+                                    disabled={!admin.selectedUserToImpersonate}
+                                >
+                                    Acessar
+                                </Button>
+                            </Flex>
+                        )}
+                    </div>
+                </Modal>
+            </ConfigProvider>
+        </>
+    );
+};
 
 const User: React.FC = () => {
     const { user } = useAppContext();

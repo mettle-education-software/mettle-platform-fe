@@ -187,20 +187,6 @@ export const NewLampInput: React.FC = () => {
                                 {rate('dedaStateBeing', 'State of being')}
                                 {rate('dedaFocus', 'Focus')}
                             </div>
-                            <div className="frs">
-                                {time(
-                                    'readingTime',
-                                    <>
-                                        Reading time <small>MM:SS</small>
-                                    </>,
-                                )}
-                                {time(
-                                    'dedaTime',
-                                    <>
-                                        DEDA time <small>HH:MM</small>
-                                    </>,
-                                )}
-                            </div>
                         </section>
                         <section aria-labelledby="lamp-active">
                             <h3 id="lamp-active">

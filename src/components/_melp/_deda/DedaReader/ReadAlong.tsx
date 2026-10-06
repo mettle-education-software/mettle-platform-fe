@@ -8,16 +8,174 @@ import { DedaListenQueryResponse } from 'interfaces';
 import {
     Alignment,
     alignUrlFor,
+    Block,
+    blockAt,
+    blocksOf,
     isUsableAlignment,
+    lineRects,
     markBox,
     rangeIndexAt,
+    READALONG_MODES,
+    ReadAlongMode,
     wordAt,
     wordRanges,
-    wordsOfDocument,
+    wordsAndGaps,
 } from 'libs/readAlong';
-import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import { Highlighter } from 'lucide-react';
+import React, { ReactNode, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 const HIGHLIGHT = 'deda-readalong';
+/** Palavra dita dentro do bloco (modos Phrase e Sentence): sublinhado fino, na cor do texto sobre o amarelo. */
+const HIGHLIGHT_WORD = 'deda-readalong-word';
+
+// ---------- modo (Word · Phrase · Sentence): por aparelho, padrão Phrase ----------
+
+const MODE_KEY = 'deda-readalong-mode';
+const LABEL: Record<ReadAlongMode, string> = { word: 'Word', phrase: 'Phrase', sentence: 'Sentence' };
+type ModeState = { mode: ReadAlongMode; available: boolean };
+const SERVER_STATE: ModeState = { mode: 'phrase', available: false };
+let modeState: ModeState | null = null;
+const listeners = new Set<() => void>();
+const getModeState = (): ModeState => {
+    if (!modeState) {
+        let saved: string | null = null;
+        try {
+            saved = localStorage.getItem(MODE_KEY);
+        } catch {
+            // armazenamento bloqueado: fica o padrão
+        }
+        modeState = { mode: READALONG_MODES.find((m) => m === saved) ?? 'phrase', available: false };
+    }
+    return modeState;
+};
+const setModeState = (next: Partial<ModeState>) => {
+    modeState = { ...getModeState(), ...next };
+    listeners.forEach((l) => l());
+};
+const subscribe = (l: () => void) => {
+    listeners.add(l);
+    return () => void listeners.delete(l);
+};
+const useModeState = () => useSyncExternalStore(subscribe, getModeState, () => SERVER_STATE);
+
+// Pílula baixa e leve, igual a "My reading | Original" da barra (30 px de altura, toque de 44 px).
+const Modes = styled.div`
+    position: relative;
+    && {
+        flex: none;
+    }
+    .ramodes-seg {
+        display: flex;
+        padding: 2px;
+        border: 1px solid var(--r-line);
+        border-radius: 999px;
+    }
+    .ramodes-seg button {
+        position: relative;
+        min-height: 30px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 999px;
+        background: none;
+        color: var(--r-muted);
+        font: inherit;
+        font-size: 13px;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+    .ramodes-seg button::after {
+        content: '';
+        position: absolute;
+        inset: -8px 0;
+    }
+    .ramodes-seg button[aria-pressed='true'] {
+        background: var(--r-gold-tint);
+        color: var(--r-gold-hi);
+    }
+    button:focus-visible {
+        outline: 2px solid var(--r-gold-hi);
+        outline-offset: 2px;
+    }
+    .ramodes-icon {
+        display: none;
+    }
+    @media (max-width: 860px) {
+        .ramodes-icon {
+            position: relative;
+            display: grid;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border: 1px solid var(--r-line);
+            border-radius: 999px;
+            background: none;
+            color: var(--r-gold-hi);
+            cursor: pointer;
+        }
+        .ramodes-icon::after {
+            content: '';
+            position: absolute;
+            inset: -5px;
+        }
+        &.open .ramodes-icon {
+            background: var(--r-gold-tint);
+        }
+        .ramodes-seg {
+            display: none;
+        }
+        /* aberto: o segmento sobe por cima do texto, alinhado à direita do ícone; a barra não muda de altura */
+        &.open .ramodes-seg {
+            display: flex;
+            position: absolute;
+            bottom: calc(100% + 10px);
+            right: 0;
+            z-index: 5;
+            background: var(--r-sheet);
+            box-shadow: 0 6px 24px var(--r-card-shadow);
+        }
+    }
+`;
+
+/**
+ * Seletor do read-along no passo 4, ao lado de "My reading | Original". Só aparece quando há tempos para o DEDA.
+ * No celular vira um ícone que abre o mesmo segmento (a barra não cresce).
+ */
+export const ReadAlongModes = () => {
+    const { mode, available } = useModeState();
+    const [open, setOpen] = useState(false);
+    if (!available) return null;
+    const choose = (m: ReadAlongMode) => {
+        try {
+            localStorage.setItem(MODE_KEY, m);
+        } catch {
+            // sem armazenamento: vale só nesta visita
+        }
+        setModeState({ mode: m });
+        setOpen(false);
+    };
+    return (
+        <Modes className={open ? 'open' : undefined}>
+            <button
+                type="button"
+                className="ramodes-icon"
+                aria-expanded={open}
+                aria-label={`Highlight: ${LABEL[mode]}`}
+                onClick={() => setOpen(!open)}
+            >
+                <Highlighter size={16} strokeWidth={1.5} aria-hidden />
+            </button>
+            <div className="ramodes-seg" role="group" aria-label="Highlight">
+                {READALONG_MODES.map((m) => (
+                    <button key={m} type="button" aria-pressed={mode === m} onClick={() => choose(m)}>
+                        {LABEL[m]}
+                    </button>
+                ))}
+            </div>
+        </Modes>
+    );
+};
 
 // A métrica do texto não muda (nada de negrito) e o DOM do texto também não: ::highlight só escurece a palavra; o
 // fundo amarelo é uma marca à parte, atrás do texto, centrada nas letras (o fundo do ::highlight ocupa a caixa da
@@ -25,6 +183,13 @@ const HIGHLIGHT = 'deda-readalong';
 const highlightStyle = css`
     ::highlight(${HIGHLIGHT}) {
         color: var(--r-readalong-text, #1d1a17);
+    }
+    ::highlight(${HIGHLIGHT_WORD}) {
+        color: var(--r-readalong-text, #1d1a17);
+        text-decoration: underline;
+        text-decoration-thickness: 0.07em;
+        text-underline-offset: 0.18em;
+        text-decoration-color: var(--r-readalong-text, #1d1a17);
     }
 `;
 
@@ -41,6 +206,27 @@ const Box = styled.div`
         border-radius: 0.22em;
         /* marca-texto amarelo (themes/palette: --r-readalong) */
         background: var(--r-readalong, rgba(255, 214, 10, 0.88));
+    }
+    /* troca de bloco: o novo aparece e o anterior some em ~120 ms (sem movimento com prefers-reduced-motion) */
+    > .ra-marks i.in {
+        animation: ra-in 120ms ease-out;
+    }
+    > .ra-marks i.out {
+        opacity: 0;
+        transition: opacity 120ms ease-out;
+    }
+    @keyframes ra-in {
+        from {
+            opacity: 0;
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        > .ra-marks i.in {
+            animation: none;
+        }
+        > .ra-marks i.out {
+            display: none;
+        }
     }
     > .ra-text {
         position: relative;
@@ -91,9 +277,11 @@ const findOriginal = (audioUrl: string): HTMLAudioElement | null => {
 };
 
 /**
- * Read-along do passo 4 (piloto, conta do dono): com o áudio original tocando, a palavra dita ganha um fundo dourado
- * amarelo, centrado nas letras; a rolagem acompanha (palavra no terço superior) até o aluno rolar por conta própria — aí aparece "Follow".
- * Tocar numa palavra leva o áudio até ela. Sem tempos publicados para o DEDA (ou outra faixa): nada muda.
+ * Read-along do passo 4 (piloto, conta do dono): com o áudio original tocando, o trecho dito ganha um fundo amarelo,
+ * centrado nas letras — a palavra (Word), o bloco de sentido (Phrase, padrão) ou a sentença (Sentence); nos dois
+ * últimos a palavra dita leva um sublinhado fino. A rolagem acompanha (início do bloco no terço superior) até o aluno
+ * rolar por conta própria — aí aparece "Follow". Tocar numa palavra leva o áudio até ela (Phrase/Sentence: ao começo
+ * do bloco). Sem tempos publicados para o DEDA (ou outra faixa): nada muda.
  */
 export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: ReactNode }) => {
     const allowed = useNewDesign();
@@ -108,6 +296,9 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
     followRef.current = follow;
     const ranges = useRef<Range[]>([]);
     const current = useRef(-1);
+    const { mode } = useModeState();
+    const modeRef = useRef(mode);
+    modeRef.current = mode;
     const scrollNow = useRef<() => void>(() => undefined);
     const marks = useRef<HTMLDivElement>(null);
 
@@ -127,23 +318,50 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
         const prose = () => box.current?.querySelector('.prose');
         if (!align || !registry) return;
         const hl = new Highlight();
+        const hlWord = new Highlight();
         registry.set(HIGHLIGHT, hl);
+        registry.set(HIGHLIGHT_WORD, hlWord);
         const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         let raf = 0;
         let audio: HTMLAudioElement | null = null;
         let lastLookup = 0;
         let ok: boolean | null = null; // texto confere com os tempos? (contagem igual)
+        let runs: string[] = [];
+        let blocks: Block[] = [];
+        let blocksMode: ReadAlongMode | null = null;
+        let word = -1; // palavra dita (current.current = bloco)
 
         const sync = () => {
             const root = prose();
             if (!root) return false;
             const stale = !ranges.current.length || !ranges.current[0].startContainer.isConnected;
             if (stale) {
-                ranges.current = wordRanges(root);
+                ({ ranges: ranges.current, runs } = wordRanges(root));
                 ok = isUsableAlignment(align, dedaId, audioUrl, ranges.current.length);
+                setModeState({ available: ok });
+                current.current = -1;
+                blocksMode = null;
+            }
+            if (ok && blocksMode !== modeRef.current) {
+                const { words, gaps } = wordsAndGaps(runs);
+                blocksMode = modeRef.current;
+                blocks = blocksOf(words, gaps, blocksMode);
                 current.current = -1;
             }
             return !!ok;
+        };
+
+        /** Faixas do bloco b, uma por nó de texto (palavra a palavra, com a pontuação entre elas). */
+        const blockRanges = (b: number): Range[] => {
+            const out: Range[] = [];
+            const [s, e] = blocks[b] ?? [0, -1];
+            for (let k = s; k <= e; k++) {
+                const r = ranges.current[k];
+                const prev = out[out.length - 1];
+                if (prev && prev.endContainer === r.startContainer) prev.setEnd(r.endContainer, r.endOffset);
+                else out.push(r.cloneRange());
+            }
+            return out;
         };
 
         const scrollTo = (i: number, force = false) => {
@@ -159,20 +377,27 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
                 });
         };
 
-        // marca amarela da palavra atual, em coordenadas do contêiner (rola junto com o texto)
-        const place = (i: number) => {
+        // marca amarela do bloco atual (uma faixa por linha visual), em coordenadas do contêiner (rola junto com o
+        // texto). `fade`: troca de bloco nos modos Phrase/Sentence; no Word a marca anda sem transição, como antes.
+        const place = (b: number, fade = false) => {
             const layer = marks.current;
             const origin = box.current?.getBoundingClientRect();
             if (!layer || !origin) return;
-            layer.replaceChildren();
-            const range = ranges.current[i];
-            const el = range?.startContainer.parentElement;
-            if (!range || !el) return;
+            if (fade && !reduced) {
+                const old = Array.from(layer.children);
+                old.forEach((m) => m.classList.add('out'));
+                setTimeout(() => old.forEach((m) => m.remove()), 160);
+            } else layer.replaceChildren();
+            const parts = b >= 0 ? blockRanges(b) : [];
+            const el = parts[0]?.startContainer.parentElement;
+            if (!el) return;
             const font = fontOf(el);
-            for (const r of Array.from(range.getClientRects())) {
-                const b = markBox(r, origin, font);
+            const rects = parts.flatMap((r) => Array.from(r.getClientRects()));
+            for (const line of lineRects(rects, font.size / 2)) {
+                const m = markBox(line, origin, font);
                 const mark = document.createElement('i');
-                mark.style.cssText = `left:${b.left}px;top:${b.top}px;width:${b.width}px;height:${b.height}px`;
+                if (fade) mark.className = 'in';
+                mark.style.cssText = `left:${m.left}px;top:${m.top}px;width:${m.width}px;height:${m.height}px`;
                 layer.appendChild(mark);
             }
         };
@@ -187,16 +412,25 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
                 audio = findOriginal(audioUrl);
                 lastLookup = now;
             }
-            const on = !!audio && audio.currentTime > 0 && sync();
+            const ready = sync(); // também liga o seletor de modo assim que o texto confere com os tempos
+            const on = !!audio && audio.currentTime > 0 && ready;
             setActive(on); // mesmo valor = sem re-render
             const i = on && audio ? wordAt(align.words, audio.currentTime * 1000) : -1;
-            if (i === current.current) return;
-            current.current = i;
+            const b = i >= 0 ? blockAt(blocks, i) : -1;
+            const byWord = blocksMode === 'word';
+            if (i !== word) {
+                word = i;
+                hlWord.clear();
+                if (i >= 0 && !byWord) hlWord.add(ranges.current[i]);
+            }
+            if (b === current.current) return;
+            const fade = !byWord && current.current >= 0 && b >= 0;
+            current.current = b;
             hl.clear();
-            place(i);
-            if (i < 0) return;
-            hl.add(ranges.current[i]);
-            if (followRef.current && audio && !audio.paused) scrollTo(i);
+            place(b, fade);
+            if (b < 0) return;
+            blockRanges(b).forEach((r) => hl.add(r));
+            if (followRef.current && audio && !audio.paused) scrollTo(blocks[b][0]);
         };
         raf = requestAnimationFrame(tick);
 
@@ -228,13 +462,14 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
             const offset = pos?.offset ?? range?.startOffset ?? 0;
             const i = node ? rangeIndexAt(ranges.current, node, offset) : -1;
             if (i < 0) return;
-            audio.currentTime = align.words[i][0] / 1000;
+            const b = blockAt(blocks, i); // Phrase/Sentence: do começo do bloco
+            audio.currentTime = align.words[b >= 0 ? blocks[b][0] : i][0] / 1000;
             setFollow(true);
         };
         const el = box.current;
         el?.addEventListener('click', onClick);
 
-        scrollNow.current = () => current.current >= 0 && scrollTo(current.current, true);
+        scrollNow.current = () => current.current >= 0 && scrollTo(blocks[current.current][0], true);
 
         return () => {
             cancelAnimationFrame(raf);
@@ -243,6 +478,8 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
             events.forEach((t) => scroller?.removeEventListener(t, manual));
             el?.removeEventListener('click', onClick);
             registry.delete(HIGHLIGHT);
+            registry.delete(HIGHLIGHT_WORD);
+            setModeState({ available: false });
             ranges.current = [];
             current.current = -1;
             scrollNow.current = () => undefined;

@@ -1,4 +1,17 @@
-import { alignUrlFor, isUsableAlignment, MARK_EM, markBox, wordAt, wordSpans, wordsOfDocument } from '../readAlong';
+import {
+    alignUrlFor,
+    blockAt,
+    blocksOf,
+    isUsableAlignment,
+    lineRects,
+    MARK_EM,
+    markBox,
+    ReadAlongMode,
+    wordAt,
+    wordsAndGaps,
+    wordSpans,
+    wordsOfDocument,
+} from '../readAlong';
 
 // Mesma forma do rich text do Contentful: marcas e links dividem o texto em nós; "\n" vira <br> no ReaderProse.
 const doc = {
@@ -121,5 +134,116 @@ describe('marca do read-along centrada na palavra', () => {
         expect(above).toBeGreaterThan(0);
         expect(b.width).toBeGreaterThan(rect.width);
         expect(b.height).toBeCloseTo(MARK_EM * size, 6);
+    });
+});
+
+// Frases reais do DEDA35 (Change). `runs` = nós de texto na ordem renderizada; "\n" entre parágrafos.
+const show = (runs: string[], mode: ReadAlongMode) => {
+    const { words, gaps } = wordsAndGaps(runs);
+    return blocksOf(words, gaps, mode).map(([s, e]) => words.slice(s, e + 1).join(' '));
+};
+
+describe('blocos do read-along (Phrase e Sentence)', () => {
+    it('wordsAndGaps segue a tokenização e guarda o texto entre as palavras, inclusive entre nós', () => {
+        const { words, gaps } = wordsAndGaps(['Here', "'s the end.", '\n', '[', 'Applause', ']']);
+        expect(words).toEqual(
+            wordsOfDocument(doc as never)
+                .slice(12, 16)
+                .concat('Applause'),
+        );
+        expect(gaps).toEqual(['', ' ', ' ', '.\n[', ']']);
+    });
+
+    it('pontuação corta o bloco; "So," sozinho vai junto com o seguinte', () => {
+        const runs = [
+            'You know, at every stage of our lives, we make decisions that will profoundly influence the lives of ' +
+                'the people we’re going to become. So, young people pay good money to get tattoos removed.',
+        ];
+        expect(show(runs, 'phrase')).toEqual([
+            'You know',
+            'at every stage of our lives',
+            'we make decisions',
+            'that will profoundly influence the lives',
+            'of the people we’re going to become',
+            'So young people pay good money',
+            'to get tattoos removed',
+        ]);
+        expect(show(runs, 'sentence')).toHaveLength(2);
+    });
+
+    it('frase longa sem vírgula: pedaços de 4–7, começando por conjunção/preposição, sem terminar em artigo', () => {
+        const runs = [
+            'We asked half of them to predict for us how much their values would change in the next ten years and ' +
+                'the others to tell us how much their values had changed in the last ten years.',
+        ];
+        const blocks = show(runs, 'phrase');
+        expect(blocks).toEqual([
+            'We asked half of them',
+            'to predict for us',
+            'how much their values would change',
+            'in the next ten years',
+            'and the others to tell us',
+            'how much their values had changed',
+            'in the last ten years',
+        ]);
+        blocks.forEach((b) => expect(b.split(' ').length).toBeLessThanOrEqual(7));
+        expect(show(runs, 'sentence')).toHaveLength(1);
+    });
+
+    it('aspas: abrir aspas corta o bloco; "?" seguido de minúscula não termina a sentença', () => {
+        const runs = [
+            'We call this “The End of History Illusion.” To give you an idea. ',
+            'We ask half of them to tell us, "Do you think that that will change over the next ten years?" and half ' +
+                'of them to tell us.',
+        ];
+        expect(show(runs, 'phrase').slice(0, 3)).toEqual([
+            'We call this',
+            'The End of History Illusion',
+            'To give you an idea',
+        ]);
+        expect(show(runs, 'sentence')).toEqual([
+            'We call this The End of History Illusion',
+            'To give you an idea',
+            'We ask half of them to tell us Do you think that that will change over the next ten years and half of ' +
+                'them to tell us',
+        ]);
+    });
+
+    it('números ficam com o substantivo; "1.5" e "Mr." não terminam sentença; hífen não é corte', () => {
+        expect(
+            show(['People said they would pay 129 dollars for that ticket and yet only 80 dollars today.'], 'phrase'),
+        ).toEqual(['People said they would pay', '129 dollars for that ticket', 'and yet only 80 dollars today']);
+        expect(show(['It grew 1.5 times, Mr. Smith said. It bedevils our decision-making.'], 'sentence')).toEqual([
+            'It grew 1 5 times Mr Smith said',
+            'It bedevils our decision making',
+        ]);
+        expect(show(["Here['s] three values – everybody here holds all of them."], 'phrase')).toEqual([
+            "Here 's three values",
+            'everybody here holds all of them',
+        ]);
+    });
+
+    it('"[Applause]" em parágrafo próprio é um bloco só; Word = uma palavra por bloco', () => {
+        const runs = ['The one constant in our life is change. Thank you!', '\n', '[', 'Applause', ']'];
+        expect(show(runs, 'phrase').slice(-2)).toEqual(['Thank you', 'Applause']);
+        expect(show(runs, 'sentence').slice(-1)).toEqual(['Applause']);
+        expect(show(runs, 'word')).toHaveLength(11);
+    });
+
+    it('blockAt acha o bloco da palavra atual', () => {
+        const blocks: [number, number][] = [
+            [0, 1],
+            [2, 6],
+            [7, 7],
+        ];
+        expect([0, 1, 2, 6, 7, 8, -1].map((i) => blockAt(blocks, i))).toEqual([0, 0, 1, 1, 2, -1, -1]);
+    });
+
+    it('lineRects: uma faixa por linha visual', () => {
+        const r = (left: number, top: number, width: number) => ({ left, top, width, height: 20 });
+        expect(lineRects([r(10, 0, 30), r(45, 1, 20), r(0, 30, 25), r(30, 30, 0)], 8)).toEqual([
+            { left: 10, top: 0, width: 55, height: 20 },
+            { left: 0, top: 30, width: 25, height: 20 },
+        ]);
     });
 });

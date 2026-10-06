@@ -7,6 +7,7 @@ import { brasiliaDate, formatDuration, formatRecordedOn, pickMyReading } from 'l
 import { Mic } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AudioPlayerRef } from 'react-audio-play';
+import { ReadAlongModes } from '../DedaReader/ReadAlong';
 import { RecButton, SrOnly } from './ui';
 
 const Wrapper = styled.div`
@@ -218,6 +219,7 @@ export const TwoTrackPlayer: React.FC<Props> = ({
                 // das faixas (leva ao passo 2). Com gravação, nada muda.
                 <div className="swrow">
                     {switchGroup}
+                    <ReadAlongModes />
                     {!hasMine && !recordings.isLoading && isCurrentDeda && onGoRecord && (
                         <button type="button" className="rec" onClick={onGoRecord}>
                             <Mic size={16} strokeWidth={1.5} aria-hidden />

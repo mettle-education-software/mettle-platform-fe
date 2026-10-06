@@ -13,7 +13,6 @@ import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React from 'react';
 import { ICON } from 'themes/newDesign';
-import { EbookCover } from './NewEbook';
 import { NewPage } from './NewPage';
 
 /** DEDA de hoje em um clique: só com o DEDA em andamento e o IMERSO ativo (mesmo destino da home do IMERSO). */
@@ -138,8 +137,9 @@ export const NewHome: React.FC = () => {
                               })}
                         {!loading && ebook && (
                             <a className="cc" href={EBOOK_PATH}>
-                                <span className="img" style={{ display: 'grid', placeItems: 'center' }}>
-                                    <EbookCover width={96} />
+                                <span className="img">
+                                    {/* eslint-disable-next-line @next/next/no-img-element -- capa do e-book (public/img) */}
+                                    <img src="/img/ebook-capa.webp" alt="" loading="lazy" />
                                 </span>
                                 <span className="meta">
                                     <small>E-book</small>

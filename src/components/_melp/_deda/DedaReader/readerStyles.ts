@@ -1350,6 +1350,7 @@ export const Shell = styled.div`
         align-items: center;
         justify-content: space-between;
         gap: 12px;
+        width: 100%;
         min-width: 0;
     }
     .dock .docked .rec {

@@ -2,6 +2,8 @@
 
 import { useDedasGrid } from 'components/_melp/_deda/DedasGrid/DedasGrid';
 import { DedaItem } from 'interfaces';
+import { dedaPath } from 'libs/cleanUrls';
+import { useRouter } from 'next/navigation';
 import React from 'react';
 import { DedaCardState, NewDedaCard } from './NewDedaCard';
 
@@ -21,6 +23,8 @@ const TITLES: Record<Props['type'], string> = { lastDedas: 'Most recent', nextDe
  * (useDedasGrid), em cards leves; 4 por linha no computador, 2 no celular.
  */
 export const NewDedasGrid: React.FC<Props> = ({ type, onSelectedDeda, customTitle, blockedDEDAs, aside }) => {
+    // passar o mouse/focar num card adianta a rota do DEDA (produção): o clique abre sem esperar o servidor
+    const router = useRouter();
     const grid = useDedasGrid(type, blockedDEDAs);
     const { unlockedDEDAs, currentDeda, currentWeek } = grid;
 
@@ -72,6 +76,7 @@ export const NewDedasGrid: React.FC<Props> = ({ type, onSelectedDeda, customTitl
                               categories={deda.dedaCategories}
                               state={stateOf(deda.dedaId)}
                               onClick={() => onSelectedDeda(deda.dedaSlug)}
+                              onIntent={() => router.prefetch(dedaPath(deda.dedaSlug))}
                           />
                       ))}
             </div>

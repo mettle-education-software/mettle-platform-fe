@@ -159,7 +159,7 @@ const Product = styled.div`
     .cover {
         mix-blend-mode: multiply;
     }
-    [data-theme='dark'] & .cover {
+    html[data-theme='dark'] & .cover {
         mix-blend-mode: normal;
         border-radius: var(--r-radius);
     }

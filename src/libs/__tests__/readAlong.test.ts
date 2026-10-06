@@ -1,4 +1,4 @@
-import { alignUrlFor, isUsableAlignment, wordAt, wordSpans, wordsOfDocument } from '../readAlong';
+import { alignUrlFor, isUsableAlignment, MARK_EM, markBox, wordAt, wordSpans, wordsOfDocument } from '../readAlong';
 
 // Mesma forma do rich text do Contentful: marcas e links dividem o texto em nós; "\n" vira <br> no ReaderProse.
 const doc = {
@@ -105,5 +105,21 @@ describe('alignUrlFor e isUsableAlignment', () => {
             ),
         ).toBe(false);
         expect(isUsableAlignment(null, 'DEDA35', audio, 2)).toBe(false);
+    });
+});
+
+describe('marca do read-along centrada na palavra', () => {
+    it.each([14.4, 18, 23.4, 26])('folga igual em cima e embaixo (fonte %spx)', (size) => {
+        const font = { size, ascent: size * 0.95, cap: size * 0.7 };
+        const rect = { left: 100, top: 40, width: 60 };
+        const b = markBox(rect, { left: 10, top: 20 }, font);
+        const baseline = rect.top + font.ascent - 20;
+        const capTop = baseline - font.cap;
+        const above = capTop - b.top;
+        const below = b.top + b.height - baseline;
+        expect(above).toBeCloseTo(below, 6);
+        expect(above).toBeGreaterThan(0);
+        expect(b.width).toBeGreaterThan(rect.width);
+        expect(b.height).toBeCloseTo(MARK_EM * size, 6);
     });
 });

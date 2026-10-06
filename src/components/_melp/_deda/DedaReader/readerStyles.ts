@@ -1344,6 +1344,42 @@ export const Shell = styled.div`
         background: var(--r-gold-tint);
         color: var(--r-gold-hi);
     }
+    /* passo 4 sem gravação hoje: faixas à esquerda e um "Record" pequeno à direita, na mesma linha e altura */
+    .dock .docked .swrow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-width: 0;
+    }
+    .dock .docked .rec {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 34px;
+        padding: 0 14px;
+        border: 1px solid var(--r-line-strong);
+        border-radius: 999px;
+        background: none;
+        color: var(--r-text);
+        font: inherit;
+        font-size: 13px;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+    .dock .docked .rec::after {
+        content: '';
+        position: absolute;
+        inset: -5px 0;
+    }
+    .dock .docked .rec svg {
+        color: var(--r-gold-hi);
+    }
+    .dock .docked .rec:hover {
+        border-color: var(--r-gold-hi);
+    }
     /* "Listen" do gravador: o mesmo player da barra, sem o cartão branco */
     .dock .player .rap-container {
         background: transparent !important;

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import { AudioPlayer } from 'components';
 import { useQueuedRecording, useRecordingPlayUrl, useDedaRecordings } from 'hooks/melp/dedaRecording';
 import { brasiliaDate, formatDuration, formatRecordedOn, pickMyReading } from 'libs/dedaRecording';
+import { Mic } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AudioPlayerRef } from 'react-audio-play';
 import { RecButton, SrOnly } from './ui';
@@ -193,23 +194,41 @@ export const TwoTrackPlayer: React.FC<Props> = ({
             ? `My reading today · ${formatDuration(mineDuration)}`
             : `My reading · ${formatRecordedOn(mine.recordedOn)} · ${formatDuration(mineDuration)}`;
 
+    const switchGroup = (
+        <div className="switch" role="group" aria-label="Choose a track">
+            <button
+                type="button"
+                aria-pressed={current === 'mine'}
+                className={hasMine ? undefined : 'empty'}
+                aria-disabled={!hasMine && !(isCurrentDeda && onGoRecord)}
+                onClick={() => (hasMine ? choose('mine') : isCurrentDeda && onGoRecord?.())}
+            >
+                My reading
+            </button>
+            <button type="button" aria-pressed={current === 'original'} onClick={() => choose('original')}>
+                Original
+            </button>
+        </div>
+    );
+
     return (
         <Wrapper className={docked ? 'docked' : sticky ? 'sticky' : undefined}>
-            <div className="switch" role="group" aria-label="Choose a track">
-                <button
-                    type="button"
-                    aria-pressed={current === 'mine'}
-                    className={hasMine ? undefined : 'empty'}
-                    aria-disabled={!hasMine && !(isCurrentDeda && onGoRecord)}
-                    onClick={() => (hasMine ? choose('mine') : isCurrentDeda && onGoRecord?.())}
-                >
-                    My reading
-                </button>
-                <button type="button" aria-pressed={current === 'original'} onClick={() => choose('original')}>
-                    Original
-                </button>
-            </div>
-            {!hasMine && !recordings.isLoading && (
+            {docked ? (
+                // Página nova (barra fixa): sem gravação hoje, o texto sai e um "Record" pequeno fica na mesma linha
+                // das faixas (leva ao passo 2). Com gravação, nada muda.
+                <div className="swrow">
+                    {switchGroup}
+                    {!hasMine && !recordings.isLoading && isCurrentDeda && onGoRecord && (
+                        <button type="button" className="rec" onClick={onGoRecord}>
+                            <Mic size={16} strokeWidth={1.5} aria-hidden />
+                            Record
+                        </button>
+                    )}
+                </div>
+            ) : (
+                switchGroup
+            )}
+            {!docked && !hasMine && !recordings.isLoading && (
                 <p className="note">
                     {isCurrentDeda ? 'You haven’t recorded today yet.' : 'You didn’t record a reading for this DEDA.'}
                     {isCurrentDeda && onGoRecord && (

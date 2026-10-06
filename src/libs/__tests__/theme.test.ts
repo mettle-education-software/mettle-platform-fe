@@ -103,6 +103,32 @@ describe.each([
     });
 });
 
+describe('read-along: marca-texto amarelo com a palavra escura (AA)', () => {
+    // fundo translúcido: compõe sobre o fundo da página antes de medir
+    const over = (rgba: string, bg: string) => {
+        const m = /rgba\((\d+), (\d+), (\d+), ([\d.]+)\)/.exec(rgba);
+        if (!m) return rgba;
+        const a = Number(m[4]);
+        const b = rgb(bg).map((c) => c * 255);
+        return `#${[1, 2, 3]
+            .map((i, k) =>
+                Math.round(Number(m[i]) * a + b[k] * (1 - a))
+                    .toString(16)
+                    .padStart(2, '0'),
+            )
+            .join('')}`;
+    };
+    it.each([
+        ['escuro', DARK],
+        ['claro', LIGHT],
+    ])('tema %s', (_name, palette) => {
+        const ratio = contrast(palette['--r-readalong-text'], over(palette['--r-readalong'], palette['--r-bg']));
+        // eslint-disable-next-line no-console
+        if (process.env.SHOW_CONTRAST) console.log('read-along', _name, ratio.toFixed(2));
+        expect(ratio).toBeGreaterThanOrEqual(4.5);
+    });
+});
+
 describe('fluidez: casca persistente e troca de aula no lugar', () => {
     it('rotas da casca (as que usam AppLayout)', () => {
         ['/', '/imerso', '/imerso/deda/london', '/imerso/hpec/welcome', '/course/x/y', '/settings', '/guia'].forEach(

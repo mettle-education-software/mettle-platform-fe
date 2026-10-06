@@ -39,6 +39,9 @@ export const DARK = {
     '--r-video-bg': '#000000',
     '--r-tip-bg': '#413e3b',
     '--r-tip-text': '#f3ede4',
+    /* read-along (passo 4): marca-texto amarelo bem visível; a palavra destacada fica escura (AA) */
+    '--r-readalong': 'rgba(255, 214, 10, 0.88)',
+    '--r-readalong-text': '#1d1a17',
 } as const;
 
 export const LIGHT: Record<keyof typeof DARK, string> = {
@@ -75,4 +78,6 @@ export const LIGHT: Record<keyof typeof DARK, string> = {
     '--r-video-bg': '#000000',
     '--r-tip-bg': '#2f2a25',
     '--r-tip-text': '#f7f3ec',
+    '--r-readalong': '#ffeb3b',
+    '--r-readalong-text': '#1c1915',
 };

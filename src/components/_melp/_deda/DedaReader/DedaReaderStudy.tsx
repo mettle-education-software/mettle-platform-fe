@@ -275,16 +275,6 @@ const WriteDays = ({
                     );
                 })}
             </div>
-            {!pastDeda && day !== today && (
-                <div className="past" role="status">
-                    <span>
-                        <b>Day {day}</b> · for reference. Today’s step is still Day {today}.
-                    </span>
-                    <button type="button" className="btn line" onClick={() => onDay(today)}>
-                        Back to today
-                    </button>
-                </div>
-            )}
             <ReaderProse rawContent={content?.json as never} links={content?.links} />
         </>
     );

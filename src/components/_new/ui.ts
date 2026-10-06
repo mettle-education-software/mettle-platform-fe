@@ -43,6 +43,46 @@ export const popupStyles = css`
         font-size: 13px;
         color: var(--r-muted);
     }
+    /* título com o seletor de idioma (EN | PT) à direita, antes do X */
+    .ui-new-modal .title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-right: 36px;
+    }
+    .ui-new-modal .lang {
+        display: inline-flex;
+        flex: none;
+        padding: 2px;
+        border: 1px solid var(--r-line-strong);
+        border-radius: 999px;
+    }
+    .ui-new-modal .lang button {
+        min-width: 36px;
+        height: 26px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: 999px;
+        background: none;
+        color: var(--r-muted);
+        font: inherit;
+        font-size: 11.5px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+    }
+    .ui-new-modal .lang button:hover {
+        color: var(--r-text);
+    }
+    .ui-new-modal .lang button[aria-pressed='true'] {
+        background: var(--r-gold-tint);
+        color: var(--r-gold-hi);
+    }
+    .ui-new-modal .lang button:focus-visible {
+        outline: 2px solid var(--r-gold-hi);
+        outline-offset: 1px;
+    }
 `;
 
 /**
@@ -435,6 +475,8 @@ export const Page = styled.div`
         padding: 4px 4px 10px;
         overflow-x: auto;
         scroll-snap-type: x proximity;
+        /* o encaixe respeita o recuo de 4px: sem isso a fila rola 4px e o anel do primeiro card sai cortado */
+        scroll-padding-inline: 4px;
         scrollbar-width: thin;
         scrollbar-color: var(--r-track) transparent;
     }
@@ -461,8 +503,14 @@ export const Page = styled.div`
         overflow: hidden;
         background: var(--r-surf);
     }
-    .hc.first .img {
-        box-shadow: 0 0 0 1.5px var(--r-gold);
+    /* anel do primeiro card por dentro da imagem: nada fica de fora para a fila (overflow) cortar */
+    .hc.first .img::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow: inset 0 0 0 1.5px var(--r-gold);
+        pointer-events: none;
     }
     .hc .t {
         display: block;

@@ -57,6 +57,27 @@ export const firstName = (name?: string | null) => (name ?? '').trim().split(/\s
 export const settingsTabFromQuery = (tab: string | null | undefined, keys: readonly string[]) =>
     tab && keys.includes(tab) ? tab : keys[0];
 
+// ---------- modal de intensidade (início do DEDA): idioma dos textos, por aparelho ----------
+
+export type IntensityLang = 'en' | 'pt';
+export const INTENSITY_LANG_KEY = 'intensityLang';
+
+export const readIntensityLang = (): IntensityLang => {
+    try {
+        return window.localStorage.getItem(INTENSITY_LANG_KEY) === 'pt' ? 'pt' : 'en';
+    } catch {
+        return 'en';
+    }
+};
+
+export const saveIntensityLang = (lang: IntensityLang) => {
+    try {
+        window.localStorage.setItem(INTENSITY_LANG_KEY, lang);
+    } catch {
+        // modo privado / armazenamento bloqueado: vale só nesta visita
+    }
+};
+
 // ---------- molde de cursos (HPEC, Masterclass e os próximos): aulas em sequência ----------
 
 export type CourseLesson = { id: string; title: string; href: string };
@@ -104,6 +125,36 @@ export const saveLessonRailCollapsed = (collapsed: boolean) => {
     }
 };
 
+/**
+ * Módulos abertos/fechados no trilho de aulas: só o que o aluno mudou, por aparelho ({ [moduleId]: aberto }). O que
+ * ele não mexeu segue o padrão: aberto só o módulo da aula atual.
+ */
+export const LESSON_MODULES_KEY = 'lessonRailModules';
+
+export const readOpenModules = (): Record<string, boolean> => {
+    try {
+        const parsed = JSON.parse(window.localStorage.getItem(LESSON_MODULES_KEY) ?? '{}');
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+        return {};
+    }
+};
+
+export const saveOpenModules = (open: Record<string, boolean>) => {
+    try {
+        window.localStorage.setItem(LESSON_MODULES_KEY, JSON.stringify(open));
+    } catch {
+        // modo privado / armazenamento bloqueado: vale só nesta visita
+    }
+};
+
+export const isModuleOpen = (saved: Record<string, boolean>, moduleId: string, currentModuleId?: string) =>
+    typeof saved[moduleId] === 'boolean' ? saved[moduleId] : moduleId === currentModuleId;
+
+/** Texto de liberação de cada módulo trancado, sem repetir o mesmo texto do módulo trancado anterior. */
+export const lockedNotes = (modules: CourseModule[]) =>
+    modules.map((m, i) => (m.locked && m.locked !== modules[i - 1]?.locked ? m.locked : undefined));
+
 /** Tamanho de arquivo legível (mesmas faixas do card de resources atual). */
 export const fileSizeLabel = (size: number) =>
     size < 1024
@@ -111,6 +162,20 @@ export const fileSizeLabel = (size: number) =>
         : size < 1024 * 1024
           ? `${(size / 1024).toFixed(2)} KB`
           : `${(size / (1024 * 1024)).toFixed(2)} MB`;
+
+// ---------- miniaturas de vídeo (cards do HPEC) ----------
+
+/** Id numérico do Vimeo de um endereço de embed ("https://player.vimeo.com/video/678384632?" → "678384632"). */
+export const vimeoIdOf = (embedUrl?: string | null) => /vimeo\.com\/(?:video\/)?(\d+)/.exec(embedUrl ?? '')?.[1];
+
+/**
+ * Miniatura do vídeo. A home atual usa vumbnail.com, que devolve uma pasta cinza para os vídeos com domínio
+ * restrito (todo o módulo 4 do HPEC, por exemplo). O oEmbed do próprio Vimeo devolve a miniatura quando a página
+ * é a da Plataforma (domínio permitido); vumbnail fica como alternativa.
+ */
+export const vimeoOembedUrl = (id: string) =>
+    `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(`https://vimeo.com/${id}`)}&width=640`;
+export const vumbnailUrl = (id: string) => `https://vumbnail.com/${id}.jpg`;
 
 // ---------- LAMP ----------
 

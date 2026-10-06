@@ -6,8 +6,9 @@ import { useGetInputData, useSaveInput } from './lamp';
 
 /**
  * Estado e gravação da aba Input da LAMP (plataforma nova). É a MESMA lógica de components/_melp/_lamp/InputTab:
- * mesmos campos, a mesma leitura (useGetInputData), a mesma gravação (useSaveInput → PATCH /input/v2/…) e o mesmo
- * atraso de 3,5 s depois da última alteração. Só a apresentação mudou; a aba atual continua intacta.
+ * mesmos campos (menos Reading time e DEDA time, que vão inalterados), a mesma leitura (useGetInputData), a mesma
+ * gravação (useSaveInput → PATCH /input/v2/…) e o mesmo atraso de 3,5 s depois da última alteração. Só a apresentação
+ * mudou; a aba atual continua intacta.
  */
 export interface LampInputEdit {
     dedaPredPlace: number;
@@ -15,8 +16,6 @@ export interface LampInputEdit {
     dedaStateMind: number;
     dedaStateBeing: number;
     dedaFocus: number;
-    readingTime: number;
-    dedaTime: number;
     activeBook: number;
     activeDedaNotes: number;
     activeMooc: number;
@@ -61,8 +60,6 @@ export const useLampInputForm = () => {
             dedaStateMind: dedaInput?.deda_state_mind,
             dedaStateBeing: dedaInput?.deda_state_being,
             dedaFocus: dedaInput?.deda_focus,
-            readingTime: dedaInput?.reading_time,
-            dedaTime: dedaInput?.deda_time,
             activeBook: activeInput?.book,
             activeDedaNotes: activeInput?.deda_notes,
             activeMooc: activeInput?.mooc,
@@ -93,12 +90,15 @@ export const useLampInputForm = () => {
 
     const save = useCallback(() => {
         const { edit: data, inputData: current, selectedWeek: week, selectedDay: day } = latest.current;
-        if (Object.keys(data).length === 0) return;
+        // sem os dados do servidor não há como reenviar os tempos do Summary inalterados: não grava
+        if (Object.keys(data).length === 0 || !current?.dedaInput) return;
         const inputDTO: InputDataDTO = {
             inputData: {
                 dedaInputData: {
-                    dedaTime: data.dedaTime,
-                    readingTime: data.readingTime,
+                    // Reading time e DEDA time saíram da tela (quem grava é o Summary do DEDA). O servidor regrava as
+                    // duas colunas a cada PATCH (omitir = NULL), então vão os valores atuais do servidor, inalterados.
+                    dedaTime: current.dedaInput.deda_time,
+                    readingTime: current.dedaInput.reading_time,
                     dedaPredPlace: data.dedaPredPlace,
                     dedaSteps: data.dedaFiveSteps,
                     dedaStateMind: data.dedaStateMind,

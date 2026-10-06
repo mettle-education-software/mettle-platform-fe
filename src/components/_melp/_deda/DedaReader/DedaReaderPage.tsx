@@ -11,7 +11,7 @@ import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaNotesQueryResponse } from 'interfaces';
 import { ContextNoteData } from 'libs/contextNotes';
 import { contentfulImage } from 'libs/dedaHeader';
-import { DEFAULT_TEXT_SCALE, readTextScale, saveTextScale, writeDayToday } from 'libs/dedaReader';
+import { DEFAULT_TEXT_SCALE, hasReviews, readTextScale, saveTextScale, writeDayToday } from 'libs/dedaReader';
 import {
     BookOpen,
     ChevronDown,
@@ -127,7 +127,7 @@ export const DedaReaderPage: React.FC<Props> = ({
     title,
     coverUrl,
     headerImages,
-    tabs,
+    tabs: allTabs,
     activeTab,
     onTab,
     onClassic,
@@ -135,6 +135,13 @@ export const DedaReaderPage: React.FC<Props> = ({
     const router = useRouter();
     const isMobile = useDeviceSize() === 'mobile';
     const { melpSummary } = useMelpContext();
+    // Aba Review só com revisão liberada (libs/dedaReader.hasReviews). Até o resumo chegar, a barra de abas fica
+    // invisível (mesmo espaço), para não piscar.
+    const reviews = hasReviews(melpSummary?.unlocked_dedas, dedaId);
+    const tabs = allTabs.filter((tab) => tab.key !== 'dedaReview' || reviews);
+    useEffect(() => {
+        if (reviews === false && activeTab === 'dedaReview') onTab(allTabs[0].key);
+    }, [reviews, activeTab, onTab, allTabs]);
     const [menuOpen, setMenuOpen] = useState(false);
     const [glossaryOpen, setGlossaryOpen] = useState(false);
     const [tabsOpen, setTabsOpen] = useState(false);
@@ -271,7 +278,11 @@ export const DedaReaderPage: React.FC<Props> = ({
                         </span>
                     </button>
                     {!isMobile && (
-                        <nav className="tabs" aria-label="DEDA sections">
+                        <nav
+                            className="tabs"
+                            aria-label="DEDA sections"
+                            style={reviews === undefined ? { visibility: 'hidden' } : undefined}
+                        >
                             {tabButtons()}
                         </nav>
                     )}

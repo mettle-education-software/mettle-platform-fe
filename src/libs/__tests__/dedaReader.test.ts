@@ -4,6 +4,7 @@ import {
     isDedaReaderAccount,
     nextBlocked,
     DEFAULT_TEXT_SCALE,
+    hasReviews,
     openWriteDay,
     readReaderView,
     readTextScale,
@@ -188,5 +189,22 @@ describe('tempos do Summary', () => {
         expect(summaryTimes(1800, undefined)).toEqual({ dedaTime: 30, readingTime: 0 });
         expect(summaryTimes(1800, 0)).toEqual({ dedaTime: 30, readingTime: 0 });
         expect(summaryTimes(NaN, NaN)).toEqual({ dedaTime: 0, readingTime: 0 });
+    });
+});
+
+describe('aba Review (hasReviews)', () => {
+    const unlocked = ['d0', 'd1', 'd2', 'd3', 'd4', 'd5'];
+
+    it('só a partir do quinto DEDA liberado (a mesma regra de "No reviews available")', () => {
+        expect(hasReviews(unlocked, 'd0')).toBe(false);
+        expect(hasReviews(unlocked, 'd3')).toBe(false);
+        expect(hasReviews(unlocked, 'd4')).toBe(true);
+        expect(hasReviews(unlocked, 'd5')).toBe(true);
+    });
+
+    it('DEDA fora da lista não tem revisão; sem resumo ainda = indefinido (não pisca)', () => {
+        expect(hasReviews(unlocked, 'outro')).toBe(false);
+        expect(hasReviews([], 'd0')).toBe(false);
+        expect(hasReviews(undefined, 'd0')).toBeUndefined();
     });
 });

@@ -3,7 +3,7 @@
 import styled from '@emotion/styled';
 import { useQuery } from '@tanstack/react-query';
 import { useDedasGrid } from 'components/_melp/_deda/DedasGrid/DedasGrid';
-import { useGeneralWeeklyDevelopment, useGetHpecsModules, useGetWeeklyPerformance, useOverallProgress } from 'hooks';
+import { useGeneralWeeklyDevelopment, useGetHpecsModules, useGetWeeklyPerformance } from 'hooks';
 import { dedaPath, hpecLessonPath } from 'libs/cleanUrls';
 import { contentfulImage } from 'libs/dedaHeader';
 import { hpecTrail, opensLabel, readWatched } from 'libs/hpecTrail';
@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { useMemo, useState } from 'react';
 import { ICON } from 'themes/newDesign';
-import { NewHpecTrail, TrailLegend } from './NewHpecTrail';
+import { NewHpecTrail } from './NewHpecTrail';
 
 /* Estilos só desta página (as classes comuns de components/_new/ui ficam como estão). */
 export const Dash = styled.div`
@@ -73,9 +73,9 @@ export const Dash = styled.div`
     /* ---------- KPIs: a faixa inteira leva à LAMP ---------- */
     .kpis {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+        grid-template-columns: repeat(2, minmax(150px, max-content)) 1fr;
         align-items: center;
-        gap: 0 24px;
+        gap: 0 64px;
         padding: 20px 0;
         border-top: 1px solid var(--r-line);
         border-bottom: 1px solid var(--r-line);
@@ -109,6 +109,7 @@ export const Dash = styled.div`
         color: var(--r-muted);
     }
     .kpis .go {
+        justify-self: end;
         display: inline-flex;
         align-items: center;
         gap: 4px;
@@ -195,8 +196,8 @@ export const Dash = styled.div`
             font-size: 15.5px;
         }
         .kpis {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0 12px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0 24px;
             padding: 16px 0 12px;
         }
         .kpi .v {
@@ -206,6 +207,7 @@ export const Dash = styled.div`
             font-size: 13px;
         }
         .kpis .go {
+            justify-self: start;
             grid-column: 1 / -1;
             margin-top: 10px;
         }
@@ -289,7 +291,7 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean }> = ({ trail, error })
                     <Thumb embedUrl={here.lesson.embedUrl} />
                 </span>
                 <span className="meta">
-                    <small>HPEC · Up next</small>
+                    <small>HPEC · Module {here.module.order}</small>
                 </span>
                 <b>{here.lesson.title}</b>
                 <span className="act">
@@ -304,7 +306,7 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean }> = ({ trail, error })
                     <Thumb embedUrl={next.lesson.embedUrl} />
                 </span>
                 <span className="meta">
-                    <small>HPEC · Next</small>
+                    <small>HPEC · Module {next.module.order}</small>
                 </span>
                 <b>{next.lesson.title}</b>
                 <span className="act">{opensLabel(next.module.unlockDate)}</span>
@@ -320,7 +322,7 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean }> = ({ trail, error })
             </span>
             <span className="meta">
                 <small>HPEC</small>
-                <em>All watched</em>
+                <em>Complete</em>
             </span>
             <b>{first.title}</b>
             <span className="act">
@@ -357,10 +359,6 @@ export const NowRow: React.FC<{ withDeda: boolean; trail?: Trail; error?: boolea
 
 /* ---------- KPIs ---------- */
 
-/** Porcentagem curta: 0,034 → "0.03", 3,57 → "3.6", 42,4 → "42". */
-const pct = (v?: number | null) =>
-    typeof v === 'number' && Number.isFinite(v) ? String(Number(v.toFixed(v < 1 ? 2 : v < 10 ? 1 : 0))) : undefined;
-
 const Kpi: React.FC<{ value?: string; unit: string; label: string }> = ({ value, unit, label }) => (
     <span className="kpi">
         <span className="v">
@@ -372,19 +370,21 @@ const Kpi: React.FC<{ value?: string; unit: string; label: string }> = ({ value,
 );
 
 /**
- * Três números da LAMP, das mesmas consultas da página da LAMP (mesmas chaves do react-query): progresso desta
- * semana (gráfico "Weekly progress"), dias com DEDA registrado nesta semana (gráfico "Daily") e o progresso geral
- * ("Overall"). A faixa inteira abre a LAMP.
+ * Dois números da LAMP, das mesmas consultas da página da LAMP (mesmas chaves do react-query), no mesmo formato
+ * dela: progresso desta semana (gráfico "Weekly progress": porcentagem 0–100, eixo em `toFixed(0)%`) e dias com
+ * DEDA registrado nesta semana (gráfico "Daily"). O "Overall" ficou de fora: a LAMP o mostra com duas casas
+ * ("0.03%"), o que lido sozinho parece defeito. A faixa inteira abre a LAMP.
  */
 export const Kpis: React.FC = () => {
-    const { user, melpSummary } = { ...useAppContext(), ...useMelpContext() };
+    const { user } = useAppContext();
+    const { melpSummary } = useMelpContext();
     const week = melpSummary?.current_deda_week;
-    const { overallData } = useOverallProgress(user?.uid);
     const { weeklyDevelopmentData } = useGeneralWeeklyDevelopment(user?.uid);
     const { graphsData } = useGetWeeklyPerformance('dedaTime', week ? `week${week}` : undefined);
 
     const weekIndex = weeklyDevelopmentData?.[0]?.indexOf(`W${week}`) ?? -1;
-    const thisWeek = weekIndex >= 0 ? pct(weeklyDevelopmentData?.[1]?.[weekIndex]) : undefined;
+    const weekValue = weekIndex >= 0 ? weeklyDevelopmentData?.[1]?.[weekIndex] : undefined;
+    const thisWeek = typeof weekValue === 'number' && Number.isFinite(weekValue) ? weekValue.toFixed(0) : undefined;
     const days = graphsData?.dedaDaily
         ? String(graphsData.dedaDaily.filter((d) => d.dedaTime > 0 || d.readingTime > 0).length)
         : undefined;
@@ -393,7 +393,6 @@ export const Kpis: React.FC = () => {
         <Link href="/imerso/lamp" className="kpis" aria-label="Your numbers — open LAMP">
             <Kpi value={thisWeek} unit="%" label="This week" />
             <Kpi value={days} unit="/7" label="DEDA days" />
-            <Kpi value={pct(overallData?.overallPerformance)} unit="%" label="Overall" />
             <span className="go">
                 LAMP <ArrowRight {...ICON} size={16} aria-hidden />
             </span>
@@ -407,34 +406,42 @@ export const HpecSection: React.FC<{ trail?: Trail; loading: boolean; error: boo
     trail,
     loading,
     error,
-}) => (
-    <section aria-label="HPEC" aria-busy={loading || undefined} className="hp">
-        <div className="sh">
-            <h2>
-                HPEC
-                {trail && trail.total > 0 && (
-                    <span>
-                        {trail.watched} of {trail.total} watched
-                    </span>
-                )}
-            </h2>
-            {trail && trail.total > 0 && <TrailLegend />}
-        </div>
-        {error ? (
-            <p className="hint">Couldn’t load the HPEC lessons. Please try again later.</p>
-        ) : loading || !trail ? (
-            <div className="hrow" aria-hidden>
-                <div className="hc skel">
-                    <span className="img" />
-                </div>
-            </div>
-        ) : trail.total === 0 ? (
-            <p className="hint">No HPEC lessons yet.</p>
-        ) : (
-            <NewHpecTrail modules={trail.modules} />
-        )}
-    </section>
-);
+}) => {
+    const title = (
+        <>
+            HPEC
+            {!!trail?.moduleNumber && (
+                <span>
+                    Module {trail.moduleNumber} of {trail.moduleCount}
+                </span>
+            )}
+        </>
+    );
+    return (
+        <section aria-label="HPEC" aria-busy={loading || undefined} className="hp">
+            {trail && trail.total > 0 && !error ? (
+                <NewHpecTrail modules={trail.modules} title={title} />
+            ) : (
+                <>
+                    <div className="sh">
+                        <h2>{title}</h2>
+                    </div>
+                    {error ? (
+                        <p className="hint">Couldn’t load the HPEC lessons. Please try again later.</p>
+                    ) : loading || !trail ? (
+                        <div className="hrow" aria-hidden>
+                            <div className="hc skel">
+                                <span className="img" />
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="hint">No HPEC lessons yet.</p>
+                    )}
+                </>
+            )}
+        </section>
+    );
+};
 
 /* ---------- DEDAs recentes ---------- */
 

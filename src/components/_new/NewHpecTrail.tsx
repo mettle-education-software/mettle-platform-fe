@@ -4,11 +4,13 @@ import { keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
 import { hpecLessonPath } from 'libs/cleanUrls';
 import { opensLabel, TrailLesson, TrailModule } from 'libs/hpecTrail';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import React, { useLayoutEffect, useRef, useState } from 'react';
+import { ICON } from 'themes/newDesign';
 
 const STATE_LABEL: Record<TrailLesson['state'], string> = {
-    done: 'watched',
+    done: 'done',
     here: 'you are here',
     open: 'open, not watched yet',
     locked: 'not open yet',
@@ -26,21 +28,55 @@ const STEP = 136; // largura de cada aula no computador
 const Box = styled.div`
     position: relative;
 
-    /* a fila sangra 24px para cada lado e esmaece nas bordas: o que passa da coluna some suave, sem corte seco */
-    .tr-scroll {
-        overflow-x: auto;
-        margin: 0 -24px;
-        padding: 4px 24px 12px;
-        mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent);
-        scrollbar-width: thin;
-        scrollbar-color: var(--r-track) transparent;
+    /*
+     * Computador: uma janela que mostra só módulos INTEIROS (a borda direita cai sempre entre dois módulos: nenhum
+     * texto cortado); as setas do cabeçalho passam de módulo em módulo. 12px à esquerda (fora da coluna) deixam o
+     * halo do ponto e a ponta da linha anterior à vista.
+     */
+    .tr-view {
+        box-sizing: border-box;
+        width: var(--vw, 100%);
+        max-width: calc(100% + 12px);
+        margin-left: -12px;
+        padding: 4px 0 4px 12px;
+        overflow-x: clip;
     }
-    .tr-scroll::-webkit-scrollbar {
-        height: 4px;
+    .tr-view .tr {
+        transform: translateX(calc(-1 * var(--off, 0px)));
+        transition: transform 320ms cubic-bezier(0.25, 0.7, 0.25, 1);
     }
-    .tr-scroll::-webkit-scrollbar-thumb {
-        background: var(--r-track);
-        border-radius: 2px;
+    .tools {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .pager {
+        display: flex;
+        gap: 6px;
+    }
+    .pager button {
+        display: inline-grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 1px solid var(--r-line-strong);
+        border-radius: 50%;
+        background: none;
+        color: var(--r-text);
+        cursor: pointer;
+    }
+    .pager button:hover:not(:disabled) {
+        border-color: var(--r-gold-hi);
+        color: var(--r-gold-hi);
+    }
+    .pager button:disabled {
+        opacity: 0.35;
+        cursor: default;
+    }
+    .pager button:focus-visible {
+        outline: 2px solid var(--r-gold-hi);
+        outline-offset: 2px;
     }
     ol {
         margin: 0;
@@ -108,6 +144,9 @@ const Box = styled.div`
     }
     .ls {
         display: flex;
+    }
+    .mh .mdot {
+        display: none;
     }
     .l {
         width: ${STEP}px;
@@ -217,11 +256,21 @@ const Box = styled.div`
 
     /* celular: o mesmo percurso na vertical, linha à esquerda */
     @media (max-width: 860px) {
-        .tr-scroll {
-            overflow: visible;
+        .tr-view {
+            width: auto;
+            max-width: none;
             margin: 0;
             padding: 0;
-            mask-image: none;
+            overflow: visible;
+        }
+        .tr-view .tr {
+            transform: none;
+        }
+        .pager {
+            display: none;
+        }
+        .tools {
+            flex: 1 1 100%;
         }
         .tr {
             width: auto;
@@ -245,6 +294,22 @@ const Box = styled.div`
         }
         .m + .m {
             margin-top: 10px;
+        }
+        /* módulo inteiro feito: uma linha (título + ponto cheio), as aulas ficam no HPEC */
+        .m-done .ls {
+            display: none;
+        }
+        .m-done .mh {
+            position: relative;
+            padding-bottom: 2px;
+        }
+        .m-done .mh .mdot {
+            display: block;
+            position: absolute;
+            left: 0;
+            top: 4px;
+            margin: 0;
+            background: var(--r-gold);
         }
         .mh {
             width: auto;
@@ -315,23 +380,58 @@ const Node: React.FC<{ lesson: TrailLesson; module: TrailModule }> = ({ lesson, 
     );
 };
 
+type Geom = { vertical: boolean; offs: number[]; ws: number[]; avail: number };
+
+/** Último módulo (índice) que cabe inteiro na janela começando em `s`. */
+const fitFrom = (g: Geom, s: number) => {
+    let e = s;
+    while (e + 1 < g.offs.length && g.offs[e + 1] + g.ws[e + 1] - g.offs[s] <= g.avail) e++;
+    return e;
+};
+/** Chegou ao fim: puxa módulos anteriores enquanto couberem (a janela fica cheia). */
+const backfill = (g: Geom, s: number) => {
+    const e = fitFrom(g, s);
+    if (e < g.offs.length - 1) return s;
+    while (s > 0 && g.offs[e] + g.ws[e] - g.offs[s - 1] <= g.avail) s--;
+    return s;
+};
+
+const LEGEND: { state: TrailLesson['state']; label: string }[] = [
+    { state: 'done', label: 'Done' },
+    { state: 'open', label: 'Open' },
+    { state: 'locked', label: 'Not open yet' },
+];
+
 /**
- * Percurso do HPEC: todos os módulos e aulas em ordem, numa linha com pontos (horizontal e rolável no computador,
- * vertical no celular). Vista = ponto cheio; aberta = anel; trancada = anel apagado + data do módulo; "você está
- * aqui" = ponto com halo. Ao entrar na tela, a linha dourada corre até "aqui" e o ponto pulsa duas vezes (sem
- * movimento com prefers-reduced-motion).
+ * Percurso do HPEC: todos os módulos e aulas em ordem, numa linha com pontos (horizontal no computador, em janelas
+ * de módulos inteiros; vertical no celular). Feito = ponto cheio; aberta = anel; trancada = anel apagado + data
+ * do módulo; "você está aqui" = ponto com halo. Ao entrar na tela, a linha dourada corre até "aqui" e o ponto
+ * pulsa duas vezes (sem movimento com prefers-reduced-motion). A legenda mostra só os estados presentes.
  */
-export const NewHpecTrail: React.FC<{ modules: TrailModule[] }> = ({ modules }) => {
+export const NewHpecTrail: React.FC<{ modules: TrailModule[]; title: React.ReactNode }> = ({ modules, title }) => {
     const boxRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
     const [motion, setMotion] = useState<'' | 'armed' | 'armed go'>('');
+    const [geom, setGeom] = useState<Geom>();
+    const [start, setStart] = useState<number>();
 
-    // Medidas da linha a partir dos próprios pontos (o mesmo código nas duas direções).
+    const states = new Set(modules.flatMap((m) => m.lessons.map((l) => l.state)));
+    // módulo de "aqui" (ou o último alcançado)
+    const hereIndex = Math.max(
+        0,
+        modules.findIndex((m) => m.lessons.some((l) => l.state === 'here')) >= 0
+            ? modules.findIndex((m) => m.lessons.some((l) => l.state === 'here'))
+            : modules.map((m) => m.lessons.some((l) => l.state !== 'locked')).lastIndexOf(true),
+    );
+
+    // Medidas da linha a partir dos próprios pontos (o mesmo código nas duas direções) + geometria dos módulos.
     useLayoutEffect(() => {
         const list = listRef.current;
-        if (!list) return;
+        const box = boxRef.current;
+        if (!list || !box) return;
         const measure = () => {
-            const dots = [...list.querySelectorAll<HTMLElement>('.dot')];
+            // só os pontos visíveis (no celular, módulo feito vira uma linha com um ponto só)
+            const dots = [...list.querySelectorAll<HTMLElement>('.dot')].filter((d) => d.getClientRects().length);
             if (!dots.length) return;
             const base = list.getBoundingClientRect();
             const center = (el: HTMLElement) => {
@@ -341,27 +441,28 @@ export const NewHpecTrail: React.FC<{ modules: TrailModule[] }> = ({ modules }) 
             const vertical = getComputedStyle(list.querySelector('.ms') as HTMLElement).flexDirection === 'column';
             const first = center(dots[0]);
             const last = center(dots[dots.length - 1]);
-            // a linha percorrida vai até "aqui"; sem "aqui", até o último ponto liberado (tudo visto)
+            // a linha percorrida vai até "aqui"; sem "aqui", até o último ponto liberado
             const reached =
                 list.querySelector<HTMLElement>('.here .dot') ??
                 [...list.querySelectorAll<HTMLElement>('.done .dot, .open .dot')].pop();
             const to = reached ? center(reached) : first;
-            const len = vertical ? last.y - first.y : last.x - first.x;
-            const p = vertical ? to.y - first.y : to.x - first.x;
-            list.style.setProperty('--len', `${len}px`);
-            list.style.setProperty('--p', `${p}px`);
+            list.style.setProperty('--len', `${vertical ? last.y - first.y : last.x - first.x}px`);
+            list.style.setProperty('--p', `${vertical ? to.y - first.y : to.x - first.x}px`);
             list.style.setProperty('--cx', `${first.x}px`);
             list.style.setProperty('--cy', `${first.y}px`);
-            if (!vertical) {
-                // computador: a fila rola até o começo do módulo de "aqui" (só na horizontal; a página não se mexe)
-                const scroller = list.parentElement as HTMLElement;
-                const mod = (reached ?? dots[0]).closest('.m') as HTMLElement;
-                scroller.scrollLeft = mod.getBoundingClientRect().left - base.left;
-            }
+            const ms = [...list.querySelectorAll<HTMLElement>('.m')];
+            const x0 = ms[0]?.offsetLeft ?? 0;
+            setGeom({
+                vertical,
+                offs: ms.map((m) => m.offsetLeft - x0),
+                ws: ms.map((m) => m.offsetWidth),
+                avail: box.clientWidth,
+            });
         };
         measure();
         const ro = new ResizeObserver(measure);
         ro.observe(list);
+        ro.observe(box);
         return () => ro.disconnect();
     }, [modules]);
 
@@ -389,21 +490,66 @@ export const NewHpecTrail: React.FC<{ modules: TrailModule[] }> = ({ modules }) 
         return () => io.disconnect();
     }, []);
 
+    // janela de módulos inteiros (computador): começa no módulo de "aqui"
+    const paged = geom && !geom.vertical && geom.offs.length > 0;
+    const s = paged ? Math.min(start ?? backfill(geom, hereIndex), geom.offs.length - 1) : 0;
+    const e = paged ? fitFrom(geom, s) : 0;
+    const view = paged
+        ? ({
+              '--vw': `${geom.offs[e] + geom.ws[e] - geom.offs[s] + 12}px`,
+              '--off': `${geom.offs[s]}px`,
+          } as React.CSSProperties)
+        : undefined;
+    const canPrev = paged && s > 0;
+    const canNext = paged && e < geom.offs.length - 1;
+    const prev = () => {
+        if (!geom) return;
+        let p = s - 1;
+        while (p > 0 && geom.offs[s - 1] + geom.ws[s - 1] - geom.offs[p - 1] <= geom.avail) p--;
+        setStart(p);
+    };
+    const next = () => geom && setStart(backfill(geom, e + 1));
+
     return (
         <Box ref={boxRef} className={motion}>
-            <div className="tr-scroll">
+            <div className="sh">
+                <h2>{title}</h2>
+                <div className="tools">
+                    <ul className="legend" aria-hidden>
+                        {LEGEND.filter((x) => states.has(x.state)).map((x) => (
+                            <li key={x.state} className={x.state}>
+                                <span className="dot" /> {x.label}
+                            </li>
+                        ))}
+                    </ul>
+                    {(canPrev || canNext) && (
+                        <div className="pager">
+                            <button type="button" onClick={prev} disabled={!canPrev} aria-label="Earlier modules">
+                                <ChevronLeft {...ICON} size={16} aria-hidden />
+                            </button>
+                            <button type="button" onClick={next} disabled={!canNext} aria-label="Later modules">
+                                <ChevronRight {...ICON} size={16} aria-hidden />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+            <div className="tr-view" style={view}>
                 <div ref={listRef} className="tr">
                     <span className="line" aria-hidden />
                     <span className="prog" aria-hidden />
                     <ol className="ms">
-                        {modules.map((module) => (
+                        {modules.map((module, i) => (
                             <li
                                 key={module.id}
-                                className="m"
+                                className={`m${module.lessons.every((l) => l.state === 'done') ? ' m-done' : ''}`}
                                 style={{ '--n': module.lessons.length } as React.CSSProperties}
+                                // Tab para um módulo fora da janela: a janela acompanha
+                                onFocus={() => paged && (i < s || i > e) && setStart(backfill(geom, i))}
                             >
                                 <div className="mh">
-                                    <b title={module.title}>{module.title}</b>
+                                    <span className="dot mdot" aria-hidden />
+                                    <b>{module.title}</b>
                                     {module.unlockDate && <small>{opensLabel(module.unlockDate)}</small>}
                                 </div>
                                 <ol className="ls" aria-label={module.title}>
@@ -419,22 +565,5 @@ export const NewHpecTrail: React.FC<{ modules: TrailModule[] }> = ({ modules }) 
         </Box>
     );
 };
-
-/** Legenda dos estados (pontos iguais aos do percurso). */
-export const TrailLegend: React.FC = () => (
-    <Box>
-        <ul className="legend" aria-hidden>
-            <li className="done">
-                <span className="dot" /> Watched
-            </li>
-            <li className="open">
-                <span className="dot" /> Open
-            </li>
-            <li className="locked">
-                <span className="dot" /> Not open yet
-            </li>
-        </ul>
-    </Box>
-);
 
 export default NewHpecTrail;

@@ -3,7 +3,7 @@
 import { Button, Modal, Select } from 'antd';
 import { useResumeDeda, useStartDeda } from 'hooks';
 import { DedaDifficulties, DedaDifficulty, MelpStatus } from 'interfaces/melp';
-import { getWeekDay, nextMondayDate } from 'libs';
+import { nextMondayDate } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { firstName, IntensityLang, readIntensityLang, saveIntensityLang } from 'libs/newDesign';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
@@ -246,13 +246,7 @@ export const NewImersoHome: React.FC = () => {
         <NewPage>
             <Dash>
                 <header className="ph">
-                    <p className="eyebrow">IMERSO</p>
                     <h1>Welcome, {firstName(user?.name)}</h1>
-                    {melpStatus === 'DEDA_STARTED' && (
-                        <p className="ctx">
-                            Week {melpSummary.current_deda_week} · Day {getWeekDay()}
-                        </p>
-                    )}
                 </header>
                 {view ? (
                     <>

@@ -5,7 +5,9 @@ import { GoogleTagManager } from '@next/third-parties/google';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider, Spin, ThemeConfig } from 'antd';
 import { PersistentShell, PWABanner } from 'components';
-import { THEME_BOOT_SCRIPT } from 'libs/theme';
+import { useNewDesign } from 'hooks/useNewDesign';
+import { useTheme } from 'hooks/useTheme';
+import { chatwootScheme, THEME_BOOT_SCRIPT } from 'libs/theme';
 import Script from 'next/script';
 import { AccessCtaModal, AccessProvider, AppProvider, NotificationsProvider, useAppContext } from 'providers';
 import { MelpProvider } from 'providers/MelpProvider';
@@ -19,6 +21,18 @@ const App = ({ children }: { children: React.ReactNode }) => {
     const { theme, isAppLoading, user } = useAppContext();
 
     const themeConfig: ThemeConfig | undefined = theme === 'light' ? lightTheme : darkTheme;
+
+    // Chat de suporte no tema da plataforma nova (Claro/Escuro/Automático já resolvido); os demais ficam no claro.
+    // O SDK aceita 'dark' e troca em tempo de execução (setColorScheme); antes de o SDK ficar pronto, espera 'chatwoot:ready'.
+    const newDesign = useNewDesign();
+    const { resolved } = useTheme();
+    const chatScheme = chatwootScheme(newDesign, resolved);
+    useEffect(() => {
+        const apply = () => window.$chatwoot?.setColorScheme?.(chatScheme);
+        if (window.$chatwoot?.setColorScheme) apply();
+        window.addEventListener('chatwoot:ready', apply);
+        return () => window.removeEventListener('chatwoot:ready', apply);
+    }, [chatScheme]);
 
     useEffect(() => {
         if (user) {
@@ -51,7 +65,7 @@ const App = ({ children }: { children: React.ReactNode }) => {
           `}
                 </Script>
                 <Script id="chatwool">
-                    {`window.chatwootSettings = {"position":"left","type":"standard","launcherTitle":"","hideMessageBubble":true,"darkMode":"auto"};
+                    {`window.chatwootSettings = {"position":"left","type":"standard","launcherTitle":"","hideMessageBubble":true,"darkMode":"light"};
                                    (function(d,t) {
                         var BASE_URL="https://support.mettle.com.br";
                         var g=d.createElement(t),s=d.getElementsByTagName(t)[0];

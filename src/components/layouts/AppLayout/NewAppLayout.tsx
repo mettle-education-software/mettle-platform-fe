@@ -827,7 +827,10 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
         );
 
         return (
-            <Frame className={`ui-new${isMobile ? ' m' : rail ? ' rail' : ''}${isMobile ? '' : ` ${swap}`}`} style={UI_FONT_VAR}>
+            <Frame
+                className={`ui-new${isMobile ? ' m' : rail ? ' rail' : ''}${isMobile ? '' : ` ${swap}`}`}
+                style={UI_FONT_VAR}
+            >
                 <Global styles={[platformTokens, drawerStyles]} />
                 {isMobile ? (
                     <>

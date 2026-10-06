@@ -39,6 +39,9 @@ export const popupStyles = css`
         font-weight: 500;
         color: var(--r-gold-hi);
     }
+    .ui-new-modal .ant-select-selection-placeholder {
+        color: var(--r-muted);
+    }
     .ui-new-modal .modal-body .hint {
         font-size: 13px;
         color: var(--r-muted);
@@ -465,8 +468,7 @@ export const Page = styled.div`
         overflow-wrap: anywhere;
     }
     .cur .eyebrow {
-        color: var(--r-text);
-        opacity: 0.85;
+        color: var(--r-muted);
     }
     .cur .eyebrow em {
         font-style: normal;

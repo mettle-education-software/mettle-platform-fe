@@ -4,7 +4,7 @@ import { uiFont } from 'components/_melp/_deda/DedaReader/readerFonts';
 import React from 'react';
 import { DARK, LIGHT } from './palette';
 
-export { DARK, LIGHT } from './palette';
+export { DARK, LIGHT, LK_LIGHT } from './palette';
 
 export const tokenText = (set: Record<string, string>) =>
     Object.entries(set)
@@ -233,6 +233,9 @@ const antdFor = (c: Record<keyof typeof DARK, string>, light: boolean): ThemeCon
     algorithm: light ? theme.defaultAlgorithm : theme.darkAlgorithm,
     token: {
         colorPrimary: c['--r-gold'],
+        // botão principal no hover/pressionado: o dourado claro do tema (o derivado do antd escurece e perde o contraste)
+        colorPrimaryHover: c['--r-gold-hi'],
+        colorPrimaryActive: c['--r-gold-hi'],
         colorInfo: c['--r-gold'],
         colorLink: c['--r-gold-hi'],
         colorBgBase: c['--r-bg'],

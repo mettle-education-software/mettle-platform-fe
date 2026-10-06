@@ -24,6 +24,7 @@ declare global {
                 },
             ) => void;
             toggle?: (state?: 'open' | 'close') => void;
+            setColorScheme?: (scheme: 'light' | 'auto' | 'dark') => void;
             toggleBubbleVisibility?: (visibility: 'show' | 'hide') => void;
         };
         clarity?: (command: string, email: string, uuid: string) => void;

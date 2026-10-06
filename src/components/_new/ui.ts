@@ -255,15 +255,28 @@ export const Page = styled.div`
             transform 400ms ease,
             opacity var(--r-ease);
     }
-    /* e-book: o livro 3D (fundo transparente, o mesmo de /guia) sobre um brilho dourado que segue o tema */
+    /* e-book: vitrine. Pôr do sol da capa: âmbar profundo para café, brilho atrás do livro, sombra no chão */
     .cc .img.book {
         background:
-            radial-gradient(90% 80% at 50% 40%, var(--r-gold-tint), transparent 72%),
-            var(--r-surf);
+            radial-gradient(58% 68% at 50% 44%, rgba(244, 190, 112, 0.55), transparent 72%),
+            linear-gradient(165deg, #9c6733 0%, #5d3c22 46%, #2a1c13 100%);
+    }
+    .cc .img.book::after {
+        content: '';
+        position: absolute;
+        left: 24%;
+        right: 24%;
+        bottom: 4%;
+        height: 7%;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(0, 0, 0, 0.6), transparent);
+        filter: blur(3px);
     }
     .cc .img.book img {
+        position: relative;
+        z-index: 1;
         object-fit: contain;
-        padding: 5% 0 3%;
+        padding: 5% 0 5%;
     }
     .cc:hover img,
     .dc:hover:not(:disabled) img,

@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
-import React, { forwardRef, useEffect, useState } from 'react';
+import React, { forwardRef, useEffect, useMemo, useState } from 'react';
 import { ICON, platformTokens, UI_FONT_CLASS, UI_FONT_VAR, ui } from 'themes/newDesign';
 import { useAdminImpersonation } from '../AdminActions/AdminActions';
 import { useAppMenu } from './appMenu';
@@ -746,6 +746,14 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
         const pathname = usePathname();
         const menu = useAppMenu(() => setOpen(false));
         const active = activeMenuKeys(pathname);
+        // Na casca nova: Início, IMERSO, Suporte, Configurações, Sair (o menu atual mantém a ordem de sempre)
+        const navItems = useMemo(() => {
+            const items = [...(menu.items as MenuItem[])];
+            const settings = items.findIndex((item) => item.key === 'settings');
+            const support = items.findIndex((item) => item.key === 'support');
+            if (settings >= 0 && support > settings) items.splice(settings, 0, items.splice(support, 1)[0]);
+            return items;
+        }, [menu.items]);
         const { access, openCta } = useProductAccess();
         const antdTheme = useNewAntdTheme();
         const logoTheme = useLogoTheme();
@@ -866,7 +874,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                             width={290}
                             title={brand}
                         >
-                            <Nav items={menu.items as MenuItem[]} active={active} rail={false} goImerso={goImerso} />
+                            <Nav items={navItems} active={active} rail={false} goImerso={goImerso} />
                             {foot}
                         </Drawer>
                     </>
@@ -884,7 +892,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                                 {rail ? <PanelLeftOpen {...ICON} /> : <PanelLeftClose {...ICON} />}
                             </button>
                         </div>
-                        <Nav items={menu.items as MenuItem[]} active={active} rail={rail} goImerso={goImerso} />
+                        <Nav items={navItems} active={active} rail={rail} goImerso={goImerso} />
                         {foot}
                     </aside>
                 )}

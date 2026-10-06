@@ -2,8 +2,17 @@
 
 import styled from '@emotion/styled';
 import { auth } from 'config/firebase';
-import { EBOOK, EBOOK_LINK_URL, EBOOK_PRODUCT, ebookOpen, type EbookLink, linkFresh } from 'libs/ebook';
-import { ArrowLeft, BookOpen, Download } from 'lucide-react';
+import {
+    EBOOK,
+    EBOOK_LINK_URL,
+    EBOOK_PRODUCT,
+    EBOOK_READ_PATH,
+    ebookOpen,
+    type EbookLink,
+    linkFresh,
+} from 'libs/ebook';
+import { BookOpen, Download } from 'lucide-react';
+import Link from 'next/link';
 import { useAppContext, useProductAccess } from 'providers';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
@@ -63,7 +72,7 @@ const Cover = styled.span`
     }
 `;
 
-/** Link curto (10 min) do Worker: só sai para quem tem o acesso; o PDF leva a marca pessoal do aluno. */
+/** Link curto (10 min) do Worker para baixar o PDF. Antes do 8º dia da compra o Worker recusa (403): sem botão. */
 const fetchLink = async (): Promise<EbookLink> => {
     const token = await auth.currentUser?.getIdToken();
     const res = await fetch(EBOOK_LINK_URL, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
@@ -71,12 +80,9 @@ const fetchLink = async (): Promise<EbookLink> => {
     return res.json();
 };
 
-/** Celular/tablet estreito: o PDF abre no leitor do próprio aparelho (tela cheia), não dentro da página. */
-const narrow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 860px)').matches;
-
 /**
- * Página do e-book na plataforma nova: capa, descrição curta e duas ações. "Ler" abre o PDF dentro da página no
- * computador e no leitor do aparelho no celular; "Baixar" baixa a cópia pessoal. Sem acesso: aviso curto.
+ * Página do e-book na plataforma nova: capa, descrição curta e as ações. "Ler" abre o leitor da Plataforma
+ * (/guia/ler); "Baixar" (cópia pessoal em PDF) só existe depois da garantia — antes disso não aparece nada.
  */
 export const NewEbook: React.FC = () => {
     const { user } = useAppContext();
@@ -84,26 +90,19 @@ export const NewEbook: React.FC = () => {
     const state = access(EBOOK_PRODUCT);
     const open = ebookOpen(state.state);
     const [link, setLink] = useState<EbookLink | null>(null);
-    const [failed, setFailed] = useState(false);
-    // endereço fixado ao abrir: o link renovado a cada 8 min não recarrega o PDF (o leitor perderia a página)
-    const [readUrl, setReadUrl] = useState<string | null>(null);
 
     const refresh = useCallback(
         () =>
             fetchLink()
                 .then((l) => {
                     setLink(l);
-                    setFailed(false);
                     return l;
                 })
-                .catch(() => {
-                    setFailed(true);
-                    return null;
-                }),
+                .catch(() => null),
         [],
     );
 
-    // link pronto antes do clique (o celular só abre aba nova dentro do toque) e renovado antes de vencer
+    // link pronto antes do clique e renovado antes de vencer; sem link (garantia, falha), sem botão
     useEffect(() => {
         if (!open) return;
         refresh();
@@ -111,34 +110,10 @@ export const NewEbook: React.FC = () => {
         return () => window.clearInterval(id);
     }, [open, refresh]);
 
-    const go = async (kind: 'read' | 'download') => {
+    const download = async () => {
         const fresh = linkFresh(link) ? link : await refresh();
-        if (!fresh) return;
-        if (kind === 'download') {
-            window.location.href = fresh.download; // anexo: baixa e a página fica
-            return;
-        }
-        if (!narrow()) return setReadUrl(fresh.read);
-        // celular: leitor do aparelho em aba nova; se o navegador barrar (link renovado fora do toque), na mesma aba
-        if (!window.open(fresh.read, '_blank')) window.location.href = fresh.read;
+        if (fresh) window.location.href = fresh.download; // anexo: baixa e a página fica
     };
-
-    if (readUrl)
-        return (
-            <NewPage className="wide">
-                <Reader>
-                    <div className="bar">
-                        <button type="button" className="btn ghost" onClick={() => setReadUrl(null)}>
-                            <ArrowLeft {...ICON} size={18} aria-hidden /> Guia Completo
-                        </button>
-                        <button type="button" className="btn ghost" onClick={() => go('download')}>
-                            <Download {...ICON} size={18} aria-hidden /> Baixar
-                        </button>
-                    </div>
-                    <iframe src={readUrl} title={EBOOK.title} />
-                </Reader>
-            </NewPage>
-        );
 
     const until = state.expiresAt ? new Date(state.expiresAt).toLocaleDateString('pt-BR') : null;
 
@@ -154,18 +129,16 @@ export const NewEbook: React.FC = () => {
                     {!user ? null : open ? (
                         <>
                             <div className="acts">
-                                <button type="button" className="btn gold" onClick={() => go('read')}>
+                                <Link href={EBOOK_READ_PATH} className="btn gold">
                                     <BookOpen {...ICON} size={18} aria-hidden /> Ler
-                                </button>
-                                <button type="button" className="btn line" onClick={() => go('download')}>
-                                    <Download {...ICON} size={18} aria-hidden /> Baixar
-                                </button>
+                                </Link>
+                                {link && (
+                                    <button type="button" className="btn line" onClick={download}>
+                                        <Download {...ICON} size={18} aria-hidden /> Baixar
+                                    </button>
+                                )}
                             </div>
-                            <p className="note">
-                                {failed
-                                    ? 'Não foi possível abrir o e-book agora. Tente de novo em instantes.'
-                                    : `Cópia pessoal em PDF${until ? ` · acesso até ${until}` : ''}`}
-                            </p>
+                            {until && <p className="note">Acesso até {until}</p>}
                         </>
                     ) : (
                         <p className="note">
@@ -245,27 +218,6 @@ const Product = styled.div`
         .acts .btn {
             flex: 1;
         }
-    }
-`;
-
-const Reader = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: -20px;
-
-    .bar {
-        display: flex;
-        justify-content: space-between;
-        margin: 0 -12px;
-    }
-    iframe {
-        width: 100%;
-        height: calc(100dvh - 140px);
-        min-height: 480px;
-        border: 0;
-        border-radius: var(--r-radius);
-        background: var(--r-surf);
     }
 `;
 

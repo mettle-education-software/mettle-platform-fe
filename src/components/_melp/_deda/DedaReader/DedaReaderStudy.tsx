@@ -37,6 +37,7 @@ import { useAppContext, useMelpContext } from 'providers';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { DedaStepsCompleted } from '../DedaActivity/steps';
+import { ReadAlong } from './ReadAlong';
 import { InfoTip } from './ReaderInfo';
 import { ReaderProse } from './ReaderProse';
 import { ReaderSummary } from './ReaderSummary';
@@ -551,11 +552,19 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                     </>
                 );
             case 'readRecord':
-            case 'listenRead':
                 return (
                     <>
                         <div className="col">{eyebrow}</div>
                         <ReadText dedaId={dedaId} />
+                    </>
+                );
+            case 'listenRead':
+                return (
+                    <>
+                        <div className="col">{eyebrow}</div>
+                        <ReadAlong dedaId={dedaId}>
+                            <ReadText dedaId={dedaId} />
+                        </ReadAlong>
                     </>
                 );
             case 'watch':

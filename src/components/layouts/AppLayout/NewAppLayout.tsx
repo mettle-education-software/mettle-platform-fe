@@ -672,7 +672,7 @@ const AdminItem: React.FC = () => {
                                 </Button>
                             </Flex>
                         ) : (
-                            <Flex gap={8}>
+                            <Flex gap={8} wrap style={{ width: '100%' }}>
                                 <Select
                                     aria-labelledby="admin-impersonate"
                                     loading={admin.isMettleUsersLoading}
@@ -683,11 +683,14 @@ const AdminItem: React.FC = () => {
                                     filterOption={false}
                                     onSelect={(value) => admin.setSelectedUserToImpersonate(value)}
                                     value={admin.selectedUserToImpersonate}
-                                    style={{ flex: 1, minWidth: 0 }}
+                                    style={{ flex: '1 1 220px', minWidth: 0 }}
+                                    popupMatchSelectWidth={false}
+                                    dropdownStyle={{ maxWidth: 'min(520px, 92vw)' }}
                                     placeholder="Nome ou e-mail do aluno"
                                     options={admin.options}
                                 />
                                 <Button
+                                    style={{ flex: 'none' }}
                                     type="primary"
                                     loading={admin.impersonate.isPending}
                                     onClick={admin.handleImpersonate}

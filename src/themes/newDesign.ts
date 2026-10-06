@@ -200,6 +200,27 @@ export const ui = css`
     p {
         margin: 0;
     }
+    /* Selects: o título longo nunca passa por baixo da seta (reserva à direita + reticências); cresce até o limite do contêiner */
+    .ant-select {
+        max-width: 100%;
+    }
+    .ant-select-single .ant-select-selector .ant-select-selection-item,
+    .ant-select-single .ant-select-selector .ant-select-selection-placeholder {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding-inline-end: 30px;
+    }
+    /* botão principal do antd: o algoritmo escuro apaga o dourado e o hover traz texto branco; valem os do tema (texto AA) */
+    .ant-btn-primary:not(:disabled) {
+        background: var(--r-gold);
+        color: var(--r-on-gold);
+    }
+    .ant-btn-primary:not(:disabled):hover,
+    .ant-btn-primary:not(:disabled):active {
+        background: var(--r-gold-hi);
+        color: var(--r-on-gold);
+    }
     .sr {
         position: absolute !important;
         width: 1px;
@@ -233,9 +254,6 @@ const antdFor = (c: Record<keyof typeof DARK, string>, light: boolean): ThemeCon
     algorithm: light ? theme.defaultAlgorithm : theme.darkAlgorithm,
     token: {
         colorPrimary: c['--r-gold'],
-        // botão principal no hover/pressionado: o dourado claro do tema (o derivado do antd escurece e perde o contraste)
-        colorPrimaryHover: c['--r-gold-hi'],
-        colorPrimaryActive: c['--r-gold-hi'],
         colorInfo: c['--r-gold'],
         colorLink: c['--r-gold-hi'],
         colorBgBase: c['--r-bg'],

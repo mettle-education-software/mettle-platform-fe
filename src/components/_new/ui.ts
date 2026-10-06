@@ -9,6 +9,15 @@ const pulse = keyframes`
 
 /** Modais e balões das páginas novas (antd, fora da árvore): corpo em grade, rótulos e destaque do nível. */
 export const popupStyles = css`
+    .ui-new-modal .ant-btn-primary:not(:disabled) {
+        background: var(--r-gold);
+        color: var(--r-on-gold);
+    }
+    .ui-new-modal .ant-btn-primary:not(:disabled):hover,
+    .ui-new-modal .ant-btn-primary:not(:disabled):active {
+        background: var(--r-gold-hi);
+        color: var(--r-on-gold);
+    }
     .ui-new-modal .ant-modal-content {
         padding: 24px 24px 20px;
     }
@@ -18,6 +27,15 @@ export const popupStyles = css`
         padding: 12px 0 8px;
         font-size: 14.5px;
         line-height: 1.5;
+    }
+    /* o corpo é uma grade: sem isto a coluna cresce com o texto longo (ex.: nome + e-mail) e empurra o botão para fora */
+    .ui-new-modal .modal-body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .ui-new-modal .ant-select-selection-item {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .ui-new-modal .modal-body p {
         margin: 0;
@@ -260,9 +278,7 @@ export const Page = styled.div`
     }
     /* e-book: o livro 3D (fundo transparente, o mesmo de /guia) sobre um brilho dourado que segue o tema */
     .cc .img.book {
-        background:
-            radial-gradient(90% 80% at 50% 40%, var(--r-gold-tint), transparent 72%),
-            var(--r-surf);
+        background: radial-gradient(90% 80% at 50% 40%, var(--r-gold-tint), transparent 72%), var(--r-surf);
     }
     .cc .img.book img {
         object-fit: contain;

@@ -9,9 +9,11 @@ export type TrailLesson = { id: string; title: string; embedUrl: string; state: 
 export type TrailModule = { id: string; order: number; title: string; unlockDate?: string; lessons: TrailLesson[] };
 
 /**
- * Módulos na ordem do curso (moduleOrder), cada aula com seu estado: trancada (módulo trancado), vista, aberta e,
- * entre as liberadas, a primeira ainda não vista = "você está aqui". Sem "aqui" (tudo liberado já visto), `next`
- * é a primeira aula trancada, com a data de liberação do seu módulo.
+ * Módulos na ordem do curso (moduleOrder), cada aula com seu estado. "Você está aqui" segue a regra da home
+ * atual (ComingHpecs / a antiga fila do HPEC): o módulo atual é o ÚLTIMO módulo liberado, e a primeira aula dele é
+ * a de assistir. Os módulos liberados antes dele contam como feitos. As marcas "vista" deste aparelho só somam:
+ * dentro do módulo atual, "aqui" é a primeira aula ainda não vista e as seguintes ficam abertas. Módulo trancado =
+ * trancado (a liberação manda). Sem "aqui" (módulo atual inteiro visto), `next` é a primeira aula trancada.
  */
 export const hpecTrail = (
     unlocked: IHPECLesson[],
@@ -22,6 +24,7 @@ export const hpecTrail = (
         ...unlocked.map((m) => ({ m, unlockDate: undefined as string | undefined })),
         ...locked.map((m) => ({ m, unlockDate: m.unlockDate })),
     ].sort((a, b) => a.m.moduleOrder - b.m.moduleOrder);
+    const currentOrder = Math.max(-Infinity, ...unlocked.map((m) => m.moduleOrder));
 
     let hereFound = false;
     const modules: TrailModule[] = all.map(({ m, unlockDate }) => ({
@@ -32,7 +35,7 @@ export const hpecTrail = (
         lessons: m.hpecLessonsCollection.items.map((l) => {
             let state: TrailState = 'open';
             if (unlockDate !== undefined) state = 'locked';
-            else if (watched.has(l.lessonId)) state = 'done';
+            else if (m.moduleOrder < currentOrder || watched.has(l.lessonId)) state = 'done';
             else if (!hereFound) {
                 state = 'here';
                 hereFound = true;
@@ -42,11 +45,14 @@ export const hpecTrail = (
     }));
 
     const flat = modules.flatMap((module) => module.lessons.map((lesson) => ({ lesson, module })));
+    const currentIndex = modules.findIndex((module) => module.order === currentOrder);
     return {
         modules,
         here: flat.find((x) => x.lesson.state === 'here'),
         next: hereFound ? undefined : flat.find((x) => x.lesson.state === 'locked'),
-        watched: flat.filter((x) => x.lesson.state === 'done').length,
+        /** "Module N of M": posição do módulo atual (1…M); 0 = nenhum liberado */
+        moduleNumber: currentIndex + 1,
+        moduleCount: modules.length,
         total: flat.length,
     };
 };

@@ -4,7 +4,8 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { GoogleTagManager } from '@next/third-parties/google';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider, Spin, ThemeConfig } from 'antd';
-import { PWABanner } from 'components';
+import { PersistentShell, PWABanner } from 'components';
+import { THEME_BOOT_SCRIPT } from 'libs/theme';
 import Script from 'next/script';
 import { AccessCtaModal, AccessProvider, AppProvider, NotificationsProvider, useAppContext } from 'providers';
 import { MelpProvider } from 'providers/MelpProvider';
@@ -69,7 +70,9 @@ const App = ({ children }: { children: React.ReactNode }) => {
                 <AntdRegistry>
                     <main data-theme={theme}>
                         <Spin spinning={isAppLoading}>
-                            <PWABanner>{children}</PWABanner>
+                            <PWABanner>
+                                <PersistentShell>{children}</PersistentShell>
+                            </PWABanner>
                         </Spin>
                         <AccessCtaModal />
                     </main>
@@ -84,6 +87,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="pt" suppressHydrationWarning={true}>
             <head>
                 {process.env.NODE_ENV === 'production' ? <GoogleTagManager gtmId="GTM-KQF8NQS8" /> : null}
+                {/* tema da plataforma nova (libs/theme): antes da primeira pintura, sem piscar; só as variáveis --r-* o leem */}
+                <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
                 <title>Plataforma Mettle</title>
                 <link rel="manifest" href="/manifest.json" />
                 <meta name="theme-color" content="#3b3630" />

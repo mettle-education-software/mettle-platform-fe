@@ -14,6 +14,8 @@ interface Props {
     categories?: string[] | null;
     state?: DedaCardState;
     onClick?: () => void;
+    /** Intenção de abrir (mouse em cima, foco, toque): adianta a rota. */
+    onIntent?: () => void;
     isLoading?: boolean;
 }
 
@@ -28,6 +30,7 @@ export const NewDedaCard: React.FC<Props> = ({
     categories,
     state = 'open',
     onClick,
+    onIntent,
     isLoading,
 }) => {
     if (isLoading)
@@ -45,6 +48,8 @@ export const NewDedaCard: React.FC<Props> = ({
             className={`dc ${state}`}
             disabled={locked}
             onClick={() => !locked && onClick?.()}
+            onPointerEnter={() => !locked && onIntent?.()}
+            onFocus={() => !locked && onIntent?.()}
             aria-label={`${title ?? 'DEDA'}${week ? `, ${week}` : ''}${locked ? ', locked' : state === 'current' ? ', current' : ''}`}
         >
             <span className="img">

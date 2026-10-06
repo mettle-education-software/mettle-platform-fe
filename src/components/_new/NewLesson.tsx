@@ -15,6 +15,7 @@ import {
     CourseModule,
     fileSizeLabel,
     isModuleOpen,
+    lessonIdFromPath,
     lessonNeighbours,
     lockedModuleOf,
     lockedNotes,
@@ -42,7 +43,8 @@ import {
     X,
 } from 'lucide-react';
 import Link from 'next/link';
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ICON, UI_FONT_VAR, ui } from 'themes/newDesign';
 import { NewPage } from './NewPage';
 
@@ -266,6 +268,20 @@ const Wrap = styled.div`
         min-width: 0;
         max-width: 1040px;
         padding: 20px 40px 72px;
+    }
+    /* troca de aula: o miolo novo entra com um esmaecer curto; enquanto chega, o anterior fica esmaecido */
+    .swap {
+        animation: r-lesson-in 160ms ease-out;
+        transition: opacity 120ms ease;
+    }
+    .swap.stale {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+    @keyframes r-lesson-in {
+        from {
+            opacity: 0.4;
+        }
     }
     .lh {
         display: flex;
@@ -620,6 +636,34 @@ const Wrap = styled.div`
     }
 `;
 
+/* ---------- troca de aula no lugar ---------- */
+
+/**
+ * Link entre aulas do mesmo curso: troca a aula no lugar (history.pushState, que o roteador do Next acompanha —
+ * endereço, voltar/avançar e recarregar seguem iguais), sem remontar a página: trilho, cabeçalho e casca ficam e só o
+ * miolo troca. Ctrl/⌘/Shift/clique do meio: comportamento normal do link.
+ */
+const LessonLink: React.FC<Omit<React.ComponentProps<typeof Link>, 'href'> & { href: string }> = ({
+    href,
+    onClick,
+    ...rest
+}) => {
+    return (
+        <Link
+            {...rest}
+            href={href}
+            prefetch={false}
+            onClick={(event) => {
+                onClick?.(event);
+                if (event.defaultPrevented || event.button !== 0) return;
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                if (href !== window.location.pathname) window.history.pushState(null, '', href);
+            }}
+        />
+    );
+};
+
 /* ---------- lista de aulas (trilho no computador, folha no celular) ---------- */
 
 const RailList: React.FC<{
@@ -693,9 +737,8 @@ const RailList: React.FC<{
                                 <ul id={`mod-${m.id}`}>
                                     {m.lessons.map((l, j) => (
                                         <li key={l.id}>
-                                            <Link
+                                            <LessonLink
                                                 href={l.href}
-                                                shallow
                                                 aria-current={l.id === lessonId ? 'page' : undefined}
                                                 onClick={onPick}
                                             >
@@ -703,7 +746,7 @@ const RailList: React.FC<{
                                                     {first + j + 1}
                                                 </span>
                                                 <span>{l.title}</span>
-                                            </Link>
+                                            </LessonLink>
                                         </li>
                                     ))}
                                 </ul>
@@ -747,30 +790,42 @@ export const NewLesson: React.FC<NewLessonProps> = ({
     course,
     modules,
     modulesLoading,
-    lessonId,
+    lessonId: routeLessonId,
     progress,
     lang,
     lockedContent,
 }) => {
     const t = TEXTS[lang];
     const isMobile = useDeviceSize() === 'mobile';
-    const { data, loading } = useGetLessonContent(lessonId);
-    const { data: resData } = useGetHpecResources(lessonId);
+    // A aula vem do endereço: a troca de aula (LessonLink) muda só o endereço, e a página não remonta.
+    const lessonId = lessonIdFromPath(usePathname(), routeLessonId);
+    const { data: lessonData, previousData, loading } = useGetLessonContent(lessonId);
+    const { data: resData, previousData: previousRes } = useGetHpecResources(lessonId);
+    // Enquanto a aula nova chega, a anterior continua na tela (esmaecida), sem quadro vazio.
+    const data = lessonData ?? (loading ? previousData : undefined);
+    const switching = !lessonData && loading && !!previousData;
 
-    const [railCollapsed, setRailCollapsed] = useState(false);
+    // Preferências lidas já no primeiro quadro (antes: lidas depois de pintar, o trilho "pulava").
+    const [railCollapsed, setRailCollapsed] = useState(
+        () => typeof window !== 'undefined' && readLessonRailCollapsed(),
+    );
     const [sheet, setSheet] = useState(false);
     const [tab, setTab] = useState<Tab>('video');
-    const [scale, setScale] = useState(1);
-    useEffect(() => {
-        setRailCollapsed(readLessonRailCollapsed());
-        setScale(readTextScale());
-    }, []);
+    const [scale, setScale] = useState(() => (typeof window !== 'undefined' ? readTextScale() : 1));
+    const wrapRef = useRef<HTMLDivElement>(null);
+    const firstLesson = useRef(lessonId);
     useEffect(() => {
         setSheet(false);
+        // aula nova: volta ao topo (a troca no lugar não passa pelo roteador, que faria isso)
+        if (lessonId !== firstLesson.current) wrapRef.current?.closest('.main')?.scrollTo({ top: 0 });
     }, [lessonId]);
 
     const lesson = data?.singleLessonCollection?.items[0];
-    const files = resData?.singleLessonCollection?.items[0]?.lessonResourcesCollection.items ?? [];
+    // aula na tela (a anterior, enquanto a nova chega): o vídeo só troca quando a nova estiver pronta
+    const shownId = lesson?.lessonId ?? lessonId;
+    const files =
+        (resData ?? (switching ? previousRes : undefined))?.singleLessonCollection?.items[0]?.lessonResourcesCollection
+            .items ?? [];
     const hasVideo = !!lesson?.lessonVideoEmbedUrl;
     const hasResources = files.length > 0;
     const { current, previous, next, position, total } = lessonNeighbours(modules, lessonId);
@@ -834,22 +889,22 @@ export const NewLesson: React.FC<NewLessonProps> = ({
             )}
             <div className="ttl">
                 {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-                <h1>{lesson?.lessonTitle ?? current?.title ?? ' '}</h1>
+                <h1>{(switching ? current?.title : lesson?.lessonTitle) ?? current?.title ?? ' '}</h1>
             </div>
             <nav className="pn" aria-label={t.lessons}>
                 {previous ? (
-                    <Link href={previous.href} shallow className="ib" aria-label={t.previous} title={previous.title}>
+                    <LessonLink href={previous.href} className="ib" aria-label={t.previous} title={previous.title}>
                         <ChevronLeft {...ICON} />
-                    </Link>
+                    </LessonLink>
                 ) : (
                     <button type="button" className="ib" aria-label={t.previous} disabled>
                         <ChevronLeft {...ICON} />
                     </button>
                 )}
                 {next ? (
-                    <Link href={next.href} shallow className="ib" aria-label={t.next} title={next.title}>
+                    <LessonLink href={next.href} className="ib" aria-label={t.next} title={next.title}>
                         <ChevronRight {...ICON} />
-                    </Link>
+                    </LessonLink>
                 ) : (
                     <button type="button" className="ib" aria-label={t.next} disabled>
                         <ChevronRight {...ICON} />
@@ -869,9 +924,9 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                 <h1>{t.locked}</h1>
                 <p>{lockedModule.locked}</p>
                 {latest && (
-                    <Link href={latest.href} className="btn line">
+                    <LessonLink href={latest.href} className="btn line">
                         {t.goLatest}
-                    </Link>
+                    </LessonLink>
                 )}
             </div>
         );
@@ -881,9 +936,9 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                 <h1>{t.missing}</h1>
                 <p>{t.missingHint}</p>
                 {open[0] && (
-                    <Link href={open[0].href} className="btn line">
+                    <LessonLink href={open[0].href} className="btn line">
                         {t.goFirst}
-                    </Link>
+                    </LessonLink>
                 )}
             </div>
         );
@@ -892,7 +947,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
             <>
                 {isMobile && hasVideo && (
                     <div className="video">
-                        <LessonVideo lessonId={lessonId} />
+                        <LessonVideo lessonId={shownId} />
                     </div>
                 )}
                 <div className="tabs">
@@ -918,7 +973,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                 </div>
                 {hasVideo && !isMobile && (
                     <div id="lesson-video" role="tabpanel" className="video" hidden={active !== 'video'}>
-                        <LessonVideo lessonId={lessonId} />
+                        <LessonVideo lessonId={shownId} />
                     </div>
                 )}
                 <div id="lesson-summary" role="tabpanel" hidden={active !== 'summary'}>
@@ -970,10 +1025,10 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                 )}
                 {next && (
                     <div className="after">
-                        <Link href={next.href} shallow className="btn line" title={next.title}>
+                        <LessonLink href={next.href} className="btn line" title={next.title}>
                             {t.nextUp}: <span>{next.title}</span>
                             <ArrowRight {...ICON} size={16} className="arrow" aria-hidden />
-                        </Link>
+                        </LessonLink>
                     </div>
                 )}
             </>
@@ -983,6 +1038,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
     return (
         <NewPage className="wide lesson">
             <Wrap
+                ref={wrapRef}
                 className={`${uiFont.className}${!isMobile && railCollapsed ? ' norail' : ''}`}
                 style={{ '--r-scale': scale, '--r-read-font': readFont.style.fontFamily } as React.CSSProperties}
             >
@@ -991,9 +1047,12 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                         {list}
                     </aside>
                 )}
-                <div className="body">
+                <div className="body" aria-busy={switching || undefined}>
                     {header}
-                    {body}
+                    {/* key: o miolo da aula nova entra com o esmaecer curto; a casca e o trilho ficam */}
+                    <div className={switching ? 'swap stale' : 'swap'} key={lesson?.lessonId ?? 'none'}>
+                        {body}
+                    </div>
                 </div>
             </Wrap>
             {isMobile && (

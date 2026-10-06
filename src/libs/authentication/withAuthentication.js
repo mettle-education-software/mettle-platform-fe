@@ -2,12 +2,17 @@
 
 import { auth } from 'config/firebase';
 import { signOut } from 'firebase/auth';
+import { isHydrated, isNewDesignAccount } from 'libs/newDesign';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
 // eslint-disable-next-line react/display-name
 export const withAuthentication = (Component) => (props) => {
-    const [nextOrObserver, setNextOrObserver] = useState(null);
+    // Plataforma nova: a sessão já conhecida vale desde o primeiro quadro (sem o quadro vazio a cada troca de página).
+    // Chave desligada: como sempre, espera o aviso do Firebase.
+    const [nextOrObserver, setNextOrObserver] = useState(() =>
+        isHydrated() && isNewDesignAccount(auth.currentUser?.uid) ? auth.currentUser : null,
+    );
     const router = useRouter();
 
     useEffect(() => {

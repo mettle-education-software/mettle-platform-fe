@@ -89,8 +89,14 @@ export const popupStyles = css`
  * Página da plataforma nova: coluna centrada, cabeçalho, seções, grades e cards. Só apresentação; os dados e as
  * ações vêm dos mesmos hooks das páginas atuais. Tokens em themes/newDesign (`--r-*`).
  */
+const enter = keyframes`
+    from { opacity: 0.4; }
+`;
+
 export const Page = styled.div`
     ${ui};
+    /* troca de página: só o conteúdo entra com um esmaecer curto; a casca fica (movimento reduzido: sem animação) */
+    animation: ${enter} 160ms ease-out;
     max-width: 1180px;
     margin: 0 auto;
     padding: 36px 32px 72px;
@@ -434,9 +440,9 @@ export const Page = styled.div`
         inset: 0;
         background: linear-gradient(
             180deg,
-            rgba(43, 42, 41, 0.08) 0%,
-            rgba(43, 42, 41, 0.72) 62%,
-            rgba(43, 42, 41, 0.92)
+            rgba(var(--r-bg-rgb), 0.08) 0%,
+            rgba(var(--r-bg-rgb), 0.72) 62%,
+            rgba(var(--r-bg-rgb), 0.92)
         );
     }
     .cur .over {

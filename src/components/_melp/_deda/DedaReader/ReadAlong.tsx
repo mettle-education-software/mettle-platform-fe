@@ -9,6 +9,7 @@ import {
     Alignment,
     alignUrlFor,
     isUsableAlignment,
+    markBox,
     rangeIndexAt,
     wordAt,
     wordRanges,
@@ -18,12 +19,47 @@ import React, { ReactNode, useEffect, useRef, useState } from 'react';
 
 const HIGHLIGHT = 'deda-readalong';
 
-// Só fundo: a métrica do texto não muda (nada de negrito). ::highlight não altera o DOM nem o layout.
+// A métrica do texto não muda (nada de negrito) e o DOM do texto também não: ::highlight só escurece a palavra; o
+// fundo amarelo é uma marca à parte, atrás do texto, centrada nas letras (o fundo do ::highlight ocupa a caixa da
+// fonte inteira e, com a entrelinha alta, fica mais para cima do que a palavra).
 const highlightStyle = css`
     ::highlight(${HIGHLIGHT}) {
-        background-color: var(--r-gold-tint, rgba(183, 138, 91, 0.16));
+        color: var(--r-readalong-text, #1d1a17);
     }
 `;
+
+const Box = styled.div`
+    position: relative;
+    > .ra-marks {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+    }
+    > .ra-marks i {
+        position: absolute;
+        border-radius: 0.22em;
+        /* marca-texto amarelo (themes/palette: --r-readalong) */
+        background: var(--r-readalong, rgba(255, 214, 10, 0.88));
+    }
+    > .ra-text {
+        position: relative;
+        z-index: 1;
+    }
+`;
+
+let canvas: HTMLCanvasElement | null = null;
+/** Medidas da fonte do texto (tamanho, ascendente da caixa e altura das maiúsculas), pelo canvas. */
+const fontOf = (el: Element) => {
+    const cs = getComputedStyle(el);
+    canvas = canvas ?? document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const size = parseFloat(cs.fontSize) || 16;
+    if (!ctx) return { size, ascent: size * 0.95, cap: size * 0.7 };
+    ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const m = ctx.measureText('H');
+    return { size, ascent: m.fontBoundingBoxAscent || size * 0.95, cap: m.actualBoundingBoxAscent || size * 0.7 };
+};
 
 const FollowButton = styled.button`
     position: sticky;
@@ -56,7 +92,7 @@ const findOriginal = (audioUrl: string): HTMLAudioElement | null => {
 
 /**
  * Read-along do passo 4 (piloto, conta do dono): com o áudio original tocando, a palavra dita ganha um fundo dourado
- * leve; a rolagem acompanha (palavra no terço superior) até o aluno rolar por conta própria — aí aparece "Follow".
+ * amarelo, centrado nas letras; a rolagem acompanha (palavra no terço superior) até o aluno rolar por conta própria — aí aparece "Follow".
  * Tocar numa palavra leva o áudio até ela. Sem tempos publicados para o DEDA (ou outra faixa): nada muda.
  */
 export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: ReactNode }) => {
@@ -73,6 +109,7 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
     const ranges = useRef<Range[]>([]);
     const current = useRef(-1);
     const scrollNow = useRef<() => void>(() => undefined);
+    const marks = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setAlign(null);
@@ -122,6 +159,28 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
                 });
         };
 
+        // marca amarela da palavra atual, em coordenadas do contêiner (rola junto com o texto)
+        const place = (i: number) => {
+            const layer = marks.current;
+            const origin = box.current?.getBoundingClientRect();
+            if (!layer || !origin) return;
+            layer.replaceChildren();
+            const range = ranges.current[i];
+            const el = range?.startContainer.parentElement;
+            if (!range || !el) return;
+            const font = fontOf(el);
+            for (const r of Array.from(range.getClientRects())) {
+                const b = markBox(r, origin, font);
+                const mark = document.createElement('i');
+                mark.style.cssText = `left:${b.left}px;top:${b.top}px;width:${b.width}px;height:${b.height}px`;
+                layer.appendChild(mark);
+            }
+        };
+        // "Aa", largura da janela, celular girado: a palavra muda de lugar — a marca vai junto
+        const layerAtStart = marks.current;
+        const resize = new ResizeObserver(() => current.current >= 0 && place(current.current));
+        if (box.current) resize.observe(box.current);
+
         const tick = (now: number) => {
             raf = requestAnimationFrame(tick);
             if (now - lastLookup > 500 || (audio && !audio.isConnected)) {
@@ -134,6 +193,7 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
             if (i === current.current) return;
             current.current = i;
             hl.clear();
+            place(i);
             if (i < 0) return;
             hl.add(ranges.current[i]);
             if (followRef.current && audio && !audio.paused) scrollTo(i);
@@ -178,6 +238,8 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
 
         return () => {
             cancelAnimationFrame(raf);
+            resize.disconnect();
+            layerAtStart?.replaceChildren();
             events.forEach((t) => scroller?.removeEventListener(t, manual));
             el?.removeEventListener('click', onClick);
             registry.delete(HIGHLIGHT);
@@ -188,9 +250,10 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
     }, [align, audioUrl, dedaId]);
 
     return (
-        <div ref={box}>
+        <Box ref={box}>
             {align && <Global styles={highlightStyle} />}
-            {children}
+            <div className="ra-marks" ref={marks} aria-hidden />
+            <div className="ra-text">{children}</div>
             {align && active && !follow && (
                 <FollowButton
                     type="button"
@@ -202,6 +265,6 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
                     Follow
                 </FollowButton>
             )}
-        </div>
+        </Box>
     );
 };

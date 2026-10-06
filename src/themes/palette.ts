@@ -1,0 +1,83 @@
+// Paletas da plataforma nova (sem dependências: usadas no CSS e nos testes de contraste).
+
+/**
+ * Cores da plataforma nova (só para as contas de libs/newDesign), nos dois temas, com os mesmos nomes `--r-*` da página
+ * do DEDA. O claro não é uma inversão: marfim quente, texto grafite e dourado mais fundo (contraste AA em texto e ações;
+ * conferido em libs/__tests__/theme.test.ts). `--r-bg-rgb` serve aos degradês sobre imagens (terminam no fundo).
+ */
+export const DARK = {
+    '--r-bg': '#2b2a29',
+    '--r-bg-rgb': '43, 42, 41',
+    '--r-bg2': '#262524',
+    '--r-surf': '#363432',
+    '--r-sheet': '#353331',
+    '--r-sheet-head': '#413e3b',
+    '--r-sheet-shadow': '0 0 48px rgba(0, 0, 0, 0.55)',
+    '--r-mask': 'rgba(0, 0, 0, 0.5)',
+    '--r-line': 'rgba(255, 255, 255, 0.09)',
+    '--r-line-strong': 'rgba(255, 255, 255, 0.28)',
+    '--r-ring': 'rgba(255, 255, 255, 0.24)',
+    '--r-track': 'rgba(255, 255, 255, 0.14)',
+    '--r-hover': 'rgba(255, 255, 255, 0.06)',
+    '--r-hover-on-light': 'rgba(0, 0, 0, 0.06)',
+    '--r-danger': '#e58f80',
+    '--r-text': '#f3ede4',
+    '--r-muted': '#bdb4a8',
+    '--r-faint': '#8f877c',
+    '--r-gold': '#b78a5b',
+    '--r-gold-hi': '#d3a878',
+    '--r-gold-tint': 'rgba(183, 138, 91, 0.16)',
+    '--r-on-gold': '#1d1a17',
+    '--r-on-gold-alt': '#1f1b16',
+    '--r-error': '#f0b3a8',
+    '--r-pill': 'rgba(127, 120, 110, 0.2)',
+    '--r-strong': '#ffffff',
+    '--r-strong-line': '#d9d2c7',
+    '--r-strip-shade':
+        'linear-gradient(90deg, rgba(28, 27, 26, 0.95), rgba(28, 27, 26, 0.82) 50%, rgba(28, 27, 26, 0.95))',
+    '--r-card-shadow': 'rgba(0, 0, 0, 0.3)',
+    '--r-video-bg': '#000000',
+    '--r-tip-bg': '#413e3b',
+    '--r-tip-text': '#f3ede4',
+    /* read-along (passo 4): marca-texto amarelo bem visível; a palavra destacada fica escura (AA) */
+    '--r-readalong': 'rgba(255, 214, 10, 0.88)',
+    '--r-readalong-text': '#1d1a17',
+} as const;
+
+export const LIGHT: Record<keyof typeof DARK, string> = {
+    '--r-bg': '#f7f3ec',
+    '--r-bg-rgb': '247, 243, 236',
+    '--r-bg2': '#f0eae0',
+    '--r-surf': '#fffdf9',
+    '--r-sheet': '#fbf8f3',
+    '--r-sheet-head': '#f2ece3',
+    '--r-sheet-shadow': '0 0 48px rgba(64, 48, 28, 0.18)',
+    '--r-mask': 'rgba(42, 34, 24, 0.32)',
+    '--r-line': 'rgba(52, 40, 26, 0.11)',
+    '--r-line-strong': 'rgba(52, 40, 26, 0.3)',
+    '--r-ring': 'rgba(52, 40, 26, 0.24)',
+    '--r-track': 'rgba(52, 40, 26, 0.13)',
+    '--r-hover': 'rgba(52, 40, 26, 0.05)',
+    '--r-hover-on-light': 'rgba(52, 40, 26, 0.06)',
+    '--r-danger': '#a8402f',
+    '--r-text': '#2a2622',
+    '--r-muted': '#5f574d',
+    '--r-faint': '#736a5f',
+    '--r-gold': '#8c6434',
+    '--r-gold-hi': '#85602f',
+    '--r-gold-tint': 'rgba(140, 100, 52, 0.12)',
+    '--r-on-gold': '#fffaf2',
+    '--r-on-gold-alt': '#fffaf2',
+    '--r-error': '#a8402f',
+    '--r-pill': 'rgba(120, 104, 84, 0.13)',
+    '--r-strong': '#1c1915',
+    '--r-strong-line': '#3d362f',
+    '--r-strip-shade':
+        'linear-gradient(90deg, rgba(247, 243, 236, 0.95), rgba(247, 243, 236, 0.84) 50%, rgba(247, 243, 236, 0.95))',
+    '--r-card-shadow': 'rgba(64, 48, 28, 0.12)',
+    '--r-video-bg': '#000000',
+    '--r-tip-bg': '#2f2a25',
+    '--r-tip-text': '#f7f3ec',
+    '--r-readalong': '#ffeb3b',
+    '--r-readalong-text': '#1c1915',
+};

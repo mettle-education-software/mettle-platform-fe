@@ -8,11 +8,12 @@ import { MelpSummary } from 'components/_melp/MelpSummary/MelpSummary';
 import { useDeviceSize } from 'hooks';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { SMALL_VIEWPORT } from 'libs';
+import { isHydrated, isShellRoute, markHydrated } from 'libs/newDesign';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
-import React, { forwardRef, useEffect, useState } from 'react';
+import React, { createContext, forwardRef, useContext, useEffect, useState } from 'react';
 import { UserMenu } from '../../molecules/UserMenu/UserMenu';
 import { AdminActions } from '../AdminActions/AdminActions';
 import { useAppMenu } from './appMenu';
@@ -93,10 +94,37 @@ interface AppLayoutProps {
     withMelpSummary?: boolean;
 }
 
+/** Dentro da casca persistente (plataforma nova): o AppLayout de cada página não desenha outra casca. */
+export const InPersistentShell = createContext(false);
+
+/**
+ * Casca persistente (só com a chave ligada): montada uma vez no layout raiz para as rotas da casca, para que trocar de
+ * página troque só o conteúdo — menu, barra e fundo não remontam (antes cada página montava a própria casca e a troca
+ * passava por um quadro vazio). Chave desligada: devolve os filhos sem nada em volta.
+ */
+export const PersistentShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const pathname = usePathname();
+    const [hydrated, setHydrated] = useState(isHydrated);
+    useEffect(() => {
+        markHydrated();
+        setHydrated(true);
+    }, []);
+    const newDesign = useNewDesign();
+    if (!hydrated || !newDesign || !isShellRoute(pathname)) return <>{children}</>;
+    return (
+        <NewAppLayout withMelpSummary={pathname.startsWith('/imerso')}>
+            <InPersistentShell.Provider value>{children}</InPersistentShell.Provider>
+        </NewAppLayout>
+    );
+};
+
 /** Chave ligada (libs/newDesign): a casca nova; desligada: a casca atual, intocada. */
-export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>((props, ref) =>
-    useNewDesign() ? <NewAppLayout {...props} ref={ref} /> : <ClassicAppLayout {...props} ref={ref} />,
-);
+export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>((props, ref) => {
+    const inShell = useContext(InPersistentShell);
+    const newDesign = useNewDesign();
+    if (inShell) return <>{props.children}</>;
+    return newDesign ? <NewAppLayout {...props} ref={ref} /> : <ClassicAppLayout {...props} ref={ref} />;
+});
 
 AppLayout.displayName = 'AppLayout';
 

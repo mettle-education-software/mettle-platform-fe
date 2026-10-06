@@ -108,3 +108,26 @@ export const rangeIndexAt = (ranges: Range[], node: Node, offset: number): numbe
     }
     return -1;
 };
+
+// ---------- marca do destaque: centrada nas letras ----------
+
+/** Altura da marca (em) e folga lateral (em): centrada entre a linha de base e o topo das maiúsculas. */
+export const MARK_EM = 1.3;
+export const SIDE_EM = 0.14;
+
+/** Posição da marca de uma palavra: centro óptico = linha de base − metade da altura das maiúsculas. */
+export const markBox = (
+    rect: { left: number; top: number; width: number },
+    origin: { left: number; top: number },
+    font: { size: number; ascent: number; cap: number },
+) => {
+    const baseline = rect.top + font.ascent;
+    const height = MARK_EM * font.size;
+    const center = baseline - font.cap / 2;
+    return {
+        left: rect.left - origin.left - SIDE_EM * font.size,
+        top: center - height / 2 - origin.top,
+        width: rect.width + 2 * SIDE_EM * font.size,
+        height,
+    };
+};

@@ -3,9 +3,11 @@
 import { css, Global } from '@emotion/react';
 import styled from '@emotion/styled';
 import { Button, ConfigProvider, Drawer, Flex, Modal, Select } from 'antd';
+import { ThemeCycle, ThemeSwitch } from 'components/_new/ThemeSwitch';
 import { popupStyles } from 'components/_new/ui';
 import { Logo } from 'components/atoms/Logo/Logo';
 import { useDeviceSize } from 'hooks';
+import { useLogoTheme, useNewAntdTheme } from 'hooks/useTheme';
 import { getWeekDay } from 'libs';
 import { activeMenuKeys, firstName, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
@@ -24,8 +26,8 @@ import {
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
-import React, { forwardRef, useState } from 'react';
-import { ICON, newAntdTheme, platformTokens, UI_FONT_CLASS, UI_FONT_VAR, ui } from 'themes/newDesign';
+import React, { forwardRef, useEffect, useState } from 'react';
+import { ICON, platformTokens, UI_FONT_CLASS, UI_FONT_VAR, ui } from 'themes/newDesign';
 import { useAdminImpersonation } from '../AdminActions/AdminActions';
 import { useAppMenu } from './appMenu';
 
@@ -165,6 +167,19 @@ const chrome = css`
         height: 100%;
         object-fit: cover;
     }
+    .who {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+    }
+    .who .user {
+        flex: 1;
+        min-width: 0;
+    }
+    .who .theme {
+        flex: none;
+    }
     .user .lbl {
         min-width: 0;
         overflow: hidden;
@@ -280,6 +295,10 @@ const Frame = styled.div`
     &.rail .user {
         justify-content: center;
         padding: 0;
+    }
+    &.rail .who {
+        flex-direction: column;
+        gap: 2px;
     }
     /* IMERSO recolhido: HPEC/DEDA/LAMP num balão ao lado, ao passar o mouse ou focar pelo teclado */
     &.rail .sub {
@@ -551,6 +570,7 @@ const MelpMini: React.FC = () => {
  */
 const AdminItem: React.FC = () => {
     const admin = useAdminImpersonation();
+    const antdTheme = useNewAntdTheme();
     if (!admin.isAdmin) return null;
     return (
         <>
@@ -558,7 +578,7 @@ const AdminItem: React.FC = () => {
                 <ShieldCheck {...ICON} aria-hidden />
                 <span className="lbl">Admin panel</span>
             </button>
-            <ConfigProvider theme={newAntdTheme}>
+            <ConfigProvider theme={antdTheme}>
                 <Global styles={popupStyles} />
                 <Modal
                     open={admin.visible}
@@ -645,6 +665,33 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
         const menu = useAppMenu(() => setOpen(false));
         const active = activeMenuKeys(pathname);
         const { access, openCta } = useProductAccess();
+        const antdTheme = useNewAntdTheme();
+        const logoTheme = useLogoTheme();
+
+        // Fluidez: com a casca de pé, adianta (em tempo ocioso) o código das páginas novas e as rotas do menu, para a
+        // primeira visita a cada uma não passar por um quadro vazio. Só leitura de código/rotas; nenhuma chamada de API.
+        useEffect(() => {
+            const warm = () => {
+                ['/', '/imerso', '/imerso/deda', '/imerso/lamp', '/imerso/hpec/welcome', '/settings'].forEach((href) =>
+                    router.prefetch(href),
+                );
+                void import('components/_new/NewHome');
+                void import('components/_new/NewImersoHome');
+                void import('components/_new/NewDedaList');
+                void import('components/_new/NewLamp');
+                void import('components/_new/NewHpecLesson');
+                void import('components/_new/NewCourseLesson');
+                void import('components/_new/NewSettings');
+                void import('components/_melp/_deda/DedaReader/DedaReaderPage');
+            };
+            if (typeof window.requestIdleCallback === 'function') {
+                const id = window.requestIdleCallback(warm);
+                return () => window.cancelIdleCallback(id);
+            }
+            const id = window.setTimeout(warm, 1500);
+            return () => window.clearTimeout(id);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, []);
 
         const toggleRail = () =>
             setRail((previous) => {
@@ -676,7 +723,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
         ) : isImersoRouteAllowedWhenExpired(pathname) ? (
             <div onClickCapture={guardClick}>{children}</div>
         ) : (
-            <ConfigProvider theme={newAntdTheme}>
+            <ConfigProvider theme={antdTheme}>
                 <div className={`cta ${UI_FONT_CLASS}`}>
                     <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />
                 </div>
@@ -694,14 +741,17 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
 
         const brand = (
             <a className="logo" href="/" aria-label="Mettle — Início" onClick={goHome}>
-                <Logo theme="light" mark={!isMobile && rail} />
+                <Logo theme={logoTheme} mark={!isMobile && rail} />
             </a>
         );
         const foot = (
             <div className="foot">
                 {withMelpSummary && !isMobile && <MelpMini />}
                 <AdminItem />
-                <User />
+                <div className="who">
+                    <User />
+                    {!isMobile && rail ? <ThemeCycle /> : <ThemeSwitch className="theme" />}
+                </div>
             </div>
         );
 

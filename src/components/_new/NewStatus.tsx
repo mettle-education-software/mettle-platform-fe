@@ -3,8 +3,12 @@
 import { Global, keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
 import { Logo } from 'components/atoms/Logo/Logo';
+import { useLogoTheme } from 'hooks/useTheme';
 import React from 'react';
 import { platformTokens, UI_FONT_CLASS, UI_FONT_VAR, ui } from 'themes/newDesign';
+
+/** Símbolo da Mettle no tema em vigor. */
+const Mark: React.FC = () => <Logo theme={useLogoTheme()} mark />;
 
 const breathe = keyframes`
     0%, 100% { opacity: 0.35; }
@@ -59,9 +63,47 @@ export const NewLoading: React.FC = () => (
     <Box className={UI_FONT_CLASS} style={UI_FONT_VAR} role="status" aria-label="Carregando">
         <Global styles={platformTokens} />
         <span className="mark breathe" aria-hidden>
-            <Logo theme="light" mark />
+            <Mark />
         </span>
     </Box>
+);
+
+const appear = keyframes`
+    from { opacity: 0; }
+    to { opacity: 1; }
+`;
+
+/** Carregando dentro da casca: só a área de conteúdo; invisível nos primeiros 300 ms (carregamento rápido não pisca). */
+const ContentBox = styled.div`
+    display: grid;
+    place-items: center;
+    min-height: 60vh;
+    animation: ${appear} 200ms ease 300ms both;
+
+    .mark {
+        width: 36px;
+        animation: ${breathe} 1.8s ease-in-out 300ms infinite;
+    }
+    .mark svg {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        &,
+        .mark {
+            animation: none;
+            opacity: 0.6;
+        }
+    }
+`;
+
+export const NewContentLoading: React.FC = () => (
+    <ContentBox role="status" aria-label="Carregando">
+        <span className="mark" aria-hidden>
+            <Mark />
+        </span>
+    </ContentBox>
 );
 
 /** Erro / não encontrado (plataforma nova): curto — símbolo, título, uma linha, uma ação. */
@@ -74,7 +116,7 @@ export const NewStatus: React.FC<{
     <Box className={UI_FONT_CLASS} style={UI_FONT_VAR}>
         <Global styles={platformTokens} />
         <span className="mark" aria-hidden>
-            <Logo theme="light" mark />
+            <Mark />
         </span>
         <h1>{title}</h1>
         <p>{text}</p>

@@ -1,11 +1,14 @@
 'use client';
 
 import { useGetHpecsModules } from 'hooks/queries/hpecQueries';
+import { useHpecProgress } from 'hooks/useHpecProgress';
 import { hpecLessonPath } from 'libs/cleanUrls';
 import { CourseModule } from 'libs/newDesign';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { Check } from 'lucide-react';
 import { AccessCtaBlock, useMelpContext, useProductAccess } from 'providers';
 import React from 'react';
+import { ICON } from 'themes/newDesign';
 import { NewLesson } from './NewLesson';
 
 /**
@@ -16,6 +19,7 @@ const NewHpecLesson: React.FC<{ lessonId: string }> = ({ lessonId }) => {
     const { melpSummary } = useMelpContext();
     const { unlockedModules, lockedModules, unlockedLessons, totalLessons, loading } = useGetHpecsModules();
     const imersoLocked = useProductAccess().access(IMERSO_PRODUCT).state === 'expired';
+    const progress = useHpecProgress();
 
     const modules: CourseModule[] = [
         ...unlockedModules.map((hpec) => ({
@@ -48,6 +52,21 @@ const NewHpecLesson: React.FC<{ lessonId: string }> = ({ lessonId }) => {
             progress={{ unlocked: unlockedLessons, total: totalLessons }}
             lang="en"
             lockedContent={imersoLocked ? <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} /> : undefined}
+            onWatched={progress.markDone}
+            doneToggle={(id) => {
+                const done = progress.isDone(id);
+                return (
+                    <button
+                        type="button"
+                        className="btn line done-toggle"
+                        aria-pressed={done}
+                        disabled={!progress.ready}
+                        onClick={() => progress.setDone(id, !done)}
+                    >
+                        <Check {...ICON} size={16} aria-hidden /> {done ? 'Done' : 'Mark as done'}
+                    </button>
+                );
+            }}
         />
     );
 };

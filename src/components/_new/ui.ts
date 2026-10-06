@@ -137,6 +137,10 @@ export const Page = styled.div`
     &.wide {
         max-width: 1320px;
     }
+    /* painel (home do IMERSO): até 1440px nas telas grandes; nos notebooks a coluna disponível já é menor */
+    &.xwide {
+        max-width: 1440px;
+    }
     &.narrow {
         max-width: 860px;
     }

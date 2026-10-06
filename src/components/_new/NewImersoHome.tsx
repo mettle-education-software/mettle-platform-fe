@@ -243,7 +243,7 @@ export const NewImersoHome: React.FC = () => {
     const { trail, loading, error } = useTrail();
 
     return (
-        <NewPage>
+        <NewPage className="xwide">
             <Dash>
                 <header className="ph">
                     <h1>Welcome, {firstName(user?.name)}</h1>

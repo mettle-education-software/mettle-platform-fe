@@ -109,6 +109,7 @@ export const RecordingConsent: React.FC<Props> = ({ open, loading, failed, onAcc
     if (isMobile)
         return (
             <Drawer
+                rootClassName="recording-consent"
                 open={open}
                 placement="bottom"
                 height="auto"
@@ -123,6 +124,7 @@ export const RecordingConsent: React.FC<Props> = ({ open, loading, failed, onAcc
 
     return (
         <Modal
+            rootClassName="recording-consent"
             open={open}
             width={480}
             centered

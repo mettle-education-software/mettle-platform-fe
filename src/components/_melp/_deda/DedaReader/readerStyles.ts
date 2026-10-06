@@ -250,6 +250,25 @@ export const readerTokens = css`
         background: var(--r-gold-hi);
         color: var(--r-on-gold);
     }
+    /* termo de consentimento do gravador (modal/folha, fora da árvore): segue o tema */
+    .deda-reader-shell-on .recording-consent :is(.ant-modal-content, .ant-drawer-content) {
+        background: var(--r-sheet);
+        color: var(--r-text);
+        box-shadow: var(--r-sheet-shadow);
+    }
+    .deda-reader-shell-on .recording-consent :is(h2, p, li, div) {
+        color: var(--r-text);
+    }
+    .deda-reader-shell-on .recording-consent [role='alert'] {
+        color: var(--r-error) !important;
+    }
+    .deda-reader-shell-on .recording-consent .actions .ghost {
+        color: var(--r-text);
+        border-color: var(--r-line-strong);
+    }
+    .deda-reader-shell-on .recording-consent .actions button:focus-visible {
+        outline-color: var(--r-gold-hi);
+    }
     .deda-reader-shell-on .article-reader a {
         color: var(--r-gold-hi);
     }

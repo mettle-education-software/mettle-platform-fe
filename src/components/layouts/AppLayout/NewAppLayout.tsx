@@ -167,18 +167,22 @@ const chrome = css`
         height: 100%;
         object-fit: cover;
     }
+    /* rodapé: avatar + nome completo numa linha (reticências só se for enorme) e o seletor de tema na linha de baixo */
     .who {
         display: flex;
-        align-items: center;
+        flex-direction: column;
+        align-items: stretch;
         gap: 4px;
         min-width: 0;
     }
     .who .user {
-        flex: 1;
+        flex: none;
         min-width: 0;
     }
     .who .theme {
         flex: none;
+        align-self: flex-start;
+        margin-left: 12px;
     }
     .user .lbl {
         min-width: 0;
@@ -341,8 +345,12 @@ const Frame = styled.div`
         padding: 0 8px;
     }
     &.rail .who {
-        flex-direction: column;
+        align-items: center;
         gap: 2px;
+    }
+    &.rail .who .theme {
+        margin-left: 0;
+        align-self: center;
     }
     /* o que troca de forma ao recolher (símbolo, rodapé) entra em fade; A/B reinicia a animação a cada clique */
     &.swapA .logo,
@@ -719,13 +727,14 @@ const AdminItem: React.FC = () => {
 const User: React.FC = () => {
     const { user } = useAppContext();
     const name = firstName(user?.name);
+    const fullName = (user?.name ?? '').trim().replace(/\s+/g, ' ') || name;
     return (
         <div className="user" title={user?.name ?? undefined}>
             <span className="av" aria-hidden>
                 {/* eslint-disable-next-line @next/next/no-img-element -- foto do perfil (Firebase) */}
                 {user?.profileImageSrc ? <img src={user.profileImageSrc} alt="" /> : name[0]}
             </span>
-            <span className="lbl">{name}</span>
+            <span className="lbl">{fullName}</span>
         </div>
     );
 };

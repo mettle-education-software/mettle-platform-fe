@@ -138,9 +138,9 @@ export const NewHome: React.FC = () => {
                               })}
                         {!loading && ebook && (
                             <Link className="cc" href={EBOOK_PATH}>
-                                <span className="img">
-                                    {/* eslint-disable-next-line @next/next/no-img-element -- capa do e-book (public/img) */}
-                                    <img src="/img/ebook-capa.webp" alt="" loading="lazy" />
+                                <span className="img book">
+                                    {/* eslint-disable-next-line @next/next/no-img-element -- o mesmo livro 3D de /guia (public/img) */}
+                                    <img src="/img/ebook-livro-3d.webp" alt="" loading="lazy" />
                                 </span>
                                 <span className="meta">
                                     <small>E-book</small>

@@ -258,6 +258,16 @@ export const Page = styled.div`
             transform 400ms ease,
             opacity var(--r-ease);
     }
+    /* e-book: o livro 3D (fundo transparente, o mesmo de /guia) sobre um brilho dourado que segue o tema */
+    .cc .img.book {
+        background:
+            radial-gradient(90% 80% at 50% 40%, var(--r-gold-tint), transparent 72%),
+            var(--r-surf);
+    }
+    .cc .img.book img {
+        object-fit: contain;
+        padding: 5% 0 3%;
+    }
     .cc:hover img,
     .dc:hover:not(:disabled) img,
     .hc:hover img {

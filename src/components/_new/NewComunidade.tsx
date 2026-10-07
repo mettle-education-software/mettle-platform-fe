@@ -1794,6 +1794,13 @@ const Root = styled(Wrap)`
     }
 
     @media (max-width: 600px) {
+        /* nota de voz: as 41 barras (168 px) cabem no balão do iPhone; abaixo de 390 px a onda é recortada */
+        .voice {
+            width: min(276px, 68vw);
+        }
+        .bars {
+            overflow: hidden;
+        }
         .sheet {
             width: 100%;
             border-left: 0;

@@ -16,6 +16,8 @@ import {
     parseHm,
     runDay,
     goalDayStatus,
+    calendarDays,
+    monthGrid,
     dayBreakdown,
     frontMet,
     countsForRun,
@@ -423,5 +425,22 @@ describe('LAMP como espelho', () => {
             [2, 60, 1],
         ]);
         expect(q[0].criteria).toEqual([4, 4, 3, 4, 3]);
+    });
+});
+
+describe('calendário da LAMP', () => {
+    const day = (week: number, n: number) => ({ week, day: n, deda: 80, active: 100, passive: 100, ratings: [] });
+    it('põe os dias do programa nas datas, pulando a pausa', () => {
+        // hoje 7/out; pausa de 3 a 5/out (volta dia 5): programa = 7, 6, 2, 1/out
+        const nf = [day(2, 4), day(2, 3), day(2, 2), day(2, 1)];
+        const { byDate, pausedDays, start } = calendarDays(nf, '2026-10-07', [{ from: '2026-10-03', to: '2026-10-05' }]);
+        expect([...byDate.keys()]).toEqual(['2026-10-07', '2026-10-06', '2026-10-05', '2026-10-02']);
+        expect([...pausedDays].sort()).toEqual(['2026-10-03', '2026-10-04']);
+        expect(start).toBe('2026-10-02');
+    });
+    it('monta o mês de segunda a domingo', () => {
+        const g = monthGrid(2026, 9); // outubro de 2026 começa numa quinta
+        expect(g[0]).toEqual([null, null, null, '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04']);
+        expect(g.every((w) => w.length === 7)).toBe(true);
     });
 });

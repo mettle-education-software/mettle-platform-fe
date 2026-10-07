@@ -10,11 +10,12 @@ import { getDayToday, padNumber } from 'libs';
 import {
     addMinutes,
     clampWeekDay,
-    formatHm,
+    durationText,
     goalDays,
     goalProgress,
     minutesText,
-    parseHm,
+    implausibleEntry,
+    parseDuration,
     STAR_NAMES,
     starName,
     stepDay,
@@ -221,6 +222,35 @@ const styles = css`
         color: var(--r-muted);
     }
 
+    .ui-new-page.lamp .linput .frs .hm {
+        width: 84px;
+    }
+    .ui-new-page.lamp .linput .frs .hm::placeholder {
+        color: var(--r-muted);
+        opacity: 1;
+    }
+    .linput .guard {
+        flex-basis: 100%;
+        display: grid;
+        gap: 8px;
+        margin: 4px 0 10px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: var(--r-gold-tint);
+    }
+    .linput .guard p {
+        font-size: 14px;
+        color: var(--r-text);
+    }
+    .linput .guard div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .linput .guard .btn {
+        min-height: 40px;
+        padding: 0 16px;
+    }
     @media (max-width: 860px) {
         .ui-new-page.lamp .linput .cols3 {
             grid-template-columns: minmax(0, 1fr);
@@ -246,21 +276,29 @@ const styles = css`
     }
 `;
 
-/** Tempo "HH:MM" digitado direto (sem modal); grava no blur/Enter com as mesmas regras do seletor atual. */
+/**
+ * Tempo em minutos primeiro: aceita "15", "90", "1h30", "1:30", "1.5h"… (libs/newDesign `parseDuration`) e mostra
+ * "15 min" / "1 h 30". Grava no blur/Enter; o servidor recebe os minutos como hoje.
+ */
 const Hm: React.FC<{ id: string; value: number; onChange(value: number): void }> = ({ id, value, onChange }) => {
-    const [text, setText] = useState(formatHm(value));
-    useEffect(() => setText(formatHm(value)), [value]);
+    const [text, setText] = useState(durationText(value));
+    useEffect(() => setText(durationText(value)), [value]);
     const commit = () => {
-        const minutes = parseHm(text);
-        setText(formatHm(minutes));
+        const minutes = parseDuration(text);
+        if (minutes === null) {
+            setText(durationText(value));
+            return;
+        }
+        setText(durationText(minutes));
         if (minutes !== (value || 0)) onChange(minutes);
     };
     return (
         <input
             id={id}
-            className={parseHm(text) > 0 ? 'hm on' : 'hm'}
-            inputMode="numeric"
+            className={value > 0 ? 'hm on' : 'hm'}
+            inputMode="decimal"
             autoComplete="off"
+            placeholder="min"
             value={text}
             onFocus={(e) => e.target.select()}
             onChange={(e) => setText(e.target.value)}
@@ -441,42 +479,99 @@ export const NewLampInput: React.FC = () => {
             </div>
         );
     };
+    // registro implausível (6 h ou mais numa atividade, ou o dia passando de 12 h): confirma ali mesmo, sem gravar antes
+    const [pending, setPending] = useState<{ key: TimeKey; minutes: number; suggestion?: number; day: number }>();
+    const [resets, setResets] = useState(0);
+    useEffect(() => setPending(undefined), [selectedWeek, selectedDay]);
+    const commitTime = (key: TimeKey, minutes: number) => {
+        const day = active + passive - (Number(edit[key]) || 0) + minutes;
+        const odd = minutes > (Number(edit[key]) || 0) ? implausibleEntry(minutes, day) : undefined;
+        if (odd) return setPending({ key, minutes, suggestion: odd.suggestion, day });
+        setPending(undefined);
+        change(key, minutes as never);
+    };
     const time = (key: TimeKey, label: string) => {
         const value = Number(edit[key]) || 0;
+        const ask = pending?.key === key ? pending : undefined;
         return (
             <div className={value > 0 ? 'fr t on' : 'fr t'} key={key}>
                 <label className="lab" htmlFor={`lamp-${key}`}>
                     {label}
                 </label>
-                <Hm id={`lamp-${key}`} value={value} onChange={(v) => change(key, v as never)} />
-                <div
-                    className="chips"
-                    role="group"
-                    aria-label={`Add time to ${label}`}
-                    // o campo continua em foco (a linha segue aberta, inclusive no Safari, que não foca botões)
-                    onMouseDown={(e) => e.preventDefault()}
-                >
-                    {[5, 15, 30].map((m) => (
-                        <button
-                            key={m}
-                            type="button"
-                            aria-label={`Add ${m} minutes to ${label}`}
-                            onClick={() => change(key, addMinutes(value, m) as never)}
-                        >
-                            +{m}
-                        </button>
-                    ))}
-                    {value > 0 && (
-                        <button
-                            type="button"
-                            className="clr"
-                            aria-label={`Clear ${label}`}
-                            onClick={() => change(key, 0 as never)}
-                        >
-                            Clear
-                        </button>
-                    )}
-                </div>
+                <Hm key={`${key}-${resets}`} id={`lamp-${key}`} value={value} onChange={(v) => commitTime(key, v)} />
+                {ask ? (
+                    <div className="guard" role="alert">
+                        <p>
+                            {ask.suggestion
+                                ? `${durationText(ask.minutes)}? Did you mean ${ask.suggestion} min?`
+                                : `That makes ${durationText(ask.day)} today. Keep it?`}
+                        </p>
+                        <div>
+                            {ask.suggestion ? (
+                                <button
+                                    type="button"
+                                    className="btn gold"
+                                    onClick={() => {
+                                        setPending(undefined);
+                                        change(key, ask.suggestion as never);
+                                    }}
+                                >
+                                    {ask.suggestion} min
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    className="btn line"
+                                    onClick={() => {
+                                        setPending(undefined);
+                                        setResets((n) => n + 1);
+                                    }}
+                                >
+                                    Undo
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                className="btn line"
+                                onClick={() => {
+                                    setPending(undefined);
+                                    change(key, ask.minutes as never);
+                                }}
+                            >
+                                Keep {durationText(ask.minutes)}
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div
+                        className="chips"
+                        role="group"
+                        aria-label={`Add time to ${label}`}
+                        // o campo continua em foco (a linha segue aberta, inclusive no Safari, que não foca botões)
+                        onMouseDown={(e) => e.preventDefault()}
+                    >
+                        {[5, 15, 30].map((m) => (
+                            <button
+                                key={m}
+                                type="button"
+                                aria-label={`Add ${m} minutes to ${label}`}
+                                onClick={() => change(key, addMinutes(value, m) as never)}
+                            >
+                                +{m}
+                            </button>
+                        ))}
+                        {value > 0 && (
+                            <button
+                                type="button"
+                                className="clr"
+                                aria-label={`Clear ${label}`}
+                                onClick={() => change(key, 0 as never)}
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
         );
     };
@@ -630,7 +725,8 @@ export const NewLampInput: React.FC = () => {
                         </section>
                         <section aria-labelledby="lamp-active">
                             <h3 id="lamp-active">
-                                Active <Hint text="Active study time (HH:MM). Review time counts as Active." />
+                                Active{' '}
+                                <Hint text="Active study time, in minutes (15, 90 or 1h30). Review time counts as Active." />
                                 <span className="sum">
                                     <b>{minutesText(active)}</b> of {minutesText(goal?.active ?? 0)}
                                 </span>
@@ -639,7 +735,8 @@ export const NewLampInput: React.FC = () => {
                         </section>
                         <section aria-labelledby="lamp-passive">
                             <h3 id="lamp-passive">
-                                Passive <Hint text="Passive study time (HH:MM). English only, no subtitles." />
+                                Passive{' '}
+                                <Hint text="Passive study time, in minutes (15, 90 or 1h30). English only, no subtitles." />
                                 <span className="sum">
                                     <b>{minutesText(passive)}</b> of {minutesText(goal?.passive ?? 0)}
                                 </span>

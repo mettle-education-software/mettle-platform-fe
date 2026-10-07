@@ -235,6 +235,28 @@ export const goalLabel = (hhmm?: string) => {
     return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`;
 };
 
+/** Tempo do relatório da LAMP ("123h 05m", formato do servidor) em minutos; fora do formato → 0. */
+export const reportMinutes = (text?: string | null) => {
+    const m = /(\d+)h\s*(\d+)m/.exec(text ?? '');
+    return m ? Number(m[1]) * 60 + Number(m[2]) : 0;
+};
+
+/** Minutos no formato do relatório (o mesmo do servidor): 90 → "01h 30m", 7385 → "123h 05m". */
+export const reportHm = (minutes: number) =>
+    `${String(Math.floor(minutes / 60)).padStart(2, '0')}h ${String(minutes % 60).padStart(2, '0')}m`;
+
+/**
+ * Atividades do relatório em ranking: as que têm tempo (mais tempo primeiro, ou na ordem do servidor) e, à parte, as
+ * ainda sem tempo (na ordem do servidor).
+ */
+export const rankActivities = <T extends { minutes: number }>(rows: T[], order: 'time' | 'default') => {
+    const done = rows.filter((r) => r.minutes > 0);
+    return {
+        done: order === 'time' ? [...done].sort((a, b) => b.minutes - a.minutes) : done,
+        idle: rows.filter((r) => r.minutes <= 0),
+    };
+};
+
 export const WEEK_DAYS = [
     { label: 'Monday', value: 'day1' },
     { label: 'Tuesday', value: 'day2' },

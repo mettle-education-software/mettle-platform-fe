@@ -7,13 +7,11 @@ import {
     useGeneralWeeklyDevelopment,
     useGetDedasList,
     useGetGoalByLevel,
-    useGetOverallStatsReport,
     useGetWeeklyPerformance,
     useGoalGraphOptions,
     useOverallProgress,
 } from 'hooks';
 import { useTheme } from 'hooks/useTheme';
-import { OverallStatsEnum } from 'interfaces';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
 import { statisticsColors } from 'libs';
 import { goalLabel, softChart } from 'libs/newDesign';
@@ -22,6 +20,7 @@ import dynamic from 'next/dynamic';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect, useRef, useState } from 'react';
 import { DARK, ICON, LIGHT } from 'themes/newDesign';
+import { LampOverallStats, LampStatsSort } from './LampOverallStats';
 import { NewLampInput } from './NewLampInput';
 import { NewPage } from './NewPage';
 
@@ -96,7 +95,7 @@ const lampStyles = css`
         font-size: var(--r-label-size);
         font-weight: 500;
         letter-spacing: var(--r-label-track);
-        color: var(--r-faint);
+        color: var(--r-muted);
     }
     .ui-new-page.lamp .ant-select {
         min-width: 170px;
@@ -105,6 +104,17 @@ const lampStyles = css`
         background: transparent !important;
         border-color: var(--r-line-strong) !important;
         border-radius: 999px !important;
+    }
+    /* select aberto: o antd esmaece o item escolhido a ~2:1; fica legível (AA) */
+    .ui-new-page.lamp .ant-select-open .ant-select-selection-item {
+        color: var(--r-muted);
+    }
+
+    /* claro: dourado sobre o tom dourado fica abaixo de AA (4,4:1); o destaque fica no fundo, o texto em grafite */
+    html[data-theme='light'] .ui-new-page.lamp .toggle button[aria-pressed='true'],
+    html[data-theme='light'] .ui-new-page.lamp .tile.total b,
+    html[data-theme='light'] .ui-new-page.lamp tr.now td {
+        color: var(--r-text);
     }
 
     /* ---------- Performance ---------- */
@@ -561,46 +571,11 @@ const DedaStats: React.FC<{ week?: string }> = ({ week }) => {
     );
 };
 
-const Stats: React.FC<{ sortBy?: 'ASC' | 'DESC' }> = ({ sortBy }) => {
-    const { data, isLoading } = useGetOverallStatsReport(sortBy);
-    if (isLoading || !data) return <div className="skel" aria-busy />;
-    const { readingTimeSum, dedaTimeSum, ...averages } = data.dedaAverages;
-    const rows = (entries: [string, string][]) =>
-        entries.map(([key, value]) => (
-            <div className="fr" key={key}>
-                <span className="lab">{OverallStatsEnum[key as keyof typeof OverallStatsEnum] ?? key}</span>
-                <span className="val">{value}</span>
-            </div>
-        ));
-    return (
-        <div className="cols3">
-            <section>
-                <h3>DEDA</h3>
-                <div className="frs">{rows(Object.entries(averages))}</div>
-                <div className="frs">
-                    {rows([
-                        ['readingTimeSum', readingTimeSum],
-                        ['dedaTimeSum', dedaTimeSum],
-                    ])}
-                </div>
-            </section>
-            <section>
-                <h3>Active</h3>
-                <div className="frs">{rows(Object.entries(data.activeStudyTotals))}</div>
-            </section>
-            <section>
-                <h3>Passive</h3>
-                <div className="frs">{rows(Object.entries(data.passiveStudyTotals))}</div>
-            </section>
-        </div>
-    );
-};
-
 const Performance: React.FC = () => {
     const { melpSummary } = useMelpContext();
     const { dedasList } = useGetDedasList();
     const [week, setWeek] = useState<string>();
-    const [sortBy, setSortBy] = useState<'ASC' | 'DESC'>();
+    const [order, setOrder] = useState<'time' | 'default'>('time');
     useEffect(() => {
         if (melpSummary?.current_deda_week) setWeek(`week${melpSummary.current_deda_week}`);
     }, [melpSummary?.current_deda_week]);
@@ -638,19 +613,9 @@ const Performance: React.FC = () => {
             <section aria-label="Overall stats">
                 <div className="sh">
                     <h2>Overall stats</h2>
-                    <Select
-                        aria-label="Sort by"
-                        value={sortBy ?? 'none'}
-                        options={[
-                            { label: 'Default order', value: 'none' },
-                            { label: 'From higher to lower', value: 'DESC' },
-                            { label: 'From lower to higher', value: 'ASC' },
-                        ]}
-                        onChange={(value) => setSortBy(value === 'none' ? undefined : (value as 'ASC' | 'DESC'))}
-                        popupMatchSelectWidth={false}
-                    />
+                    <LampStatsSort order={order} onOrder={setOrder} />
                 </div>
-                <Stats sortBy={sortBy} />
+                <LampOverallStats order={order} />
             </section>
         </div>
     );

@@ -51,5 +51,23 @@ export const applyTheme = (pref: ThemePref) => {
 export const chatwootScheme = (newDesign: boolean, resolved: ResolvedTheme): ResolvedTheme =>
     newDesign ? resolved : 'light';
 
+/**
+ * Marca do aparelho: a última conta logada aqui usa a plataforma nova. A casca nova só monta depois do login
+ * (~1 s no recarregar); até lá o <html> ficava sem fundo (branco). Com a marca, o script do <head> põe a classe
+ * NEW_DESIGN_BOOT_CLASS e o fundo do tema entra na primeira pintura (styles/globals.css). Sem a marca, nada muda.
+ */
+export const NEW_DESIGN_HINT_KEY = 'mettleNewDesign';
+export const NEW_DESIGN_BOOT_CLASS = 'nd-boot';
+
+export const rememberNewDesign = (on: boolean) => {
+    try {
+        if (on) window.localStorage.setItem(NEW_DESIGN_HINT_KEY, '1');
+        else window.localStorage.removeItem(NEW_DESIGN_HINT_KEY);
+        document.documentElement.classList.toggle(NEW_DESIGN_BOOT_CLASS, on);
+    } catch {
+        // armazenamento bloqueado: só perde o fundo antecipado
+    }
+};
+
 /** Script inline do <head>: mesma regra de resolveTheme, antes da primeira pintura (sem piscar). */
-export const THEME_BOOT_SCRIPT = `(function(){try{var p=localStorage.getItem('${THEME_KEY}');var d=p==='dark'||(p!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light')}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();`;
+export const THEME_BOOT_SCRIPT = `(function(){var h=document.documentElement;try{var p=localStorage.getItem('${THEME_KEY}');var d=p==='dark'||(p!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);h.setAttribute('data-theme',d?'dark':'light');if(localStorage.getItem('${NEW_DESIGN_HINT_KEY}')==='1')h.classList.add('${NEW_DESIGN_BOOT_CLASS}')}catch(e){h.setAttribute('data-theme','dark')}})();`;

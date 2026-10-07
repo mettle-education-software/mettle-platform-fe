@@ -355,9 +355,10 @@ const WeekRow: React.FC<{
     const all = useMemo(() => (q.data?.recordings ?? []).map((r) => ({ ...r, title: w.title })), [q.data, w.title]);
     const mine = all.filter((r) => r.week === `week${w.week}`).sort((a, b) => a.weekDay.localeCompare(b.weekDay));
     useEffect(() => {
-        if (q.data) onRecs(w.week, mine);
+        // erro na consulta conta como semana sem gravações (não trava o carregamento das seguintes)
+        if (q.data || q.isError) onRecs(w.week, mine);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [q.data, w.week]);
+    }, [q.data, q.isError, w.week]);
     // mesmo DEDA em mais de uma volta: a primeira gravação de todas e a mais recente
     const weeksWith = new Set(all.map((r) => r.week));
     const sorted = [...all].sort((a, b) => a.recordedOn.localeCompare(b.recordedOn));
@@ -494,17 +495,24 @@ export const LampRecordings: React.FC = () => {
     }, [recs, allWeeks]);
 
     // carrega mais semanas ao chegar perto do fim
+    // a rolagem só carrega sozinha enquanto há gravações por perto: depois de 24 semanas seguidas sem nenhuma, um
+    // botão ("Earlier weeks") pede o próximo lote (sem varrer o programa inteiro à toa)
+    const loaded = allWeeks.slice(0, shown);
+    const lastWith = loaded.reduce((at, w, i) => (recs[w.week]?.length ? i : at), -1);
+    const pending = loaded.some((w) => recs[w.week] === undefined);
+    const quiet = !pending && shown - 1 - lastWith >= 3 * STEP;
     const sentinel = useRef<HTMLDivElement>(null);
     useEffect(() => {
         const el = sentinel.current;
-        if (!el || term) return;
+        // um lote de cada vez: só pede o próximo quando o anterior já respondeu
+        if (!el || term || quiet || pending) return;
         const io = new IntersectionObserver(
             (entries) => entries.some((e) => e.isIntersecting) && setShown((n) => Math.min(allWeeks.length, n + STEP)),
             { rootMargin: '400px' },
         );
         io.observe(el);
         return () => io.disconnect();
-    }, [allWeeks.length, term, shown]);
+    }, [allWeeks.length, term, shown, quiet, pending]);
 
     // ordem do player: as gravações carregadas, da semana mais recente para trás, dia a dia
     const flat = useMemo(
@@ -561,7 +569,7 @@ export const LampRecordings: React.FC = () => {
     }
 
     const loadedAll = !term && shown >= allWeeks.length;
-    const none = loadedAll && allWeeks.every((w) => recs[w.week]?.length === 0);
+    const none = (loadedAll || quiet) && loaded.every((w) => recs[w.week]?.length === 0);
     const today = allWeeks[0];
 
     return (
@@ -595,7 +603,17 @@ export const LampRecordings: React.FC = () => {
             ) : (
                 <ul className="weeks">{rows}</ul>
             )}
-            {!term && shown < allWeeks.length && <div ref={sentinel} className="more" aria-hidden />}
+            {!term && shown < allWeeks.length && !quiet && <div ref={sentinel} className="more" aria-hidden />}
+            {!term && shown < allWeeks.length && quiet && (
+                <button
+                    type="button"
+                    className="lnk gold"
+                    style={{ marginTop: 12 }}
+                    onClick={() => setShown((n) => Math.min(allWeeks.length, n + 3 * STEP))}
+                >
+                    Earlier weeks (W{allWeeks[shown]?.week} and before)
+                </button>
+            )}
             {now && (
                 <Player
                     rec={now}

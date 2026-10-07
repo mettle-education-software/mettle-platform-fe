@@ -354,6 +354,60 @@ export const stepDay = (
     return { week: `week${nw}`, day: `day${d}` };
 };
 
+/** Limite do campo de tempo (o mesmo de antes: 99:59). */
+export const MAX_ENTRY_MINUTES = 99 * 60 + 59;
+
+/**
+ * Tempo digitado na aba Input, em minutos primeiro (o aluno digitava "15:00" querendo 15 min e gravava 15 horas):
+ * - número inteiro = minutos: "15" → 15, "90" → 90;
+ * - número com vírgula/ponto = horas: "1.5" / "1,5" / "1.5h" → 90;
+ * - com unidades: "1h30", "1h 30", "1 h 30 min", "2h", "45m", "45 min" → minutos;
+ * - "H:MM": "1:30" → 90. Ambíguo: "15:00" (H:00 com H ≥ 10, que daria 10 h ou mais) vira H minutos (15 min) — ninguém
+ *   registra 10 h ou mais numa atividade só, e quem quer horas escreve "15h". "10:30" e "15:45" seguem como horas (a
+ *   tela pede confirmação acima de 6 h);
+ * - vazio → 0; texto sem número → null (o campo volta ao valor anterior). Tudo limitado a 99:59.
+ */
+export const parseDuration = (text: string): number | null => {
+    const t = text.trim().toLowerCase().replace(/,/g, '.').replace(/\s+/g, ' ');
+    if (!t) return 0;
+    const cap = (m: number) => Math.min(MAX_ENTRY_MINUTES, Math.max(0, Math.round(m)));
+    let m: RegExpExecArray | null;
+    if ((m = /^(\d+)$/.exec(t))) return cap(Number(m[1]));
+    if ((m = /^(\d*\.\d+|\d+\.)\s*(h|hr|hrs|hour|hours)?$/.exec(t))) return cap(Number(m[1]) * 60);
+    if ((m = /^(\d{1,3}):(\d{1,2})$/.exec(t))) {
+        const h = Number(m[1]);
+        const min = Number(m[2]);
+        if (min > 59) return null;
+        if (min === 0 && h >= 10) return cap(h);
+        return cap(h * 60 + min);
+    }
+    if (
+        (m = /^(?:(\d*\.?\d+)\s*(?:h|hr|hrs|hour|hours))?\s*(?:(\d+)\s*(?:m|min|mins|minute|minutes)?)?$/.exec(t)) &&
+        (m[1] || m[2])
+    ) {
+        if (m[1] && m[2] && Number(m[2]) > 59) return null;
+        return cap((m[1] ? Number(m[1]) * 60 : 0) + (m[2] ? Number(m[2]) : 0));
+    }
+    return null;
+};
+
+/** Minutos para o campo: "15 min", "1 h 30", "2 h"; zero = vazio (o campo mostra "min" de dica). */
+export const durationText = (minutes: number) => {
+    const v = Math.max(0, Math.round(minutes || 0));
+    if (!v) return '';
+    const h = Math.floor(v / 60);
+    const m = v % 60;
+    if (!h) return `${m} min`;
+    return m ? `${h} h ${String(m).padStart(2, '0')}` : `${h} h`;
+};
+
+/** Registro implausível: 6 h ou mais numa atividade, ou o dia passando de 12 h. Sugestão: as horas lidas como minutos. */
+export const implausibleEntry = (minutes: number, dayTotal: number) => {
+    if (minutes < 6 * 60 && dayTotal < 12 * 60) return undefined;
+    const suggestion = Math.floor(minutes / 60);
+    return { suggestion: minutes >= 6 * 60 ? suggestion : undefined };
+};
+
 export const WEEK_DAYS = [
     { label: 'Monday', value: 'day1' },
     { label: 'Tuesday', value: 'day2' },

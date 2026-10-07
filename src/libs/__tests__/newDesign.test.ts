@@ -14,6 +14,9 @@ import {
     lockedNotes,
     NEW_DESIGN_UIDS,
     parseHm,
+    parseDuration,
+    durationText,
+    implausibleEntry,
     starName,
     goalProgress,
     addMinutes,
@@ -278,5 +281,53 @@ describe('Input da LAMP', () => {
         expect(stepDay('week2', 'day7', 1, weeks, 3, 4)).toEqual({ week: 'week3', day: 'day1' });
         expect(stepDay('week3', 'day4', 1, weeks, 3, 4)).toBeUndefined();
         expect(stepDay('week1', 'day1', -1, weeks, 3, 4)).toBeUndefined();
+    });
+});
+
+describe('campo de tempo em minutos (Input)', () => {
+    // texto digitado → minutos → "HH:MM" do formato antigo (o servidor recebe os minutos, como hoje)
+    it.each([
+        ['', 0, '00:00'],
+        ['0', 0, '00:00'],
+        ['15', 15, '00:15'],
+        ['90', 90, '01:30'],
+        ['1h30', 90, '01:30'],
+        ['1h 30', 90, '01:30'],
+        ['1 h 30 min', 90, '01:30'],
+        ['1:30', 90, '01:30'],
+        ['01:30', 90, '01:30'],
+        ['1.5h', 90, '01:30'],
+        ['1,5', 90, '01:30'],
+        ['2h', 120, '02:00'],
+        ['45m', 45, '00:45'],
+        ['45 min', 45, '00:45'],
+        ['15:00', 15, '00:15'],
+        ['10:00', 10, '00:10'],
+        ['24:00', 24, '00:24'],
+        ['9:00', 540, '09:00'],
+        ['10:30', 630, '10:30'],
+        ['  15  ', 15, '00:15'],
+        ['15H', 900, '15:00'],
+        ['9999', 5999, '99:59'],
+    ])('"%s" → %i min → %s', (text, minutes, hhmm) => {
+        expect(parseDuration(text)).toBe(minutes);
+        expect(formatHm(parseDuration(text) as number)).toBe(hhmm);
+    });
+    it.each(['abc', '1:75', 'h', '1h75', '--', '12:3:4'])(
+        '"%s" é inválido (o campo volta ao valor anterior)',
+        (text) => {
+            expect(parseDuration(text)).toBeNull();
+        },
+    );
+    it('mostra minutos primeiro', () => {
+        expect(durationText(0)).toBe('');
+        expect(durationText(15)).toBe('15 min');
+        expect(durationText(90)).toBe('1 h 30');
+        expect(durationText(120)).toBe('2 h');
+    });
+    it('pede confirmação em registros implausíveis', () => {
+        expect(implausibleEntry(300, 400)).toBeUndefined();
+        expect(implausibleEntry(900, 900)).toEqual({ suggestion: 15 });
+        expect(implausibleEntry(120, 800)).toEqual({ suggestion: undefined });
     });
 });

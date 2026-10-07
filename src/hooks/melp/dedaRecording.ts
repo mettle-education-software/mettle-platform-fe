@@ -27,7 +27,7 @@ export const RECORDER_FLAG_ON = process.env.DEDA_RECORDER === 'on';
 const base = (userUid: string) => `/deda/recordings/${encodeURIComponent(userUid)}`;
 
 /** Lista as gravações do aluno no DEDA, o consentimento e se o recurso está ligado para ele. */
-export const useDedaRecordings = (dedaId: string) => {
+export const useDedaRecordings = (dedaId: string, enabled = true) => {
     const { user } = useAppContext();
     const uid = user?.uid;
     // Navegar "como o aluno" (administrador) nunca mostra gravações: a equipe ouve pelo backoffice, com registro.
@@ -39,7 +39,7 @@ export const useDedaRecordings = (dedaId: string) => {
                 .get<DedaRecordingsResponse>(`${base(uid as string)}?dedaId=${encodeURIComponent(dedaId)}`)
                 .then(({ data }) => data)
                 .catch(recordingsOrDisabled),
-        enabled: allowed,
+        enabled: allowed && enabled,
         retry: false,
         // Desligado para a conta: guarda a resposta e não pergunta de novo nesta sessão.
         staleTime: (q) => (q.state.data?.enabled === false ? Infinity : 60_000),

@@ -327,8 +327,10 @@ const Frame = styled.div`
         width: 44px;
         justify-content: center;
     }
+    /* max-width: o svg do Logo traz width: 100% inline, que venceria um width aqui */
     &.rail .logo svg {
-        width: 26px;
+        max-width: 26px;
+        margin: 0 auto;
     }
     &.rail .it:not(.s) {
         width: 44px;

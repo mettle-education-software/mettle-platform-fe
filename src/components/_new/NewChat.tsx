@@ -1476,7 +1476,7 @@ const Wrap = styled.div`
     .tm.over .read {
         color: #f0c894;
     }
-    /* figurinha: a hora fica sobre o canto de baixo da imagem; emoji grande: ao lado, na base (como no WhatsApp) */
+    /* figurinha: a hora fica sobre o canto de baixo da imagem (como no WhatsApp) */
     .tm.chip {
         position: absolute;
         right: 0;
@@ -1557,17 +1557,11 @@ const Wrap = styled.div`
     .msg.me .bare {
         align-items: flex-end;
     }
-    .bare.bigemo {
-        flex-direction: row;
-        align-items: flex-end;
-        gap: 6px;
-    }
-    .msg.me .bare.bigemo {
-        flex-direction: row-reverse;
-    }
+    /* emoji grande: a hora embaixo, à direita, encostando de leve no emoji (como no WhatsApp) */
     .bare.bigemo .tm.chip {
         position: static;
-        margin-bottom: 4px;
+        align-self: flex-end;
+        margin-top: -8px;
     }
     .stkimg {
         width: 150px;

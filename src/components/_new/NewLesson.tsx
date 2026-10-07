@@ -271,10 +271,22 @@ const Wrap = styled.div`
     }
 
     /* ---------- conteúdo ---------- */
+    /* coluna central: título, abas e texto na MESMA largura de leitura (--r-col), centrada na área à direita da lista; o vídeo
+       pode ser mais largo (até a largura do corpo) */
     .body {
         min-width: 0;
+        width: 100%;
         max-width: 1040px;
+        margin: 0 auto;
         padding: 20px 40px 72px;
+    }
+    .body .lh,
+    .body .tabs,
+    .body #lesson-summary,
+    .body #lesson-resources {
+        max-width: var(--r-col);
+        margin-left: auto;
+        margin-right: auto;
     }
     /* troca de aula: o miolo novo entra com um esmaecer curto; enquanto chega, o anterior fica esmaecido */
     .swap {
@@ -332,6 +344,29 @@ const Wrap = styled.div`
         background: none;
     }
 
+    .lh .hd-tabs {
+        display: none;
+    }
+    /* computador largo: as abas sobem para a linha do título (tira ~70 px entre o título e o vídeo). Aqui o limite é 1280 px, não
+       1024: ao lado da barra lateral e da lista de aulas, 1024 deixaria o título espremido */
+    @media (min-width: 1280px) {
+        .lh .hd-tabs {
+            display: block;
+            flex: none;
+        }
+        .lh .hd-tabs .seg {
+            margin: 0;
+        }
+        .tabs .seg {
+            display: none;
+        }
+        .tabs:not(:has(.tools)) {
+            display: none;
+        }
+        .body .tabs {
+            justify-content: flex-end;
+        }
+    }
     /* abas + "Aa" na mesma linha */
     .tabs {
         position: relative;
@@ -343,11 +378,6 @@ const Wrap = styled.div`
     .tabs .seg {
         flex: 0 1 auto;
         margin: 0;
-    }
-    /* abas do curso: um degrau abaixo das da página (a aba aberta em tom dourado suave, não cheio) */
-    .tabs .seg button[aria-selected='true'] {
-        background: var(--r-gold-tint);
-        color: var(--r-gold-hi);
     }
     .tabs .tools {
         flex: none;
@@ -416,13 +446,14 @@ const Wrap = styled.div`
     --r-read-size: calc(20px * var(--r-scale, 1));
     --r-read-line: 1.7;
     --r-read-measure: 33.5em;
+    --r-col: calc(33.5 * var(--r-read-size));
     .prose {
         font-family: var(--r-read-font), system-ui, sans-serif;
         font-size: var(--r-read-size);
         line-height: var(--r-read-line);
         color: var(--r-text);
         max-width: var(--r-read-measure);
-        margin: 0;
+        margin: 0 auto;
         text-align: left;
         overflow-wrap: break-word;
     }
@@ -840,6 +871,8 @@ export const NewLesson: React.FC<NewLessonProps> = ({
     );
     const [sheet, setSheet] = useState(false);
     const [tab, setTab] = useState<Tab>('video');
+    // Cada aula abre no vídeo (a vista principal): a escolha Vídeo/Resumo vale só dentro da aula atual.
+    useEffect(() => setTab('video'), [lessonId]);
     const [scale, setScale] = useState(() => (typeof window !== 'undefined' ? readTextScale() : 1));
     const wrapRef = useRef<HTMLDivElement>(null);
     const firstLesson = useRef(lessonId);
@@ -901,6 +934,25 @@ export const NewLesson: React.FC<NewLessonProps> = ({
         />
     );
 
+    // Abas do curso: a partir de 1024 px ficam na linha do título (cabeçalho); abaixo, sob o título/vídeo (corpo). Os dois
+    // lugares existem no DOM e o CSS esconde um deles (display: none sai da árvore de acessibilidade e do foco).
+    const tabsEl = (
+        <div className="seg" role="tablist" aria-label={course.title}>
+            {tabs.map((key) => (
+                <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={key === active}
+                    aria-controls={`lesson-${key}`}
+                    onClick={() => setTab(key)}
+                >
+                    {t[key]}
+                </button>
+            ))}
+        </div>
+    );
+
     const header = (
         <header className="lh">
             {isMobile ? (
@@ -922,6 +974,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                 {eyebrow && <p className="eyebrow">{eyebrow}</p>}
                 <h1>{(switching ? current?.title : lesson?.lessonTitle) ?? current?.title ?? ' '}</h1>
             </div>
+            {!isMobile && tabs.length > 0 && <div className="hd-tabs">{tabsEl}</div>}
             <nav className="pn" aria-label={t.lessons}>
                 {previous ? (
                     <LessonLink href={previous.href} className="ib" aria-label={t.previous} title={previous.title}>
@@ -988,20 +1041,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                     </div>
                 )}
                 <div className="tabs">
-                    <div className="seg" role="tablist" aria-label={course.title}>
-                        {tabs.map((key) => (
-                            <button
-                                key={key}
-                                type="button"
-                                role="tab"
-                                aria-selected={key === active}
-                                aria-controls={`lesson-${key}`}
-                                onClick={() => setTab(key)}
-                            >
-                                {t[key]}
-                            </button>
-                        ))}
-                    </div>
+                    {tabsEl}
                     {active === 'summary' && (
                         <div className="tools">
                             <TextSize scale={scale} onScale={onScale} />

@@ -90,6 +90,21 @@ const chrome = css`
         opacity: 0.45;
         cursor: default;
     }
+    /* respostas não vistas do suporte (Mettle Chat); no menu recolhido vira um ponto sobre o ícone */
+    .it .badge {
+        margin-left: auto;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background: var(--r-gold);
+        color: var(--r-on-gold);
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 18px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+    }
     .it.s {
         min-height: 40px;
         padding-left: 44px;
@@ -351,6 +366,16 @@ const Frame = styled.div`
     &.rail .user .lbl {
         opacity: 0;
     }
+    &.rail .it .badge {
+        position: absolute;
+        top: 8px;
+        left: 26px;
+        min-width: 8px;
+        width: 8px;
+        height: 8px;
+        padding: 0;
+        font-size: 0;
+    }
     &.rail .melp {
         display: none;
     }
@@ -570,6 +595,7 @@ type MenuItem = {
     disabled?: boolean;
     onClick?: unknown;
     children?: MenuItem[];
+    badge?: number;
 };
 
 /** Ícones de traço fino por chave do item (os itens e destinos vêm do menu da Plataforma). */
@@ -678,6 +704,11 @@ const Nav: React.FC<{
                 >
                     {MENU_ICONS[key]}
                     <span className="lbl">{item.label}</span>
+                    {!!item.badge && (
+                        <span className="badge" aria-label={`${item.badge} não lidas`}>
+                            {item.badge > 9 ? '9+' : item.badge}
+                        </span>
+                    )}
                 </button>
             );
         })}

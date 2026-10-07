@@ -2,7 +2,10 @@
 
 import { CustomerServiceOutlined, HomeOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
 import { MenuProps, Typography } from 'antd';
+import { useChatUnread } from 'hooks/useChatUnread';
+import { useNewDesign } from 'hooks/useNewDesign';
 import { handleLogout } from 'libs';
+import { CHAT_PATH } from 'libs/chat';
 import { hpecLessonPath } from 'libs/cleanUrls';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { usePathname, useRouter } from 'next/navigation';
@@ -22,6 +25,8 @@ export const useAppMenu = (onNavigate: () => void = () => {}) => {
     const { melpSummary } = useMelpContext();
     const { access } = useProductAccess();
     const imersoState = access(IMERSO_PRODUCT).state;
+    const newDesign = useNewDesign();
+    const unread = useChatUnread();
 
     const go = (action: () => void) => (info: { domEvent: React.SyntheticEvent }) => {
         info.domEvent.preventDefault();
@@ -75,13 +80,16 @@ export const useAppMenu = (onNavigate: () => void = () => {}) => {
             icon: <SettingOutlined />,
             onClick: go(() => router.push('/settings')),
         },
-        // O chat não tem balão flutuante (hideMessageBubble no layout); abre por aqui.
+        // O chat não tem balão flutuante (hideMessageBubble no layout); abre por aqui. Na plataforma nova, a página
+        // Mettle Chat (/suporte) no lugar do widget, com o número de respostas não vistas (badge).
         {
             key: 'support',
             label: 'Suporte',
             icon: <CustomerServiceOutlined />,
+            ...(newDesign && unread > 0 ? { badge: unread } : {}),
             onClick: go(() => {
-                if (window.$chatwoot?.toggle) window.$chatwoot.toggle('open');
+                if (newDesign) router.push(CHAT_PATH);
+                else if (window.$chatwoot?.toggle) window.$chatwoot.toggle('open');
                 else router.push('/settings?tab=help');
             }),
         },

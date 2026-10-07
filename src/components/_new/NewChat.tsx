@@ -702,6 +702,11 @@ const Wrap = styled.div`
         font-size: 12.5px;
         color: var(--r-muted);
     }
+    /* o espaço do Manrope fica com ~2 px nos rótulos pequenos ("André Floriano" parecia uma palavra só) */
+    .hd .sub,
+    .name {
+        word-spacing: 0.12em;
+    }
     .team {
         display: flex;
     }

@@ -26,6 +26,7 @@ import {
     PanelLeftOpen,
     Settings,
     ShieldCheck,
+    Users,
     TriangleAlert,
     X,
 } from 'lucide-react';
@@ -609,6 +610,7 @@ const MENU_ICONS: Record<string, React.ReactNode> = {
     imerso: <GraduationCap {...ICON} aria-hidden />,
     settings: <Settings {...ICON} aria-hidden />,
     support: <Headset {...ICON} aria-hidden />,
+    community: <Users {...ICON} aria-hidden />,
     logout: <LogOut {...ICON} aria-hidden />,
 };
 
@@ -907,12 +909,12 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
             return () => window.removeEventListener(MENU_OPEN_EVENT, onOpen);
         }, []);
         const active = activeMenuKeys(pathname);
-        // Na casca nova: Início, IMERSO, Suporte, Configurações, Sair (o menu atual mantém a ordem de sempre)
+        // Na casca nova: Início, IMERSO, Suporte, Comunidade, Configurações, Sair (o menu atual mantém a ordem de sempre)
         const navItems = useMemo(() => {
             const items = [...(menu.items as MenuItem[])];
             const settings = items.findIndex((item) => item.key === 'settings');
-            const support = items.findIndex((item) => item.key === 'support');
-            if (settings >= 0 && support > settings) items.splice(settings, 0, items.splice(support, 1)[0]);
+            const logout = items.findIndex((item) => item.key === 'logout');
+            if (settings >= 0 && logout > settings) items.splice(logout - 1, 0, items.splice(settings, 1)[0]);
             return items;
         }, [menu.items]);
         const { access, openCta } = useProductAccess();

@@ -1,12 +1,20 @@
 'use client';
 
-import { CustomerServiceOutlined, HomeOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
+import {
+    CustomerServiceOutlined,
+    HomeOutlined,
+    LogoutOutlined,
+    SettingOutlined,
+    TeamOutlined,
+} from '@ant-design/icons';
 import { MenuProps, Typography } from 'antd';
 import { useChatUnread } from 'hooks/useChatUnread';
+import { useComunidade } from 'hooks/useComunidade';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { handleLogout } from 'libs';
 import { CHAT_PATH } from 'libs/chat';
 import { hpecLessonPath } from 'libs/cleanUrls';
+import { COMUNIDADE_PATH } from 'libs/comunidade';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { usePathname, useRouter } from 'next/navigation';
 import { useMelpContext, useProductAccess } from 'providers';
@@ -27,6 +35,7 @@ export const useAppMenu = (onNavigate: () => void = () => {}) => {
     const imersoState = access(IMERSO_PRODUCT).state;
     const newDesign = useNewDesign();
     const unread = useChatUnread();
+    const comunidade = useComunidade();
 
     const go = (action: () => void) => (info: { domEvent: React.SyntheticEvent }) => {
         info.domEvent.preventDefault();
@@ -93,6 +102,18 @@ export const useAppMenu = (onNavigate: () => void = () => {}) => {
                 else router.push('/settings?tab=help');
             }),
         },
+        // Comunidade Imerso (/comunidade): só para quem o Worker reconhece como membro (fase 1: o dono)
+        ...(comunidade.member
+            ? [
+                  {
+                      key: 'community',
+                      label: 'Comunidade',
+                      icon: <TeamOutlined />,
+                      ...(comunidade.unread > 0 ? { badge: comunidade.unread } : {}),
+                      onClick: go(() => router.push(COMUNIDADE_PATH)),
+                  },
+              ]
+            : []),
         { key: 'logout', label: 'Sair', icon: <LogoutOutlined />, onClick: go(() => handleLogout()) },
     ];
 

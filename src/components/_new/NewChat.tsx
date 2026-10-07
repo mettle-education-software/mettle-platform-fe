@@ -62,7 +62,7 @@ const initials = (name: string) =>
         .join('');
 
 /** Símbolo da Mettle (mira) num círculo: o "avatar" do Suporte. */
-const MettleMark: React.FC<{ size?: number }> = ({ size = 40 }) => (
+export const MettleMark: React.FC<{ size?: number }> = ({ size = 40 }) => (
     <svg className="mark" width={size} height={size} viewBox="0 0 40 40" aria-hidden>
         <circle cx="20" cy="20" r="20" fill="#1d1a17" />
         <g stroke="#c99a68" strokeWidth="1.7" fill="none" strokeLinecap="round">
@@ -97,7 +97,7 @@ const VoiceAvatar: React.FC<{ src: string | null }> = ({ src }) =>
         </svg>
     );
 
-const Text: React.FC<{ text: string }> = ({ text }) => (
+export const Text: React.FC<{ text: string }> = ({ text }) => (
     <>
         {linkParts(text).map((p, i) =>
             p.href ? (
@@ -112,7 +112,7 @@ const Text: React.FC<{ text: string }> = ({ text }) => (
 );
 
 /** Hora e vistos, dentro do balão (canto inferior direito), como no WhatsApp. */
-const Meta: React.FC<{ m: ChatMessage; seen: boolean; className?: string }> = ({ m, seen, className }) => (
+export const Meta: React.FC<{ m: ChatMessage; seen: boolean; className?: string }> = ({ m, seen, className }) => (
     <span className={`tm${className ? ` ${className}` : ''}`}>
         {timeLabel(m.at)}
         {m.mine &&
@@ -133,8 +133,13 @@ const Meta: React.FC<{ m: ChatMessage; seen: boolean; className?: string }> = ({
  * Forma de onda real do áudio: decodificada uma vez no navegador (WebAudio) quando a nota aparece na tela, 40 barras,
  * guardada por mensagem no sessionStorage. Sem decodificar (erro, mensagem ainda a caminho), a pseudo-onda.
  */
-function useWave(id: number, el: React.RefObject<HTMLElement>, onDuration: (d: number) => void) {
-    const key = `mettleChatWave41:${id}`;
+function useWave(
+    id: number,
+    el: React.RefObject<HTMLElement>,
+    onDuration: (d: number) => void,
+    load: () => Promise<ArrayBuffer> = () => chatAudio(id),
+    key = `mettleChatWave41:${id}`,
+) {
     const [bars, setBars] = useState<number[]>(() => {
         try {
             const v = JSON.parse(sessionStorage.getItem(key) || 'null');
@@ -158,7 +163,7 @@ function useWave(id: number, el: React.RefObject<HTMLElement>, onDuration: (d: n
             if (!e.isIntersecting || done) return;
             done = true;
             io.disconnect();
-            chatAudio(id)
+            load()
                 .then((buf) => new OfflineAudioContext(1, 1, 44100).decodeAudioData(buf))
                 .then((audio) => {
                     const b = peaks(audio.getChannelData(0), 41);
@@ -179,18 +184,21 @@ function useWave(id: number, el: React.RefObject<HTMLElement>, onDuration: (d: n
 }
 
 /** Nota de voz: avatar com microfone, play, forma de onda real, duração, hora e vistos. */
-const Voice: React.FC<{ m: ChatMessage; url: string; who: { name: string; avatar: string | null }; seen: boolean }> = ({
-    m,
-    url,
-    who,
-    seen,
-}) => {
+/** `load`/`waveKey`: de onde vêm os bytes do áudio e a chave da onda (a Comunidade usa a própria mídia). */
+export const Voice: React.FC<{
+    m: ChatMessage;
+    url: string;
+    who: { name: string; avatar: string | null };
+    seen: boolean;
+    load?: () => Promise<ArrayBuffer>;
+    waveKey?: string;
+}> = ({ m, url, who, seen, load, waveKey }) => {
     const audio = useRef<HTMLAudioElement>(null);
     const box = useRef<HTMLDivElement>(null);
     const [playing, setPlaying] = useState(false);
     const [pos, setPos] = useState(0);
     const [dur, setDur] = useState(0);
-    const bars = useWave(m.id, box, (d) => isFinite(d) && d > 0 && setDur(d));
+    const bars = useWave(m.id, box, (d) => isFinite(d) && d > 0 && setDur(d), load, waveKey);
     const toggle = () => {
         const a = audio.current;
         if (!a) return;
@@ -267,7 +275,7 @@ const Voice: React.FC<{ m: ChatMessage; url: string; who: { name: string; avatar
     );
 };
 
-const QuoteBlock: React.FC<{ q: ChatQuote; onClick?: () => void; me: string }> = ({ q, onClick, me }) => {
+export const QuoteBlock: React.FC<{ q: ChatQuote; onClick?: () => void; me: string }> = ({ q, onClick, me }) => {
     const name = q.mine ? me : q.name;
     const style = { '--h': q.mine ? 34 : nameHue(q.name) } as React.CSSProperties;
     return (
@@ -279,7 +287,7 @@ const QuoteBlock: React.FC<{ q: ChatQuote; onClick?: () => void; me: string }> =
 };
 
 /** Gravação de nota de voz pelo MediaRecorder do navegador (nada pago): webm/opus no Chrome, mp4 no Safari. */
-function useRecorder(onDone: (blob: Blob, name: string) => void) {
+export function useRecorder(onDone: (blob: Blob, name: string) => void) {
     const [rec, setRec] = useState<{ started: number } | null>(null);
     const [now, setNow] = useState(0);
     const mr = useRef<MediaRecorder | null>(null);
@@ -1200,7 +1208,7 @@ export default NewChat;
 
 /* Papel de parede: rabiscos de linha do nosso mundo, densos como o do WhatsApp (desenho próprio), um arquivo por tema em
    public/img/chat-wall-{dark,light}.svg (ladrilho de 400 px; gerado por scripts/chat-wallpaper.py). */
-const Wrap = styled.div`
+export const Wrap = styled.div`
     /* identidade do WhatsApp nesta página (pedido do André): cores das variáveis públicas do WhatsApp Web
        (--WDS-*, tema padrão de out/2026), papel de parede nosso tingido como o deles; a casca segue Mettle */
     /* neutros medidos na captura do WhatsApp Web do André (calibrados pela nossa captura no mesmo Mac); cores dos tokens */

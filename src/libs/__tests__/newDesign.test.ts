@@ -16,6 +16,8 @@ import {
     parseHm,
     runDay,
     goalDayStatus,
+    dayBreakdown,
+    frontMet,
     countsForRun,
     runBeforeToday,
     lastBreak,
@@ -371,6 +373,18 @@ describe('LAMP como espelho', () => {
         expect(goalDayStatus(d(0, 20, 0), true)).toBe('partial');
         expect(goalDayStatus(d(85, 100, 100), true)).toBe('met');
         expect(goalDayStatus(undefined, false, true)).toBe('future');
+    });
+    it('frente batida pelos minutos quando a meta é conhecida (o ✓ não mente)', () => {
+        const day = { ...d(84, 100, 100), activeMin: 15, passiveMin: 60 };
+        const goal = { active: 20, passive: 105 };
+        expect(frontMet(60, 105, 100)).toBe(false);
+        expect(frontMet(105, 105, 0)).toBe(true);
+        expect(frontMet(undefined, undefined, 100)).toBe(true);
+        expect(goalDayStatus(day, false, false, goal)).toBe('partial');
+        expect(dayBreakdown(day, goal)).toBe('DEDA 84% ✓ · Active 15/20 min · Passive 1h/1h45');
+        expect(dayBreakdown({ ...day, activeMin: 20, passiveMin: 105 }, goal)).toBe(
+            'DEDA 84% ✓ · Active 20/20 min ✓ · Passive 1h45/1h45 ✓',
+        );
     });
     it('a Run é numérica: 80% exato conta, 79,x% zera', () => {
         // 5 + 4 + 3 + 4 + 4 = 20 de 25 = 80%, calculado como o servidor (média ÷ 5 × 100)

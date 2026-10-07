@@ -2,7 +2,7 @@
 
 import { css, Global } from '@emotion/react';
 import { useGetGoalByLevel } from 'hooks';
-import { countsForRun, goalDays, GoalDayStatus, goalDayStatus, LampDay, minutesText, WEEK_DAYS } from 'libs/newDesign';
+import { dayBreakdown, goalDays, GoalDayStatus, goalDayStatus, LampDay, WEEK_DAYS } from 'libs/newDesign';
 import { Check, X } from 'lucide-react';
 import { useMelpContext } from 'providers';
 import React, { useState } from 'react';
@@ -142,19 +142,6 @@ const SAID: Record<GoalDayStatus, string> = {
     future: 'ahead',
 };
 
-/** "DEDA 84% ✓ · Active 15/20 min · Passive 55/55 min ✓" */
-const breakdown = (d: LampDay | undefined, goal?: { active: number; passive: number }) => {
-    if (!d) return 'Nothing logged';
-    const deda = d.deda > 0 ? `DEDA ${Math.round(d.deda)}%${countsForRun(d.deda) ? ' ✓' : ''}` : 'No DEDA';
-    const part = (name: string, done = 0, g = 0, ok: boolean) =>
-        `${name} ${minutesText(done).replace(' min', '')}/${minutesText(g)}${ok ? ' ✓' : ''}`;
-    return [
-        deda,
-        part('Active', d.activeMin, goal?.active, d.active >= 99.5),
-        part('Passive', d.passiveMin, goal?.passive, d.passive >= 99.5),
-    ].join(' · ');
-};
-
 export const DailyGoal: React.FC<{
     days: LampDay[];
     week: number;
@@ -174,8 +161,8 @@ export const DailyGoal: React.FC<{
                 {WEEK_DAYS.map((w, i) => {
                     const n = i + 1;
                     const d = days.find((x) => x.week === week && x.day === n);
-                    const st = goalDayStatus(d, n === today, n > today);
-                    const text = `${w.label}: ${SAID[st]}${st === 'future' ? '' : ` — ${breakdown(d, goal)}`}`;
+                    const st = goalDayStatus(d, n === today, n > today, goal);
+                    const text = `${w.label}: ${SAID[st]}${st === 'future' ? '' : ` — ${dayBreakdown(d, goal)}`}`;
                     return (
                         <li key={w.value} className={`${st}${sel === n ? ' sel' : ''}`}>
                             <button
@@ -202,7 +189,9 @@ export const DailyGoal: React.FC<{
             {!compact && (
                 <>
                     <p className="dg-detail" aria-live="polite">
-                        {shown ? `${WEEK_DAYS[shown - 1].label}: ${breakdown(shownDay, goal)}` : 'Tap a day to see it'}
+                        {shown
+                            ? `${WEEK_DAYS[shown - 1].label}: ${dayBreakdown(shownDay, goal)}`
+                            : 'Tap a day to see it'}
                     </p>
                     <p className="dg-key" aria-hidden>
                         <span className="dg-m">

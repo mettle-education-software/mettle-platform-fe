@@ -43,3 +43,11 @@ export const reactChat = (id: number, emoji: string | null) =>
 
 export type StickerPack = { id: string; name: string; stickers: { id: string; url: string }[] };
 export const getStickers = () => chatFetch<{ packs: StickerPack[] }>('/stickers');
+
+/** Bytes do áudio de uma mensagem (pelo Worker: o Chatwoot não manda CORS). */
+export async function chatAudio(id: number): Promise<ArrayBuffer> {
+    const token = await auth.currentUser?.getIdToken();
+    const res = await fetch(`${CHAT_URL}/media?id=${id}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(String(res.status));
+    return res.arrayBuffer();
+}

@@ -7,7 +7,9 @@ import {
     linkParts,
     mergeMessages,
     nameHue,
+    peaks,
     quoteText,
+    SILENCE,
     unreadStart,
     waveform,
     type ChatMessage,
@@ -132,5 +134,19 @@ describe('WhatsApp: emoji grande, cor do nome, onda, não lidas', () => {
             fileName('https://chat.mettle.com.br/rails/active_storage/blobs/redirect/abc/Guia%20Final.pdf', 'pdf'),
         ).toBe('Guia Final.pdf');
         expect(fileName('blob:https://x/123', 'pdf')).toBe('arquivo.pdf');
+    });
+});
+
+describe('forma de onda real', () => {
+    it('40 barras normalizadas; silêncio fica abaixo do limiar', () => {
+        const n = 4000;
+        const data = new Float32Array(n);
+        for (let i = 0; i < n; i++) data[i] = i < n / 2 ? Math.sin(i) * 0.8 : 0.001;
+        const p = peaks(data, 40);
+        expect(p).toHaveLength(40);
+        expect(Math.max(...p)).toBe(1);
+        expect(p[0]).toBeGreaterThan(SILENCE);
+        expect(p[39]).toBeLessThan(SILENCE);
+        expect(peaks(new Float32Array(0))).toEqual([]);
     });
 });

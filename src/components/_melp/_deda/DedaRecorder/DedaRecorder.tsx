@@ -14,6 +14,7 @@ import {
 } from 'hooks/melp/dedaRecording';
 import { useDedaRecorder, useMicrophones } from 'hooks/useDedaRecorder';
 import {
+    attemptsLabel,
     brasiliaDate,
     dailyLimitHit,
     DedaRecordingsResponse,
@@ -90,6 +91,16 @@ const Bar = styled.section`
     }
     &.docked .headline.error {
         color: var(--r-error);
+    }
+    /* tentativas de hoje: discreto, na mesma linha do estado */
+    .attempts {
+        font-size: 0.875rem;
+        font-weight: 400;
+        color: #e8dccb;
+        white-space: nowrap;
+    }
+    &.docked .attempts {
+        color: var(--r-muted);
     }
     &.docked .headline .info button {
         margin: -12px 0 -12px -14px;
@@ -332,6 +343,9 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
     useEffect(() => () => void (blobUrl && URL.revokeObjectURL(blobUrl)), [blobUrl]);
 
     const showingToday = !!todayRecording && !rerecord && state.phase === 'ready';
+    // Tentativas de hoje (3 por dia; "se em nenhuma ele gravar, perdeu a chance"). Sem o campo (servidor antigo): nada muda.
+    const attempts = data.attempts;
+    const noAttempts = attempts?.left === 0;
     // Página nova: o endereço já fica pronto, para "Listen" tocar no mesmo clique (sem esperar a rede).
     const playUrl = useRecordingPlayUrl(showingToday && (listen || docked) ? todayRecording?.id : null);
 
@@ -501,6 +515,9 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
                     } else if (playUrl.isError && !docked) {
                         detail = 'We couldn’t load the audio right now.';
                     }
+                } else if (noAttempts) {
+                    headline = 'No attempts left today';
+                    detail = docked ? null : 'You can record again tomorrow.';
                 } else {
                     headline = docked ? 'Read aloud and record' : 'Record yourself reading aloud';
                     detail = docked ? null : 'Read the text aloud while you record. You can pause at any time.';
@@ -528,10 +545,14 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
                         >
                             <PlayArrow aria-hidden /> {listen ? 'Close' : 'Listen'}
                         </RecButton>
-                        <RecButton type="button" onClick={() => (docked ? recordAgain() : setRerecord(true))}>
-                            <Mic aria-hidden /> Record again
-                        </RecButton>
+                        {!noAttempts && (
+                            <RecButton type="button" onClick={() => (docked ? recordAgain() : setRerecord(true))}>
+                                <Mic aria-hidden /> Record again
+                            </RecButton>
+                        )}
                     </>
+                ) : noAttempts ? (
+                    exitLink
                 ) : (
                     <>
                         <RecButton type="button" className="record" onClick={begin}>
@@ -664,17 +685,14 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
                               'Upload failed — keep this page open',
                           ];
                 } else if (state.problem === 'daily') {
-                    // Limite diário de envios do servidor: tentar de novo hoje não adianta (por isso, sem "Try again").
+                    // Sem tentativas hoje (429 do servidor): tentar de novo hoje não adianta (por isso, sem "Try again").
                     problem = storedOnDevice
                         ? [
-                              'Daily recording limit reached. This one is saved on this device and will upload tomorrow.',
-                              'Daily limit reached — uploads tomorrow',
-                              'You can upload up to 10 recordings a day. This one is saved on this device and uploads by itself when you open the DEDA tomorrow. You can go on.',
+                              'No attempts left today. This recording is saved on this device and will upload tomorrow.',
+                              'No attempts left today — uploads tomorrow',
+                              'You can save 3 recordings a day. This one is saved on this device and uploads by itself when you open the DEDA tomorrow. You can go on.',
                           ]
-                        : [
-                              'Daily recording limit reached. This recording can’t be uploaded today.',
-                              'Daily limit reached — can’t upload today',
-                          ];
+                        : ['No attempts left today. This recording can’t be saved today.', 'No attempts left today'];
                 } else if (state.problem === 'expired') {
                     isError = true;
                     problem = [
@@ -728,7 +746,7 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
             case 'saved':
                 headline = docked ? `Saved · ${time}` : `Recording saved · ${time}`;
                 detail = docked ? null : 'You can move on to the next step.';
-                actions = (
+                actions = noAttempts ? null : (
                     <RecButton type="button" className="ghost" onClick={recordAgain}>
                         <Mic aria-hidden /> Record again
                     </RecButton>
@@ -742,6 +760,16 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
         more = more || detail;
         detail = null;
     }
+    // "2 attempts left today": antes de gravar, ao revisar e depois de salvar; nunca sobre um erro nem repetindo a linha.
+    const attemptsNote =
+        attempts &&
+        !skipped &&
+        !confirmReset &&
+        !state.problem &&
+        ['ready', 'review', 'saved'].includes(state.phase) &&
+        headline !== 'No attempts left today'
+            ? attemptsLabel(attempts.left)
+            : null;
     // Erro (ou o aviso do limite diário) é anunciado na hora, esteja na linha (página nova) ou no detalhe (atual).
     const alert = isError || state.problem === 'daily';
 
@@ -763,6 +791,7 @@ export const DedaRecorder: React.FC<Props> = ({ dedaId, uid, data, onDone, docke
                         role={docked && alert ? 'alert' : undefined}
                     >
                         {headline}
+                        {attemptsNote && <span className="attempts">· {attemptsNote}</span>}
                         {more && <InfoTip key={more} text={more} label="More about this" />}
                     </div>
                     {detail && (

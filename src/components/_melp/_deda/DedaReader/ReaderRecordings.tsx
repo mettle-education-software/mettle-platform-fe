@@ -1,7 +1,7 @@
 'use client';
 
 import { AudioPlayer } from 'components';
-import { useDedaRecordings, useHideRecording, useRecordingPlayUrl } from 'hooks/melp/dedaRecording';
+import { useDedaRecordings, useRemoveRecording, useRecordingPlayUrl } from 'hooks/melp/dedaRecording';
 import {
     computeIndicators,
     DedaRecording,
@@ -57,7 +57,7 @@ export const ReaderRecordings = ({ dedaId }: { dedaId: string }) => {
         document.addEventListener('keydown', escape);
         return () => document.removeEventListener('keydown', escape);
     }, [removing]);
-    const hide = useHideRecording();
+    const remove = useRemoveRecording();
     const ind = computeIndicators(recordings.data?.recordings ?? []);
     const longest = Math.max(1, ...ind.days.map((d) => d?.durationMs ?? 0));
 
@@ -144,8 +144,8 @@ export const ReaderRecordings = ({ dedaId }: { dedaId: string }) => {
                                 <button
                                     type="button"
                                     className="btn line danger"
-                                    disabled={hide.isPending}
-                                    onClick={() => hide.mutate(d.id, { onSettled: () => setRemoving(null) })}
+                                    disabled={remove.isPending}
+                                    onClick={() => remove.mutate(d.id, { onSettled: () => setRemoving(null) })}
                                 >
                                     Remove
                                 </button>
@@ -170,7 +170,7 @@ export const ReaderRecordings = ({ dedaId }: { dedaId: string }) => {
                                 <button
                                     type="button"
                                     className="lnk"
-                                    disabled={hide.isPending}
+                                    disabled={remove.isPending}
                                     aria-label={`Remove Day ${i + 1}`}
                                     onClick={() => setRemoving(d.id)}
                                 >

@@ -2211,6 +2211,14 @@ export const Wrap = styled.div`
     }
     /* celular: "+" só o ícone, campo de 40 px e microfone redondo de 40 px (proporções do WhatsApp no celular) */
     @media (max-width: 600px) {
+        /* nota de voz: as 41 barras (168 px) cabem no balão do iPhone; abaixo de 390 px a onda é recortada
+           (mesma correção da Comunidade, fe #156) */
+        .voice {
+            width: min(276px, 68vw);
+        }
+        .bars {
+            overflow: hidden;
+        }
         .ib.plus {
             width: 36px;
             height: 40px;

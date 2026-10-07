@@ -192,6 +192,10 @@ export const Page = styled.div`
         max-width: none;
         padding: 0;
     }
+    /* página que ocupa a área inteira da casca e rola por dentro (Mettle Chat) */
+    &.fill {
+        height: 100%;
+    }
 
     /* ---------- cabeçalho da página ---------- */
     .ph {

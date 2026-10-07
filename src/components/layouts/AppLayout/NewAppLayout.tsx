@@ -9,7 +9,7 @@ import { Logo } from 'components/atoms/Logo/Logo';
 import { useDeviceSize } from 'hooks';
 import { useLogoTheme, useNewAntdTheme } from 'hooks/useTheme';
 import { getWeekDay } from 'libs';
-import { activeMenuKeys, firstName, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
+import { activeMenuKeys, firstName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
 import {
     GraduationCap,
@@ -754,6 +754,11 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
         const router = useRouter();
         const pathname = usePathname();
         const menu = useAppMenu(() => setOpen(false));
+        useEffect(() => {
+            const onOpen = () => setOpen(true);
+            window.addEventListener(MENU_OPEN_EVENT, onOpen);
+            return () => window.removeEventListener(MENU_OPEN_EVENT, onOpen);
+        }, []);
         const active = activeMenuKeys(pathname);
         // Na casca nova: Início, IMERSO, Suporte, Configurações, Sair (o menu atual mantém a ordem de sempre)
         const navItems = useMemo(() => {
@@ -849,7 +854,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
         );
         const foot = (
             <div className="foot">
-                {withMelpSummary && !isMobile && <MelpMini />}
+                <MelpMini />
                 <AdminItem />
                 <div className="who">
                     <User />

@@ -380,6 +380,31 @@ describe('recordingsOrDisabled', () => {
     });
 });
 
+describe('KPIs de gravação (LAMP)', () => {
+    const { recordingStats } = jest.requireActual('../dedaRecording');
+    it('conta só desde a primeira gravação; hoje entra só com gravação; pausa fica fora', () => {
+        const recs = [
+            { recordedOn: '2026-10-05', durationMs: 9000 },
+            { recordedOn: '2026-10-07', durationMs: 26000 },
+        ];
+        // 5, 6 e 7 (hoje, com gravação): 3 dias, 2 gravações
+        expect(recordingStats(recs, '2026-10-07')).toMatchObject({
+            since: '2026-10-05',
+            recordingDays: 3,
+            recordings: 2,
+            totalMs: 35000,
+        });
+        // hoje sem gravação ainda não conta: 5 e 6
+        expect(recordingStats([recs[0]], '2026-10-07')).toMatchObject({ recordingDays: 2, recordings: 1, rate: 0.5 });
+        // o dia 6 em pausa sai da conta
+        expect(recordingStats(recs, '2026-10-07', [{ from: '2026-10-06', to: '2026-10-07' }])).toMatchObject({
+            recordingDays: 2,
+            rate: 1,
+        });
+        expect(recordingStats([], '2026-10-07')).toBeUndefined();
+    });
+});
+
 describe('tentativas de hoje (3 por dia)', () => {
     it('conta para baixo até "No attempts left today"', () => {
         expect([3, 2, 1, 0].map(attemptsLabel)).toEqual([

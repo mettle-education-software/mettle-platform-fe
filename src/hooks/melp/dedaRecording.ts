@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
 import {
     baseMimeType,
@@ -10,11 +10,14 @@ import {
     isDailyLimit,
     isSignedStorageUrl,
     markDailyLimit,
+    pausedIntervals,
+    RECORDER_SINCE,
     RecordingAttempts,
+    recordingStats,
     recordingsOrDisabled,
 } from 'libs/dedaRecording';
 import { flushQueue, idbQueue, QueuedRecording } from 'libs/recordingQueue';
-import { useAppContext } from 'providers';
+import { useAppContext, useMelpContext } from 'providers';
 import { useCallback, useEffect } from 'react';
 import { adminService, melpService } from 'services';
 
@@ -27,6 +30,41 @@ export const RECORDER_FLAG_ON = process.env.DEDA_RECORDER === 'on';
 
 const base = (userUid: string) => `/deda/recordings/${encodeURIComponent(userUid)}`;
 
+/** A consulta da lista de gravações de um DEDA (a mesma chave em todo lugar). */
+const recordingsQuery = (uid: string | undefined, dedaId: string) => ({
+    queryKey: ['deda-recordings', uid, dedaId],
+    queryFn: () =>
+        melpService
+            .get<DedaRecordingsResponse>(`${base(uid as string)}?dedaId=${encodeURIComponent(dedaId)}`)
+            .then(({ data }) => data)
+            .catch(recordingsOrDisabled),
+    retry: false,
+});
+
+/**
+ * KPIs de gravação da LAMP: as gravações dos DEDAs desde que o gravador existe (RECORDER_SINCE), pela mesma consulta
+ * de cada DEDA (mesma chave). Pede só as semanas desde então (+2 de folga para pausas), não o programa inteiro.
+ */
+export const useRecordingStats = () => {
+    const { user } = useAppContext();
+    const { melpSummary } = useMelpContext();
+    const uid = user?.uid;
+    const allowed = RECORDER_FLAG_ON && !!uid && !user?.impersonating;
+    const current = melpSummary?.current_deda_week ?? 0;
+    const unlocked = melpSummary?.unlocked_dedas ?? [];
+    const back = Math.ceil((Date.now() - Date.parse(`${RECORDER_SINCE}T00:00:00-03:00`)) / (7 * 864e5)) + 2;
+    const ids = [...new Set(unlocked.slice(Math.max(1, current - back), current + 1))];
+    const results = useQueries({
+        queries: ids.map((id) => ({ ...recordingsQuery(uid, id), enabled: allowed && current > 0, staleTime: 60_000 })),
+    });
+    const loading = results.some((r) => r.isLoading);
+    const enabled = results.some((r) => r.data?.enabled);
+    const all = results.flatMap((r) => r.data?.recordings ?? []);
+    const paused = pausedIntervals(melpSummary?.deda_pause_dates, melpSummary?.deda_start_dates);
+    const stats = recordingStats(all, brasiliaDate(new Date()), paused);
+    return { allowed: allowed && enabled, loading, stats };
+};
+
 /** Lista as gravações do aluno no DEDA, o consentimento e se o recurso está ligado para ele. */
 export const useDedaRecordings = (dedaId: string, enabled = true) => {
     const { user } = useAppContext();
@@ -34,14 +72,8 @@ export const useDedaRecordings = (dedaId: string, enabled = true) => {
     // Navegar "como o aluno" (administrador) nunca mostra gravações: a equipe ouve pelo backoffice, com registro.
     const allowed = RECORDER_FLAG_ON && !!uid && !user?.impersonating;
     const query = useQuery({
-        queryKey: ['deda-recordings', uid, dedaId],
-        queryFn: () =>
-            melpService
-                .get<DedaRecordingsResponse>(`${base(uid as string)}?dedaId=${encodeURIComponent(dedaId)}`)
-                .then(({ data }) => data)
-                .catch(recordingsOrDisabled),
+        ...recordingsQuery(uid, dedaId),
         enabled: allowed && enabled,
-        retry: false,
         // Desligado para a conta: guarda a resposta e não pergunta de novo nesta sessão.
         staleTime: (q) => (q.state.data?.enabled === false ? Infinity : 60_000),
     });

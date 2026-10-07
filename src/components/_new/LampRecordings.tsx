@@ -8,6 +8,7 @@ import { dedaPath } from 'libs/cleanUrls';
 import { IMAGE_MIRROR_HOSTS } from 'libs/contentImage';
 import { contentfulImage } from 'libs/dedaHeader';
 import { DedaRecording, formatDuration, formatRecordedOn, spokenDuration } from 'libs/dedaRecording';
+import { WEEK_DAYS } from 'libs/newDesign';
 import { ChevronDown, Play, SkipBack, SkipForward, X } from 'lucide-react';
 import Link from 'next/link';
 import { useMelpContext } from 'providers';
@@ -193,6 +194,29 @@ const styles = css`
         padding: 0 14px;
         font-size: 13px;
     }
+    .lrec .kpi .sk {
+        display: block;
+        width: 150px;
+        height: 10px;
+        border-radius: 5px;
+        background: var(--r-track);
+        opacity: 0.7;
+    }
+    .lrec .recs .none {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 40px;
+        margin: 0;
+        padding: 0 4px;
+        border-top: 1px solid var(--r-line);
+        font-size: 14px;
+        color: var(--r-muted);
+    }
+    .lrec .recs .none span {
+        grid-column: 2;
+    }
     .lrec .gap {
         padding: 12px 2px;
         border-bottom: 1px solid var(--r-line);
@@ -278,9 +302,6 @@ const thumbOf = (raw?: string) => {
     }
 };
 
-/** Gravações de um DEDA (todas as voltas), pela mesma consulta da aba "My recordings". */
-const useDedaRecs = (dedaId: string) => useDedaRecordings(dedaId);
-
 const Player: React.FC<{
     rec: Rec;
     onPrev?: () => void;
@@ -342,6 +363,7 @@ const Player: React.FC<{
     );
 };
 
+/** Uma semana do gotejamento do aluno: cabeçalho sempre presente; os números chegam quando a linha fica perto da tela. */
 const WeekRow: React.FC<{
     w: Week;
     open: boolean;
@@ -349,36 +371,45 @@ const WeekRow: React.FC<{
     onRecs(week: number, recs: Rec[]): void;
     playing?: string;
     play(rec: Rec, queue?: Rec[]): void;
-    hideEmpty: boolean;
-}> = ({ w, open, onToggle, onRecs, playing, play, hideEmpty }) => {
-    const q = useDedaRecs(w.dedaId);
-    const all = useMemo(() => (q.data?.recordings ?? []).map((r) => ({ ...r, title: w.title })), [q.data, w.title]);
-    const mine = all.filter((r) => r.week === `week${w.week}`).sort((a, b) => a.weekDay.localeCompare(b.weekDay));
+}> = ({ w, open, onToggle, onRecs, playing, play }) => {
+    // só pede as gravações quando a linha chega perto da tela (o cabeçalho já está lá desde o começo)
+    const ref = useRef<HTMLLIElement>(null);
+    const [near, setNear] = useState(false);
     useEffect(() => {
-        // erro na consulta conta como semana sem gravações (não trava o carregamento das seguintes)
-        if (q.data || q.isError) onRecs(w.week, mine);
+        const el = ref.current;
+        if (!el || near) return;
+        const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && setNear(true), {
+            rootMargin: '600px',
+        });
+        io.observe(el);
+        return () => io.disconnect();
+    }, [near]);
+    const q = useDedaRecordings(w.dedaId, near);
+    const all = useMemo(() => (q.data?.recordings ?? []).map((r) => ({ ...r, title: w.title })), [q.data, w.title]);
+    // uma gravação por dia (a última tomada): se vier mais de uma, fica a mais recente
+    const byDay = new Map<string, Rec>();
+    all.filter((r) => r.week === `week${w.week}`)
+        .sort((a, b) => (a.createdAt ?? a.recordedOn).localeCompare(b.createdAt ?? b.recordedOn))
+        .forEach((r) => byDay.set(r.weekDay, r));
+    const mine = [...byDay.values()].sort((a, b) => a.weekDay.localeCompare(b.weekDay));
+    const known = !!q.data || q.isError;
+    useEffect(() => {
+        if (known) onRecs(w.week, mine);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [q.data, q.isError, w.week]);
+    }, [known, q.data, w.week]);
     // mesmo DEDA em mais de uma volta: a primeira gravação de todas e a mais recente
     const weeksWith = new Set(all.map((r) => r.week));
     const sorted = [...all].sort((a, b) => a.recordedOn.localeCompare(b.recordedOn));
     const first = sorted[0];
     const latest = sorted[sorted.length - 1];
     const compare = weeksWith.size > 1 && first && latest && first.id !== latest.id;
-    if (q.data && !mine.length && hideEmpty) return null;
-    const days = new Set(mine.map((r) => r.weekDay));
     const total = mine.reduce((t, r) => t + (r.durationMs || 0), 0);
     const thumb = thumbOf(w.image);
     const wn = (r: Rec) => `W${Number(r.week.replace('week', ''))}`;
+    const has = mine.length > 0;
     return (
-        <li className={`wk${open && mine.length ? ' open' : ''}`}>
-            <button
-                type="button"
-                className="wh"
-                aria-expanded={open && mine.length > 0}
-                disabled={!mine.length}
-                onClick={onToggle}
-            >
+        <li ref={ref} className={`wk${open && has ? ' open' : ''}`}>
+            <button type="button" className="wh" aria-expanded={open && has} disabled={!has} onClick={onToggle}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- miniatura do espelho, pequena */}
                 {thumb ? <img className="th" src={thumb} alt="" loading="lazy" /> : <span className="th" />}
                 <span className="t">
@@ -386,26 +417,26 @@ const WeekRow: React.FC<{
                     <b>{w.title}</b>
                 </span>
                 <span className="kpi">
-                    {q.isLoading ? (
-                        '…'
-                    ) : mine.length ? (
+                    {!known ? (
+                        <span className="sk" aria-label="Loading" />
+                    ) : has ? (
                         <>
                             <span>
-                                {days.size} of 7 days · {formatDuration(total)}
+                                {mine.length} of 7 days · {formatDuration(total)}
                             </span>
                             <span className="d7" aria-hidden>
                                 {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-                                    <i key={d} className={days.has(`day${d}`) ? 'on' : undefined} />
+                                    <i key={d} className={byDay.has(`day${d}`) ? 'on' : undefined} />
                                 ))}
                             </span>
                         </>
                     ) : (
-                        'No recordings'
+                        <span>No recordings</span>
                     )}
                 </span>
                 <ChevronDown {...ICON} size={18} className="chev" aria-hidden />
             </button>
-            {mine.length > 0 && (
+            {has && (
                 <div className="wp">
                     <div>
                         {compare && (
@@ -417,24 +448,37 @@ const WeekRow: React.FC<{
                             </p>
                         )}
                         <ul className="recs">
-                            {mine.map((r) => (
-                                <li key={r.id}>
-                                    <button
-                                        type="button"
-                                        className={playing === r.id ? 'now' : undefined}
-                                        aria-label={`Play day ${r.weekDay.replace('day', '')}, ${spokenDuration(r.durationMs)}`}
-                                        onClick={() => play(r)}
-                                    >
-                                        <span className="pi">
-                                            <Play {...ICON} size={14} aria-hidden />
-                                        </span>
-                                        <span>
-                                            Day {r.weekDay.replace('day', '')} · {formatRecordedOn(r.recordedOn)}
-                                        </span>
-                                        <small>{formatDuration(r.durationMs)}</small>
-                                    </button>
-                                </li>
-                            ))}
+                            {[1, 2, 3, 4, 5, 6, 7].map((d) => {
+                                const r = byDay.get(`day${d}`);
+                                const wd = WEEK_DAYS[d - 1].label;
+                                return (
+                                    <li key={d}>
+                                        {r ? (
+                                            <button
+                                                type="button"
+                                                className={playing === r.id ? 'now' : undefined}
+                                                aria-label={`Play day ${d}, ${spokenDuration(r.durationMs)}`}
+                                                onClick={() => play(r)}
+                                            >
+                                                <span className="pi">
+                                                    <Play {...ICON} size={14} aria-hidden />
+                                                </span>
+                                                <span>
+                                                    Day {d} · {formatRecordedOn(r.recordedOn)}
+                                                </span>
+                                                <small>{formatDuration(r.durationMs)}</small>
+                                            </button>
+                                        ) : (
+                                            <p className="none">
+                                                <span>
+                                                    Day {d} · {wd}
+                                                </span>
+                                                <small>—</small>
+                                            </p>
+                                        )}
+                                    </li>
+                                );
+                            })}
                         </ul>
                     </div>
                 </div>
@@ -443,39 +487,39 @@ const WeekRow: React.FC<{
     );
 };
 
-const STEP = 8;
-
 export const LampRecordings: React.FC = () => {
     const { melpSummary } = useMelpContext();
-    const grid = useDedasGrid('allDedas');
-    const current = melpSummary?.current_deda_week ?? 0;
-    const unlocked = useMemo(() => melpSummary?.unlocked_dedas ?? [], [melpSummary?.unlocked_dedas]);
+    // a MESMA lista da página de DEDAs: o gotejamento do aluno (unlocked_dedas na ordem, já com pausa e reinício),
+    // bloqueada como lá (suspenso ou nos 2 primeiros dias), semana = semana atual − posição a partir do mais recente
+    const blockedDEDAs = melpSummary?.melp_status === 'MELP_SUSPENDED' || melpSummary?.days_since_melp_start < 2;
+    const grid = useDedasGrid('allDedas', blockedDEDAs);
+    const current = (grid.currentWeek as number) ?? 0;
     const byId = useMemo(() => new Map((grid.allDedas ?? []).map((d) => [d.dedaId, d])), [grid.allDedas]);
     const allWeeks: Week[] = useMemo(
         () =>
-            Array.from({ length: current }, (_, i) => current - i)
-                .filter((w) => unlocked[w])
-                .map((w) => {
-                    const deda = byId.get(unlocked[w]);
+            grid.unlockedDEDAs
+                .slice()
+                .reverse()
+                .map((id, index) => {
+                    const deda = byId.get(id);
                     return {
-                        week: w,
-                        dedaId: unlocked[w],
-                        title: deda?.dedaTitle ?? unlocked[w],
+                        week: current - index,
+                        dedaId: id,
+                        title: deda?.dedaTitle ?? id,
                         slug: deda?.dedaSlug,
                         image: deda?.dedaFeaturedImage?.url,
                     };
                 }),
-        [current, unlocked, byId],
+        [grid.unlockedDEDAs, current, byId],
     );
     const [find, setFind] = useState('');
-    const [shown, setShown] = useState(STEP);
     const [open, setOpen] = useState<Record<number, boolean>>({});
     const [recs, setRecs] = useState<Record<number, Rec[]>>({});
     const [queue, setQueue] = useState<Rec[]>([]);
     const [now, setNow] = useState<Rec>();
 
     const term = find.trim().toLowerCase();
-    const weeks = term ? allWeeks.filter((w) => w.title.toLowerCase().includes(term)) : allWeeks.slice(0, shown);
+    const weeks = term ? allWeeks.filter((w) => w.title.toLowerCase().includes(term)) : allWeeks;
 
     const onRecs = (week: number, mine: Rec[]) =>
         setRecs((r) => (r[week]?.length === mine.length ? r : { ...r, [week]: mine }));
@@ -494,82 +538,16 @@ export const LampRecordings: React.FC = () => {
         }
     }, [recs, allWeeks]);
 
-    // carrega mais semanas ao chegar perto do fim
-    // a rolagem só carrega sozinha enquanto há gravações por perto: depois de 24 semanas seguidas sem nenhuma, um
-    // botão ("Earlier weeks") pede o próximo lote (sem varrer o programa inteiro à toa)
-    const loaded = allWeeks.slice(0, shown);
-    const lastWith = loaded.reduce((at, w, i) => (recs[w.week]?.length ? i : at), -1);
-    const pending = loaded.some((w) => recs[w.week] === undefined);
-    const quiet = !pending && shown - 1 - lastWith >= 3 * STEP;
-    const sentinel = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        const el = sentinel.current;
-        // um lote de cada vez: só pede o próximo quando o anterior já respondeu
-        if (!el || term || quiet || pending) return;
-        const io = new IntersectionObserver(
-            (entries) => entries.some((e) => e.isIntersecting) && setShown((n) => Math.min(allWeeks.length, n + STEP)),
-            { rootMargin: '400px' },
-        );
-        io.observe(el);
-        return () => io.disconnect();
-    }, [allWeeks.length, term, shown, quiet, pending]);
-
-    // ordem do player: as gravações carregadas, da semana mais recente para trás, dia a dia
-    const flat = useMemo(
-        () => allWeeks.flatMap((w) => recs[w.week] ?? []).filter((r, i, a) => a.findIndex((x) => x.id === r.id) === i),
-        [allWeeks, recs],
-    );
+    // ordem do player: as gravações conhecidas, da semana mais recente para trás, dia a dia
+    const flat = useMemo(() => allWeeks.flatMap((w) => recs[w.week] ?? []), [allWeeks, recs]);
     const play = (rec: Rec, q: Rec[] = []) => {
         setQueue(q.slice(1));
         setNow(rec);
     };
     const at = now ? flat.findIndex((r) => r.id === now.id) : -1;
 
-    // semanas vazias seguidas viram uma linha só
-    const loadedEmpty = (w: Week) => recs[w.week]?.length === 0;
-    const rows: React.ReactNode[] = [];
-    for (let i = 0; i < weeks.length; i++) {
-        const w = weeks[i];
-        if (loadedEmpty(w) && !term) {
-            let j = i;
-            while (j + 1 < weeks.length && loadedEmpty(weeks[j + 1])) j++;
-            rows.push(
-                <li key={`gap-${w.week}`} className="gap">
-                    No recordings · {j > i ? `W${weeks[j].week}–W${w.week}` : `W${w.week}`}
-                </li>,
-            );
-            // as semanas vazias seguem montadas (escondidas) para manter as consultas em cache
-            for (let k = i; k <= j; k++)
-                rows.push(
-                    <WeekRow
-                        key={weeks[k].week}
-                        w={weeks[k]}
-                        open={false}
-                        onToggle={() => undefined}
-                        onRecs={onRecs}
-                        play={play}
-                        hideEmpty
-                    />,
-                );
-            i = j;
-            continue;
-        }
-        rows.push(
-            <WeekRow
-                key={w.week}
-                w={w}
-                open={!!open[w.week]}
-                onToggle={() => setOpen((o) => ({ ...o, [w.week]: !o[w.week] }))}
-                onRecs={onRecs}
-                playing={now?.id}
-                play={play}
-                hideEmpty={false}
-            />,
-        );
-    }
-
-    const loadedAll = !term && shown >= allWeeks.length;
-    const none = (loadedAll || quiet) && loaded.every((w) => recs[w.week]?.length === 0);
+    const known = allWeeks.filter((w) => recs[w.week] !== undefined);
+    const none = allWeeks.length > 0 && known.length === allWeeks.length && known.every((w) => !recs[w.week].length);
     const today = allWeeks[0];
 
     return (
@@ -580,7 +558,18 @@ export const LampRecordings: React.FC = () => {
             </div>
             <div className="tools">
                 <p className="hint">
-                    Every reading you recorded in step 2. Listen back to hear how far you&rsquo;ve come.
+                    {none ? (
+                        <>
+                            Your readings from step 2 will appear here, week by week.{' '}
+                            {today?.slug && (
+                                <Link className="lnk gold" href={dedaPath(today.slug)}>
+                                    Record today&rsquo;s reading
+                                </Link>
+                            )}
+                        </>
+                    ) : (
+                        <>Every reading you recorded in step 2. Listen back to hear how far you&rsquo;ve come.</>
+                    )}
                 </p>
                 <input
                     className="find"
@@ -591,29 +580,19 @@ export const LampRecordings: React.FC = () => {
                     onChange={(e) => setFind(e.target.value)}
                 />
             </div>
-            {none ? (
-                <p className="empty">
-                    Your readings from step 2 will appear here, week by week.{' '}
-                    {today?.slug && (
-                        <Link className="lnk gold" href={dedaPath(today.slug)}>
-                            Record today&rsquo;s reading
-                        </Link>
-                    )}
-                </p>
-            ) : (
-                <ul className="weeks">{rows}</ul>
-            )}
-            {!term && shown < allWeeks.length && !quiet && <div ref={sentinel} className="more" aria-hidden />}
-            {!term && shown < allWeeks.length && quiet && (
-                <button
-                    type="button"
-                    className="lnk gold"
-                    style={{ marginTop: 12 }}
-                    onClick={() => setShown((n) => Math.min(allWeeks.length, n + 3 * STEP))}
-                >
-                    Earlier weeks (W{allWeeks[shown]?.week} and before)
-                </button>
-            )}
+            <ul className="weeks">
+                {weeks.map((w) => (
+                    <WeekRow
+                        key={w.week}
+                        w={w}
+                        open={!!open[w.week]}
+                        onToggle={() => setOpen((o) => ({ ...o, [w.week]: !o[w.week] }))}
+                        onRecs={onRecs}
+                        playing={now?.id}
+                        play={play}
+                    />
+                ))}
+            </ul>
             {now && (
                 <Player
                     rec={now}

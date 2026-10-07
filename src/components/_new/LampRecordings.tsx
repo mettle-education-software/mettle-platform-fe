@@ -633,7 +633,7 @@ export const LampRecordings: React.FC = () => {
                 <h2>Your recordings</h2>
             </div>
             {stats.allowed && stats.stats && (
-                <dl className="rk">
+                <dl className="rk lcar sm">
                     <div>
                         <dt>Recording rate</dt>
                         <dd>{Math.round(stats.stats.rate * 100)}%</dd>
@@ -660,8 +660,8 @@ export const LampRecordings: React.FC = () => {
                 </dl>
             )}
             <div className="tools">
-                <p className="hint">
-                    {none ? (
+                {none && (
+                    <p className="hint">
                         <>
                             Your readings from step 2 will appear here, week by week.{' '}
                             {today?.slug && (
@@ -670,10 +670,8 @@ export const LampRecordings: React.FC = () => {
                                 </Link>
                             )}
                         </>
-                    ) : (
-                        <>Every reading you recorded in step 2. Listen back to hear how far you&rsquo;ve come.</>
-                    )}
-                </p>
+                    </p>
+                )}
                 <Select
                     className="find"
                     showSearch

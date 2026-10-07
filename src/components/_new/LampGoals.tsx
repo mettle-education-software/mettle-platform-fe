@@ -11,7 +11,7 @@ import { fullLoadWeek, GoalDay, goalDays, minutesText } from 'libs/newDesign';
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useMelpContext } from 'providers';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { DARK, ICON, LIGHT } from 'themes/newDesign';
 import { useSoftChart } from './lampCharts';
 
@@ -328,6 +328,13 @@ export const LampGoals: React.FC<{ help: React.ReactNode }> = ({ help }) => {
     const [week, setWeek] = useState(current);
     useEffect(() => setWeek(current), [current]);
     const mine = melpSummary?.deda_difficulty;
+    // carrossel do celular começa no nível do aluno
+    const lvls = useRef<HTMLUListElement>(null);
+    useEffect(() => {
+        const ul = lvls.current;
+        const card = ul?.children[LEVELS.indexOf(mine as DedaDifficulty)] as HTMLElement | undefined;
+        if (ul && card && ul.scrollWidth > ul.clientWidth) ul.scrollLeft = card.offsetLeft - ul.offsetLeft - 16;
+    }, [mine]);
     const loading = LEVELS.some((l) => !all[l].length);
 
     // curva até um pouco depois da carga cheia do nível mais lento (depois disso as metas ficam planas)
@@ -420,10 +427,6 @@ export const LampGoals: React.FC<{ help: React.ReactNode }> = ({ help }) => {
                     </Tooltip>
                 </h2>
             </div>
-            <p className="hint lead">
-                What each intensity asks of you per day. Your level was set when you started and changes only with a
-                reset.
-            </p>
 
             <div className="wk">
                 <span className="eyebrow" id="goal-week">
@@ -461,7 +464,7 @@ export const LampGoals: React.FC<{ help: React.ReactNode }> = ({ help }) => {
                 </button>
             </div>
 
-            <ul className="lvls">
+            <ul className="lvls lcar" ref={lvls}>
                 {LEVELS.map((l) => (
                     <Level key={l} level={l} days={all[l]} week={week} mine={l === mine} />
                 ))}
@@ -471,9 +474,6 @@ export const LampGoals: React.FC<{ help: React.ReactNode }> = ({ help }) => {
                 <div className="sh">
                     <h2>How the daily goal grows</h2>
                 </div>
-                <p className="hint">
-                    Each level ramps up week by week, then stays at its full load. Tap the chart to see any week above.
-                </p>
                 {loading ? (
                     <div className="skel" aria-busy />
                 ) : (

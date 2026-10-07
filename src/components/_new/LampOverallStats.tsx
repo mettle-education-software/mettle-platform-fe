@@ -198,11 +198,6 @@ const styles = css`
         font-variant-numeric: tabular-nums;
         color: var(--r-gold-hi);
     }
-    .ostats .os-sub + .os-note {
-        margin-bottom: 10px;
-        font-size: 12.5px;
-        color: var(--r-muted);
-    }
     .ostats .os-empty {
         max-width: 60ch;
         margin-top: 2px;
@@ -350,7 +345,6 @@ const Deda: React.FC<{ report: Report; grand: number }> = ({ report, grand }) =>
                 <p className="eyebrow">Quality</p>
                 {rated && <b>{Math.round(avg)}% avg</b>}
             </div>
-            <p className="os-note">Average of your DEDA self-ratings, 0–100%</p>
             <ol className="os-rows bars">
                 {scores.map((s) => (
                     <li className="os-row" key={s.key}>
@@ -406,7 +400,6 @@ export const LampOverallStats: React.FC<{ order: Order }> = ({ order }) => {
                     <p className="os-big">
                         <Time minutes={grand} />
                     </p>
-                    <p className="hint">DEDA, active and passive study, since you started</p>
                 </div>
                 {grand > 0 ? (
                     <div>

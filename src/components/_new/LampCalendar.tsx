@@ -1,6 +1,7 @@
 'use client';
 
 import { css, Global } from '@emotion/react';
+import { useDedasGrid } from 'components/_melp/_deda/DedasGrid/DedasGrid';
 import { useGetGoalByLevel } from 'hooks';
 import { brasiliaDate, pausedIntervals } from 'libs/dedaRecording';
 import {
@@ -30,7 +31,7 @@ const styles = css`
         --dg-met: #4f8a5c;
         --dg-part: #a8801f;
         --dg-none: var(--r-danger);
-        margin-top: 44px;
+        margin-top: 8px;
     }
     html:not([data-theme='light']) .rcal {
         --dg-met: #86bf93;
@@ -103,7 +104,7 @@ const styles = css`
         color: var(--r-text);
         font: inherit;
         text-align: left;
-        cursor: pointer;
+        cursor: default;
     }
     .rcal .cell .n {
         font-size: 13px;
@@ -130,9 +131,25 @@ const styles = css`
         border: 1.5px solid var(--dg-none);
         color: var(--dg-none);
     }
+    /* hoje: o número num círculo dourado cheio (como no Google Agenda) */
+    .rcal .cell .n.td {
+        display: inline-grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        margin: -4px 0 0 -6px;
+        border-radius: 50%;
+        background: var(--r-gold);
+        color: var(--r-bg);
+        font-weight: 600;
+    }
     .rcal .cell.today {
         border-color: var(--r-line-strong);
         border-style: dashed;
+    }
+    /* hoje: fundo próprio, além do círculo dourado na data */
+    .rcal .cell.is-today {
+        background: var(--r-gold-tint);
     }
     .rcal .cell.today .mk {
         border: 1.5px dashed var(--r-line-strong);
@@ -279,6 +296,11 @@ const styles = css`
         box-shadow: inset 0 0 0 1.5px var(--r-line-strong);
         background: none;
     }
+    .rcal .mini i.td {
+        border-radius: 50%;
+        background: var(--r-gold);
+        box-shadow: none;
+    }
     .rcal .mini i.paused {
         background: repeating-linear-gradient(135deg, transparent 0 2px, var(--r-line-strong) 2px 4px);
     }
@@ -306,6 +328,11 @@ const styles = css`
         }
         .rcal .cell .n {
             font-size: 11.5px;
+        }
+        .rcal .cell .n.td {
+            width: 20px;
+            height: 20px;
+            margin: -2px 0 0 -3px;
         }
         .rcal .cell .mk {
             width: 18px;
@@ -381,7 +408,16 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst
     const [sy, sm] = [Number(start.slice(0, 4)), Number(start.slice(5, 7)) - 1];
     const [mode, setMode] = useState<'month' | 'year'>('month');
     const [cur, setCur] = useState({ y: ty, m: tm });
-    const [sel, setSel] = useState<string>();
+    // clique escolhe o dia (fica até outro clique ou "Today"); passar o mouse só antecipa a linha de detalhe
+    const [sel, setSel] = useState<string>(today);
+    const [hover, setHover] = useState<string>();
+    const blockedDEDAs = melpSummary?.melp_status === 'MELP_SUSPENDED' || melpSummary?.days_since_melp_start < 2;
+    const dg = useDedasGrid('allDedas', blockedDEDAs);
+    const dedaName = (week: number) => {
+        const ids = dg.unlockedDEDAs;
+        const id = ids[ids.length - 1 - ((dg.currentWeek as number) - week)];
+        return dg.allDedas?.find((d) => d.dedaId === id)?.dedaTitle;
+    };
 
     const cell = (iso: string): Cell => {
         if (iso < start) return { iso, st: 'pre', run: false };
@@ -409,7 +445,20 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst
     const counted = monthCells.filter((c) => ['met', 'partial', 'nothing'].includes(c.st));
     const met = monthCells.filter((c) => c.st === 'met').length;
     const ran = monthCells.filter((c) => c.run).length;
-    const selCell = sel ? cell(sel) : undefined;
+    const shown = hover ?? sel;
+    const selCell = shown ? cell(shown) : undefined;
+    const detail = (c: Cell) => {
+        if (c.st === 'paused') return `${prettyDay(c.iso)} · Paused`;
+        const name = c.day && dedaName(c.day.week);
+        return [
+            prettyDay(c.iso),
+            c.day && `W${c.day.week}`,
+            name,
+            dayBreakdown(c.day, c.day ? goals[Math.min(c.day.week, goals.length) - 1] : undefined),
+        ]
+            .filter(Boolean)
+            .join(' · ');
+    };
 
     return (
         <section className="rcal" aria-label="Calendar">
@@ -441,8 +490,10 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst
                         type="button"
                         className="lnk gold"
                         onClick={() => {
+                            setMode('month');
                             setCur({ y: ty, m: tm });
                             setSel(today);
+                            setHover(undefined);
                         }}
                     >
                         Today
@@ -464,7 +515,12 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst
                         <b>{met}</b> of {counted.length} {counted.length === 1 ? 'day' : 'days'} met · DEDA 80%+ on{' '}
                         <b>{ran}</b>
                     </p>
-                    <div className="mgrid" role="grid" aria-label={`${MONTHS[cur.m]} ${cur.y}`}>
+                    <div
+                        className="mgrid"
+                        role="grid"
+                        aria-label={`${MONTHS[cur.m]} ${cur.y}`}
+                        onMouseLeave={() => setHover(undefined)}
+                    >
                         {DOW.map((d) => (
                             <span key={d} className="dow" aria-hidden>
                                 {d}
@@ -486,18 +542,15 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst
                                 <button
                                     key={iso}
                                     type="button"
-                                    className={`cell ${c.st}${sel === iso ? ' sel' : ''}`}
+                                    className={`cell ${c.st}${iso === today ? ' is-today' : ''}${sel === iso ? ' sel' : ''}`}
+                                    aria-current={iso === today ? 'date' : undefined}
                                     aria-label={`${prettyDay(iso)}: ${said}`}
-                                    title={
-                                        live && c.day
-                                            ? `${prettyDay(iso)} · ${dayBreakdown(c.day, c.day ? goals[Math.min(c.day.week, goals.length) - 1] : undefined)}`
-                                            : undefined
-                                    }
                                     disabled={!live}
                                     onClick={() => setSel(iso)}
-                                    onMouseEnter={() => live && setSel(iso)}
+                                    aria-pressed={sel === iso}
+                                    onMouseEnter={() => live && setHover(iso)}
                                 >
-                                    <span className="n">{Number(iso.slice(8))}</span>
+                                    <span className={iso === today ? 'n td' : 'n'}>{Number(iso.slice(8))}</span>
                                     {c.run && <i className="run" aria-hidden />}
                                     <span className="mk" aria-hidden>
                                         {c.st === 'met' && <Check {...ICON} size={14} strokeWidth={2.4} />}
@@ -508,18 +561,7 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst
                         })}
                     </div>
                     <p className="detail" aria-live="polite">
-                        {selCell && selCell.st !== 'pre' && selCell.st !== 'future'
-                            ? `${prettyDay(selCell.iso)} · ${
-                                  selCell.st === 'paused'
-                                      ? 'Paused'
-                                      : dayBreakdown(
-                                            selCell.day,
-                                            selCell.day
-                                                ? goals[Math.min(selCell.day.week, goals.length) - 1]
-                                                : undefined,
-                                        )
-                              }`
-                            : 'Tap a day to see it'}
+                        {selCell && selCell.st !== 'pre' && selCell.st !== 'future' && detail(selCell)}
                     </p>
                 </>
             ) : (
@@ -542,7 +584,12 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst
                                     {g.flat().map((iso, i) => {
                                         if (!iso) return <i key={`b${i}`} className="e" />;
                                         const c = cell(iso);
-                                        return <i key={iso} className={`${c.st}${c.run ? ' run' : ''}`} />;
+                                        return (
+                                            <i
+                                                key={iso}
+                                                className={`${c.st}${c.run ? ' run' : ''}${iso === today ? ' td' : ''}`}
+                                            />
+                                        );
                                     })}
                                 </span>
                             </button>

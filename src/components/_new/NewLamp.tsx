@@ -192,6 +192,7 @@ const lampStyles = css`
     }
     /* colunas lado a lado: sem o respiro vertical entre seções irmãs */
     .ui-new-page.lamp .two > section + section,
+    .ui-new-page.lamp .mtwo > section + section,
     .ui-new-page.lamp .cols3 > section + section {
         margin-top: 0;
     }
@@ -295,6 +296,11 @@ const lampStyles = css`
         font-size: 14px;
         line-height: 1.35;
         color: var(--r-text);
+    }
+    /* os cinco critérios do DEDA numa linha só (Predetermined Place/Time é o mais longo) */
+    .ui-new-page.lamp .fr.s .lab {
+        font-size: 13px;
+        white-space: nowrap;
     }
     .ui-new-page.lamp .fr .lab small {
         margin-left: 6px;
@@ -432,6 +438,32 @@ const lampStyles = css`
         }
         .ui-new-page.lamp .fr .lab {
             font-size: 13.5px;
+        }
+    }
+    /* grupos de cartões no celular: carrossel na horizontal (encaixe por cartão, o próximo aparece na borda) */
+    @media (max-width: 760px) {
+        .ui-new-page.lamp .lcar {
+            display: grid;
+            grid-template-columns: none;
+            grid-auto-flow: column;
+            grid-auto-columns: 82%;
+            gap: 12px;
+            margin-inline: -16px;
+            padding: 2px 16px 6px;
+            overflow-x: auto;
+            overscroll-behavior-x: contain;
+            scroll-snap-type: x mandatory;
+            scroll-padding-inline: 16px;
+            scrollbar-width: none;
+        }
+        .ui-new-page.lamp .lcar::-webkit-scrollbar {
+            display: none;
+        }
+        .ui-new-page.lamp .lcar > * {
+            scroll-snap-align: start;
+        }
+        .ui-new-page.lamp .lcar.sm {
+            grid-auto-columns: 42%;
         }
     }
 `;

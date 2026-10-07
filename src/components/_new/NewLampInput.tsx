@@ -140,10 +140,6 @@ const styles = css`
     .linput .gt .note s {
         text-decoration: none;
     }
-    .linput .rule {
-        margin: 0 0 28px;
-        font-size: 13px;
-    }
 
     .ui-new-page.lamp .linput .cols3 {
         grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr);
@@ -159,11 +155,6 @@ const styles = css`
     .linput h3 .sum b {
         font-weight: 500;
         color: var(--r-text);
-    }
-    .linput .ro {
-        margin: -2px 0 8px;
-        font-size: 12.5px;
-        color: var(--r-muted);
     }
 
     /* estrelas com o nome do nível escolhido */
@@ -308,7 +299,7 @@ const Hm: React.FC<{ id: string; value: number; onChange(value: number): void }>
     );
 };
 
-const Hint: React.FC<{ text: string }> = ({ text }) => (
+export const Hint: React.FC<{ text: string }> = ({ text }) => (
     <Tooltip title={text} placement="top">
         <button type="button" className="ib hint-i" aria-label={text}>
             <Info {...ICON} size={16} />
@@ -456,7 +447,6 @@ export const NewLampInput: React.FC = () => {
     const avg = rated.length ? rated.reduce((a, b) => a + b, 0) / rated.length : 0;
     const reviews = ([1, 2, 3] as const).filter((n) => inputData?.reviewInput?.[`review${n}`]);
     const reviewsDone = reviews.filter((n) => edit[`reviewStatus${n}`]).length;
-    const dedaTime = inputData?.dedaInput?.deda_time ?? 0;
 
     const rate = (key: keyof LampInputEdit, label: string) => {
         const value = Number(edit[key]) || 0;
@@ -705,10 +695,6 @@ export const NewLampInput: React.FC = () => {
                             </li>
                         )}
                     </ul>
-                    <p className="hint rule">
-                        Each day counts on its own: time beyond the goal doesn&rsquo;t add up, and a missed day
-                        can&rsquo;t be made up later.
-                    </p>
 
                     <div className="cols3">
                         <section aria-labelledby="lamp-deda">
@@ -716,11 +702,6 @@ export const NewLampInput: React.FC = () => {
                                 DEDA{' '}
                                 <Hint text="Rate the quality of your DEDA session. The day counts for your DEDA Run at 80% or more." />
                             </h3>
-                            <p className="ro">
-                                {dedaTime > 0
-                                    ? `DEDA time ${minutesText(dedaTime)} · from your DEDA session`
-                                    : 'DEDA time comes from your DEDA session'}
-                            </p>
                             <div className="frs">{QUALITY.map(([k, l]) => rate(k, l))}</div>
                         </section>
                         <section aria-labelledby="lamp-active">
@@ -749,7 +730,7 @@ export const NewLampInput: React.FC = () => {
                             <h3 id="lamp-review">
                                 Review <Hint text="Mark each review as completed when done." />
                             </h3>
-                            <div className="revs">
+                            <div className="revs lcar">
                                 {reviews.map((n) => {
                                     const review = inputData.reviewInput?.[`review${n}`];
                                     if (!review) return null;

@@ -863,6 +863,35 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
             </div>
         );
 
+        // Gaveta do menu: a MESMA da casca no celular e, no computador, a que o cabeçalho do leitor do DEDA abre (o leitor cobre
+        // a barra lateral). Sempre o logo inteiro, o rodapé completo e o seletor de tema em três opções.
+        const drawer = (
+            <Drawer
+                rootClassName={`ui-new-drawer ${UI_FONT_CLASS}`}
+                rootStyle={UI_FONT_VAR}
+                closeIcon={<X {...ICON} aria-label="Fechar" />}
+                open={open}
+                onClose={() => setOpen(false)}
+                placement="left"
+                width={290}
+                title={
+                    <a className="logo" href="/" aria-label="Mettle — Início" onClick={goHome}>
+                        <Logo theme={logoTheme} />
+                    </a>
+                }
+            >
+                <Nav items={navItems} active={active} rail={false} goImerso={goImerso} />
+                <div className="foot">
+                    <MelpMini />
+                    <AdminItem />
+                    <div className="who">
+                        <User />
+                        <ThemeSwitch className="theme" />
+                    </div>
+                </div>
+            </Drawer>
+        );
+
         return (
             <Frame
                 className={`ui-new${isMobile ? ' m' : rail ? ' rail' : ''}${isMobile ? '' : ` ${swap}${settled ? ' settled' : ''}`}`}
@@ -878,19 +907,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                             {brand}
                             {withMelpSummary && <MelpMini />}
                         </header>
-                        <Drawer
-                            rootClassName={`ui-new-drawer ${UI_FONT_CLASS}`}
-                            rootStyle={UI_FONT_VAR}
-                            closeIcon={<X {...ICON} aria-label="Fechar" />}
-                            open={open}
-                            onClose={() => setOpen(false)}
-                            placement="left"
-                            width={290}
-                            title={brand}
-                        >
-                            <Nav items={navItems} active={active} rail={false} goImerso={goImerso} />
-                            {foot}
-                        </Drawer>
+                        {drawer}
                     </>
                 ) : (
                     <aside className={`sb ${UI_FONT_CLASS}`}>
@@ -910,6 +927,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                         {foot}
                     </aside>
                 )}
+                {!isMobile && drawer}
                 <div className="main" ref={ref}>
                     {graceBanner}
                     {content}

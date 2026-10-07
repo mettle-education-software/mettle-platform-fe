@@ -158,8 +158,18 @@ const styles = css`
     }
 
     /* estrelas com o nome do nível escolhido */
+    /* critério, estrelas e nível numa linha só (o nível só aparece com nota) */
     .linput .fr.s {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+    }
+    .linput .fr.s .lab {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .linput .fr.s:not(.on) .sname {
+        display: none;
     }
     .linput .stars {
         display: flex;
@@ -175,6 +185,27 @@ const styles = css`
     }
     .linput .fr.on .sname {
         color: var(--r-gold-hi);
+    }
+    @media (max-width: 420px) {
+        .linput .fr.s {
+            gap: 8px;
+        }
+        .ui-new-page.lamp .linput .fr.s .lab {
+            font-size: 12.5px;
+        }
+        .linput .stars {
+            gap: 6px;
+        }
+        .linput .stars .ant-rate {
+            font-size: 16px;
+        }
+        .linput .stars .ant-rate .ant-rate-star:not(:last-child) {
+            margin-inline-end: 3px;
+        }
+        .linput .sname {
+            min-width: 0;
+            font-size: 12px;
+        }
     }
 
     /* tempo: hh:mm e, na linha em uso, +5 / +15 / +30 / Clear */

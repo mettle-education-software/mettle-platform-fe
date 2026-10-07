@@ -184,8 +184,8 @@ const styles = css`
     }
     .hist .runs {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 0 32px;
+        grid-template-columns: minmax(0, 1fr);
+        max-width: 560px;
         margin: 14px 0 0;
         padding: 0;
         list-style: none;
@@ -480,6 +480,8 @@ const Trend: React.FC = () => {
         xaxis: {
             ...base.xaxis,
             tickAmount: 8,
+            // 104 semanas: só os rótulos (a cada ~12), sem marca por semana
+            axisTicks: { show: false },
             labels: { ...base.xaxis?.labels, rotate: 0, hideOverlappingLabels: true },
         },
         yaxis: { ...(base.yaxis as object), tickAmount: 4 },

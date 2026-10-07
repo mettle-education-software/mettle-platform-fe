@@ -263,6 +263,46 @@ export const rankActivities = <T extends { minutes: number }>(rows: T[], order: 
     };
 };
 
+/** Minutos (com fração) em texto curto: 33 → "33 min", 65 → "1h05", 180 → "3h", 4.5 → "4 min 30 s" (com segundos). */
+export const minutesText = (minutes: number, withSeconds = false) => {
+    const m = Math.max(0, minutes || 0);
+    if (withSeconds && m < 60) {
+        const secs = Math.round(m * 60);
+        const s = secs % 60;
+        return s ? `${Math.floor(secs / 60)} min ${s} s` : `${Math.floor(secs / 60)} min`;
+    }
+    return goalLabel(formatHm(Math.round(m)));
+};
+
+/** Rótulos dos eixos da LAMP em palavras: "W12" → "Week 12", "D02" → "Day 2", "ACTIVE" → "Active". */
+export const axisWords = (label: string) =>
+    label
+        .replace(/^W0*(\d+)$/, 'Week $1')
+        .replace(/^D0*(\d+)$/, 'Day $1')
+        .replace(/^[A-Z]{3,}$/, (w) => (w === 'DEDA' ? w : w[0] + w.slice(1).toLowerCase()));
+
+/** Balão dos gráficos da LAMP: o valor em destaque e um rótulo curto (texto escapado). */
+export const chartTip = (value: string, label: string) => {
+    const esc = (t: string) => t.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+    return `<div class="ltip"><b>${esc(value)}</b><span>${esc(label)}</span></div>`;
+};
+
+/** Meta do dia em minutos por categoria. O total é a soma (a planilha/API traz um total errado no Flow, semana 52). */
+export type GoalDay = { week: number; deda: number; active: number; review: number; passive: number; total: number };
+export const goalDays = (rows?: { week: number; deda: string; active: string; review: string; passive: string }[]) =>
+    (rows ?? []).map((r) => {
+        const [deda, active, review, passive] = [r.deda, r.active, r.review, r.passive].map(
+            (t) => parseHm(t ?? '') || 0,
+        );
+        return { week: r.week, deda, active, review, passive, total: deda + active + review + passive };
+    });
+
+/** Primeira semana em que o nível chega à carga cheia (o maior total do programa). */
+export const fullLoadWeek = (days: GoalDay[]) => {
+    const max = Math.max(0, ...days.map((d) => d.total));
+    return days.find((d) => d.total === max)?.week ?? 1;
+};
+
 export const WEEK_DAYS = [
     { label: 'Monday', value: 'day1' },
     { label: 'Tuesday', value: 'day2' },

@@ -26,7 +26,7 @@ const Hm: React.FC<{ id: string; value: number; onChange(value: number): void }>
     return (
         <input
             id={id}
-            className="hm"
+            className={parseHm(text) > 0 ? 'hm on' : 'hm'}
             inputMode="numeric"
             autoComplete="off"
             value={text}
@@ -110,8 +110,9 @@ export const NewLampInput: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedWeek, selectedDay]);
 
+    // preenchido no dia (estrela dada ou tempo maior que zero): rótulo em destaque, campo/estrelas em dourado
     const rate = (key: keyof typeof edit, label: string) => (
-        <div className="fr" key={key}>
+        <div className={Number(edit[key]) > 0 ? 'fr on' : 'fr'} key={key}>
             <span className="lab" id={`lamp-${key}`}>
                 {label}
             </span>
@@ -124,7 +125,7 @@ export const NewLampInput: React.FC = () => {
         </div>
     );
     const time = (key: keyof typeof edit, label: React.ReactNode) => (
-        <div className="fr" key={key}>
+        <div className={Number(edit[key]) > 0 ? 'fr on' : 'fr'} key={key}>
             <label className="lab" htmlFor={`lamp-${key}`}>
                 {label}
             </label>

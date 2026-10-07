@@ -41,12 +41,16 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
+import { Roboto } from 'next/font/google';
 import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { chatAudio, chatFetch, reactChat, sendChat, sendSticker } from 'services/chatService';
 import { LIGHT_ROOT } from 'themes/newDesign';
 import { ChatPicker } from './ChatPicker';
 import { NewPage } from './NewPage';
+
+/** WhatsApp Web usa Roboto (--body-font-family); só esta página, a casca continua com a fonte da Mettle. */
+const waFont = Roboto({ subsets: ['latin'], weight: ['400', '500', '700'], display: 'swap' });
 
 const ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image/heic,application/pdf';
 const MAX_FILE = 15 * 1024 * 1024;
@@ -864,7 +868,7 @@ const NewChat: React.FC = () => {
 
     return (
         <NewPage className="lesson fill">
-            <Wrap>
+            <Wrap className={waFont.className} style={{ '--c-font': waFont.style.fontFamily } as React.CSSProperties}>
                 <header className="hd">
                     <MettleMark />
                     <h1>Suporte Mettle</h1>
@@ -1171,36 +1175,69 @@ export default NewChat;
 /* Papel de parede: rabiscos de linha do nosso mundo, densos como o do WhatsApp (desenho próprio), um arquivo por tema em
    public/img/chat-wall-{dark,light}.svg (ladrilho de 400 px; gerado por scripts/chat-wallpaper.py). */
 const Wrap = styled.div`
-    --c-wall: #1f1d1b;
-    --c-head: #2b2a29;
-    --c-in: #353331;
-    --c-out: #5b4632;
-    --c-out-text: #f6efe6;
-    --c-chip: #353331;
-    --c-meta: rgba(243, 237, 228, 0.62);
-    --c-read: #e2b884;
+    /* identidade do WhatsApp nesta página (pedido do André): cores das variáveis públicas do WhatsApp Web
+       (--WDS-*, tema padrão de out/2026), papel de parede nosso tingido como o deles; a casca segue Mettle */
+    /* neutros medidos na captura do WhatsApp Web do André (calibrados pela nossa captura no mesmo Mac); cores dos tokens */
+    --c-wall: #0e0e0e;
+    --c-head: #1b1c1c;
+    --c-in: #242626; /* systems-bubble-surface-incoming */
+    --c-out: #144d37; /* systems-bubble-surface-outgoing */
+    --c-out-text: #fafafa;
+    --c-chip: #1d1f1f; /* systems-bubble-surface-system (data, reação) */
+    --c-meta: rgba(255, 255, 255, 0.6); /* systems-bubble-content-deemphasized */
+    --c-read: #53bdeb; /* content-read */
     --c-name-l: 72%;
-    --c-quote: rgba(0, 0, 0, 0.22);
-    --c-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.35);
+    --c-quote: rgba(0, 0, 0, 0.2); /* systems-bubble-surface-overlay */
+    --c-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
     --c-wallpaper: url('/img/chat-wall-dark.svg');
-    --c-pill: #3a3836;
-    --c-pill-line: rgba(255, 255, 255, 0.08);
+    --c-pill: #353535;
+    --c-pill-line: rgba(255, 255, 255, 0.14);
+    --c-accent: #21c063;
+    --c-on-accent: #0a0a0a;
+    /* tokens da Mettle usados pelo CSS do chat, trocados pelos do WhatsApp só aqui dentro */
+    --r-text: #fafafa;
+    --r-muted: rgba(255, 255, 255, 0.6);
+    --r-faint: rgba(255, 255, 255, 0.6);
+    --r-line: rgba(255, 255, 255, 0.1);
+    --r-hover: rgba(255, 255, 255, 0.06);
+    --r-surf: #242626;
+    --r-gold: #21c063;
+    --r-gold-hi: #21c063;
+    --r-on-gold: #0a0a0a;
+    --r-bg-rgb: 22, 23, 23;
 
     ${LIGHT_ROOT} & {
-        --c-wall: #efe8dc;
-        --c-head: #f6f1e9;
+        --c-wall: #f5f1eb;
+        --c-head: #f7f5f3;
         --c-in: #ffffff;
-        --c-out: #f1dcbf;
-        --c-out-text: #2a2622;
-        --c-chip: #ffffff;
-        --c-meta: rgba(42, 38, 34, 0.55);
-        --c-read: #a0662a;
+        --c-out: #d9fdd3;
+        --c-out-text: #0a0a0a;
+        --c-chip: rgba(255, 255, 255, 0.9);
+        --c-meta: rgba(0, 0, 0, 0.6);
+        --c-read: #007bfc;
         --c-name-l: 36%;
-        --c-quote: rgba(52, 40, 26, 0.07);
-        --c-shadow: 0 1px 0.5px rgba(52, 40, 26, 0.16);
+        --c-quote: rgba(194, 189, 184, 0.15);
+        --c-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
         --c-wallpaper: url('/img/chat-wall-light.svg');
         --c-pill: #ffffff;
-        --c-pill-line: rgba(52, 40, 26, 0.1);
+        --c-pill-line: transparent;
+        --c-accent: #1daa61;
+        --c-on-accent: #ffffff;
+        --r-text: #0a0a0a;
+        --r-muted: rgba(0, 0, 0, 0.6);
+        --r-faint: rgba(0, 0, 0, 0.6);
+        --r-line: rgba(0, 0, 0, 0.1);
+        --r-hover: rgba(0, 0, 0, 0.05);
+        --r-surf: #ffffff;
+        --r-gold: #1daa61;
+        --r-gold-hi: #1daa61;
+        --r-on-gold: #ffffff;
+        --r-bg-rgb: 245, 241, 235;
+    }
+    font-family: var(--c-font), Roboto, 'Helvetica Neue', Helvetica, sans-serif;
+    /* celular: o app do WhatsApp no iPhone usa a fonte do sistema */
+    @media (max-width: 600px) {
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, var(--c-font), sans-serif;
     }
 
     --sab: env(safe-area-inset-bottom, 0px);
@@ -1223,7 +1260,7 @@ const Wrap = styled.div`
         display: flex;
         align-items: center;
         gap: 14px;
-        height: 60px;
+        height: 55px;
         padding: 0 16px;
         background: var(--c-head);
         border-bottom: 1px solid var(--r-line);
@@ -1242,7 +1279,7 @@ const Wrap = styled.div`
         overflow-y: auto;
         overflow-x: hidden;
         overscroll-behavior: contain;
-        padding: 10px clamp(12px, 6%, 72px) 8px;
+        padding: 10px 14px 8px;
     }
     .list > .col {
         display: flex;
@@ -1278,6 +1315,7 @@ const Wrap = styled.div`
         background: var(--c-chip);
         box-shadow: var(--c-shadow);
         font-size: 12.5px;
+        font-weight: 500;
         color: var(--r-muted);
     }
     .unread {
@@ -1301,7 +1339,7 @@ const Wrap = styled.div`
         display: flex;
         flex-direction: column;
         align-items: flex-start;
-        margin-top: 2px;
+        margin-top: 6px;
     }
     .msg.first {
         margin-top: 8px;
@@ -1344,13 +1382,13 @@ const Wrap = styled.div`
         position: relative;
         min-width: 0;
         max-width: 100%;
-        padding: 7px 11px 8px;
-        border-radius: 18px;
+        padding: 7px 11px 7px;
+        border-radius: 12px;
         background: var(--c-in);
         box-shadow: var(--c-shadow);
         color: var(--r-text);
-        font-size: 14.5px;
-        line-height: 1.35;
+        font-size: 14.2px;
+        line-height: 17px;
         overflow-wrap: anywhere;
         transition: transform 120ms ease;
         touch-action: pan-y;
@@ -1369,20 +1407,20 @@ const Wrap = styled.div`
         content: '';
         position: absolute;
         bottom: 0;
-        left: -8px;
-        width: 12px;
-        height: 18px;
+        left: -6px;
+        width: 10px;
+        height: 16px;
         background: inherit;
-        clip-path: path('M12 0 V18 H1.2 C0.2 18 -0.2 17 0.7 16.4 C4.6 13.6 8 9.6 8 2 V0 Z');
+        clip-path: path('M10 0 V16 H1.1 C0.2 16 -0.2 15.1 0.6 14.6 C3.6 12.2 6 8.6 6 2 V0 Z');
     }
     .msg.me .bub.tail {
-        border-bottom-left-radius: 18px;
+        border-bottom-left-radius: 12px;
         border-bottom-right-radius: 0;
     }
     .msg.me .bub.tail::after {
         left: auto;
-        right: -8px;
-        clip-path: path('M0 0 V18 H10.8 C11.8 18 12.2 17 11.3 16.4 C7.4 13.6 4 9.6 4 2 V0 Z');
+        right: -6px;
+        clip-path: path('M0 0 V16 H8.9 C9.8 16 10.2 15.1 9.4 14.6 C6.4 12.2 4 8.6 4 2 V0 Z');
     }
     .bub.hasq {
         padding-top: 4px;
@@ -1483,13 +1521,13 @@ const Wrap = styled.div`
         cursor: pointer;
     }
     .qn {
-        font-size: 12.5px;
+        font-size: 12.8px;
         font-weight: 600;
         color: hsl(var(--h) 52% var(--c-name-l));
     }
     .qt {
         min-width: 0;
-        font-size: 13.5px;
+        font-size: 13.2px;
         line-height: 18px;
         opacity: 0.8;
         overflow: hidden;
@@ -1502,7 +1540,7 @@ const Wrap = styled.div`
         padding: 3px;
     }
     .bub.media .img {
-        border-radius: 15px;
+        border-radius: 9px;
     }
     .img {
         position: relative;
@@ -1634,7 +1672,8 @@ const Wrap = styled.div`
         opacity: 0.4;
     }
     .bars i.on {
-        opacity: 0.95;
+        opacity: 1;
+        background: var(--c-read);
     }
     .bars i.dot {
         height: 3px !important;
@@ -1646,7 +1685,7 @@ const Wrap = styled.div`
         height: 13px;
         margin: -6.5px 0 0 -2px;
         border-radius: 50%;
-        background: currentColor;
+        background: var(--c-read);
     }
     .vmeta {
         display: flex;
@@ -1912,7 +1951,7 @@ const Wrap = styled.div`
     .composer {
         flex: none;
         /* área segura de baixo (indicador de início do iPhone) + folga, como no WhatsApp */
-        padding: 6px 16px calc(max(var(--sab), 12px) + 8px);
+        padding: 6px 7px calc(var(--sab) + 8px) 9px;
         background: none;
     }
     .replying {
@@ -1956,15 +1995,16 @@ const Wrap = styled.div`
         align-items: flex-end;
         gap: 8px;
     }
-    /* "+", campo e microfone: mesma altura (46 px), mesma linha de centro, mesmo espaço entre eles */
+    /* medidas do WhatsApp Web: "+" e microfone de 36 px, campo de 32 px na mesma linha de centro, 8 px entre eles */
     .pillin {
         flex: 1;
         min-width: 0;
         display: flex;
         align-items: flex-end;
-        min-height: 46px;
-        padding: 0 3px 0 18px;
-        border-radius: 23px;
+        min-height: 32px;
+        padding: 0 3px 0 14px;
+        border-radius: 16px;
+        margin-bottom: 2px;
         background: var(--c-pill);
         border: 1px solid var(--c-pill-line);
         box-shadow: var(--c-shadow);
@@ -1972,9 +2012,9 @@ const Wrap = styled.div`
     .pillin textarea {
         flex: 1;
         min-width: 0;
-        min-height: 44px;
+        min-height: 30px;
         max-height: 132px;
-        padding: 12px 0;
+        padding: 5px 0;
         border: 0;
         outline: none;
         resize: none;
@@ -2003,9 +2043,12 @@ const Wrap = styled.div`
     .ib[aria-pressed='true'] {
         color: var(--r-text);
     }
+    .pillin .ib {
+        height: 30px;
+    }
     .ib.plus {
-        width: 46px;
-        height: 46px;
+        width: 36px;
+        height: 36px;
         background: var(--c-pill);
         border: 1px solid var(--c-pill-line);
         box-shadow: var(--c-shadow);
@@ -2015,8 +2058,8 @@ const Wrap = styled.div`
         flex: none;
         display: grid;
         place-items: center;
-        width: 46px;
-        height: 46px;
+        width: 36px;
+        height: 36px;
         border: 0;
         border-radius: 50%;
         background: var(--r-gold);
@@ -2035,9 +2078,9 @@ const Wrap = styled.div`
         display: flex;
         align-items: center;
         gap: 10px;
-        height: 46px;
-        padding: 0 16px;
-        border-radius: 23px;
+        height: 32px;
+        padding: 0 14px;
+        border-radius: 16px;
         background: var(--c-pill);
         border: 1px solid var(--c-pill-line);
         font-variant-numeric: tabular-nums;
@@ -2064,6 +2107,9 @@ const Wrap = styled.div`
         }
         .bub {
             padding: 8px 12px 8px;
+            border-radius: 18px;
+            font-size: 16.5px;
+            line-height: 22px;
         }
         .tm {
             right: 12px;
@@ -2096,6 +2142,7 @@ const Wrap = styled.div`
             box-shadow: none;
         }
         .pillin {
+            margin-bottom: 0;
             min-height: 40px;
             border-radius: 20px;
             padding-left: 14px;

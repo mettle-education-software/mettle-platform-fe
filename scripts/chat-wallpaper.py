@@ -53,16 +53,16 @@ def build(stroke, opacity):
     def fits(x, y, r):
         for (x2, y2, r2) in items:
             dx = min(abs(x - x2), T - abs(x - x2)); dy = min(abs(y - y2), T - abs(y - y2))
-            if math.hypot(dx, dy) < r + r2 - 2: return False  # os desenhos não enchem o círculo: encostam, como no WhatsApp
+            if math.hypot(dx, dy) < r + r2 + 1.2: return False  # pequenos e juntos, como no WhatsApp
         return True
     placed = []
     names = list(ICONS)
     # grandes e médios primeiro, depois pequenos, depois enchimento até saturar
-    for rmin, rmax, pool, tries in ((26, 36, names, 3000), (17, 25, names, 5000), (11, 16, names, 7000), (5, 8, list(SMALL), 12000)):
+    for rmin, rmax, pool, tries in ((13, 17, names, 6000), (9.5, 13, names, 9000), (7, 9.5, names, 12000), (2.2, 3.6, list(SMALL), 16000)):
         for _ in range(tries):
             r = rnd.uniform(rmin, rmax); x = rnd.uniform(0, T); y = rnd.uniform(0, T)
             if fits(x, y, r):
-                items.append((x, y, r)); placed.append((rnd.choice(pool), x, y, r, rnd.uniform(-40, 40), rnd.uniform(0.94, 1.06), rnd.uniform(1.35, 1.9)))
+                items.append((x, y, r)); placed.append((rnd.choice(pool), x, y, r, rnd.uniform(-40, 40), rnd.uniform(0.94, 1.06), rnd.uniform(1.0, 1.25)))  # traço de ~1 px, levemente irregular
     uses = []
     for name, x, y, r, rot, sq, sw in placed:
         s = (2 * r) / 40
@@ -77,7 +77,8 @@ def build(stroke, opacity):
            + ''.join(uses) + "</g></svg>")
     return svg, len(placed)
 
-for theme, stroke, op in (('dark', '#ffffff', 0.07), ('light', '#4a3a26', 0.085)):
+# cores do papel de parede do WhatsApp Web (--WDS-systems-chat-foreground-wallpaper): escuro branco a 10%, claro #EAE0D3
+for theme, stroke, op in (('dark', '#ffffff', 0.1), ('light', '#EAE0D3', 1)):
     svg, n = build(stroke, op)
     open(f'public/img/chat-wall-{theme}.svg', 'w').write(svg)
     print(theme, n, 'rabiscos', len(svg), 'bytes')

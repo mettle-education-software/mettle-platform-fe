@@ -577,6 +577,56 @@ export const weeklyQuality = (days: LampDay[]) => {
         }));
 };
 
+// ---------- calendário da LAMP ----------
+
+const isoPlus = (iso: string, n: number) => {
+    const t = new Date(`${iso}T12:00:00Z`);
+    t.setUTCDate(t.getUTCDate() + n);
+    return t.toISOString().slice(0, 10);
+};
+
+/**
+ * Dias do programa no calendário: do mais recente (hoje) para trás, um dia do programa por dia de calendário, pulando
+ * os dias em pausa (a pausa congela o programa). Devolve a data de cada dia, os dias pausados e o primeiro dia.
+ */
+export const calendarDays = (
+    newestFirst: LampDay[],
+    today: string,
+    paused: { from: string; to?: string }[] = [],
+) => {
+    const isPaused = (iso: string) => paused.some((p) => iso >= p.from && (!p.to || iso < p.to));
+    const byDate = new Map<string, LampDay>();
+    const pausedDays = new Set<string>();
+    let d = today;
+    for (const day of newestFirst) {
+        while (isPaused(d)) {
+            pausedDays.add(d);
+            d = isoPlus(d, -1);
+        }
+        byDate.set(d, day);
+        d = isoPlus(d, -1);
+    }
+    const start = isoPlus(d, 1);
+    // pausas depois do início (até hoje) também aparecem como pausa
+    for (const p of paused)
+        for (let x = p.from; x <= (p.to ? isoPlus(p.to, -1) : today) && x <= today; x = isoPlus(x, 1))
+            if (x >= start) pausedDays.add(x);
+    return { byDate, pausedDays, start };
+};
+
+/** Semanas (segunda a domingo) de um mês: datas AAAA-MM-DD, null fora do mês. */
+export const monthGrid = (year: number, month: number) => {
+    const first = new Date(Date.UTC(year, month, 1));
+    const lead = (first.getUTCDay() + 6) % 7; // segunda = 0
+    const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    const cells: (string | null)[] = [
+        ...Array(lead).fill(null),
+        ...Array.from({ length: days }, (_, i) => new Date(Date.UTC(year, month, i + 1)).toISOString().slice(0, 10)),
+    ];
+    while (cells.length % 7) cells.push(null);
+    return Array.from({ length: cells.length / 7 }, (_, i) => cells.slice(i * 7, i * 7 + 7));
+};
+
 export const WEEK_DAYS = [
     { label: 'Monday', value: 'day1' },
     { label: 'Tuesday', value: 'day2' },

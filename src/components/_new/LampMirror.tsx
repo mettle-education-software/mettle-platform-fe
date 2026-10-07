@@ -23,6 +23,7 @@ import { useAppContext } from 'providers';
 import React, { useEffect, useRef, useState } from 'react';
 import { DARK, ICON, LIGHT } from 'themes/newDesign';
 import { DailyGoal } from './DailyGoal';
+import { LampCalendar } from './LampCalendar';
 import { useSoftChart } from './lampCharts';
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -46,7 +47,7 @@ const styles = css`
     .drun .drun-kpis {
         display: flex;
         align-items: flex-end;
-        gap: 40px;
+        gap: 12px 30px;
         flex-wrap: wrap;
     }
     .drun .drun-n {
@@ -323,39 +324,15 @@ const Hero: React.FC<{ run: Run }> = ({ run }) => {
     );
 };
 
-/** Mapa de constância: semanas em colunas, dias em linhas; ouro = contou, vermelho = abaixo de 80%, vazio = sem DEDA. */
+/** Calendário da DEDA Run e da meta do dia, com as maiores Runs em cima. */
 const ConstancyMap: React.FC<{ run: Run }> = ({ run }) => {
-    const [pick, setPick] = useState<LampDay>();
     const oldestFirst = [...run.newestFirst].reverse();
     const tops = topRuns(oldestFirst, 3);
     const best = tops[0];
-    const first = oldestFirst[0]?.week ?? run.currentWeek;
-    const weeks = Array.from({ length: run.currentWeek - first + 1 }, (_, i) => first + i);
-    const at = new Map(oldestFirst.map((d) => [`${d.week}:${d.day}`, d]));
-    // a largura do conteúdo inteira: colunas mais largas (até 48 px) quando há poucas semanas; rolagem lateral quando há
-    // mais semanas do que cabem a 9 px
-    const scroller = useRef<HTMLDivElement>(null);
-    const [width, setWidth] = useState(0);
-    useEffect(() => {
-        const el = scroller.current;
-        if (!el) return;
-        const ro = new ResizeObserver(() => setWidth(el.clientWidth));
-        ro.observe(el);
-        return () => ro.disconnect();
-    }, []);
-    const cw = Math.max(9, Math.min(48, Math.floor((width || 600) / weeks.length) - 3));
-    const ch = Math.max(9, Math.min(18, cw));
-    const every = Math.max(1, Math.ceil(34 / (cw + 3)));
-    const label = (d: LampDay) => `${dayLabel(d)} · ${d.deda > 0 ? `${Math.round(d.deda)}%` : 'no DEDA'}`;
     return (
-        <section className="cmap" aria-label="Constancy map">
+        <section className="cmap" aria-label="Calendar">
             <div className="sh">
-                <h2>Constancy map</h2>
-                {first > 1 && (
-                    <button type="button" className="lnk gold" onClick={() => run.more(8)} disabled={run.loading}>
-                        {run.loading ? 'Loading…' : 'Earlier weeks'}
-                    </button>
-                )}
+                <h2>Calendar</h2>
             </div>
             {best ? (
                 <>
@@ -379,61 +356,10 @@ const ConstancyMap: React.FC<{ run: Run }> = ({ run }) => {
                 </>
             ) : (
                 <p className="cm-lead">
-                    <span>No run in these weeks yet. One DEDA at {DEDA_QUALITY_MIN}%+ today starts the first.</span>
+                    <span>No run yet. One DEDA at {DEDA_QUALITY_MIN}%+ today starts the first.</span>
                 </p>
             )}
-            <div className="cm-wrap" style={{ '--cw': `${cw}px`, '--ch': `${ch}px` } as React.CSSProperties}>
-                <div className="cm-rows" aria-hidden>
-                    {['Mon', '', 'Wed', '', 'Fri', '', 'Sun'].map((t, i) => (
-                        <span key={i}>{t}</span>
-                    ))}
-                </div>
-                <div className="cm-scroll" ref={scroller}>
-                    <div className="cm-grid" role="grid" aria-label={`Weeks ${first} to ${run.currentWeek}`}>
-                        {weeks.map((w) => (
-                            <React.Fragment key={w}>
-                                <span className="cm-wk" aria-hidden>
-                                    {(w - first) % every === 0 ? `W${w}` : ''}
-                                </span>
-                                {[1, 2, 3, 4, 5, 6, 7].map((day) => {
-                                    const d = at.get(`${w}:${day}`);
-                                    if (!d) return <span key={day} className="cm-c future" aria-hidden />;
-                                    const cls = countsForRun(d.deda) ? 'counted' : d.deda > 0 ? 'low' : 'none';
-                                    return (
-                                        <button
-                                            key={day}
-                                            type="button"
-                                            className={`cm-c ${cls}${pick === d ? ' sel' : ''}`}
-                                            title={label(d)}
-                                            aria-label={label(d)}
-                                            onClick={() => setPick(d)}
-                                        />
-                                    );
-                                })}
-                            </React.Fragment>
-                        ))}
-                    </div>
-                </div>
-            </div>
-            <div className="cm-foot">
-                <span className="cm-key" aria-hidden>
-                    <span className="g">
-                        <i />
-                        Counted ({DEDA_QUALITY_MIN}%+)
-                    </span>
-                    <span className="r">
-                        <i />
-                        Below {DEDA_QUALITY_MIN}%
-                    </span>
-                    <span>
-                        <i />
-                        No DEDA
-                    </span>
-                </span>
-                <span className="cm-pick" aria-live="polite">
-                    {pick ? label(pick) : 'Tap a day to see its date and %'}
-                </span>
-            </div>
+            <LampCalendar newestFirst={run.newestFirst} />
         </section>
     );
 };

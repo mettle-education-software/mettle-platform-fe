@@ -2,6 +2,8 @@
 
 import { Button, Card, Col, Flex, Modal, Row, Select, Typography } from 'antd';
 import { useGetMettleUsers, useImpersonate, useStopImpersonating } from 'hooks';
+import { useEbookBuyers } from 'hooks/useAdmin';
+import { ADMIN_SEGMENTS, AdminSegment, onlyBuyers } from 'libs/adminSegments';
 import { useAppContext } from 'providers';
 import React, { useCallback, useState } from 'react';
 import { debounce } from 'ts-debounce';
@@ -33,10 +35,17 @@ export const useAdminImpersonation = () => {
         setVisible(false);
     };
 
+    // Segmento (só o painel novo, para o dono): sem ele, a lista de sempre.
+    const [segment, setSegment] = useState<AdminSegment | null>(null);
+    const seg = ADMIN_SEGMENTS.find((s) => s.key === segment);
+    const ebookBuyers = useEbookBuyers(!!seg?.ebook);
+
     const { data: mettleUsersList, isLoading: isMettleUsersLoading } = useGetMettleUsers({
         accountStatusIn: 'ACTIVE',
         searchQuery,
+        ...(seg ? { segment: seg.server } : {}),
     });
+    const users = seg?.ebook ? onlyBuyers(mettleUsersList?.data ?? [], ebookBuyers.data ?? []) : mettleUsersList?.data;
 
     const impersonate = useImpersonate();
     const stopImpersonate = useStopImpersonating();
@@ -65,8 +74,10 @@ export const useAdminImpersonation = () => {
         handleClear,
         selectedUserToImpersonate,
         setSelectedUserToImpersonate,
-        isMettleUsersLoading,
-        options: mettleUsersList?.data.map((user) => ({
+        isMettleUsersLoading: isMettleUsersLoading || (!!seg?.ebook && ebookBuyers.isPending),
+        segment,
+        setSegment,
+        options: users?.map((user) => ({
             label: `${user.first_name} ${user.last_name} - ${user.email}`,
             value: user.user_uid,
         })),

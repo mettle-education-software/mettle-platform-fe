@@ -408,7 +408,7 @@ const NewChat: React.FC = () => {
     const canSend = !!text.trim() || !!file;
 
     return (
-        <NewPage className="lesson">
+        <NewPage className="lesson fill">
             <Wrap>
                 <header className="hd">
                     <div className="who">
@@ -460,7 +460,7 @@ const NewChat: React.FC = () => {
                             ) : (
                                 <div
                                     key={r.key}
-                                    className={`row${r.m.mine ? ' me' : ''}${r.first ? ' first' : ''}${r.last ? ' last' : ''}`}
+                                    className={`msg${r.m.mine ? ' me' : ''}${r.first ? ' first' : ''}${r.last ? ' last' : ''}`}
                                 >
                                     {!r.m.mine && (
                                         <div className="side">
@@ -476,7 +476,7 @@ const NewChat: React.FC = () => {
                                                     <Text text={r.m.text} />
                                                 </p>
                                             )}
-                                            <span className="meta">
+                                            <span className="tm">
                                                 {timeLabel(r.m.at)}
                                                 {r.m.mine &&
                                                     (r.m.pending === 'sending' ? (
@@ -507,7 +507,7 @@ const NewChat: React.FC = () => {
                             ),
                         )}
                         {typing && (
-                            <div className="row first last">
+                            <div className="msg first last">
                                 <div className="side" />
                                 <div className="stack">
                                     <div className="bub typing" aria-label={`${typing} está digitando`}>
@@ -753,15 +753,15 @@ const Wrap = styled.div`
         color: var(--r-faint);
     }
 
-    .row {
+    .msg {
         display: flex;
         gap: 8px;
         margin-top: 2px;
     }
-    .row.first {
+    .msg.first {
         margin-top: 10px;
     }
-    .row.me {
+    .msg.me {
         justify-content: flex-end;
     }
     .side {
@@ -778,7 +778,7 @@ const Wrap = styled.div`
         max-width: min(78%, 560px);
         min-width: 0;
     }
-    .row.me .stack {
+    .msg.me .stack {
         align-items: flex-end;
     }
     .name {
@@ -813,14 +813,14 @@ const Wrap = styled.div`
         line-height: 1.45;
         overflow-wrap: anywhere;
     }
-    .row:not(.me).first .bub {
+    .msg:not(.me).first .bub {
         border-top-left-radius: 6px;
     }
-    .row.me .bub {
+    .msg.me .bub {
         background: var(--r-gold-tint);
         border-color: transparent;
     }
-    .row.me.first .bub {
+    .msg.me.first .bub {
         border-top-right-radius: 6px;
     }
     .bub.bare {
@@ -835,7 +835,7 @@ const Wrap = styled.div`
         text-decoration: underline;
         text-underline-offset: 2px;
     }
-    .meta {
+    .tm {
         display: inline-flex;
         align-items: center;
         gap: 3px;
@@ -845,10 +845,10 @@ const Wrap = styled.div`
         font-variant-numeric: tabular-nums;
         color: var(--r-faint);
     }
-    .bub.bare .meta {
+    .bub.bare .tm {
         margin-right: 6px;
     }
-    .meta .seen {
+    .tm .seen {
         color: var(--r-gold-hi);
     }
     .seenl {

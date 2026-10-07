@@ -36,7 +36,7 @@ describe('mergeMessages', () => {
 
 describe('chatRows', () => {
     const base = new Date(2026, 9, 7, 12).getTime() / 1000;
-    it('agrupa por remetente e quebra no dia, no remetente e após 5 min', () => {
+    it('agrupa por remetente e só quebra no dia ou no remetente (como no WhatsApp)', () => {
         const rows = chatRows(
             [
                 msg(1, base, false),
@@ -54,8 +54,8 @@ describe('chatRows', () => {
         expect(m.map((r) => [r.first, r.last])).toEqual([
             [true, false],
             [false, true],
-            [true, true],
-            [true, true],
+            [true, false],
+            [false, true],
             [true, true],
         ]);
         expect(rows.filter((r) => r.type === 'day').map((r) => (r as { label: string }).label)).toEqual([

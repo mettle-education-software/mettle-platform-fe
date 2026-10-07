@@ -37,13 +37,28 @@ const styles = css`
         --dg-met: #86bf93;
         --dg-part: #d6b45e;
     }
+    /* uma linha: título à esquerda, ‹ mês › no centro, Today e Month|Year à direita */
     .rcal .cal-head {
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
         align-items: center;
+        gap: 10px 16px;
+        margin: 0 0 10px;
+    }
+    .rcal .cal-head h2 {
+        margin: 0;
+    }
+    .rcal .cal-tools {
+        justify-self: end;
+    }
+    /* uma linha: o dia escolhido à esquerda, a legenda à direita */
+    .rcal .cal-foot {
+        display: flex;
+        align-items: baseline;
         justify-content: space-between;
         flex-wrap: wrap;
-        gap: 10px 16px;
-        margin: 0 0 6px;
+        gap: 6px 24px;
+        margin-top: 12px;
     }
     .rcal .cal-title {
         display: flex;
@@ -68,15 +83,6 @@ const styles = css`
         display: flex;
         align-items: center;
         gap: 8px;
-    }
-    .rcal .sum {
-        margin: 0 0 14px;
-        font-size: 13px;
-        color: var(--r-muted);
-    }
-    .rcal .sum b {
-        font-weight: 500;
-        color: var(--r-text);
     }
     /* mês */
     .rcal .mgrid {
@@ -194,7 +200,7 @@ const styles = css`
     }
     .rcal .detail {
         min-height: 22px;
-        margin: 12px 0 0;
+        margin: 0;
         font-size: 13.5px;
         color: var(--r-text);
     }
@@ -202,7 +208,7 @@ const styles = css`
         display: flex;
         flex-wrap: wrap;
         gap: 6px 16px;
-        margin: 8px 0 0;
+        margin: 0 0 0 auto;
         font-size: 12.5px;
         color: var(--r-muted);
     }
@@ -363,6 +369,34 @@ const styles = css`
         .rcal .cal-title h3 {
             min-width: 0;
         }
+        .rcal .cal-head {
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 6px 8px;
+        }
+        .rcal .cal-title h3 {
+            margin: 0 2px;
+            font-size: 16px;
+        }
+        .rcal .cal-title .ib {
+            width: 32px;
+            height: 32px;
+        }
+        .rcal .cal-tools {
+            gap: 4px;
+        }
+        .ui-new-page.lamp .rcal .cal-tools .toggle button {
+            min-height: 32px;
+            padding: 0 10px;
+        }
+        .rcal .cal-head h2 {
+            grid-column: 1 / -1;
+        }
+        .rcal .cal-foot {
+            flex-direction: column;
+        }
+        .rcal .key {
+            margin: 0;
+        }
     }
 `;
 
@@ -391,7 +425,7 @@ const prettyDay = (iso: string) =>
         timeZone: 'UTC',
     });
 
-export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst }) => {
+export const LampCalendar: React.FC<{ newestFirst: LampDay[]; title: string }> = ({ newestFirst, title }) => {
     const { melpSummary } = useMelpContext();
     const goals = goalDays(useGetGoalByLevel(melpSummary?.deda_difficulty).data);
     const today = brasiliaDate(new Date());
@@ -438,13 +472,6 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst
         );
 
     const grid = monthGrid(cur.y, cur.m);
-    const monthCells = grid
-        .flat()
-        .filter((x): x is string => !!x)
-        .map(cell);
-    const counted = monthCells.filter((c) => ['met', 'partial', 'nothing'].includes(c.st));
-    const met = monthCells.filter((c) => c.st === 'met').length;
-    const ran = monthCells.filter((c) => c.run).length;
     const shown = hover ?? sel;
     const selCell = shown ? cell(shown) : undefined;
     const detail = (c: Cell) => {
@@ -461,9 +488,10 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst
     };
 
     return (
-        <section className="rcal" aria-label="Calendar">
+        <section className="rcal" aria-label={title}>
             <Global styles={styles} />
             <div className="cal-head">
+                <h2>{title}</h2>
                 <div className="cal-title">
                     <button
                         type="button"
@@ -511,10 +539,6 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst
 
             {mode === 'month' ? (
                 <>
-                    <p className="sum">
-                        <b>{met}</b> of {counted.length} {counted.length === 1 ? 'day' : 'days'} met · DEDA 80%+ on{' '}
-                        <b>{ran}</b>
-                    </p>
                     <div
                         className="mgrid"
                         role="grid"
@@ -560,9 +584,6 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst
                             );
                         })}
                     </div>
-                    <p className="detail" aria-live="polite">
-                        {selCell && selCell.st !== 'pre' && selCell.st !== 'future' && detail(selCell)}
-                    </p>
                 </>
             ) : (
                 <div className="ygrid">
@@ -597,30 +618,37 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[] }> = ({ newestFirst
                     })}
                 </div>
             )}
-            <p className="key" aria-hidden>
-                <span className="m">
-                    <i />
-                    Goal met
-                </span>
-                <span className="p">
-                    <i />
-                    Partial
-                </span>
-                <span className="x">
-                    <i />
-                    Nothing
-                </span>
-                <span className="g">
-                    <i />
-                    DEDA 80%+
-                </span>
-                {pausedDays.size > 0 && (
-                    <span className="z">
-                        <i />
-                        Paused
-                    </span>
+            <div className="cal-foot">
+                {mode === 'month' && (
+                    <p className="detail" aria-live="polite">
+                        {selCell && selCell.st !== 'pre' && selCell.st !== 'future' && detail(selCell)}
+                    </p>
                 )}
-            </p>
+                <p className="key" aria-hidden>
+                    <span className="m">
+                        <i />
+                        Goal met
+                    </span>
+                    <span className="p">
+                        <i />
+                        Partial
+                    </span>
+                    <span className="x">
+                        <i />
+                        Nothing
+                    </span>
+                    <span className="g">
+                        <i />
+                        DEDA 80%+
+                    </span>
+                    {pausedDays.size > 0 && (
+                        <span className="z">
+                            <i />
+                            Paused
+                        </span>
+                    )}
+                </p>
+            </div>
         </section>
     );
 };

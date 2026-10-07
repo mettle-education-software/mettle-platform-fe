@@ -14,7 +14,14 @@ const CONTENTFUL_GRAPHQL_URI = CONTENT_MIRROR
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     images: {
-        domains: ['images.ctfassets.net', 'via.placeholder.com', 'vumbnail.com'],
+        // Imagens do Contentful chegam pelo espelho (/ctfimg/…, ver src/libs/contentImage.ts); o Contentful fica para o fallback.
+        domains: [
+            'images.ctfassets.net',
+            'mettle-content-mirror.mettle.workers.dev',
+            'mettle-content-mirror-next.mettle.workers.dev',
+            'via.placeholder.com',
+            'vumbnail.com',
+        ],
     },
     env: {
         FB_API_KEY: process.env.FB_API_KEY,

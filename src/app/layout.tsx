@@ -7,6 +7,7 @@ import { ConfigProvider, Spin, ThemeConfig } from 'antd';
 import { PersistentShell, PWABanner } from 'components';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { useTheme } from 'hooks/useTheme';
+import { installImageFallback } from 'libs/contentImage';
 import { chatwootScheme, THEME_BOOT_SCRIPT } from 'libs/theme';
 import Script from 'next/script';
 import { AccessCtaModal, AccessProvider, AppProvider, NotificationsProvider, useAppContext } from 'providers';
@@ -27,6 +28,7 @@ const App = ({ children }: { children: React.ReactNode }) => {
     const newDesign = useNewDesign();
     const { resolved } = useTheme();
     const chatScheme = chatwootScheme(newDesign, resolved);
+    useEffect(installImageFallback, []); // imagem do espelho que falhar vem do Contentful
     useEffect(() => {
         const apply = () => window.$chatwoot?.setColorScheme?.(chatScheme);
         if (window.$chatwoot?.setColorScheme) apply();

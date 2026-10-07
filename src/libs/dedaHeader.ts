@@ -1,8 +1,7 @@
 // Imagem de cabeçalho do DEDA pela Images API do Contentful, mobile-first e com direção de arte:
 // no celular, recorte centralizado na proporção da faixa; no tablet/desktop, a imagem inteira nas larguras maiores.
 // O navegador escolhe uma fonte só (<picture>): o celular nunca baixa a versão desktop.
-
-const CONTENTFUL_IMAGES = 'images.ctfassets.net';
+import { isContentImageUrl } from './contentImage';
 
 /**
  * Celular (até 640 px): a faixa do cabeçalho da página tem 8vh de altura (≈360×72, 5:1 a 6:1). O recorte pedido
@@ -31,11 +30,11 @@ export const DESKTOP_WIDTHS = [1280, 1920, 2560, 3840] as const;
 const MAX_IMAGES_API_WIDTH = 4000;
 export const MOBILE_MAX_WIDTH = 640;
 
-/** URL da Images API (só https em images.ctfassets.net); qualquer outra coisa → null. */
+/** URL da Images API (só https em images.ctfassets.net ou no espelho /ctfimg/…); qualquer outra coisa → null. */
 export const contentfulImage = (raw: string | null | undefined, params: Record<string, string | number>) => {
     try {
         const url = new URL(raw ?? '');
-        if (url.protocol !== 'https:' || url.hostname !== CONTENTFUL_IMAGES) return null;
+        if (!isContentImageUrl(url)) return null;
         url.search = '';
         Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, String(value)));
         return url.href;

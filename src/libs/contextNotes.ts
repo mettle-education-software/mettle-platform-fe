@@ -1,4 +1,5 @@
 import type { ContextNoteEntry, ContextNoteLinks } from '../interfaces/deda';
+import { isContentImageUrl } from './contentImage';
 
 export interface ContextNoteData {
     id: string;
@@ -7,13 +8,11 @@ export interface ContextNoteData {
     image?: { src: string; width: number; height: number; alt: string };
 }
 
-const IMAGE_HOST = 'images.ctfassets.net';
-
-// Só imagens do CDN do Contentful; qualquer outra coisa é descartada (a nota continua sem imagem).
+// Só imagens do CDN do Contentful (ou do espelho, /ctfimg/…); qualquer outra coisa é descartada (a nota continua sem imagem).
 export const safeNoteImageUrl = (url?: string | null): string | null => {
     try {
         const u = new URL(url ?? '');
-        return u.protocol === 'https:' && u.hostname === IMAGE_HOST ? u.toString() : null;
+        return isContentImageUrl(u) ? u.toString() : null;
     } catch {
         return null;
     }

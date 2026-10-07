@@ -14,17 +14,19 @@ export const ChatPicker: React.FC<{
     onTab: (t: 'emoji' | 'sticker') => void;
     onEmoji: (e: string) => void;
     onSticker: (id: string, url: string) => void;
-}> = ({ tab, onTab, onEmoji, onSticker }) => {
+    /** de onde vêm os pacotes (a Comunidade usa a própria rota) */
+    loadStickers?: () => Promise<{ packs: StickerPack[] }>;
+}> = ({ tab, onTab, onEmoji, onSticker, loadStickers = getStickers }) => {
     const [recent] = useState(readRecentEmoji);
     const [packs, setPacks] = useState<StickerPack[] | null>(null);
     const grid = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (tab !== 'sticker' || packs) return;
-        getStickers()
+        loadStickers()
             .then((r) => setPacks(r.packs))
             .catch(() => setPacks([]));
-    }, [tab, packs]);
+    }, [tab, packs]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const jump = (id: string) => grid.current?.querySelector(`[data-g="${id}"]`)?.scrollIntoView({ block: 'start' });
     const stickers = packs?.flatMap((p) => p.stickers) ?? [];

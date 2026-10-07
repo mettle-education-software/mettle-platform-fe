@@ -993,6 +993,10 @@ const Wrap = styled.div`
         font: inherit;
         line-height: 20px;
     }
+    /* o foco aparece na borda da barra inteira (focus-within), não num retângulo dentro dela */
+    .bar textarea:focus-visible {
+        outline: none;
+    }
     .bar textarea::placeholder {
         color: var(--r-faint);
     }

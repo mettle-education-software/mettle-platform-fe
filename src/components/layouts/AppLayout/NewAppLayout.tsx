@@ -725,7 +725,7 @@ const AdminItem: React.FC = () => {
     const mercyUid = admin.impersonating ? user?.uid : admin.selectedUserToImpersonate;
     const mercyLabel = admin.impersonating
         ? user?.name
-        : admin.options?.find((o) => o.value === admin.selectedUserToImpersonate)?.label;
+        : admin.options?.find((o) => o.value === admin.selectedUserToImpersonate)?.label.split(' - ')[0];
     return (
         <>
             <button type="button" className="it" onClick={() => admin.setVisible(true)} title="Admin panel">

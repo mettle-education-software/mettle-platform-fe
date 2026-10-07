@@ -48,8 +48,14 @@ export const MercyMode: React.FC<{ studentUid?: string; studentLabel?: string }>
                 </Flex>
             ) : (
                 <Flex gap={8} align="center" wrap>
-                    <Button onClick={() => setConfirming(true)} aria-describedby="admin-mercy-status">
-                        Mercy Mode · reset today’s recording attempts
+                    {/* O título acima já diz "Mercy Mode": lido junto, "Mercy Mode · Reset today’s recording attempts". */}
+                    <Button
+                        onClick={() => setConfirming(true)}
+                        aria-labelledby="admin-mercy admin-mercy-btn"
+                        aria-describedby="admin-mercy-status"
+                        style={{ maxWidth: '100%', whiteSpace: 'normal', height: 'auto', minHeight: 36 }}
+                    >
+                        <span id="admin-mercy-btn">Reset today’s recording attempts</span>
                     </Button>
                     <span className="hint" id="admin-mercy-status" role="status">
                         {reset.isSuccess

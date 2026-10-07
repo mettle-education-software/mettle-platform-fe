@@ -1553,10 +1553,10 @@ const Wrap = styled.div`
     }
     .voice {
         display: grid;
-        grid-template-columns: 46px 34px minmax(160px, 1fr);
+        grid-template-columns: 46px 34px minmax(110px, 1fr);
         align-items: center;
         gap: 0 8px;
-        width: min(330px, 72vw);
+        width: min(320px, 62vw);
     }
     .play {
         display: grid;
@@ -2031,9 +2031,6 @@ const Wrap = styled.div`
         /* iOS não amplia a página ao focar um campo de 16 px */
         .pillin textarea {
             font-size: 16px;
-        }
-        .voice {
-            width: min(290px, 74vw);
         }
     }
     @media (prefers-reduced-motion: reduce) {

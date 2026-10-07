@@ -82,6 +82,21 @@ const Avatar: React.FC<{ name: string; src: string | null; size?: number }> = ({
         </span>
     );
 
+/** Avatar da nota de voz: a foto, ou a silhueta padrão (como o WhatsApp mostra quem não tem foto). */
+const VoiceAvatar: React.FC<{ src: string | null }> = ({ src }) =>
+    src ? (
+        <img className="vimg" src={src} alt="" width={42} height={42} />
+    ) : (
+        <svg className="vimg" viewBox="0 0 42 42" width={42} height={42} aria-hidden>
+            <circle cx="21" cy="21" r="21" fill="var(--c-avatar-bg)" />
+            <circle cx="21" cy="16.5" r="7" fill="var(--c-avatar-fg)" />
+            <path
+                d="M7.5 35.5c2.6-6.1 7.6-9.5 13.5-9.5s10.9 3.4 13.5 9.5A21 21 0 0 1 7.5 35.5z"
+                fill="var(--c-avatar-fg)"
+            />
+        </svg>
+    );
+
 const Text: React.FC<{ text: string }> = ({ text }) => (
     <>
         {linkParts(text).map((p, i) =>
@@ -119,7 +134,7 @@ const Meta: React.FC<{ m: ChatMessage; seen: boolean; className?: string }> = ({
  * guardada por mensagem no sessionStorage. Sem decodificar (erro, mensagem ainda a caminho), a pseudo-onda.
  */
 function useWave(id: number, el: React.RefObject<HTMLElement>, onDuration: (d: number) => void) {
-    const key = `mettleChatWave:${id}`;
+    const key = `mettleChatWave41:${id}`;
     const [bars, setBars] = useState<number[]>(() => {
         try {
             const v = JSON.parse(sessionStorage.getItem(key) || 'null');
@@ -127,7 +142,7 @@ function useWave(id: number, el: React.RefObject<HTMLElement>, onDuration: (d: n
         } catch {
             // sem armazenamento
         }
-        return waveform(id, 40);
+        return waveform(id, 41);
     });
     useEffect(() => {
         if (id < 0 || !el.current) return;
@@ -146,7 +161,7 @@ function useWave(id: number, el: React.RefObject<HTMLElement>, onDuration: (d: n
             chatAudio(id)
                 .then((buf) => new OfflineAudioContext(1, 1, 44100).decodeAudioData(buf))
                 .then((audio) => {
-                    const b = peaks(audio.getChannelData(0), 40);
+                    const b = peaks(audio.getChannelData(0), 41);
                     setBars(b);
                     onDuration(audio.duration);
                     try {
@@ -217,14 +232,19 @@ const Voice: React.FC<{ m: ChatMessage; url: string; who: { name: string; avatar
                 }}
             />
             <span className="vav">
-                <Avatar name={who.name} src={who.avatar} size={46} />
-                <Mic size={15} strokeWidth={2.2} className="vmic" aria-hidden />
+                <VoiceAvatar src={who.avatar} />
+                <Mic size={16} strokeWidth={1.6} className="vmic" aria-hidden />
             </span>
             <button type="button" className="play" aria-label={playing ? 'Pausar' : 'Ouvir'} onClick={toggle}>
                 {playing ? (
-                    <Pause size={24} fill="currentColor" strokeWidth={0} />
+                    <Pause size={20} fill="currentColor" strokeWidth={0} />
                 ) : (
-                    <Play size={24} fill="currentColor" strokeWidth={0} />
+                    <svg viewBox="0 0 16 18" width={15} height={18} aria-hidden>
+                        <path
+                            d="M1.5 1.6v14.8c0 .9 1 1.5 1.8 1l11.6-7.4c.7-.5.7-1.5 0-2L3.3.6c-.8-.5-1.8.1-1.8 1z"
+                            fill="currentColor"
+                        />
+                    </svg>
                 )}
             </button>
             <div className="wv">
@@ -785,7 +805,7 @@ const NewChat: React.FC = () => {
     }, [messages]);
     const canSend = !!text.trim() || !!file;
 
-    const bubble = (m: ChatMessage, first: boolean, last: boolean) => {
+    const bubble = (m: ChatMessage, first: boolean, last: boolean): React.ReactElement => {
         const seen = m.mine && teamSeenAt >= m.at;
         const img = m.files.find((f) => f.kind === 'image');
         const audio = m.files.find((f) => f.kind === 'audio');
@@ -808,6 +828,16 @@ const NewChat: React.FC = () => {
                     <Meta m={m} seen={seen} className="chip" />
                 </div>
             );
+
+        if (audio && m.text.trim()) {
+            if (m.text.trim() === fileName(audio.url, audio.ext)) return bubble({ ...m, text: '' }, first, last);
+            return (
+                <div className="pair">
+                    {bubble({ ...m, files: m.files.filter((f) => f.kind !== 'audio') }, first, false)}
+                    {bubble({ ...m, text: '', reply: null }, false, last)}
+                </div>
+            );
+        }
 
         const onlyImage = !!img && !m.text && !audio && !docs.length;
         return (
@@ -1190,6 +1220,12 @@ const Wrap = styled.div`
     --c-pill-line: rgba(255, 255, 255, 0.14);
     --c-accent: #21c063;
     --c-on-accent: #0a0a0a;
+    --c-play: rgba(255, 255, 255, 0.6);
+    --c-bar: rgba(255, 255, 255, 0.45);
+    --c-bar-on: rgba(255, 255, 255, 0.9);
+    --c-knob: #ffffff;
+    --c-avatar-bg: #6a7175;
+    --c-avatar-fg: #cfd4d6;
     /* tokens da Mettle usados pelo CSS do chat, trocados pelos do WhatsApp só aqui dentro */
     --r-text: #fafafa;
     --r-muted: rgba(255, 255, 255, 0.6);
@@ -1219,6 +1255,12 @@ const Wrap = styled.div`
         --c-pill-line: transparent;
         --c-accent: #1daa61;
         --c-on-accent: #ffffff;
+        --c-play: rgba(0, 0, 0, 0.45);
+        --c-bar: rgba(0, 0, 0, 0.25);
+        --c-bar-on: rgba(0, 0, 0, 0.55);
+        --c-knob: #5b6368;
+        --c-avatar-bg: #dfe5e7;
+        --c-avatar-fg: #ffffff;
         --r-text: #0a0a0a;
         --r-muted: rgba(0, 0, 0, 0.6);
         --r-faint: rgba(0, 0, 0, 0.6);
@@ -1637,72 +1679,86 @@ const Wrap = styled.div`
         opacity: 0.7;
     }
 
-    /* nota de voz (como no WhatsApp): avatar com microfone, play, onda fina com bolinha; duração embaixo do início da
-       onda e a hora com os vistos no canto */
+    /* nota de voz, medidas do WhatsApp Web (captura do André, 1x): balão de 68 px, avatar de 42 com microfone fino
+       sobreposto embaixo à direita, play claro de 15 × 18, bolinha branca de 12, barras de 2 px a cada 4 px; duração
+       embaixo do começo da onda e hora com vistos no canto, 11 px */
     .bub.vn {
-        padding: 8px 10px 6px 8px;
+        padding: 12px 10px 14px 12px;
+    }
+    .pair {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        min-width: 0;
+    }
+    .msg.me .pair {
+        align-items: flex-end;
     }
     .voice {
+        position: relative;
         display: grid;
-        grid-template-columns: 46px 34px minmax(110px, 1fr);
+        grid-template-columns: 58.5px 38px minmax(120px, 1fr);
         align-items: center;
-        gap: 0 8px;
-        width: min(320px, 62vw);
+        gap: 0;
+        width: min(276px, 62vw);
+        height: 42px;
     }
     .play {
         display: grid;
         place-items: center;
-        width: 34px;
-        height: 34px;
+        width: 38px;
+        height: 38px;
         padding: 0;
         border: 0;
         background: none;
-        color: inherit;
-        opacity: 0.75;
+        color: var(--c-play);
         cursor: pointer;
     }
     .wv {
-        display: grid;
-        gap: 2px;
-        padding-top: 14px;
+        position: static;
     }
     .bars {
         position: relative;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        height: 24px;
+        gap: 2px;
+        height: 20px;
+        padding-left: 4px;
         cursor: pointer;
     }
     .bars i {
-        width: 3px;
-        min-height: 3px;
-        border-radius: 3px;
-        background: currentColor;
-        opacity: 0.4;
+        flex: none;
+        width: 2px;
+        min-height: 2px;
+        border-radius: 1px;
+        background: var(--c-bar);
     }
     .bars i.on {
-        opacity: 1;
-        background: var(--c-read);
+        background: var(--c-bar-on);
     }
     .bars i.dot {
-        height: 3px !important;
+        height: 2px !important;
     }
     .knob {
         position: absolute;
         top: 50%;
-        width: 13px;
-        height: 13px;
-        margin: -6.5px 0 0 -2px;
+        width: 12px;
+        height: 12px;
+        margin: -6px 0 0 4px;
         border-radius: 50%;
-        background: var(--c-read);
+        background: var(--c-knob);
     }
     .vmeta {
+        position: absolute;
+        left: 95.5px;
+        right: 1px;
+        bottom: -14px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        min-height: 16px;
         font-size: 11px;
+        line-height: 11px;
         font-variant-numeric: tabular-nums;
         color: var(--c-meta);
     }
@@ -1711,18 +1767,21 @@ const Wrap = styled.div`
     }
     .vav {
         position: relative;
-        width: 46px;
-        height: 46px;
+        width: 42px;
+        height: 42px;
+    }
+    .vimg {
+        display: block;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        object-fit: cover;
     }
     .vmic {
         position: absolute;
-        right: -4px;
-        bottom: -1px;
-        color: var(--c-meta);
-        filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.4));
-    }
-    .msg.me .vmic {
-        color: color-mix(in srgb, var(--c-out-text) 70%, transparent);
+        right: -7px;
+        bottom: -3px;
+        color: var(--c-play);
     }
     .cav {
         flex: none;

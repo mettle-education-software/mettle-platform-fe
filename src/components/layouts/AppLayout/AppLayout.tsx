@@ -10,6 +10,7 @@ import { useNewDesign } from 'hooks/useNewDesign';
 import { SMALL_VIEWPORT } from 'libs';
 import { isHydrated, isShellRoute, markHydrated } from 'libs/newDesign';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
+import { rememberNewDesign } from 'libs/theme';
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
@@ -110,6 +111,11 @@ export const PersistentShell: React.FC<{ children: React.ReactNode }> = ({ child
         setHydrated(true);
     }, []);
     const newDesign = useNewDesign();
+    const { user } = useAppContext();
+    // marca o aparelho só com a sessão carregada (antes do login useNewDesign ainda é false para todos)
+    useEffect(() => {
+        if (user) rememberNewDesign(newDesign);
+    }, [user, newDesign]);
     if (!hydrated || !newDesign || !isShellRoute(pathname)) return <>{children}</>;
     return (
         <NewAppLayout withMelpSummary={pathname.startsWith('/imerso')}>

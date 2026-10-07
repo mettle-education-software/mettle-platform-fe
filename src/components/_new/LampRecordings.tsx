@@ -176,7 +176,7 @@ const styles = css`
         padding: 0;
         list-style: none;
     }
-    .lrec .recs button {
+    .lrec .recs .rr {
         display: grid;
         grid-template-columns: 28px minmax(0, 1fr) auto;
         align-items: center;
@@ -193,8 +193,8 @@ const styles = css`
         text-align: left;
         cursor: pointer;
     }
-    .lrec .recs button:hover,
-    .lrec .recs button.now {
+    .lrec .recs .rr:hover,
+    .lrec .recs .rr.now {
         color: var(--r-gold-hi);
     }
     .lrec .recs .pi {
@@ -238,6 +238,14 @@ const styles = css`
         min-height: 52px;
         padding: 4px 0;
         border-top: 1px solid var(--r-line);
+    }
+    /* fechar: só o ×, sem círculo (o anel de foco do teclado vem de ui, :focus-visible) */
+    .lrec .inl .x,
+    .lrec .inl .x:hover {
+        background: none;
+    }
+    .lrec .inl .x:hover {
+        color: var(--r-gold-hi);
     }
     .lrec .inl .ap {
         min-width: 0;
@@ -356,7 +364,7 @@ const InlinePlayer: React.FC<{ rec: Rec; onEnd(): void; onClose(): void }> = ({ 
                     />
                 )}
             </div>
-            <button type="button" className="ib" aria-label="Close the player" onClick={onClose}>
+            <button type="button" className="ib x" aria-label="Close the player" onClick={onClose}>
                 <X {...ICON} size={18} />
             </button>
         </div>
@@ -375,7 +383,12 @@ const RecRow: React.FC<{
     playing === rec.id ? (
         <InlinePlayer rec={rec} onEnd={onEnd} onClose={stop} />
     ) : (
-        <button type="button" aria-label={`Play ${label}, ${spokenDuration(rec.durationMs)}`} onClick={() => play(rec)}>
+        <button
+            type="button"
+            className="rr"
+            aria-label={`Play ${label}, ${spokenDuration(rec.durationMs)}`}
+            onClick={() => play(rec)}
+        >
             <span className="pi">
                 <Play {...ICON} size={14} aria-hidden />
             </span>

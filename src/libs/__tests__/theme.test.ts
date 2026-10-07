@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { DARK, LIGHT, LK_LIGHT } from '../../themes/palette';
 import { isShellRoute, lessonIdFromPath } from '../newDesign';
 import {
@@ -6,6 +8,8 @@ import {
     readThemePref,
     resolveTheme,
     saveThemePref,
+    NEW_DESIGN_BOOT_CLASS,
+    NEW_DESIGN_HINT_KEY,
     THEME_BOOT_SCRIPT,
     THEME_KEY,
 } from '../theme';
@@ -66,6 +70,29 @@ describe('tema: preferência e resolução', () => {
     it('o script do <head> usa a mesma chave e a mesma regra', () => {
         expect(THEME_BOOT_SCRIPT).toContain(`localStorage.getItem('${THEME_KEY}')`);
         expect(THEME_BOOT_SCRIPT).toContain('prefers-color-scheme: dark');
+    });
+
+    it('o script do <head> põe a classe de fundo só nos aparelhos marcados pela plataforma nova', () => {
+        const run = (hint: string | null) => {
+            const classes = new Set<string>();
+            const html = { setAttribute: () => undefined, classList: { add: (c: string) => classes.add(c) } };
+            const ls = { getItem: (k: string) => (k === NEW_DESIGN_HINT_KEY ? hint : 'dark') };
+            const mm = () => ({ matches: true });
+            new Function('document', 'localStorage', 'window', THEME_BOOT_SCRIPT)({ documentElement: html }, ls, {
+                matchMedia: mm,
+            });
+            return classes.has(NEW_DESIGN_BOOT_CLASS);
+        };
+        expect(run('1')).toBe(true);
+        expect(run(null)).toBe(false);
+    });
+
+    it('o fundo antecipado (styles/globals.css) é o mesmo --r-bg da paleta', () => {
+        const css = readFileSync(join(__dirname, '../../styles/globals.css'), 'utf8');
+        expect(css).toContain(`html.${NEW_DESIGN_BOOT_CLASS} body {\n    background: ${DARK['--r-bg']};`);
+        expect(css).toContain(
+            `html.${NEW_DESIGN_BOOT_CLASS}[data-theme='light'] body {\n    background: ${LIGHT['--r-bg']};`,
+        );
     });
 });
 

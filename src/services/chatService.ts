@@ -13,15 +13,33 @@ export async function chatFetch<T>(sub: string, init: RequestInit = {}): Promise
     return res.status === 204 ? (undefined as T) : res.json();
 }
 
-export const sendChat = (text: string, file?: File | Blob | null, fileName?: string) => {
+export const sendChat = (text: string, file?: File | Blob | null, fileName?: string, replyTo?: number | null) => {
     if (!file)
         return chatFetch<{ message: ChatMessage }>('/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text }),
+            body: JSON.stringify({ text, replyTo: replyTo ?? undefined }),
         });
     const fd = new FormData();
     if (text) fd.set('text', text);
+    if (replyTo) fd.set('replyTo', String(replyTo));
     fd.set('file', file, fileName ?? (file as File).name ?? 'file');
     return chatFetch<{ message: ChatMessage }>('/messages', { method: 'POST', body: fd });
 };
+
+export const sendSticker = (sticker: string, replyTo?: number | null) =>
+    chatFetch<{ message: ChatMessage }>('/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sticker, replyTo: replyTo ?? undefined }),
+    });
+
+export const reactChat = (id: number, emoji: string | null) =>
+    chatFetch<{ reaction: string | null }>('/react', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, emoji }),
+    });
+
+export type StickerPack = { id: string; name: string; stickers: { id: string; url: string }[] };
+export const getStickers = () => chatFetch<{ packs: StickerPack[] }>('/stickers');

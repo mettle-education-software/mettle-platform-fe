@@ -303,7 +303,7 @@ export const fullLoadWeek = (days: GoalDay[]) => {
     return days.find((d) => d.total === max)?.week ?? 1;
 };
 
-/** Nomes dos 5 níveis das estrelas do DEDA (decisão do André: a qualidade só conta de 4 para cima). Valores 1–5 inalterados. */
+/** Nomes dos 5 níveis das estrelas do DEDA (decisão do André). Valores 1–5 inalterados. */
 export const STAR_NAMES = ['Terrible', 'Bad', 'Still Bad', 'Good', 'Great'] as const;
 export const starName = (value?: number) => (value && value >= 1 ? STAR_NAMES[Math.min(5, Math.round(value)) - 1] : '');
 
@@ -419,25 +419,41 @@ export type LampDay = {
     active: number;
     passive: number;
     ratings: number[];
+    /** minutos registrados no dia (soma das atividades) */
+    activeMin?: number;
+    passiveMin?: number;
     /** data do dia no calendário (só quando o programa nunca foi pausado: aí semana/dia batem com o calendário) */
     date?: Date;
 };
 
-export type DayStatus = 'kept' | 'partial' | 'missed' | 'today' | 'future';
+/** Um dia na DEDA Run: contou (≥ 80%), quebrou (abaixo ou sem DEDA), hoje em andamento, ou ainda por vir. */
+export type RunDay = 'counted' | 'broke' | 'today' | 'future';
 
-/** DEDA "feito bem": avaliado com média ≥ 3,5 estrelas (70%) — "Still Bad" sozinho não conta. */
-export const DEDA_QUALITY_MIN = 70;
+/** Decisão do André: o dia conta com o DEDA a 80% ou mais (inclusive 80% exato); abaixo disso, a Run zera. */
+export const DEDA_QUALITY_MIN = 80;
 
-/** Dia cumprido = DEDA ≥ 70% e as metas de Active e Passive batidas; parcial = algo registrado; hoje = em andamento. */
-export const dayStatus = (d: LampDay | undefined, today: boolean, future = false): DayStatus => {
+/** Meta do dia (Daily goal): cumprida = DEDA 80%+ e as metas de Active e Passive; parcial = algo registrado; nada = dia
+ * encerrado sem registro (hoje sem nada = neutro, nunca vermelho). */
+export type GoalDayStatus = 'met' | 'partial' | 'nothing' | 'today' | 'future';
+export const goalDayStatus = (d: LampDay | undefined, today: boolean, future = false): GoalDayStatus => {
     if (future) return 'future';
-    const kept = !!d && d.deda >= DEDA_QUALITY_MIN && d.active >= 99.5 && d.passive >= 99.5;
-    if (kept) return 'kept';
-    if (today) return 'today';
-    return d && (d.deda > 0 || d.active > 0 || d.passive > 0) ? 'partial' : 'missed';
+    if (d && countsForRun(d.deda) && d.active >= 99.5 && d.passive >= 99.5) return 'met';
+    const any = !!d && (d.deda > 0 || d.active > 0 || d.passive > 0 || !!d.activeMin || !!d.passiveMin);
+    if (any) return 'partial';
+    // hoje ainda sem nada fica neutro (cinza): vermelho só depois que o dia acabou (meia-noite de Brasília)
+    return today ? 'today' : 'nothing';
 };
 
-const qualifies = (d?: LampDay) => !!d && d.deda >= DEDA_QUALITY_MIN;
+/** Hoje não quebra a Run enquanto o dia não acabou: conta se já está ≥ 80%, senão fica pendente. */
+export const runDay = (d: LampDay | undefined, today: boolean, future = false): RunDay => {
+    if (future) return 'future';
+    if (d && countsForRun(d.deda)) return 'counted';
+    return today ? 'today' : 'broke';
+};
+
+/** 80% exato conta (a nota vem do servidor como média ÷ 5 × 100: folga de arredondamento de ponto flutuante). */
+export const countsForRun = (deda: number) => deda >= DEDA_QUALITY_MIN - 1e-9;
+const qualifies = (d?: LampDay) => !!d && countsForRun(d.deda);
 
 /**
  * Sequência atual de DEDA bem feito, do dia mais recente para trás (`newestFirst`, o primeiro é hoje). Hoje ainda
@@ -481,6 +497,29 @@ export const constancyRuns = (oldestFirst: LampDay[]) => {
         });
     return runs;
 };
+
+/** Run até ontem (sem contar hoje): a base para "+1 → N" e para "faça hoje para chegar a N". */
+export const runBeforeToday = (newestFirst: LampDay[]) => {
+    let n = 0;
+    for (let i = 1; i < newestFirst.length && qualifies(newestFirst[i]); i++) n++;
+    return n;
+};
+
+/** Run zerada: o dia que quebrou (o mais recente antes de hoje) e quantos dias a Run tinha até ali. */
+export const lastBreak = (newestFirst: LampDay[]) => {
+    const broke = newestFirst[1];
+    if (!broke || qualifies(broke)) return undefined;
+    let n = 0;
+    for (let i = 2; i < newestFirst.length && qualifies(newestFirst[i]); i++) n++;
+    return { day: broke, previous: n };
+};
+
+/** As maiores Runs (da maior para a menor; empate: a mais recente primeiro). */
+export const topRuns = (oldestFirst: LampDay[], n = 3) =>
+    constancyRuns(oldestFirst)
+        .map((r, i) => ({ ...r, i }))
+        .sort((a, b) => b.days - a.days || b.i - a.i)
+        .slice(0, n);
 
 /** Últimas 4 semanas fechadas contra as 4 anteriores (a semana em curso fica de fora). */
 export const lastFourVsPrevious = (weekly: number[]) => {

@@ -1,7 +1,9 @@
 'use client';
 
 import { SaveDedaInputMutationDedaData } from 'hooks';
+import { useDedaRun } from 'hooks/melp/lampDays';
 import { summaryTimes } from 'libs/dedaReader';
+import { countsForRun, DEDA_QUALITY_MIN, STAR_NAMES } from 'libs/newDesign';
 import { Star } from 'lucide-react';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { InfoTip } from './ReaderInfo';
@@ -41,8 +43,8 @@ const CRITERIA: { key: keyof Ratings; label: string; info: string }[] = [
     },
 ];
 
-/** As mesmas palavras das estrelas do Summary atual (DedaInput). */
-const RATINGS = ['Terrible', 'Bad', 'Normal', 'Good', 'Wonderful'];
+/** Os nomes dos 5 níveis (decisão do André; os mesmos da aba Input da LAMP). */
+const RATINGS = [...STAR_NAMES];
 
 const Rating = ({
     labelId,
@@ -123,6 +125,10 @@ export const ReaderSummary: React.FC<Props> = ({ stopwatchSeconds, recordingMs, 
     useEffect(() => {
         onInputs({ ...ratings, ...summaryTimes(stopwatchSeconds, recordingMs) });
     }, [ratings, stopwatchSeconds, recordingMs, onInputs]);
+    // o que o dia faz com a DEDA Run, com as cinco notas dadas (mesma conta do servidor: média ÷ 5 × 100)
+    const run = useDedaRun(2);
+    const values = Object.values(ratings);
+    const score = values.every((v) => v > 0) ? (values.reduce((a, b) => a + b, 0) / 5 / 5) * 100 : undefined;
 
     return (
         <div className="summary" aria-busy={saving}>
@@ -143,6 +149,22 @@ export const ReaderSummary: React.FC<Props> = ({ stopwatchSeconds, recordingMs, 
                     </li>
                 ))}
             </ul>
+            {score !== undefined && !run.loading && (
+                <p
+                    className="runline"
+                    role="status"
+                    style={{
+                        margin: '18px 0 0',
+                        fontSize: 14.5,
+                        fontWeight: 500,
+                        color: countsForRun(score) ? 'var(--r-gold-hi)' : 'var(--r-text)',
+                    }}
+                >
+                    {countsForRun(score)
+                        ? `${Math.round(score)}% · DEDA Run +1 → ${run.beforeToday + 1}`
+                        : `${Math.round(score)}% · below ${DEDA_QUALITY_MIN}%: your DEDA Run resets`}
+                </p>
+            )}
         </div>
     );
 };

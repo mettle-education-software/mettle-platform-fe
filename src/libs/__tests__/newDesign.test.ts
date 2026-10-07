@@ -14,7 +14,12 @@ import {
     lockedNotes,
     NEW_DESIGN_UIDS,
     parseHm,
-    dayStatus,
+    runDay,
+    goalDayStatus,
+    countsForRun,
+    runBeforeToday,
+    lastBreak,
+    topRuns,
     dedaStreak,
     bestStreak,
     constancyRuns,
@@ -347,14 +352,40 @@ describe('LAMP como espelho', () => {
         passive,
         ratings: [4, 4, 3, 4, 3],
     });
-    it('classifica o dia', () => {
-        expect(dayStatus(d(80, 100, 100), false)).toBe('kept');
-        expect(dayStatus(d(60, 100, 100), false)).toBe('partial');
-        expect(dayStatus(d(0, 0, 0), false)).toBe('missed');
-        expect(dayStatus(undefined, false)).toBe('missed');
-        expect(dayStatus(d(0, 20, 0), true)).toBe('today');
-        expect(dayStatus(d(80, 100, 100), true)).toBe('kept');
-        expect(dayStatus(undefined, false, true)).toBe('future');
+    it('classifica o dia na DEDA Run (80%)', () => {
+        expect(runDay(d(80), false)).toBe('counted');
+        expect(runDay(d(79), false)).toBe('broke');
+        expect(runDay(undefined, false)).toBe('broke');
+        expect(runDay(d(60), true)).toBe('today');
+        expect(runDay(d(90), true)).toBe('counted');
+        expect(runDay(undefined, false, true)).toBe('future');
+    });
+    it('meta do dia: cumprida, parcial ou nada', () => {
+        expect(goalDayStatus(d(80, 100, 100), false)).toBe('met');
+        expect(goalDayStatus(d(80, 60, 100), false)).toBe('partial');
+        expect(goalDayStatus(d(0, 0, 0), false)).toBe('nothing');
+        expect(goalDayStatus(undefined, false)).toBe('nothing');
+        // hoje: neutro sem nada, amarelo com algo, verde com as três; nunca vermelho
+        expect(goalDayStatus(d(0, 0, 0), true)).toBe('today');
+        expect(goalDayStatus(undefined, true)).toBe('today');
+        expect(goalDayStatus(d(0, 20, 0), true)).toBe('partial');
+        expect(goalDayStatus(d(85, 100, 100), true)).toBe('met');
+        expect(goalDayStatus(undefined, false, true)).toBe('future');
+    });
+    it('a Run é numérica: 80% exato conta, 79,x% zera', () => {
+        // 5 + 4 + 3 + 4 + 4 = 20 de 25 = 80%, calculado como o servidor (média ÷ 5 × 100)
+        const score = ((5 + 4 + 3 + 4 + 4) / 5 / 5) * 100;
+        expect(countsForRun(score)).toBe(true);
+        expect(runDay(d(score), false)).toBe('counted');
+        expect(countsForRun(79.99)).toBe(false);
+        expect(runDay(d(79.5), false)).toBe('broke');
+    });
+    it('Run até ontem, a quebra e as maiores', () => {
+        expect(runBeforeToday([d(0), d(85), d(90), d(70), d(85)])).toBe(2);
+        expect(lastBreak([d(0), d(75), d(85), d(90), d(10)])).toMatchObject({ previous: 2 });
+        expect(lastBreak([d(0), d(85)])).toBeUndefined();
+        const top = topRuns([d(85), d(85), d(0), d(90), d(0), d(95), d(95), d(95)], 2);
+        expect(top.map((r) => r.days)).toEqual([3, 2]);
     });
     it('conta a sequência de DEDA bem feito; hoje em andamento não quebra', () => {
         expect(dedaStreak([d(0), d(80), d(90), d(60), d(80)])).toEqual({ current: 2, toEdge: false });

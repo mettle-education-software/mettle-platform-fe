@@ -1,11 +1,10 @@
 'use client';
 
-import { Global } from '@emotion/react';
 import styled from '@emotion/styled';
 import { useQuery } from '@tanstack/react-query';
 import { useDedasGrid } from 'components/_melp/_deda/DedasGrid/DedasGrid';
 import { useGetHpecsModules, useOverallProgress } from 'hooks';
-import { useLampDays } from 'hooks/melp/lampDays';
+import { useDedaRun } from 'hooks/melp/lampDays';
 import { useHpecProgress } from 'hooks/useHpecProgress';
 import { statisticsColors } from 'libs';
 import { dedaPath, hpecLessonPath } from 'libs/cleanUrls';
@@ -17,7 +16,7 @@ import Link from 'next/link';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { useMemo, useState } from 'react';
 import { ICON } from 'themes/newDesign';
-import { daysText, WeekDots, weekDotsStyles } from './LampMirror';
+import { DailyGoal } from './DailyGoal';
 import { NewHpecTrail } from './NewHpecTrail';
 
 /* Estilos só desta página (as classes comuns de components/_new/ui ficam como estão). */
@@ -80,7 +79,7 @@ export const Dash = styled.div`
     /* ---------- KPIs: a faixa inteira leva à LAMP ---------- */
     .kpis {
         display: grid;
-        grid-template-columns: max-content max-content minmax(0, 1fr) auto;
+        grid-template-columns: max-content max-content max-content minmax(0, 1fr) auto;
         align-items: center;
         gap: 0 56px;
         padding: 20px 0;
@@ -102,20 +101,11 @@ export const Dash = styled.div`
         padding: 0;
         border-bottom: 0;
     }
-    .kpi.wk .wdots {
-        gap: 4px;
-        margin: 0;
-    }
-    .kpi.wk .wdots i {
-        width: 14px;
-        height: 14px;
-    }
-    .kpi.wk .wdots li {
-        gap: 4px;
-        font-size: 10.5px;
-    }
     .kpi.wk .k {
-        margin-top: 8px;
+        margin-top: 4px;
+    }
+    .kpi.run .v {
+        color: var(--r-gold-hi);
     }
     .kpi .v {
         display: block;
@@ -299,7 +289,7 @@ export const Dash = styled.div`
             font-size: 15.5px;
         }
         .kpis {
-            grid-template-columns: minmax(0, 1fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px;
             padding: 18px 0 12px;
         }
@@ -315,6 +305,10 @@ export const Dash = styled.div`
         }
         .kpis .go {
             justify-self: start;
+        }
+        .kpis .cats,
+        .kpis .go {
+            grid-column: 1 / -1;
         }
         /* celular: cards grandes numa fila que rola de lado (todos os cinco) */
         .recent {
@@ -498,11 +492,17 @@ export const Kpis: React.FC = () => {
             : []),
     ];
     const total = overallData?.overallPerformance;
-    // a semana dia a dia e a constância (mesma leitura da aba Input, só as últimas 2 semanas; cresce se precisar)
-    const days = useLampDays(2);
+    // DEDA Run (o KPI principal), sempre ao lado do Overall: mesma leitura da aba Input, 2 semanas e cresce se precisar
+    const run = useDedaRun(2);
     return (
-        <Link href="/imerso/lamp" className="kpis" aria-label="Overall progress — open LAMP">
-            <Global styles={weekDotsStyles} />
+        <Link href="/imerso/lamp" className="kpis" aria-label="DEDA Run and overall progress — open LAMP">
+            <span className="kpi run">
+                <span className="v">
+                    {run.loading && !run.current ? '—' : run.current}
+                    <small>{run.current === 1 ? 'day' : 'days'}</small>
+                </span>
+                <span className="k">DEDA Run · {run.todayCounted ? 'today counted' : 'today pending'}</span>
+            </span>
             <span className="kpi">
                 <span className="v">
                     {typeof total === 'number' ? total.toFixed(2) : '—'}
@@ -511,10 +511,8 @@ export const Kpis: React.FC = () => {
                 <span className="k">Overall</span>
             </span>
             <span className="kpi wk">
-                <WeekDots days={days.newestFirst} week={days.currentWeek} today={days.today} compact />
-                <span className="k">
-                    DEDA Run · {days.loading && !days.streak.current ? '—' : daysText(days.streak.current)}
-                </span>
+                <DailyGoal days={run.newestFirst} week={run.currentWeek} today={run.today} compact />
+                <span className="k">Daily goal</span>
             </span>
             <ul className="cats">
                 {cats.map(([name, value, color]) => (

@@ -84,7 +84,7 @@ describe('wordAt (busca binária)', () => {
 describe('alignUrlFor e isUsableAlignment', () => {
     const audio = 'https://mirror.example/media/4osU1/265dbde7f0820dc3d30201b1437e22f8/Change.mp3';
     it('só para áudio servido pelo espelho', () => {
-        expect(alignUrlFor(audio, 'DEDA35')).toBe('https://mirror.example/align/DEDA35.json?v=2');
+        expect(alignUrlFor(audio, 'DEDA35')).toBe('https://mirror.example/align/DEDA35.json?v=3');
         expect(alignUrlFor('https://downloads.ctfassets.net/x/Change.mp3', 'DEDA35')).toBeNull();
         expect(alignUrlFor(audio, '../x')).toBeNull();
         expect(alignUrlFor('', 'DEDA35')).toBeNull();

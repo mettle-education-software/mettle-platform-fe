@@ -140,8 +140,8 @@ export const recorderReducer = (state: RecorderState, action: RecorderAction): R
 // ---------- limite diário de envios ----------
 
 /**
- * O servidor aceita um número limitado de pedidos de envio por aluno por dia (429 RATE_LIMITED em upload-url; zera à
- * meia-noite de Brasília). Tentar de novo no mesmo dia não adianta: a gravação fica no aparelho e sobe a partir do
+ * O servidor aceita 3 gravações salvas por aluno por dia (as tentativas; 429 RATE_LIMITED em upload-url e confirm;
+ * zera à meia-noite de Brasília ou pelo Mercy Mode do administrador). Tentar de novo no mesmo dia não adianta: a gravação fica no aparelho e sobe a partir do
  * dia seguinte.
  */
 export const isDailyLimit = (error: unknown) => {
@@ -292,15 +292,27 @@ export interface DedaRecording {
     recordedOn: string; // AAAA-MM-DD
     durationMs: number;
     mimeType: string;
-    status?: 'ready' | 'replaced' | 'hidden'; // o aluno só recebe 'ready'
+    status?: 'ready' | 'replaced' | 'hidden'; // o aluno só recebe 'ready' (substituídas e removidas são apagadas)
     createdAt?: string;
+}
+
+/** Tentativas de hoje (gravações salvas por dia de Brasília; 3 por aluno). Ausente = servidor antigo: nada aparece. */
+export interface RecordingAttempts {
+    limit: number;
+    used: number;
+    left: number;
 }
 
 export interface DedaRecordingsResponse {
     enabled: boolean;
     consent: { accepted: boolean; version: string | null; acceptedAt?: string | null };
     recordings: DedaRecording[];
+    attempts?: RecordingAttempts;
 }
+
+/** "3 attempts left today" → "1 attempt left today" → "No attempts left today". */
+export const attemptsLabel = (left: number) =>
+    left <= 0 ? 'No attempts left today' : `${left} ${left === 1 ? 'attempt' : 'attempts'} left today`;
 
 /**
  * O servidor responde 404 a toda rota do gravador para a conta fora de DEDA_RECORDING_ENABLED_UIDS (e o portão

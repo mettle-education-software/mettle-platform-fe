@@ -1,4 +1,5 @@
 import {
+    attemptsLabel,
     baseMimeType,
     brasiliaDate,
     computeIndicators,
@@ -401,5 +402,18 @@ describe('KPIs de gravação (LAMP)', () => {
             rate: 1,
         });
         expect(recordingStats([], '2026-10-07')).toBeUndefined();
+    });
+});
+
+describe('tentativas de hoje (3 por dia)', () => {
+    it('conta para baixo até "No attempts left today"', () => {
+        expect([3, 2, 1, 0].map(attemptsLabel)).toEqual([
+            '3 attempts left today',
+            '2 attempts left today',
+            '1 attempt left today',
+            'No attempts left today',
+        ]);
+        expect(attemptsLabel(-1)).toBe('No attempts left today');
+        expect(attemptsLabel(50)).toBe('50 attempts left today');
     });
 });

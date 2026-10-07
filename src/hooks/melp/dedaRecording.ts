@@ -12,13 +12,14 @@ import {
     markDailyLimit,
     pausedIntervals,
     RECORDER_SINCE,
+    RecordingAttempts,
     recordingStats,
     recordingsOrDisabled,
 } from 'libs/dedaRecording';
 import { flushQueue, idbQueue, QueuedRecording } from 'libs/recordingQueue';
 import { useAppContext, useMelpContext } from 'providers';
 import { useCallback, useEffect } from 'react';
-import { melpService } from 'services';
+import { adminService, melpService } from 'services';
 
 /**
  * Chave de liberação do front. Desligada por padrão: sem DEDA_RECORDER=on no ambiente, nada do gravador
@@ -88,8 +89,8 @@ export const useAcceptRecordingConsent = () => {
     });
 };
 
-/** "Remover": o servidor só oculta a gravação (o áudio e a ficha ficam guardados); some da lista e do player. */
-export const useHideRecording = () => {
+/** "Remove": o servidor apaga a gravação (áudio e ficha; decisão de André, 7-Out-2026). Não devolve tentativa do dia. */
+export const useRemoveRecording = () => {
     const queryClient = useQueryClient();
     const { user } = useAppContext();
     return useMutation({
@@ -204,4 +205,19 @@ export const useQueuedRecording = (uid: string | undefined, dedaId: string, reco
             ) ?? null,
         enabled: active && !!uid && typeof indexedDB !== 'undefined',
         staleTime: 0,
+    });
+
+/**
+ * Mercy Mode (administrador): devolve ao aluno as tentativas de gravação de hoje. O servidor exige METTLE_ADMIN e
+ * registra quem, quando e para qual aluno.
+ */
+export const useResetRecordingAttempts = () =>
+    useMutation({
+        mutationFn: (studentUid: string) =>
+            adminService
+                .post<
+                    object,
+                    { reset: { day: string; usedBefore: number }; attempts: RecordingAttempts }
+                >(`/v2/users/${encodeURIComponent(studentUid)}/deda-recordings/attempts/reset`, {})
+                .then(({ data }) => data),
     });

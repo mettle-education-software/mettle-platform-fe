@@ -1,18 +1,250 @@
 'use client';
 
+import { css, Global } from '@emotion/react';
 import { Rate, Select, Tooltip } from 'antd';
-import { useGetDedasList } from 'hooks';
-import { useLampInputForm } from 'hooks/melp/lampInputForm';
+import { useGetDedasList, useGetGoalByLevel } from 'hooks';
+import { LampInputEdit, useLampInputForm } from 'hooks/melp/lampInputForm';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaWatchQueryResponse } from 'interfaces';
-import { padNumber } from 'libs';
-import { clampWeekDay, formatHm, parseHm, weekDayOptions } from 'libs/newDesign';
-import { Check, Cloud, Info, LoaderCircle } from 'lucide-react';
+import { getDayToday, padNumber } from 'libs';
+import {
+    addMinutes,
+    clampWeekDay,
+    formatHm,
+    goalDays,
+    goalProgress,
+    minutesText,
+    parseHm,
+    STAR_NAMES,
+    starName,
+    stepDay,
+    WEEK_DAYS,
+    weekDayOptions,
+} from 'libs/newDesign';
+import { Check, ChevronLeft, ChevronRight, Cloud, Info, LoaderCircle } from 'lucide-react';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 
-const RATINGS = ['Terrible', 'Bad', 'Normal', 'Good', 'Wonderful'];
+/*
+ * Aba Input da plataforma nova, pensada a partir da LAMP: o dia contra a meta do nível do aluno (Active/Passive em
+ * tempo, DEDA em qualidade, Review feita ou não), com a regra da constância à vista (o que passa da meta não conta).
+ * Mesma leitura, mesma gravação e mesmo atraso de hoje (hooks/melp/lampInputForm); meta pela mesma consulta da aba Goals.
+ */
+
+const styles = css`
+    .linput .dayhead {
+        display: flex;
+        align-items: center;
+        gap: 8px 16px;
+        flex-wrap: wrap;
+        margin: 0 0 6px;
+    }
+    .linput .when {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .linput .when h2 {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 2px;
+        font-size: 22px;
+    }
+    .linput .when h2 span {
+        font-size: 14px;
+        color: var(--r-muted);
+    }
+    .linput .when .eyebrow.past {
+        color: var(--r-gold-hi);
+    }
+    .linput .nav {
+        display: flex;
+        gap: 4px;
+    }
+    .linput .nav .ib {
+        width: 44px;
+        height: 44px;
+        border: 1px solid var(--r-line-strong);
+        color: var(--r-text);
+    }
+    .linput .nav .ib:disabled {
+        opacity: 0.35;
+        cursor: default;
+    }
+    .linput .pick {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px 12px;
+        margin: 12px 0 0;
+    }
+    .linput .save {
+        margin-left: auto;
+    }
+
+    .linput .glance {
+        display: grid;
+        grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+        gap: 12px;
+        margin: 28px 0 10px;
+        padding: 0;
+        list-style: none;
+    }
+    .linput .gt {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 16px 18px;
+        border: 1px solid var(--r-line);
+        border-radius: var(--r-radius);
+        background: var(--r-surf);
+    }
+    .linput .gt .v {
+        font-size: 15px;
+        color: var(--r-muted);
+        font-variant-numeric: tabular-nums;
+    }
+    .linput .gt .v b {
+        margin-right: 4px;
+        font-size: 24px;
+        font-weight: 400;
+        color: var(--r-text);
+    }
+    .linput .gt .gbar {
+        height: 3px;
+        border-radius: 2px;
+        background: var(--r-track);
+        overflow: hidden;
+    }
+    .linput .gt .gbar i {
+        display: block;
+        height: 100%;
+        background: var(--r-gold);
+        transition: width 400ms ease;
+    }
+    .linput .gt .note {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 20px;
+        font-size: 12.5px;
+        line-height: 1.35;
+        color: var(--r-muted);
+    }
+    .linput .gt.met .note {
+        color: var(--r-gold-hi);
+    }
+    .linput .gt .note s {
+        text-decoration: none;
+    }
+    .linput .rule {
+        margin: 0 0 28px;
+        font-size: 13px;
+    }
+
+    .ui-new-page.lamp .linput .cols3 {
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .linput h3 .sum {
+        margin-left: auto;
+        font-size: 13px;
+        font-weight: 400;
+        letter-spacing: 0;
+        color: var(--r-muted);
+        font-variant-numeric: tabular-nums;
+    }
+    .linput h3 .sum b {
+        font-weight: 500;
+        color: var(--r-text);
+    }
+    .linput .ro {
+        margin: -2px 0 8px;
+        font-size: 12.5px;
+        color: var(--r-muted);
+    }
+
+    /* estrelas com o nome do nível escolhido */
+    .linput .fr.s {
+        flex-wrap: wrap;
+    }
+    .linput .stars {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-left: auto;
+    }
+    .linput .sname {
+        min-width: 4.4em;
+        font-size: 12.5px;
+        text-align: right;
+        color: var(--r-muted);
+    }
+    .linput .fr.on .sname {
+        color: var(--r-gold-hi);
+    }
+
+    /* tempo: hh:mm e, na linha em uso, +5 / +15 / +30 / Clear */
+    .linput .fr.t {
+        flex-wrap: wrap;
+        row-gap: 0;
+    }
+    .linput .chips {
+        display: none;
+        flex-basis: 100%;
+        justify-content: flex-end;
+        gap: 6px;
+        padding: 2px 0 8px;
+    }
+    .linput .fr.t:focus-within .chips {
+        display: flex;
+    }
+    .linput .chips button {
+        min-height: 36px;
+        min-width: 52px;
+        padding: 0 12px;
+        border: 1px solid var(--r-line-strong);
+        border-radius: 999px;
+        background: none;
+        color: var(--r-text);
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+        cursor: pointer;
+    }
+    .linput .chips button:hover {
+        border-color: var(--r-gold);
+        color: var(--r-gold-hi);
+    }
+    .linput .chips button.clr {
+        border-color: transparent;
+        color: var(--r-muted);
+    }
+
+    @media (max-width: 860px) {
+        .ui-new-page.lamp .linput .cols3 {
+            grid-template-columns: minmax(0, 1fr);
+        }
+        .linput .glance {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .linput .gt {
+            padding: 14px 14px;
+        }
+        .linput .gt .v b {
+            font-size: 22px;
+        }
+        .linput .save {
+            margin-left: 0;
+        }
+        .linput .chips button {
+            min-height: 40px;
+            font-size: 15px;
+        }
+    }
+`;
 
 /** Tempo "HH:MM" digitado direto (sem modal); grava no blur/Enter com as mesmas regras do seletor atual. */
 const Hm: React.FC<{ id: string; value: number; onChange(value: number): void }> = ({ id, value, onChange }) => {
@@ -94,65 +326,220 @@ const Review: React.FC<{
     );
 };
 
-/** Aba Input: mesmos campos, mesma leitura/gravação e o mesmo atraso de gravação da aba atual (hooks/melp/lampInputForm). */
+type TimeKey = keyof LampInputEdit & `${'active' | 'passive'}${string}`;
+const ACTIVE: [TimeKey, string][] = [
+    ['activeBook', 'Book'],
+    ['activeReview', 'Review'],
+    ['activeDedaNotes', 'DEDA Notes'],
+    ['activeMooc', 'Fundamentals'],
+    ['activeOthers', 'Other Content'],
+];
+const PASSIVE: [TimeKey, string][] = [
+    ['passiveTed', 'TED'],
+    ['passiveSeries', 'Series'],
+    ['passiveYoutube', 'YouTube'],
+    ['passivePodcast', 'Podcast'],
+    ['passiveAudiobook', 'Audiobook'],
+    ['passiveMovieDoc', 'Movie/Doc'],
+    ['passiveNewsShows', 'News/Show'],
+    ['passiveConversation', 'Conversation'],
+    ['passiveOthers', 'Other Content'],
+];
+const QUALITY: [keyof LampInputEdit, string][] = [
+    ['dedaPredPlace', 'Predetermined Place/Time'],
+    ['dedaFiveSteps', 'Five steps (DEEP)'],
+    ['dedaStateMind', 'State of mind'],
+    ['dedaStateBeing', 'State of being'],
+    ['dedaFocus', 'Focus'],
+];
+
+/** Tempo contra a meta, como o servidor conta: até a meta conta; o que passa não. */
+const GoalTile: React.FC<{ name: string; done: number; goal: number }> = ({ name, done, goal }) => {
+    const p = goalProgress(done, goal);
+    return (
+        <li className={`gt${p.met ? ' met' : ''}`}>
+            <p className="eyebrow">{name}</p>
+            <p className="v">
+                <b>{minutesText(p.counted)}</b>of {minutesText(goal)}
+            </p>
+            <span className="gbar" aria-hidden>
+                <i style={{ width: `${p.ratio * 100}%` }} />
+            </span>
+            <p className="note">
+                {p.met ? (
+                    <>
+                        <Check {...ICON} size={14} aria-hidden /> Goal met
+                        {p.extra > 0 && <s>· +{minutesText(p.extra)} doesn&rsquo;t count</s>}
+                    </>
+                ) : (
+                    `${minutesText(p.missing)} to go`
+                )}
+            </p>
+        </li>
+    );
+};
+
+/** Aba Input: o dia contra a meta, com o mesmo estado e a mesma gravação de hoje (hooks/melp/lampInputForm). */
 export const NewLampInput: React.FC = () => {
     const { melpSummary } = useMelpContext();
     const { dedasList } = useGetDedasList();
     const form = useLampInputForm();
     const { edit, change, inputData, isLoading, selectedWeek, selectedDay } = form;
+    const goals = goalDays(useGetGoalByLevel(melpSummary?.deda_difficulty).data);
 
-    // mesma regra do DedaWeekDaySelect: na semana em curso só até hoje; o dia escolhido cai para hoje se preciso
-    const today = new Date().getDay() === 0 ? 7 : new Date().getDay();
-    const days = weekDayOptions(selectedWeek, melpSummary?.current_deda_week, today);
+    // mesma regra do seletor atual: na semana em curso só até hoje; o dia escolhido cai para hoje se preciso
+    const todayKey = getDayToday();
+    const today = Number(todayKey.replace('day', ''));
+    const currentWeek = melpSummary?.current_deda_week;
+    const days = weekDayOptions(selectedWeek, currentWeek, today);
     useEffect(() => {
         const day = clampWeekDay(selectedDay, days);
         if (day !== selectedDay) form.setSelectedDay(day);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedWeek, selectedDay]);
 
-    // preenchido no dia (estrela dada ou tempo maior que zero): rótulo em destaque, campo/estrelas em dourado
-    const rate = (key: keyof typeof edit, label: string) => (
-        <div className={Number(edit[key]) > 0 ? 'fr on' : 'fr'} key={key}>
-            <span className="lab" id={`lamp-${key}`}>
-                {label}
-            </span>
-            <Rate
-                aria-labelledby={`lamp-${key}`}
-                tooltips={RATINGS}
-                value={Number(edit[key]) || 0}
-                onChange={(value) => change(key, value as never)}
-            />
-        </div>
-    );
-    const time = (key: keyof typeof edit, label: React.ReactNode) => (
-        <div className={Number(edit[key]) > 0 ? 'fr on' : 'fr'} key={key}>
-            <label className="lab" htmlFor={`lamp-${key}`}>
-                {label}
-            </label>
-            <Hm id={`lamp-${key}`} value={Number(edit[key]) || 0} onChange={(value) => change(key, value as never)} />
-        </div>
-    );
+    const weekNumber = Number(selectedWeek.replace('week', ''));
+    const isToday = weekNumber === currentWeek && selectedDay === todayKey;
+    const go = (target?: { week: string; day: string }) => {
+        if (!target) return;
+        if (target.week !== selectedWeek) form.setSelectedWeek(target.week);
+        form.setSelectedDay(target.day);
+    };
+    const weeks = dedasList.map((d) => d.value);
+    const prev = stepDay(selectedWeek, selectedDay, -1, weeks, currentWeek, today);
+    const next = stepDay(selectedWeek, selectedDay, 1, weeks, currentWeek, today);
+
+    const goal = goals[Math.min(weekNumber, goals.length) - 1];
+    const sum = (rows: [TimeKey, string][]) => rows.reduce((t, [k]) => t + (Number(edit[k]) || 0), 0);
+    const active = sum(ACTIVE);
+    const passive = sum(PASSIVE);
+    const ratings = QUALITY.map(([k]) => Number(edit[k]) || 0);
+    const rated = ratings.filter((r) => r > 0);
+    const avg = rated.length ? rated.reduce((a, b) => a + b, 0) / rated.length : 0;
+    const reviews = ([1, 2, 3] as const).filter((n) => inputData?.reviewInput?.[`review${n}`]);
+    const reviewsDone = reviews.filter((n) => edit[`reviewStatus${n}`]).length;
+    const dedaTime = inputData?.dedaInput?.deda_time ?? 0;
+
+    const rate = (key: keyof LampInputEdit, label: string) => {
+        const value = Number(edit[key]) || 0;
+        return (
+            <div className={value > 0 ? 'fr s on' : 'fr s'} key={key}>
+                <span className="lab" id={`lamp-${key}`}>
+                    {label}
+                </span>
+                <span className="stars">
+                    <Rate
+                        aria-labelledby={`lamp-${key}`}
+                        tooltips={[...STAR_NAMES]}
+                        value={value}
+                        onChange={(v) => change(key, v as never)}
+                    />
+                    <span className="sname" aria-live="polite">
+                        {starName(value) || '—'}
+                    </span>
+                </span>
+            </div>
+        );
+    };
+    const time = (key: TimeKey, label: string) => {
+        const value = Number(edit[key]) || 0;
+        return (
+            <div className={value > 0 ? 'fr t on' : 'fr t'} key={key}>
+                <label className="lab" htmlFor={`lamp-${key}`}>
+                    {label}
+                </label>
+                <Hm id={`lamp-${key}`} value={value} onChange={(v) => change(key, v as never)} />
+                <div
+                    className="chips"
+                    role="group"
+                    aria-label={`Add time to ${label}`}
+                    // o campo continua em foco (a linha segue aberta, inclusive no Safari, que não foca botões)
+                    onMouseDown={(e) => e.preventDefault()}
+                >
+                    {[5, 15, 30].map((m) => (
+                        <button
+                            key={m}
+                            type="button"
+                            aria-label={`Add ${m} minutes to ${label}`}
+                            onClick={() => change(key, addMinutes(value, m) as never)}
+                        >
+                            +{m}
+                        </button>
+                    ))}
+                    {value > 0 && (
+                        <button
+                            type="button"
+                            className="clr"
+                            aria-label={`Clear ${label}`}
+                            onClick={() => change(key, 0 as never)}
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const dayName = WEEK_DAYS.find((d) => d.value === selectedDay)?.label ?? '';
 
     return (
-        <div className="panel" role="tabpanel">
-            <div className="sh">
-                <div className="pick">
-                    <Select
-                        aria-label="DEDA week"
-                        value={dedasList.length ? selectedWeek : undefined}
-                        options={dedasList}
-                        onChange={(value) => form.setSelectedWeek(value)}
-                        popupMatchSelectWidth={false}
-                        loading={!dedasList.length}
-                    />
-                    <Select
-                        aria-label="Day"
-                        value={selectedDay}
-                        options={days as unknown as { label: string; value: string }[]}
-                        onChange={(value) => form.setSelectedDay(value)}
-                        popupMatchSelectWidth={false}
-                    />
+        <div className="panel linput" role="tabpanel">
+            <Global styles={styles} />
+            <div className="dayhead">
+                <div className="when">
+                    <p className={`eyebrow${isToday ? '' : ' past'}`}>{isToday ? 'Today' : 'Past day'}</p>
+                    <h2>
+                        {dayName}
+                        <span>Week {String(weekNumber).padStart(2, '0')}</span>
+                    </h2>
                 </div>
+                <div className="nav">
+                    <button
+                        type="button"
+                        className="ib"
+                        aria-label="Previous day"
+                        disabled={!prev}
+                        onClick={() => go(prev)}
+                    >
+                        <ChevronLeft {...ICON} size={18} />
+                    </button>
+                    <button
+                        type="button"
+                        className="ib"
+                        aria-label="Next day"
+                        disabled={!next}
+                        onClick={() => go(next)}
+                    >
+                        <ChevronRight {...ICON} size={18} />
+                    </button>
+                </div>
+            </div>
+            <div className="pick">
+                <Select
+                    aria-label="DEDA week"
+                    value={dedasList.length ? selectedWeek : undefined}
+                    options={dedasList}
+                    onChange={(value) => form.setSelectedWeek(value)}
+                    popupMatchSelectWidth={false}
+                    loading={!dedasList.length}
+                />
+                <Select
+                    aria-label="Day"
+                    value={selectedDay}
+                    options={days as unknown as { label: string; value: string }[]}
+                    onChange={(value) => form.setSelectedDay(value)}
+                    popupMatchSelectWidth={false}
+                />
+                {!isToday && currentWeek && (
+                    <button
+                        type="button"
+                        className="lnk gold"
+                        onClick={() => go({ week: `week${currentWeek}`, day: todayKey })}
+                    >
+                        Back to today
+                    </button>
+                )}
                 <span className="save" role="status">
                     {form.isSaving ? (
                         <>
@@ -176,46 +563,88 @@ export const NewLampInput: React.FC = () => {
                 </div>
             ) : (
                 <>
+                    <ul
+                        className="glance"
+                        aria-label="This day against your goal"
+                        style={{ '--n': reviews.length ? 4 : 3 } as React.CSSProperties}
+                    >
+                        <li className={`gt${rated.length === 5 ? ' met' : ''}`}>
+                            <p className="eyebrow">DEDA quality</p>
+                            <p className="v">
+                                <b>{rated.length ? avg.toFixed(1) : '—'}</b>
+                                {starName(avg)}
+                            </p>
+                            <span className="gbar" aria-hidden>
+                                <i style={{ width: `${(avg / 5) * 100}%` }} />
+                            </span>
+                            <p className="note">
+                                {rated.length === 5 ? (
+                                    <>
+                                        <Check {...ICON} size={14} aria-hidden /> All five rated
+                                    </>
+                                ) : (
+                                    `${rated.length} of 5 rated`
+                                )}
+                            </p>
+                        </li>
+                        <GoalTile name="Active" done={active} goal={goal?.active ?? 0} />
+                        <GoalTile name="Passive" done={passive} goal={goal?.passive ?? 0} />
+                        {reviews.length > 0 && (
+                            <li className={`gt${reviewsDone === reviews.length ? ' met' : ''}`}>
+                                <p className="eyebrow">Review</p>
+                                <p className="v">
+                                    <b>{reviewsDone}</b>of {reviews.length} done
+                                </p>
+                                <span className="gbar" aria-hidden>
+                                    <i style={{ width: `${(reviewsDone / reviews.length) * 100}%` }} />
+                                </span>
+                                <p className="note">
+                                    {reviewsDone === reviews.length ? (
+                                        <>
+                                            <Check {...ICON} size={14} aria-hidden /> All done
+                                        </>
+                                    ) : (
+                                        `${reviews.length - reviewsDone} pending`
+                                    )}
+                                </p>
+                            </li>
+                        )}
+                    </ul>
+                    <p className="hint rule">
+                        Each day counts on its own: time beyond the goal doesn&rsquo;t add up, and a missed day
+                        can&rsquo;t be made up later.
+                    </p>
+
                     <div className="cols3">
                         <section aria-labelledby="lamp-deda">
                             <h3 id="lamp-deda">
-                                DEDA <Hint text="Rate the quality of your DEDA study session today." />
+                                DEDA{' '}
+                                <Hint text="Rate the quality of your DEDA session. Quality counts from Good (4 stars) up." />
                             </h3>
-                            <div className="frs">
-                                {rate('dedaPredPlace', 'Predetermined Place/Time')}
-                                {rate('dedaFiveSteps', 'Five steps (DEEP)')}
-                                {rate('dedaStateMind', 'State of mind')}
-                                {rate('dedaStateBeing', 'State of being')}
-                                {rate('dedaFocus', 'Focus')}
-                            </div>
+                            <p className="ro">
+                                {dedaTime > 0
+                                    ? `DEDA time ${minutesText(dedaTime)} · from your DEDA session`
+                                    : 'DEDA time comes from your DEDA session'}
+                            </p>
+                            <div className="frs">{QUALITY.map(([k, l]) => rate(k, l))}</div>
                         </section>
                         <section aria-labelledby="lamp-active">
                             <h3 id="lamp-active">
-                                Active <small>HH:MM</small> <Hint text="Enter your Active Study Time (HH:MM)" />
+                                Active <Hint text="Active study time (HH:MM). Review time counts as Active." />
+                                <span className="sum">
+                                    <b>{minutesText(active)}</b> of {minutesText(goal?.active ?? 0)}
+                                </span>
                             </h3>
-                            <div className="frs">
-                                {time('activeBook', 'Book')}
-                                {time('activeReview', 'Review')}
-                                {time('activeDedaNotes', 'DEDA Notes')}
-                                {time('activeMooc', 'Fundamentals')}
-                                {time('activeOthers', 'Other Content')}
-                            </div>
+                            <div className="frs">{ACTIVE.map(([k, l]) => time(k, l))}</div>
                         </section>
                         <section aria-labelledby="lamp-passive">
                             <h3 id="lamp-passive">
-                                Passive <small>HH:MM</small> <Hint text="Enter your Passive Study Time (HH:MM)" />
+                                Passive <Hint text="Passive study time (HH:MM). English only, no subtitles." />
+                                <span className="sum">
+                                    <b>{minutesText(passive)}</b> of {minutesText(goal?.passive ?? 0)}
+                                </span>
                             </h3>
-                            <div className="frs">
-                                {time('passiveTed', 'TED')}
-                                {time('passiveSeries', 'Series')}
-                                {time('passiveYoutube', 'YouTube')}
-                                {time('passivePodcast', 'Podcast')}
-                                {time('passiveAudiobook', 'Audiobook')}
-                                {time('passiveMovieDoc', 'Movie/Doc')}
-                                {time('passiveNewsShows', 'News/Show')}
-                                {time('passiveConversation', 'Conversation')}
-                                {time('passiveOthers', 'Other Content')}
-                            </div>
+                            <div className="frs">{PASSIVE.map(([k, l]) => time(k, l))}</div>
                         </section>
                     </div>
                     {inputData.reviewInput && (
@@ -224,7 +653,7 @@ export const NewLampInput: React.FC = () => {
                                 Review <Hint text="Mark each review as completed when done." />
                             </h3>
                             <div className="revs">
-                                {([1, 2, 3] as const).map((n) => {
+                                {reviews.map((n) => {
                                     const review = inputData.reviewInput?.[`review${n}`];
                                     if (!review) return null;
                                     return (

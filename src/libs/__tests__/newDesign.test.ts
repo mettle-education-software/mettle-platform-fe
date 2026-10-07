@@ -14,6 +14,10 @@ import {
     lockedNotes,
     NEW_DESIGN_UIDS,
     parseHm,
+    starName,
+    goalProgress,
+    addMinutes,
+    stepDay,
     minutesText,
     axisWords,
     chartTip,
@@ -254,5 +258,25 @@ describe('gráficos e metas da LAMP', () => {
         ]);
         expect(days.map((d) => d.total)).toEqual([55, 180, 180]);
         expect(fullLoadWeek(days)).toBe(2);
+    });
+});
+
+describe('Input da LAMP', () => {
+    it('dá nome às estrelas sem mudar o valor', () => {
+        expect(starName(3)).toBe('Still Bad');
+        expect(starName(5)).toBe('Great');
+        expect(starName(0)).toBe('');
+    });
+    it('mede o dia contra a meta como o servidor (o que passa não conta)', () => {
+        expect(goalProgress(15, 20)).toEqual({ counted: 15, extra: 0, missing: 5, met: false, ratio: 0.75 });
+        expect(goalProgress(45, 20)).toMatchObject({ counted: 20, extra: 25, met: true, ratio: 1 });
+        expect(addMinutes(5990, 30)).toBe(5999);
+    });
+    it('anda pelos dias atravessando semanas, sem passar de hoje', () => {
+        const weeks = ['week1', 'week2', 'week3'];
+        expect(stepDay('week2', 'day1', -1, weeks, 3, 4)).toEqual({ week: 'week1', day: 'day7' });
+        expect(stepDay('week2', 'day7', 1, weeks, 3, 4)).toEqual({ week: 'week3', day: 'day1' });
+        expect(stepDay('week3', 'day4', 1, weeks, 3, 4)).toBeUndefined();
+        expect(stepDay('week1', 'day1', -1, weeks, 3, 4)).toBeUndefined();
     });
 });

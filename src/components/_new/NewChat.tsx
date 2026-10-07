@@ -41,16 +41,12 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
-import { Roboto } from 'next/font/google';
 import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { chatAudio, chatFetch, reactChat, sendChat, sendSticker } from 'services/chatService';
 import { LIGHT_ROOT } from 'themes/newDesign';
 import { ChatPicker } from './ChatPicker';
 import { NewPage } from './NewPage';
-
-/** WhatsApp Web usa Roboto (--body-font-family); só esta página, a casca continua com a fonte da Mettle. */
-const waFont = Roboto({ subsets: ['latin'], weight: ['400', '500', '700'], display: 'swap' });
 
 const ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image/heic,application/pdf';
 const MAX_FILE = 15 * 1024 * 1024;
@@ -868,7 +864,7 @@ const NewChat: React.FC = () => {
 
     return (
         <NewPage className="lesson fill">
-            <Wrap className={waFont.className} style={{ '--c-font': waFont.style.fontFamily } as React.CSSProperties}>
+            <Wrap>
                 <header className="hd">
                     <MettleMark />
                     <h1>Suporte Mettle</h1>
@@ -1234,10 +1230,24 @@ const Wrap = styled.div`
         --r-on-gold: #ffffff;
         --r-bg-rgb: 245, 241, 235;
     }
-    font-family: var(--c-font), Roboto, 'Helvetica Neue', Helvetica, sans-serif;
+    /* a pilha de fontes do WhatsApp Web, sem fonte baixada: cada sistema desenha o que o WhatsApp desenha nele (no Mac,
+       Helvetica Neue); suavização, peso e espaçamento como os deles, sem herdar o tracking/peso da casca nova */
+    font-family: 'Segoe UI Historic', 'Segoe UI', 'Helvetica Neue', Helvetica, 'Lucida Grande', Arial, Ubuntu, Cantarell,
+        'Fira Sans', sans-serif;
+    font-weight: 400;
+    letter-spacing: normal;
+    font-feature-settings: normal;
+    font-variation-settings: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     /* celular: o app do WhatsApp no iPhone usa a fonte do sistema */
     @media (max-width: 600px) {
-        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, var(--c-font), sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Helvetica Neue', Helvetica,
+            sans-serif;
+    }
+    .txt {
+        font-weight: 400;
     }
 
     --sab: env(safe-area-inset-bottom, 0px);

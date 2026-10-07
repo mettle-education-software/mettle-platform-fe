@@ -6,10 +6,12 @@ import { Button, ConfigProvider, Drawer, Flex, Modal, Select } from 'antd';
 import { ThemeCycle, ThemeSwitch } from 'components/_new/ThemeSwitch';
 import { popupStyles } from 'components/_new/ui';
 import { Logo } from 'components/atoms/Logo/Logo';
+import { auth } from 'config/firebase';
 import { useDeviceSize } from 'hooks';
 import { useDedaRun } from 'hooks/melp/lampDays';
 import { useLogoTheme, useNewAntdTheme } from 'hooks/useTheme';
 import { getWeekDay } from 'libs';
+import { isLeituraOwner } from 'libs/leitura';
 import { activeMenuKeys, firstName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
 import {
@@ -30,6 +32,7 @@ import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 
 import React, { forwardRef, useEffect, useMemo, useState } from 'react';
 import { ICON, platformTokens, UI_FONT_CLASS, UI_FONT_VAR, ui } from 'themes/newDesign';
 import { useAdminImpersonation } from '../AdminActions/AdminActions';
+import { MERCY_MODE_UIDS, MercyMode } from '../AdminActions/MercyMode';
 import { useAppMenu } from './appMenu';
 
 /* ---------- estilos ---------- */
@@ -714,7 +717,15 @@ const MelpMini: React.FC<{ bar?: boolean }> = ({ bar }) => {
 const AdminItem: React.FC = () => {
     const admin = useAdminImpersonation();
     const antdTheme = useNewAntdTheme();
+    const { user } = useAppContext();
+    const router = useRouter();
     if (!admin.isAdmin) return null;
+    // Impersonando, o contexto traz o uid do aluno; as chaves do dono olham a conta que fez o login.
+    const realUid = auth.currentUser?.uid;
+    const mercyUid = admin.impersonating ? user?.uid : admin.selectedUserToImpersonate;
+    const mercyLabel = admin.impersonating
+        ? user?.name
+        : admin.options?.find((o) => o.value === admin.selectedUserToImpersonate)?.label.split(' - ')[0];
     return (
         <>
             <button type="button" className="it" onClick={() => admin.setVisible(true)} title="Admin panel">
@@ -774,6 +785,24 @@ const AdminItem: React.FC = () => {
                                     Acessar
                                 </Button>
                             </Flex>
+                        )}
+                        {!!realUid && MERCY_MODE_UIDS.includes(realUid) && (
+                            <MercyMode studentUid={mercyUid} studentLabel={mercyLabel} />
+                        )}
+                        {isLeituraOwner(realUid) && (
+                            <>
+                                <p className="eyebrow" style={{ marginTop: 20 }}>
+                                    Ferramentas
+                                </p>
+                                <Button
+                                    onClick={() => {
+                                        admin.handleClose();
+                                        router.push('/admin/leitura');
+                                    }}
+                                >
+                                    Análise de leitura
+                                </Button>
+                            </>
                         )}
                     </div>
                 </Modal>

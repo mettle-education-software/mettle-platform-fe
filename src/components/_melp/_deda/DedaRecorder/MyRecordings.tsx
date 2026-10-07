@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import { PlayArrow } from '@mui/icons-material';
 import { Popconfirm, Skeleton } from 'antd';
 import { AudioPlayer, MaxWidthContainer } from 'components';
-import { useDedaRecordings, useHideRecording, useRecordingPlayUrl } from 'hooks/melp/dedaRecording';
+import { useDedaRecordings, useRemoveRecording, useRecordingPlayUrl } from 'hooks/melp/dedaRecording';
 import {
     computeIndicators,
     DedaRecording,
@@ -215,7 +215,7 @@ interface Props {
 export const MyRecordings: React.FC<Props> = ({ dedaId, dedaTitle, coverSrc }) => {
     const recordings = useDedaRecordings(dedaId);
     const [playing, setPlaying] = useState<string | null>(null);
-    const hide = useHideRecording();
+    const remove = useRemoveRecording();
     const ind = computeIndicators(recordings.data?.recordings ?? []);
     const longest = Math.max(1, ...ind.days.map((d) => d?.durationMs ?? 0));
     const active = ind.days.find((d) => d?.id === playing) ?? null;
@@ -314,13 +314,13 @@ export const MyRecordings: React.FC<Props> = ({ dedaId, dedaTitle, coverSrc }) =
                                             cancelText="Cancel"
                                             onConfirm={() => {
                                                 if (d.id === playing) setPlaying(null);
-                                                hide.mutate(d.id);
+                                                remove.mutate(d.id);
                                             }}
                                         >
                                             <RecButton
                                                 type="button"
                                                 className="link"
-                                                disabled={hide.isPending}
+                                                disabled={remove.isPending}
                                                 aria-label={`Remove Day ${i + 1}`}
                                             >
                                                 Remove

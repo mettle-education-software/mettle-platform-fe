@@ -77,7 +77,7 @@ export type ChatRow =
 
 /**
  * Linhas da conversa: separador por dia e grupos por remetente (o nome e o avatar da equipe só na primeira mensagem de
- * um grupo; um grupo quebra com outro remetente, outro dia ou 5 min de silêncio).
+ * um grupo; como no WhatsApp, um grupo só quebra com outro remetente ou outro dia).
  */
 export function chatRows(messages: ChatMessage[], now = Date.now()): ChatRow[] {
     const rows: ChatRow[] = [];
@@ -88,7 +88,7 @@ export function chatRows(messages: ChatMessage[], now = Date.now()): ChatRow[] {
         const newDay = !prev || dayKey(prev.at) !== dayKey(m.at);
         if (newDay) rows.push({ type: 'day', key: 'd' + dayKey(m.at), label: dayLabel(m.at, now) });
         const joins = (a?: ChatMessage, b?: ChatMessage) =>
-            !!a && !!b && who(a) === who(b) && dayKey(a.at) === dayKey(b.at) && Math.abs(b.at - a.at) < 300;
+            !!a && !!b && who(a) === who(b) && dayKey(a.at) === dayKey(b.at);
         rows.push({ type: 'msg', key: 'm' + m.id, m, first: !joins(prev, m), last: !joins(m, next) });
     });
     return rows;

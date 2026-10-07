@@ -36,7 +36,6 @@ import {
     RotateCw,
     SendHorizontal,
     Smile,
-    Sticker,
     Trash2,
     X,
 } from 'lucide-react';
@@ -779,7 +778,7 @@ const NewChat: React.FC = () => {
                 {m.text && (
                     <p className="txt">
                         <Text text={m.text} />
-                        <span className={`sp${m.mine ? ' me' : ''}`} />
+                        <span className={`sp${m.mine ? ' me' : ''}`}>{'\u2060'}</span>
                     </p>
                 )}
                 {!onlyImage &&
@@ -992,7 +991,7 @@ const NewChat: React.FC = () => {
                             <>
                                 <button
                                     type="button"
-                                    className="ib"
+                                    className="ib plus"
                                     aria-label="Descartar áudio"
                                     onClick={() => recorder.stop(true)}
                                 >
@@ -1063,18 +1062,9 @@ const NewChat: React.FC = () => {
                                     <button
                                         type="button"
                                         className="ib"
-                                        aria-label="Figurinhas"
-                                        aria-pressed={picker === 'sticker'}
-                                        onClick={() => setPicker(picker === 'sticker' ? null : 'sticker')}
-                                    >
-                                        <Sticker size={20} strokeWidth={1.6} />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="ib"
                                         aria-label="Emojis"
-                                        aria-pressed={picker === 'emoji'}
-                                        onClick={() => setPicker(picker === 'emoji' ? null : 'emoji')}
+                                        aria-pressed={!!picker}
+                                        onClick={() => setPicker(picker ? null : 'emoji')}
                                     >
                                         <Smile size={21} strokeWidth={1.6} />
                                     </button>
@@ -1156,6 +1146,8 @@ const Wrap = styled.div`
     --c-quote: rgba(0, 0, 0, 0.22);
     --c-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.35);
     --c-wallpaper: ${tile('#ffffff', 0.04)};
+    --c-pill: #3a3836;
+    --c-pill-line: rgba(255, 255, 255, 0.08);
 
     ${LIGHT_ROOT} & {
         --c-wall: #efe8dc;
@@ -1170,13 +1162,18 @@ const Wrap = styled.div`
         --c-quote: rgba(52, 40, 26, 0.07);
         --c-shadow: 0 1px 0.5px rgba(52, 40, 26, 0.16);
         --c-wallpaper: ${tile('#5a4630', 0.07)};
+        --c-pill: #ffffff;
+        --c-pill-line: rgba(52, 40, 26, 0.1);
     }
 
     display: flex;
     flex-direction: column;
     height: 100%;
     min-height: 0;
-    background: var(--c-wall);
+    /* papel de parede atrás da conversa E do campo de mensagem (os controles flutuam sobre ele, como no WhatsApp) */
+    background-color: var(--c-wall);
+    background-image: var(--c-wallpaper);
+    background-size: 300px 300px;
 
     /* ---------- cabeçalho ---------- */
     .hd {
@@ -1203,10 +1200,7 @@ const Wrap = styled.div`
         overflow-y: auto;
         overflow-x: hidden;
         overscroll-behavior: contain;
-        padding: 10px clamp(12px, 6%, 72px) 12px;
-        background-color: var(--c-wall);
-        background-image: var(--c-wallpaper);
-        background-size: 300px 300px;
+        padding: 10px clamp(12px, 6%, 72px) 8px;
     }
     .list > .col {
         display: flex;
@@ -1270,6 +1264,9 @@ const Wrap = styled.div`
     .msg.first {
         margin-top: 10px;
     }
+    .day + .msg.first {
+        margin-top: 0;
+    }
     .msg.me {
         align-items: flex-end;
     }
@@ -1281,7 +1278,7 @@ const Wrap = styled.div`
         display: flex;
         align-items: center;
         gap: 6px;
-        max-width: min(65%, 620px);
+        max-width: 65%;
     }
     .msg.me .line {
         flex-direction: row-reverse;
@@ -1304,7 +1301,7 @@ const Wrap = styled.div`
         position: relative;
         min-width: 0;
         max-width: 100%;
-        padding: 6px 9px 8px;
+        padding: 6px 7px 8px 9px;
         border-radius: 8px;
         background: var(--c-in);
         box-shadow: var(--c-shadow);
@@ -1359,17 +1356,18 @@ const Wrap = styled.div`
         text-underline-offset: 2px;
     }
     /* reserva o lugar da hora na última linha (a hora fica por cima, no canto) */
+    /* inline com um "word joiner": fica grudado na última palavra; se não couber, a palavra desce junto (como no WhatsApp),
+       em vez de a hora ficar sozinha numa linha nova */
     .sp {
-        display: inline-block;
-        width: 44px;
+        padding-right: 46px;
     }
     .sp.me {
-        width: 64px;
+        padding-right: 66px;
     }
     .tm {
         position: absolute;
-        right: 8px;
-        bottom: 4px;
+        right: 7px;
+        bottom: 5px;
         display: inline-flex;
         align-items: center;
         gap: 3px;
@@ -1420,10 +1418,10 @@ const Wrap = styled.div`
     .q {
         display: grid;
         gap: 1px;
-        width: 100%;
+        width: calc(100% + 10px);
         min-width: 180px;
-        margin: 2px 0 5px;
-        padding: 6px 10px 6px 11px;
+        margin: -3px -4px 4px -6px;
+        padding: 5px 8px 6px 8px;
         border: 0;
         border-left: 4px solid hsl(var(--h) 52% var(--c-name-l));
         border-radius: 6px;
@@ -1838,8 +1836,8 @@ const Wrap = styled.div`
     /* ---------- escrever ---------- */
     .composer {
         flex: none;
-        padding: 6px 12px max(8px, env(safe-area-inset-bottom));
-        background: var(--c-head);
+        padding: 6px 16px max(10px, env(safe-area-inset-bottom));
+        background: linear-gradient(to top, color-mix(in srgb, var(--c-wall) 70%, transparent), transparent);
     }
     .replying {
         display: flex;
@@ -1882,14 +1880,18 @@ const Wrap = styled.div`
         align-items: flex-end;
         gap: 8px;
     }
+    /* "+", campo e microfone: mesma altura (46 px), mesma linha de centro, mesmo espaço entre eles */
     .pillin {
         flex: 1;
         min-width: 0;
         display: flex;
         align-items: flex-end;
-        padding: 0 4px 0 14px;
-        border-radius: 24px;
-        background: var(--c-in);
+        min-height: 46px;
+        padding: 0 3px 0 18px;
+        border-radius: 23px;
+        background: var(--c-pill);
+        border: 1px solid var(--c-pill-line);
+        box-shadow: var(--c-shadow);
     }
     .pillin textarea {
         flex: 1;
@@ -1913,7 +1915,7 @@ const Wrap = styled.div`
         flex: none;
         display: grid;
         place-items: center;
-        width: 42px;
+        width: 40px;
         height: 44px;
         border: 0;
         border-radius: 50%;
@@ -1926,14 +1928,19 @@ const Wrap = styled.div`
         color: var(--r-text);
     }
     .ib.plus {
-        width: 44px;
+        width: 46px;
+        height: 46px;
+        background: var(--c-pill);
+        border: 1px solid var(--c-pill-line);
+        box-shadow: var(--c-shadow);
+        color: var(--r-text);
     }
     .go {
         flex: none;
         display: grid;
         place-items: center;
-        width: 44px;
-        height: 44px;
+        width: 46px;
+        height: 46px;
         border: 0;
         border-radius: 50%;
         background: var(--r-gold);
@@ -1952,10 +1959,11 @@ const Wrap = styled.div`
         display: flex;
         align-items: center;
         gap: 10px;
-        height: 44px;
-        padding: 0 12px;
-        border-radius: 24px;
-        background: var(--c-in);
+        height: 46px;
+        padding: 0 16px;
+        border-radius: 23px;
+        background: var(--c-pill);
+        border: 1px solid var(--c-pill-line);
         font-variant-numeric: tabular-nums;
         color: var(--r-text);
     }
@@ -1976,20 +1984,17 @@ const Wrap = styled.div`
             padding: 6px 10px 10px;
         }
         .line {
-            max-width: 86%;
+            max-width: 80%;
         }
         .composer {
-            padding: 6px 6px max(6px, env(safe-area-inset-bottom));
+            padding: 6px 8px max(8px, env(safe-area-inset-bottom));
         }
         .replying,
         .chip {
             margin: 2px 4px 6px;
         }
         .bar {
-            gap: 4px;
-        }
-        .ib.plus {
-            width: 38px;
+            gap: 6px;
         }
         .picker {
             height: 280px;

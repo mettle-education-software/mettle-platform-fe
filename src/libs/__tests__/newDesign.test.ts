@@ -14,6 +14,11 @@ import {
     lockedNotes,
     NEW_DESIGN_UIDS,
     parseHm,
+    minutesText,
+    axisWords,
+    chartTip,
+    goalDays,
+    fullLoadWeek,
     rankActivities,
     reportHm,
     reportMinutes,
@@ -226,5 +231,28 @@ describe('relatório da LAMP (Overall stats)', () => {
         expect(rankActivities(rows, 'time').done.map((r) => r.k)).toEqual(['c', 'a']);
         expect(rankActivities(rows, 'default').done.map((r) => r.k)).toEqual(['a', 'c']);
         expect(rankActivities(rows, 'time').idle.map((r) => r.k)).toEqual(['b']);
+    });
+});
+
+describe('gráficos e metas da LAMP', () => {
+    it('escreve tempos e eixos em palavras', () => {
+        expect(minutesText(33)).toBe('33 min');
+        expect(minutesText(65)).toBe('1h05');
+        expect(minutesText(180)).toBe('3h');
+        expect(minutesText(4.5, true)).toBe('4 min 30 s');
+        expect(axisWords('W12')).toBe('Week 12');
+        expect(axisWords('D02')).toBe('Day 2');
+        expect(axisWords('ACTIVE')).toBe('Active');
+        expect(axisWords('DEDA')).toBe('DEDA');
+        expect(chartTip('3h', 'a<b')).toBe('<div class="ltip"><b>3h</b><span>a&#60;b</span></div>');
+    });
+    it('soma as categorias da meta e acha a semana de carga cheia', () => {
+        const days = goalDays([
+            { week: 1, deda: '00:45', active: '00:05', review: '00:00', passive: '00:05' },
+            { week: 2, deda: '00:45', active: '00:20', review: '00:10', passive: '01:45' },
+            { week: 3, deda: '00:45', active: '00:20', review: '00:10', passive: '01:45' },
+        ]);
+        expect(days.map((d) => d.total)).toEqual([55, 180, 180]);
+        expect(fullLoadWeek(days)).toBe(2);
     });
 });

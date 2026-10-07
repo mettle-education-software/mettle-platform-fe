@@ -1,56 +1,122 @@
 'use client';
 
 import { css, Global } from '@emotion/react';
-import { Select, Tooltip } from 'antd';
-import { uiFont } from 'components/_melp/_deda/DedaReader/readerFonts';
-import {
-    useGeneralWeeklyDevelopment,
-    useGetDedasList,
-    useGetGoalByLevel,
-    useGetWeeklyPerformance,
-    useGoalGraphOptions,
-    useOverallProgress,
-} from 'hooks';
-import { useTheme } from 'hooks/useTheme';
-import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
+import { Select } from 'antd';
+import { useGeneralWeeklyDevelopment, useGetDedasList, useGetWeeklyPerformance, useOverallProgress } from 'hooks';
 import { statisticsColors } from 'libs';
-import { goalLabel, softChart } from 'libs/newDesign';
-import { Info } from 'lucide-react';
+import { axisWords, minutesText } from 'libs/newDesign';
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
-import React, { useEffect, useRef, useState } from 'react';
-import { DARK, ICON, LIGHT } from 'themes/newDesign';
+import React, { useEffect, useState } from 'react';
+import { LampGoals } from './LampGoals';
 import { LampOverallStats, LampStatsSort } from './LampOverallStats';
 import { NewLampInput } from './NewLampInput';
 import { NewPage } from './NewPage';
+import { useSoftChart } from './lampCharts';
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
-
-const FONT = uiFont.style.fontFamily;
-
-/** Gráficos no tema em vigor (rótulos, grade e balão claros ou escuros). */
-const useSoftChart = () => {
-    const light = useTheme().resolved === 'light';
-    return <T extends { chart?: object; grid?: object; tooltip?: object }>(options: T): T => {
-        const o = softChart(options, FONT, (light ? LIGHT : DARK)['--r-muted'], light);
-        // anéis do Overall: o trilho escuro de cada série some no claro; um trilho neutro e leve no lugar
-        const plot = (o as { plotOptions?: { radialBar?: { track?: object } } }).plotOptions;
-        if (!light || !plot?.radialBar?.track) return o;
-        return {
-            ...o,
-            plotOptions: {
-                ...plot,
-                radialBar: { ...plot.radialBar, track: { ...plot.radialBar.track, background: LIGHT['--r-track'] } },
-            },
-        };
-    };
-};
 
 /* ---------- estilos da LAMP (dentro de .ui-new-page.lamp) ---------- */
 
 const lampStyles = css`
+    /* abas: controle segmentado, o primeiro comando da página */
     .ui-new-page.lamp .seg {
-        margin-bottom: 24px;
+        display: inline-flex;
+        gap: 4px;
+        margin: -8px 0 32px;
+        padding: 4px;
+        border: 1px solid var(--r-line);
+        border-radius: 999px;
+        background: var(--r-surf);
+        overflow: visible;
+    }
+    .ui-new-page.lamp .seg button {
+        min-height: 40px;
+        padding: 0 24px;
+        border-radius: 999px;
+        font-size: 15px;
+        color: var(--r-muted);
+    }
+    .ui-new-page.lamp .seg button::after {
+        display: none;
+    }
+    .ui-new-page.lamp .seg button:hover {
+        color: var(--r-text);
+        background: var(--r-hover);
+    }
+    .ui-new-page.lamp .seg button[aria-selected='true'] {
+        background: var(--r-gold);
+        color: var(--r-on-gold);
+        font-weight: 500;
+    }
+
+    /* Performance: o resumo (Overall + Weekly progress) num bloco de destaque; o detalhe vem abaixo, mais quieto */
+    .ui-new-page.lamp .hero {
+        padding: 24px 28px 20px;
+        border: 1px solid var(--r-line);
+        border-radius: 16px;
+        background: var(--r-surf);
+    }
+    .ui-new-page.lamp .hero h2 {
+        font-size: 20px;
+    }
+    .ui-new-page.lamp .quiet {
+        margin-top: 56px;
+    }
+    .ui-new-page.lamp .quiet > .sh h2 {
+        font-size: 17px;
+    }
+    .ui-new-page.lamp .quiet .chart h3 {
+        font-size: 13.5px;
+        font-weight: 400;
+        color: var(--r-muted);
+    }
+
+    /* balão dos gráficos: pequeno, nas cores do tema, valor e rótulo em palavras */
+    .ui-new-page.lamp .apexcharts-tooltip,
+    .ui-new-page.lamp .apexcharts-tooltip.apexcharts-theme-light,
+    .ui-new-page.lamp .apexcharts-tooltip.apexcharts-theme-dark {
+        border: 0 !important;
+        border-radius: 8px !important;
+        background: var(--r-tip-bg) !important;
+        color: var(--r-tip-text) !important;
+        box-shadow: 0 6px 18px var(--r-card-shadow) !important;
+    }
+    .ltip {
+        display: grid;
+        gap: 1px;
+        padding: 6px 10px 7px;
+        font-family: var(--r-ui-font), system-ui, sans-serif;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+    .ltip b {
+        font-size: 14px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+    }
+    .ltip span {
+        font-size: 11.5px;
+        letter-spacing: 0.01em;
+        opacity: 0.82;
+    }
+
+    /* Input: o que foi preenchido no dia aparece em dourado (campo de tempo e estrelas) */
+    .ui-new-page.lamp .frs .hm {
+        color: var(--r-muted);
+    }
+    .ui-new-page.lamp .frs .hm.on {
+        border-color: var(--r-gold);
+        background: var(--r-gold-tint);
+        color: var(--r-gold-hi);
+        font-weight: 500;
+    }
+    .ui-new-page.lamp .frs .fr .lab {
+        color: var(--r-muted);
+    }
+    .ui-new-page.lamp .frs .fr.on .lab {
+        color: var(--r-text);
     }
     .ui-new-page.lamp .sh {
         flex-wrap: wrap;
@@ -111,9 +177,7 @@ const lampStyles = css`
     }
 
     /* claro: dourado sobre o tom dourado fica abaixo de AA (4,4:1); o destaque fica no fundo, o texto em grafite */
-    html[data-theme='light'] .ui-new-page.lamp .toggle button[aria-pressed='true'],
-    html[data-theme='light'] .ui-new-page.lamp .tile.total b,
-    html[data-theme='light'] .ui-new-page.lamp tr.now td {
+    html[data-theme='light'] .ui-new-page.lamp .toggle button[aria-pressed='true'] {
         color: var(--r-text);
     }
 
@@ -329,87 +393,6 @@ const lampStyles = css`
         font-size: 13.5px;
     }
 
-    /* ---------- Goals ---------- */
-    .ui-new-page.lamp .tiles {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 12px;
-        margin: 0 0 40px;
-    }
-    .ui-new-page.lamp .tile {
-        padding: 14px 16px;
-        border: 1px solid var(--r-line);
-        border-radius: var(--r-radius);
-    }
-    .ui-new-page.lamp .tile.total {
-        border-color: var(--r-gold);
-        background: var(--r-gold-tint);
-    }
-    .ui-new-page.lamp .tile .eyebrow {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .ui-new-page.lamp .tile .eyebrow i {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-    }
-    .ui-new-page.lamp .tile b {
-        display: block;
-        margin-top: 6px;
-        font-size: 22px;
-        font-weight: 400;
-        font-variant-numeric: tabular-nums;
-    }
-    .ui-new-page.lamp .tile.total b {
-        color: var(--r-gold-hi);
-    }
-    .ui-new-page.lamp .tw {
-        max-height: 440px;
-        overflow: auto;
-        border-top: 1px solid var(--r-line);
-        scrollbar-width: thin;
-        scrollbar-color: var(--r-track) transparent;
-    }
-    .ui-new-page.lamp table {
-        width: 100%;
-        min-width: 420px;
-        border-collapse: collapse;
-        font-size: 14px;
-        font-variant-numeric: tabular-nums;
-    }
-    .ui-new-page.lamp th {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-        padding: 10px 12px;
-        background: var(--r-bg);
-        font-size: var(--r-label-size);
-        font-weight: 500;
-        letter-spacing: var(--r-label-track);
-        text-transform: uppercase;
-        text-align: right;
-        color: var(--r-muted);
-        border-bottom: 1px solid var(--r-line);
-    }
-    .ui-new-page.lamp td {
-        padding: 9px 12px;
-        text-align: right;
-        color: var(--r-muted);
-        border-bottom: 1px solid var(--r-line);
-    }
-    .ui-new-page.lamp th:first-of-type,
-    .ui-new-page.lamp td:first-of-type {
-        text-align: left;
-    }
-    .ui-new-page.lamp tr.now td {
-        color: var(--r-text);
-        background: var(--r-gold-tint);
-    }
-    .ui-new-page.lamp tr.now td:first-of-type {
-        color: var(--r-gold-hi);
-    }
     .ui-new-page.lamp .skel {
         height: 220px;
         border-radius: var(--r-radius);
@@ -417,26 +400,29 @@ const lampStyles = css`
         opacity: 0.5;
     }
 
-    @media (max-width: 1100px) {
-        .ui-new-page.lamp .tiles {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-    }
     @media (max-width: 860px) {
         .ui-new-page.lamp .hm {
             font-size: 16px; /* menos que isso o Safari do iPhone amplia a página ao tocar */
+        }
+        .ui-new-page.lamp .seg {
+            display: flex;
+            margin-bottom: 24px;
+        }
+        .ui-new-page.lamp .seg button {
+            flex: 1 1 0;
+            padding: 0 8px;
+        }
+        .ui-new-page.lamp .hero {
+            margin: 0 -4px;
+            padding: 20px 16px 16px;
+        }
+        .ui-new-page.lamp .quiet {
+            margin-top: 44px;
         }
         .ui-new-page.lamp .two,
         .ui-new-page.lamp .cols3 {
             grid-template-columns: minmax(0, 1fr);
             gap: 32px;
-        }
-        .ui-new-page.lamp .tiles {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-        }
-        .ui-new-page.lamp .tile.total {
-            grid-column: 1 / -1;
         }
         .ui-new-page.lamp .pick .ant-select {
             flex: 1 1 140px;
@@ -447,13 +433,6 @@ const lampStyles = css`
         }
         .ui-new-page.lamp .fr .lab {
             font-size: 13.5px;
-        }
-        .ui-new-page.lamp .tw {
-            margin: 0 -20px;
-            padding: 0 20px;
-        }
-        .ui-new-page.lamp table {
-            min-width: 520px;
         }
     }
 `;
@@ -505,7 +484,7 @@ const Weekly: React.FC = () => {
     const { weeklyDevelopment, isLoading, weeklyDevelopmentData } = useGeneralWeeklyDevelopment(user?.uid);
     if (isLoading || !weeklyDevelopmentData) return <div className="skel" aria-busy />;
     // até 100+ semanas no eixo: uma marca a cada ~10, sem rótulos inclinados
-    const base = soft(weeklyDevelopment.options);
+    const base = soft(weeklyDevelopment.options, (v, x) => [`${Math.round(v)}%`, `${axisWords(x)} · progress`]);
     const options = {
         ...base,
         xaxis: {
@@ -536,11 +515,15 @@ const DedaStats: React.FC<{ week?: string }> = ({ week }) => {
                     <h3>Weekly</h3>
                 </div>
                 <ReactApexChart
-                    options={soft(weeklyPerformanceGraph.options)}
+                    options={soft(
+                        weeklyPerformanceGraph.options,
+                        (v, x) => [`${Math.round(v)}%`, `${axisWords(x)} · this week`],
+                        true,
+                    )}
                     series={weeklyPerformanceGraph.series}
                     type="bar"
                     width="100%"
-                    height={300}
+                    height={240}
                 />
             </div>
             <div className="chart">
@@ -560,11 +543,18 @@ const DedaStats: React.FC<{ week?: string }> = ({ week }) => {
                     </div>
                 </div>
                 <ReactApexChart
-                    options={soft(dailyPerformanceGraph.options)}
+                    options={soft(
+                        dailyPerformanceGraph.options,
+                        (v, x) => [
+                            minutesText(v, daily === 'readingTime'),
+                            `${axisWords(x)} · ${daily === 'dedaTime' ? 'DEDA time' : 'Reading time'}`,
+                        ],
+                        true,
+                    )}
                     series={dailyPerformanceGraph.series}
                     type="bar"
                     width="100%"
-                    height={300}
+                    height={240}
                 />
             </div>
         </div>
@@ -582,7 +572,7 @@ const Performance: React.FC = () => {
 
     return (
         <div className="panel" role="tabpanel">
-            <div className="two">
+            <div className="two hero">
                 <section aria-label="Overall progress">
                     <div className="sh">
                         <h2>Overall</h2>
@@ -596,7 +586,7 @@ const Performance: React.FC = () => {
                     <Weekly />
                 </section>
             </div>
-            <section aria-label="DEDA stats">
+            <section className="quiet" aria-label="DEDA stats">
                 <div className="sh">
                     <h2>DEDA stats</h2>
                     <Select
@@ -610,7 +600,7 @@ const Performance: React.FC = () => {
                 </div>
                 <DedaStats week={week} />
             </section>
-            <section aria-label="Overall stats">
+            <section className="quiet" aria-label="Overall stats">
                 <div className="sh">
                     <h2>Overall stats</h2>
                     <LampStatsSort order={order} onOrder={setOrder} />
@@ -649,128 +639,6 @@ const GOALS_HELP = (
     </>
 );
 
-const Goals: React.FC<{ level: DedaDifficulty; onLevel(level: DedaDifficulty): void }> = ({ level, onLevel }) => {
-    const soft = useSoftChart();
-    const { melpSummary } = useMelpContext();
-    const { data, isLoading } = useGetGoalByLevel(level);
-    // a tabela abre com a semana atual à vista
-    const tableRef = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        const box = tableRef.current;
-        const now = box?.querySelector<HTMLElement>('tr.now');
-        if (box && now) box.scrollTop = Math.max(0, now.offsetTop - box.clientHeight / 2);
-    }, [data]);
-    const { goalGraph, isGraphLoading } = useGoalGraphOptions(level);
-    const currentWeek = melpSummary?.current_deda_week ?? 0;
-    const row = data?.[currentWeek - 1];
-    const mine = melpSummary?.deda_difficulty;
-
-    const tiles: { key: keyof NonNullable<typeof row>; name: string; color?: string }[] = [
-        { key: 'deda', name: 'DEDA', color: statisticsColors.DEDA },
-        { key: 'review', name: 'Review', color: statisticsColors.Review },
-        { key: 'active', name: 'Active', color: statisticsColors.Active },
-        { key: 'passive', name: 'Passive', color: statisticsColors.Passive },
-        { key: 'total', name: 'Total' },
-    ];
-
-    return (
-        <div className="panel" role="tabpanel">
-            <div className="sh">
-                <h2>
-                    Daily goal<span>Week {String(currentWeek).padStart(2, '0')}</span>
-                    <Tooltip
-                        title={<div className="help">{GOALS_HELP}</div>}
-                        placement="bottomLeft"
-                        overlayStyle={{ maxWidth: 380 }}
-                    >
-                        <button type="button" className="ib hint-i" aria-label="About intensity levels and goals">
-                            <Info {...ICON} size={16} />
-                        </button>
-                    </Tooltip>
-                </h2>
-                <Select
-                    aria-label="Compare levels"
-                    value={level}
-                    onChange={onLevel}
-                    popupMatchSelectWidth={false}
-                    options={(Object.keys(DedaDifficulties) as DedaDifficulty[]).map((key) => ({
-                        value: key,
-                        label: `${DedaDifficulties[key]}${key === mine ? ' · your level' : ''}`,
-                    }))}
-                />
-            </div>
-            {isLoading || !data ? (
-                <div className="skel" aria-busy />
-            ) : (
-                <div className="tiles">
-                    {tiles.map((tile) => (
-                        <div key={tile.key} className={`tile${tile.key === 'total' ? ' total' : ''}`}>
-                            <p className="eyebrow">
-                                {tile.color && <i style={{ background: tile.color }} aria-hidden />}
-                                {tile.name}
-                            </p>
-                            <b>{goalLabel(row?.[tile.key] as string | undefined)}</b>
-                        </div>
-                    ))}
-                </div>
-            )}
-            <section aria-label="Goals over time">
-                <div className="sh">
-                    <h2>Goals over time</h2>
-                </div>
-                {isGraphLoading || !goalGraph.series?.length ? (
-                    <div className="skel" aria-busy />
-                ) : (
-                    <div className="chart">
-                        <ReactApexChart
-                            options={soft(goalGraph.options)}
-                            series={goalGraph.series}
-                            type="line"
-                            width="100%"
-                            height={320}
-                        />
-                    </div>
-                )}
-            </section>
-            <section aria-label="Weekly goals">
-                <div className="sh">
-                    <h2>Weekly goals</h2>
-                </div>
-                {isLoading || !data ? (
-                    <div className="skel" aria-busy />
-                ) : (
-                    <div className="tw" ref={tableRef}>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th scope="col">Week</th>
-                                    <th scope="col">DEDA</th>
-                                    <th scope="col">Review</th>
-                                    <th scope="col">Active</th>
-                                    <th scope="col">Passive</th>
-                                    <th scope="col">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {data.map((r) => (
-                                    <tr key={r.key ?? r.week} className={r.week === currentWeek ? 'now' : undefined}>
-                                        <td>{r.week}</td>
-                                        <td>{r.deda}</td>
-                                        <td>{r.review}</td>
-                                        <td>{r.active}</td>
-                                        <td>{r.passive}</td>
-                                        <td>{r.total}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </section>
-        </div>
-    );
-};
-
 /* ---------- página ---------- */
 
 const TABS = [
@@ -785,14 +653,10 @@ type TabKey = (typeof TABS)[number]['key'];
  * da página atual; textos de instrução viram ⓘ; tabela larga rola no próprio container.
  */
 const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
-    const { melpSummary } = useMelpContext();
-    const [tab, setTab] = useState<TabKey>(
-        TABS.some((t) => t.key === initialTab) ? (initialTab as TabKey) : 'performance',
-    );
-    const [level, setLevel] = useState<DedaDifficulty>(melpSummary?.deda_difficulty);
-    useEffect(() => {
-        if (melpSummary) setLevel(melpSummary.deda_difficulty);
-    }, [melpSummary]);
+    // na casca persistente a página nem sempre recebe searchParams: o endereço é a fonte (?lampTab=goal)
+    const params = useSearchParams();
+    const asked = initialTab ?? params?.get('lampTab') ?? undefined;
+    const [tab, setTab] = useState<TabKey>(TABS.some((t) => t.key === asked) ? (asked as TabKey) : 'performance');
 
     return (
         <NewPage className="lamp">
@@ -821,7 +685,7 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
             </div>
             {tab === 'performance' && <Performance />}
             {tab === 'input' && <NewLampInput />}
-            {tab === 'goal' && <Goals level={level} onLevel={setLevel} />}
+            {tab === 'goal' && <LampGoals help={GOALS_HELP} />}
         </NewPage>
     );
 };

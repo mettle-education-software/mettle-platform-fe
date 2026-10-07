@@ -349,6 +349,16 @@ function useCable(ws: ChatPage['ws'] | null, onEvent: (event: string, data: Reco
 }
 
 const NewChat: React.FC = () => {
+    // a área segura (env(safe-area-inset-bottom)) só existe com viewport-fit=cover; liga só enquanto o chat está aberto
+    useEffect(() => {
+        const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+        if (!meta || meta.content.includes('viewport-fit')) return;
+        const before = meta.content;
+        meta.content = `${before}, viewport-fit=cover`;
+        return () => {
+            meta.content = before;
+        };
+    }, []);
     const queryClient = useQueryClient();
     const params = useSearchParams();
     // a conversa é da conta REALMENTE logada (o Worker usa o token dela), não do aluno que um administrador está vendo
@@ -492,6 +502,7 @@ const NewChat: React.FC = () => {
             if (stick.current && keepFrom.current == null) el.scrollTop = el.scrollHeight;
         });
         ro.observe(col);
+        ro.observe(el); // o campo mudou de altura (área segura, resposta, anexo): continua no fim
         return () => ro.disconnect();
     }, []);
 
@@ -1157,49 +1168,8 @@ const NewChat: React.FC = () => {
 
 export default NewChat;
 
-/* Papel de parede: ícones de linha do nosso mundo (livro, fones, microfone, estrela, relógio, balão, lápis, globo, nota,
-   lâmpada), quase transparentes. Um ladrilho por tema (o traço muda de cor; o fundo vem de --c-wall). */
-const ICONS: Record<string, string> = {
-    heart: "<path d='M20 34s-14-8-14-18a8 8 0 0 1 14-5 8 8 0 0 1 14 5c0 10-14 18-14 18z'/>",
-    check: "<circle cx='20' cy='20' r='16'/><path d='M12 20l6 6 11-12'/>",
-    cap: "<path d='M2 14l18-8 18 8-18 8zM10 18v9c6 5 14 5 20 0v-9'/>",
-    cup: "<path d='M6 12h22v12a10 10 0 0 1-10 10h-2A10 10 0 0 1 6 24zM28 15h3a5 5 0 0 1 0 10h-3M12 2v6M18 2v6'/>",
-    play: "<circle cx='20' cy='20' r='16'/><path d='M16 13l11 7-11 7z'/>",
-    book: "<path d='M0 4q10-6 20 0v24q-10-6-20 0zM20 4q10-6 20 0v24q-10-6-20 0z'/>",
-    phones: "<path d='M4 26v-8a16 16 0 0 1 32 0v8M0 24h7v14h-7zM33 24h7v14h-7z'/>",
-    mic: "<path d='M14 2a6 6 0 0 1 12 0v14a6 6 0 0 1-12 0zM8 14a12 12 0 0 0 24 0M20 26v8M13 34h14'/>",
-    star: "<path d='M20 2l5 10.5 11.5 1.5-8.4 7.9 2.2 11.4L20 27.7l-10.3 5.6 2.2-11.4-8.4-7.9L15 12.5z'/>",
-    clock: "<circle cx='20' cy='20' r='16'/><path d='M20 10v10l7 4'/>",
-    chat: "<path d='M6 4h28a6 6 0 0 1 6 6v14a6 6 0 0 1-6 6h-18l-10 8v-8a6 6 0 0 1-6-6v-14a6 6 0 0 1 6-6z'/>",
-    pencil: "<path d='M4 36l26-26 8 8-26 26h-8zM26 14l8 8'/>",
-    globe: "<circle cx='20' cy='20' r='16'/><path d='M4 20h32M20 4c-8 9-8 23 0 32M20 4c8 9 8 23 0 32'/>",
-    note: "<path d='M12 34v-28l20-5v26M12 34a5 4 0 1 1-1-1M32 28a5 4 0 1 1-1-1'/>",
-    bulb: "<path d='M20 2a12 12 0 0 0-7 22v6h14v-6a12 12 0 0 0-7-22zM14 34h12M16 38h8'/>",
-};
-/* ladrilho de 240 px com 25 ícones (5 × 5 células de 48 px) de tamanho, giro e deslocamento variados, como o do
-   WhatsApp: denso, sem fileiras aparentes. Determinístico (o mesmo desenho em todo carregamento). */
-const KINDS = Object.keys(ICONS) as (keyof typeof ICONS)[];
-const SPOTS: [keyof typeof ICONS, number, number, number, number][] = Array.from({ length: 25 }, (_, i) => {
-    const r = (k: number) => (((i + 1) * 9301 + k * 49297) % 233280) / 233280;
-    const scale = 0.42 + r(1) * 0.22;
-    return [
-        KINDS[(i * 7) % KINDS.length],
-        (i % 5) * 48 + r(2) * 26 - 4,
-        Math.floor(i / 5) * 48 + r(3) * 26 - 4,
-        Math.round(r(4) * 70 - 35),
-        Math.round(scale * 100) / 100,
-    ];
-});
-const tile = (stroke: string, opacity: number) =>
-    `url("data:image/svg+xml,${encodeURIComponent(
-        `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='none' stroke='${stroke}' stroke-opacity='${opacity}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>` +
-            SPOTS.map(
-                ([k, x, y, r, sc]) =>
-                    `<g transform='translate(${x} ${y}) rotate(${r} 20 20) scale(${sc})'>${ICONS[k]}</g>`,
-            ).join('') +
-            `</g></svg>`,
-    )}")`;
-
+/* Papel de parede: rabiscos de linha do nosso mundo, densos como o do WhatsApp (desenho próprio), um arquivo por tema em
+   public/img/chat-wall-{dark,light}.svg (ladrilho de 400 px; gerado por scripts/chat-wallpaper.py). */
 const Wrap = styled.div`
     --c-wall: #1f1d1b;
     --c-head: #2b2a29;
@@ -1212,7 +1182,7 @@ const Wrap = styled.div`
     --c-name-l: 72%;
     --c-quote: rgba(0, 0, 0, 0.22);
     --c-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.35);
-    --c-wallpaper: ${tile('#ffffff', 0.04)};
+    --c-wallpaper: url('/img/chat-wall-dark.svg');
     --c-pill: #3a3836;
     --c-pill-line: rgba(255, 255, 255, 0.08);
 
@@ -1228,11 +1198,16 @@ const Wrap = styled.div`
         --c-name-l: 36%;
         --c-quote: rgba(52, 40, 26, 0.07);
         --c-shadow: 0 1px 0.5px rgba(52, 40, 26, 0.16);
-        --c-wallpaper: ${tile('#5a4630', 0.07)};
+        --c-wallpaper: url('/img/chat-wall-light.svg');
         --c-pill: #ffffff;
         --c-pill-line: rgba(52, 40, 26, 0.1);
     }
 
+    --sab: env(safe-area-inset-bottom, 0px);
+    @media (display-mode: standalone) and (pointer: coarse) {
+        /* app instalado no celular: se o iOS não informar a área segura, reserva a do indicador de início */
+        --sab: max(env(safe-area-inset-bottom, 0px), 26px);
+    }
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -1240,7 +1215,7 @@ const Wrap = styled.div`
     /* papel de parede atrás da conversa E do campo de mensagem (os controles flutuam sobre ele, como no WhatsApp) */
     background-color: var(--c-wall);
     background-image: var(--c-wallpaper);
-    background-size: 240px 240px;
+    background-size: 400px 400px;
 
     /* ---------- cabeçalho ---------- */
     .hd {
@@ -1558,10 +1533,11 @@ const Wrap = styled.div`
         align-items: flex-end;
     }
     /* emoji grande: a hora embaixo, à direita, encostando de leve no emoji (como no WhatsApp) */
+    /* emoji grande: a hora embaixo, alinhada ao emoji (à esquerda no recebido, à direita no enviado) */
     .bare.bigemo .tm.chip {
         position: static;
-        align-self: flex-end;
-        margin-top: -8px;
+        align-self: auto;
+        margin-top: 2px;
     }
     .stkimg {
         width: 150px;
@@ -1935,7 +1911,8 @@ const Wrap = styled.div`
     /* ---------- escrever ---------- */
     .composer {
         flex: none;
-        padding: 6px 16px max(10px, env(safe-area-inset-bottom));
+        /* área segura de baixo (indicador de início do iPhone) + folga, como no WhatsApp */
+        padding: 6px 16px calc(max(var(--sab), 12px) + 8px);
         background: none;
     }
     .replying {
@@ -2092,7 +2069,7 @@ const Wrap = styled.div`
             right: 12px;
         }
         .composer {
-            padding: 6px 8px max(8px, env(safe-area-inset-bottom));
+            padding: 6px 8px calc(max(var(--sab), 12px) + 8px);
         }
         .replying,
         .chip {
@@ -2107,6 +2084,35 @@ const Wrap = styled.div`
         /* iOS não amplia a página ao focar um campo de 16 px */
         .pillin textarea {
             font-size: 16px;
+        }
+    }
+    /* celular: "+" só o ícone, campo de 40 px e microfone redondo de 40 px (proporções do WhatsApp no celular) */
+    @media (max-width: 600px) {
+        .ib.plus {
+            width: 36px;
+            height: 40px;
+            background: none;
+            border: 0;
+            box-shadow: none;
+        }
+        .pillin {
+            min-height: 40px;
+            border-radius: 20px;
+            padding-left: 14px;
+        }
+        .pillin textarea {
+            min-height: 38px;
+            padding: 9px 0;
+        }
+        .pillin .ib {
+            height: 38px;
+        }
+        .go {
+            width: 40px;
+            height: 40px;
+        }
+        .rec {
+            height: 40px;
         }
     }
     @media (prefers-reduced-motion: reduce) {

@@ -435,13 +435,46 @@ export const DEDA_QUALITY_MIN = 80;
 /** Meta do dia (Daily goal): cumprida = DEDA 80%+ e as metas de Active e Passive; parcial = algo registrado; nada = dia
  * encerrado sem registro (hoje sem nada = neutro, nunca vermelho). */
 export type GoalDayStatus = 'met' | 'partial' | 'nothing' | 'today' | 'future';
-export const goalDayStatus = (d: LampDay | undefined, today: boolean, future = false): GoalDayStatus => {
+/**
+ * Uma frente (Active/Passive) batida no dia: com a meta conhecida, pelos minutos (o que a tela mostra, "60/1h45");
+ * sem ela, pela nota do servidor (min(minutos ÷ meta, 100%)).
+ */
+export const frontMet = (minutes: number | undefined, goal: number | undefined, score: number) =>
+    goal && goal > 0 ? (minutes ?? 0) >= goal : score >= 99.5;
+
+export type DayGoal = { active: number; passive: number };
+
+export const goalDayStatus = (
+    d: LampDay | undefined,
+    today: boolean,
+    future = false,
+    goal?: DayGoal,
+): GoalDayStatus => {
     if (future) return 'future';
-    if (d && countsForRun(d.deda) && d.active >= 99.5 && d.passive >= 99.5) return 'met';
+    if (
+        d &&
+        countsForRun(d.deda) &&
+        frontMet(d.activeMin, goal?.active, d.active) &&
+        frontMet(d.passiveMin, goal?.passive, d.passive)
+    )
+        return 'met';
     const any = !!d && (d.deda > 0 || d.active > 0 || d.passive > 0 || !!d.activeMin || !!d.passiveMin);
     if (any) return 'partial';
     // hoje ainda sem nada fica neutro (cinza): vermelho só depois que o dia acabou (meia-noite de Brasília)
     return today ? 'today' : 'nothing';
+};
+
+/** Detalhe do dia: "DEDA 84% ✓ · Active 15/20 min · Passive 55/55 min ✓" (✓ só no que foi batido). */
+export const dayBreakdown = (d: LampDay | undefined, goal?: DayGoal) => {
+    if (!d) return 'Nothing logged';
+    const deda = d.deda > 0 ? `DEDA ${Math.round(d.deda)}%${countsForRun(d.deda) ? ' ✓' : ''}` : 'No DEDA';
+    const part = (name: string, done: number | undefined, g: number | undefined, score: number) =>
+        `${name} ${minutesText(done ?? 0).replace(' min', '')}/${minutesText(g ?? 0)}${frontMet(done, g, score) ? ' ✓' : ''}`;
+    return [
+        deda,
+        part('Active', d.activeMin, goal?.active, d.active),
+        part('Passive', d.passiveMin, goal?.passive, d.passive),
+    ].join(' · ');
 };
 
 /** Hoje não quebra a Run enquanto o dia não acabou: conta se já está ≥ 80%, senão fica pendente. */

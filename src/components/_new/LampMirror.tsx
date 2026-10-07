@@ -19,7 +19,7 @@ import {
 import { Check } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useAppContext } from 'providers';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { DARK, ICON, LIGHT } from 'themes/newDesign';
 import { DailyGoal } from './DailyGoal';
 import { useSoftChart } from './lampCharts';
@@ -124,11 +124,11 @@ const styles = css`
     }
     .cmap .cm-rows {
         display: grid;
-        grid-template-rows: repeat(7, var(--cell));
+        grid-template-rows: repeat(7, var(--ch));
         gap: 3px;
         padding-top: 18px;
         font-size: 10px;
-        line-height: var(--cell);
+        line-height: var(--ch);
         color: var(--r-muted);
     }
     .cmap .cm-scroll {
@@ -138,8 +138,8 @@ const styles = css`
     .cmap .cm-grid {
         display: grid;
         grid-auto-flow: column;
-        grid-template-rows: 15px repeat(7, var(--cell));
-        grid-auto-columns: var(--cell);
+        grid-template-rows: 15px repeat(7, var(--ch));
+        grid-auto-columns: var(--cw);
         gap: 3px;
         width: max-content;
     }
@@ -150,8 +150,8 @@ const styles = css`
         overflow: visible;
     }
     .cmap .cm-c {
-        width: var(--cell);
-        height: var(--cell);
+        width: var(--cw);
+        height: var(--ch);
         padding: 0;
         border: 0;
         border-radius: 3px;
@@ -325,7 +325,20 @@ const ConstancyMap: React.FC<{ run: Run }> = ({ run }) => {
     const first = oldestFirst[0]?.week ?? run.currentWeek;
     const weeks = Array.from({ length: run.currentWeek - first + 1 }, (_, i) => first + i);
     const at = new Map(oldestFirst.map((d) => [`${d.week}:${d.day}`, d]));
-    const cell = weeks.length > 60 ? 9 : weeks.length > 40 ? 11 : weeks.length > 26 ? 13 : 16;
+    // a largura do conteúdo inteira: colunas mais largas (até 48 px) quando há poucas semanas; rolagem lateral quando há
+    // mais semanas do que cabem a 9 px
+    const scroller = useRef<HTMLDivElement>(null);
+    const [width, setWidth] = useState(0);
+    useEffect(() => {
+        const el = scroller.current;
+        if (!el) return;
+        const ro = new ResizeObserver(() => setWidth(el.clientWidth));
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+    const cw = Math.max(9, Math.min(48, Math.floor((width || 600) / weeks.length) - 3));
+    const ch = Math.max(9, Math.min(18, cw));
+    const every = Math.max(1, Math.ceil(34 / (cw + 3)));
     const label = (d: LampDay) => `${dayLabel(d)} · ${d.deda > 0 ? `${Math.round(d.deda)}%` : 'no DEDA'}`;
     return (
         <section className="cmap" aria-label="Constancy map">
@@ -347,10 +360,12 @@ const ConstancyMap: React.FC<{ run: Run }> = ({ run }) => {
                     </p>
                     {tops.length > 1 && (
                         <p className="cm-tops">
-                            Next:{' '}
                             {tops
                                 .slice(1)
-                                .map((r) => `${daysText(r.days)} (${dayLabel(r.from)} → ${dayLabel(r.to)})`)
+                                .map(
+                                    (r, i) =>
+                                        `${i ? '3rd' : '2nd'} best: ${daysText(r.days)} (${dayLabel(r.from)} → ${dayLabel(r.to)})`,
+                                )
                                 .join(' · ')}
                         </p>
                     )}
@@ -360,18 +375,18 @@ const ConstancyMap: React.FC<{ run: Run }> = ({ run }) => {
                     <span>No run in these weeks yet. One DEDA at {DEDA_QUALITY_MIN}%+ today starts the first.</span>
                 </p>
             )}
-            <div className="cm-wrap" style={{ '--cell': `${cell}px` } as React.CSSProperties}>
+            <div className="cm-wrap" style={{ '--cw': `${cw}px`, '--ch': `${ch}px` } as React.CSSProperties}>
                 <div className="cm-rows" aria-hidden>
                     {['Mon', '', 'Wed', '', 'Fri', '', 'Sun'].map((t, i) => (
                         <span key={i}>{t}</span>
                     ))}
                 </div>
-                <div className="cm-scroll">
+                <div className="cm-scroll" ref={scroller}>
                     <div className="cm-grid" role="grid" aria-label={`Weeks ${first} to ${run.currentWeek}`}>
                         {weeks.map((w) => (
                             <React.Fragment key={w}>
                                 <span className="cm-wk" aria-hidden>
-                                    {(w - first) % (cell < 11 ? 8 : 4) === 0 ? `W${w}` : ''}
+                                    {(w - first) % every === 0 ? `W${w}` : ''}
                                 </span>
                                 {[1, 2, 3, 4, 5, 6, 7].map((day) => {
                                     const d = at.get(`${w}:${day}`);
@@ -495,6 +510,8 @@ const Quality: React.FC<{ run: Run }> = ({ run }) => {
     const c = light ? LIGHT : DARK;
     const weeks = weeklyQuality(run.newestFirst).slice(-12);
     if (run.loading && !weeks.length) return <div className="skel" aria-busy />;
+    const cats = weeks.map((w) => `W${w.week}`);
+    const shownLabels = new Set([cats[0], cats[Math.floor((cats.length - 1) / 2)], cats[cats.length - 1]]);
     const options = soft(
         {
             chart: { type: 'line', toolbar: { show: false }, zoom: { enabled: false } },
@@ -505,7 +522,11 @@ const Quality: React.FC<{ run: Run }> = ({ run }) => {
                 categories: weeks.map((w) => `W${w.week}`),
                 axisBorder: { show: false },
                 axisTicks: { show: false },
-                labels: { rotate: 0, hideOverlappingLabels: true },
+                // só a primeira, a do meio e a última (sem rótulos encavalados)
+                labels: {
+                    rotate: 0,
+                    formatter: (v: string) => (shownLabels.has(v) ? v : ''),
+                },
             },
             yaxis: { min: 0, max: 100, tickAmount: 4, labels: { formatter: (v: number) => `${Math.round(v)}%` } },
             annotations: {

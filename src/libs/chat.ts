@@ -187,3 +187,21 @@ export function fileName(url: string, ext: string | null): string {
 
 export const durationLabel = (s: number) =>
     !isFinite(s) || s <= 0 ? '0:00' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+/** Abaixo disto a barra é silêncio (vira um pontinho, como no WhatsApp). */
+export const SILENCE = 0.12;
+
+/** Forma de onda real: `n` barras (RMS de cada trecho, normalizado pelo maior), de 0 a 1, arredondadas. */
+export function peaks(data: Float32Array, n = 40): number[] {
+    if (!data.length) return [];
+    const size = Math.max(1, Math.floor(data.length / n));
+    const rms = Array.from({ length: n }, (_, b) => {
+        let sum = 0;
+        const start = b * size,
+            end = Math.min(data.length, start + size);
+        for (let i = start; i < end; i++) sum += data[i] * data[i];
+        return end > start ? Math.sqrt(sum / (end - start)) : 0;
+    });
+    const max = Math.max(...rms) || 1;
+    return rms.map((v) => Math.round((v / max) * 100) / 100);
+}

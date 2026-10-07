@@ -21,6 +21,8 @@ import {
     REACTIONS,
     timeLabel,
     unreadStart,
+    peaks,
+    SILENCE,
     waveform,
 } from 'libs/chat';
 import { pushRecentEmoji } from 'libs/emoji';
@@ -41,7 +43,7 @@ import {
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { chatFetch, reactChat, sendChat, sendSticker } from 'services/chatService';
+import { chatAudio, chatFetch, reactChat, sendChat, sendSticker } from 'services/chatService';
 import { LIGHT_ROOT } from 'themes/newDesign';
 import { ChatPicker } from './ChatPicker';
 import { NewPage } from './NewPage';
@@ -112,7 +114,56 @@ const Meta: React.FC<{ m: ChatMessage; seen: boolean; className?: string }> = ({
     </span>
 );
 
-/** Nota de voz: play, forma de onda (determinística), duração, hora e o avatar de quem gravou com o microfone. */
+/**
+ * Forma de onda real do áudio: decodificada uma vez no navegador (WebAudio) quando a nota aparece na tela, 40 barras,
+ * guardada por mensagem no sessionStorage. Sem decodificar (erro, mensagem ainda a caminho), a pseudo-onda.
+ */
+function useWave(id: number, el: React.RefObject<HTMLElement>, onDuration: (d: number) => void) {
+    const key = `mettleChatWave:${id}`;
+    const [bars, setBars] = useState<number[]>(() => {
+        try {
+            const v = JSON.parse(sessionStorage.getItem(key) || 'null');
+            if (v && Array.isArray(v.b)) return v.b;
+        } catch {
+            // sem armazenamento
+        }
+        return waveform(id, 40);
+    });
+    useEffect(() => {
+        if (id < 0 || !el.current) return;
+        try {
+            const v = JSON.parse(sessionStorage.getItem(key) || 'null');
+            if (v?.d) onDuration(v.d);
+            if (v) return;
+        } catch {
+            // segue e decodifica
+        }
+        let done = false;
+        const io = new IntersectionObserver(([e]) => {
+            if (!e.isIntersecting || done) return;
+            done = true;
+            io.disconnect();
+            chatAudio(id)
+                .then((buf) => new OfflineAudioContext(1, 1, 44100).decodeAudioData(buf))
+                .then((audio) => {
+                    const b = peaks(audio.getChannelData(0), 40);
+                    setBars(b);
+                    onDuration(audio.duration);
+                    try {
+                        sessionStorage.setItem(key, JSON.stringify({ b, d: audio.duration }));
+                    } catch {
+                        // sem armazenamento: decodifica de novo na próxima visita
+                    }
+                })
+                .catch(() => {});
+        });
+        io.observe(el.current);
+        return () => io.disconnect();
+    }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+    return bars;
+}
+
+/** Nota de voz: avatar com microfone, play, forma de onda real, duração, hora e vistos. */
 const Voice: React.FC<{ m: ChatMessage; url: string; who: { name: string; avatar: string | null }; seen: boolean }> = ({
     m,
     url,
@@ -120,10 +171,11 @@ const Voice: React.FC<{ m: ChatMessage; url: string; who: { name: string; avatar
     seen,
 }) => {
     const audio = useRef<HTMLAudioElement>(null);
+    const box = useRef<HTMLDivElement>(null);
     const [playing, setPlaying] = useState(false);
     const [pos, setPos] = useState(0);
     const [dur, setDur] = useState(0);
-    const bars = useMemo(() => waveform(m.id, 40), [m.id]);
+    const bars = useWave(m.id, box, (d) => isFinite(d) && d > 0 && setDur(d));
     const toggle = () => {
         const a = audio.current;
         if (!a) return;
@@ -138,7 +190,7 @@ const Voice: React.FC<{ m: ChatMessage; url: string; who: { name: string; avatar
     };
     const frac = dur ? pos / dur : 0;
     return (
-        <div className="voice">
+        <div className="voice" ref={box}>
             <audio
                 ref={audio}
                 src={url}
@@ -180,7 +232,7 @@ const Voice: React.FC<{ m: ChatMessage; url: string; who: { name: string; avatar
                     {bars.map((h, i) => (
                         <i
                             key={i}
-                            className={i / bars.length < frac ? 'on' : ''}
+                            className={`${i / bars.length < frac ? 'on' : ''}${h < SILENCE ? ' dot' : ''}`}
                             style={{ height: `${Math.round(h * 100)}%` }}
                         />
                     ))}
@@ -1418,10 +1470,11 @@ const Wrap = styled.div`
     .tm.over .read {
         color: #f0c894;
     }
+    /* figurinha e emoji grande: a hora fica sobre o canto de baixo da imagem, como no WhatsApp */
     .tm.chip {
         position: static;
         align-self: flex-end;
-        margin-top: 4px;
+        margin-top: -14px;
         padding: 4px 7px;
         border-radius: 8px;
         background: var(--c-chip);
@@ -1487,6 +1540,7 @@ const Wrap = styled.div`
 
     /* figurinha e emoji grande: sem balão */
     .bare {
+        position: relative;
         display: flex;
         flex-direction: column;
         align-items: flex-start;
@@ -1592,6 +1646,9 @@ const Wrap = styled.div`
     }
     .bars i.on {
         opacity: 0.95;
+    }
+    .bars i.dot {
+        height: 3px !important;
     }
     .knob {
         position: absolute;
@@ -1866,7 +1923,7 @@ const Wrap = styled.div`
     .composer {
         flex: none;
         padding: 6px 16px max(10px, env(safe-area-inset-bottom));
-        background: linear-gradient(to top, color-mix(in srgb, var(--c-wall) 70%, transparent), transparent);
+        background: none;
     }
     .replying {
         display: flex;

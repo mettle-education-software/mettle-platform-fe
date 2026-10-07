@@ -75,9 +75,9 @@ const MettleMark: React.FC<{ size?: number }> = ({ size = 40 }) => (
 
 const Avatar: React.FC<{ name: string; src: string | null; size?: number }> = ({ name, src, size = 28 }) =>
     src ? (
-        <img className="av" src={src} alt="" width={size} height={size} style={{ width: size, height: size }} />
+        <img className="cav" src={src} alt="" width={size} height={size} style={{ width: size, height: size }} />
     ) : (
-        <span className="av ini" style={{ width: size, height: size, fontSize: size * 0.38 }} aria-hidden>
+        <span className="cav ini" style={{ width: size, height: size, fontSize: size * 0.38 }} aria-hidden>
             {initials(name) || 'M'}
         </span>
     );
@@ -787,7 +787,7 @@ const NewChat: React.FC = () => {
 
         if (sticker || big)
             return (
-                <div className="bare" {...touchHandlers(m)}>
+                <div className={`bare${big ? ' bigemo' : ''}`} {...touchHandlers(m)}>
                     {quote}
                     {sticker && img ? (
                         <img className="stkimg" src={img.url} alt="Figurinha" loading="lazy" />
@@ -1049,7 +1049,7 @@ const NewChat: React.FC = () => {
                             </button>
                         </div>
                     )}
-                    <div className="bar">
+                    <div className="cbar">
                         {recorder.recording ? (
                             <>
                                 <button
@@ -1160,6 +1160,11 @@ export default NewChat;
 /* Papel de parede: ícones de linha do nosso mundo (livro, fones, microfone, estrela, relógio, balão, lápis, globo, nota,
    lâmpada), quase transparentes. Um ladrilho por tema (o traço muda de cor; o fundo vem de --c-wall). */
 const ICONS: Record<string, string> = {
+    heart: "<path d='M20 34s-14-8-14-18a8 8 0 0 1 14-5 8 8 0 0 1 14 5c0 10-14 18-14 18z'/>",
+    check: "<circle cx='20' cy='20' r='16'/><path d='M12 20l6 6 11-12'/>",
+    cap: "<path d='M2 14l18-8 18 8-18 8zM10 18v9c6 5 14 5 20 0v-9'/>",
+    cup: "<path d='M6 12h22v12a10 10 0 0 1-10 10h-2A10 10 0 0 1 6 24zM28 15h3a5 5 0 0 1 0 10h-3M12 2v6M18 2v6'/>",
+    play: "<circle cx='20' cy='20' r='16'/><path d='M16 13l11 7-11 7z'/>",
     book: "<path d='M0 4q10-6 20 0v24q-10-6-20 0zM20 4q10-6 20 0v24q-10-6-20 0z'/>",
     phones: "<path d='M4 26v-8a16 16 0 0 1 32 0v8M0 24h7v14h-7zM33 24h7v14h-7z'/>",
     mic: "<path d='M14 2a6 6 0 0 1 12 0v14a6 6 0 0 1-12 0zM8 14a12 12 0 0 0 24 0M20 26v8M13 34h14'/>",
@@ -1171,24 +1176,23 @@ const ICONS: Record<string, string> = {
     note: "<path d='M12 34v-28l20-5v26M12 34a5 4 0 1 1-1-1M32 28a5 4 0 1 1-1-1'/>",
     bulb: "<path d='M20 2a12 12 0 0 0-7 22v6h14v-6a12 12 0 0 0-7-22zM14 34h12M16 38h8'/>",
 };
-/* posições soltas (x, y, giro, escala) num ladrilho de 300 px: sem fileiras, como o papel de parede do WhatsApp */
-const SPOTS: [keyof typeof ICONS, number, number, number, number][] = [
-    ['book', 18, 22, -12, 0.8],
-    ['mic', 120, 8, 10, 0.7],
-    ['star', 210, 40, 18, 0.6],
-    ['phones', 70, 96, 8, 0.75],
-    ['clock', 176, 120, -6, 0.65],
-    ['chat', 250, 150, -14, 0.6],
-    ['pencil', 14, 170, 20, 0.7],
-    ['globe', 104, 196, -8, 0.7],
-    ['note', 200, 228, 12, 0.65],
-    ['bulb', 262, 250, -10, 0.6],
-    ['star', 52, 262, -20, 0.45],
-    ['chat', 150, 60, 6, 0.4],
-];
+/* ladrilho de 240 px com 25 ícones (5 × 5 células de 48 px) de tamanho, giro e deslocamento variados, como o do
+   WhatsApp: denso, sem fileiras aparentes. Determinístico (o mesmo desenho em todo carregamento). */
+const KINDS = Object.keys(ICONS) as (keyof typeof ICONS)[];
+const SPOTS: [keyof typeof ICONS, number, number, number, number][] = Array.from({ length: 25 }, (_, i) => {
+    const r = (k: number) => (((i + 1) * 9301 + k * 49297) % 233280) / 233280;
+    const scale = 0.42 + r(1) * 0.22;
+    return [
+        KINDS[(i * 7) % KINDS.length],
+        (i % 5) * 48 + r(2) * 26 - 4,
+        Math.floor(i / 5) * 48 + r(3) * 26 - 4,
+        Math.round(r(4) * 70 - 35),
+        Math.round(scale * 100) / 100,
+    ];
+});
 const tile = (stroke: string, opacity: number) =>
     `url("data:image/svg+xml,${encodeURIComponent(
-        `<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'><g fill='none' stroke='${stroke}' stroke-opacity='${opacity}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>` +
+        `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><g fill='none' stroke='${stroke}' stroke-opacity='${opacity}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>` +
             SPOTS.map(
                 ([k, x, y, r, sc]) =>
                     `<g transform='translate(${x} ${y}) rotate(${r} 20 20) scale(${sc})'>${ICONS[k]}</g>`,
@@ -1236,7 +1240,7 @@ const Wrap = styled.div`
     /* papel de parede atrás da conversa E do campo de mensagem (os controles flutuam sobre ele, como no WhatsApp) */
     background-color: var(--c-wall);
     background-image: var(--c-wallpaper);
-    background-size: 300px 300px;
+    background-size: 240px 240px;
 
     /* ---------- cabeçalho ---------- */
     .hd {
@@ -1334,7 +1338,7 @@ const Wrap = styled.div`
         align-items: flex-end;
     }
     .msg.rx {
-        margin-bottom: 12px;
+        margin-bottom: 18px;
     }
     .line {
         position: relative;
@@ -1365,13 +1369,13 @@ const Wrap = styled.div`
         position: relative;
         min-width: 0;
         max-width: 100%;
-        padding: 6px 10px 7px;
+        padding: 7px 11px 8px;
         border-radius: 18px;
         background: var(--c-in);
         box-shadow: var(--c-shadow);
         color: var(--r-text);
         font-size: 14.5px;
-        line-height: 19px;
+        line-height: 1.35;
         overflow-wrap: anywhere;
         transition: transform 120ms ease;
         touch-action: pan-y;
@@ -1382,26 +1386,28 @@ const Wrap = styled.div`
     }
     /* rabinho curvo só no ÚLTIMO balão do grupo, no canto de baixo, para fora */
     .bub.tail {
-        border-bottom-left-radius: 4px;
+        border-bottom-left-radius: 0;
     }
+    /* rabinho do WhatsApp: um entalhe curvo que sai da borda do balão no canto de baixo (4 px sobrepostos ao balão,
+       mesma cor: sem emenda) */
     .bub.tail::after {
         content: '';
         position: absolute;
         bottom: 0;
-        left: -7px;
-        width: 10px;
-        height: 14px;
+        left: -8px;
+        width: 12px;
+        height: 18px;
         background: inherit;
-        clip-path: path('M10 0 C10 7 8 11 0 14 L10 14 Z');
+        clip-path: path('M12 0 V18 H1.2 C0.2 18 -0.2 17 0.7 16.4 C4.6 13.6 8 9.6 8 2 V0 Z');
     }
     .msg.me .bub.tail {
         border-bottom-left-radius: 18px;
-        border-bottom-right-radius: 4px;
+        border-bottom-right-radius: 0;
     }
     .msg.me .bub.tail::after {
         left: auto;
-        right: -7px;
-        clip-path: path('M0 0 C0 7 2 11 10 14 L0 14 Z');
+        right: -8px;
+        clip-path: path('M0 0 V18 H10.8 C11.8 18 12.2 17 11.3 16.4 C7.4 13.6 4 9.6 4 2 V0 Z');
     }
     .bub.hasq {
         padding-top: 4px;
@@ -1426,10 +1432,10 @@ const Wrap = styled.div`
     /* inline com um "word joiner": fica grudado na última palavra; se não couber, a palavra desce junto (como no WhatsApp),
        em vez de a hora ficar sozinha numa linha nova */
     .sp {
-        padding-right: 44px;
+        padding-right: 52px;
     }
     .sp.me {
-        padding-right: 64px;
+        padding-right: 72px;
     }
     .tm {
         position: absolute;
@@ -1470,11 +1476,12 @@ const Wrap = styled.div`
     .tm.over .read {
         color: #f0c894;
     }
-    /* figurinha e emoji grande: a hora fica sobre o canto de baixo da imagem, como no WhatsApp */
+    /* figurinha: a hora fica sobre o canto de baixo da imagem; emoji grande: ao lado, na base (como no WhatsApp) */
     .tm.chip {
-        position: static;
-        align-self: flex-end;
-        margin-top: -14px;
+        position: absolute;
+        right: 0;
+        bottom: 2px;
+        margin: 0;
         padding: 4px 7px;
         border-radius: 8px;
         background: var(--c-chip);
@@ -1549,6 +1556,18 @@ const Wrap = styled.div`
     }
     .msg.me .bare {
         align-items: flex-end;
+    }
+    .bare.bigemo {
+        flex-direction: row;
+        align-items: flex-end;
+        gap: 6px;
+    }
+    .msg.me .bare.bigemo {
+        flex-direction: row-reverse;
+    }
+    .bare.bigemo .tm.chip {
+        position: static;
+        margin-bottom: 4px;
     }
     .stkimg {
         width: 150px;
@@ -1686,13 +1705,13 @@ const Wrap = styled.div`
     .msg.me .vmic {
         color: color-mix(in srgb, var(--c-out-text) 70%, transparent);
     }
-    .av {
+    .cav {
         flex: none;
         display: block;
         border-radius: 50%;
         object-fit: cover;
     }
-    .av.ini {
+    .cav.ini {
         display: inline-grid;
         place-items: center;
         background: var(--r-surf);
@@ -1771,7 +1790,7 @@ const Wrap = styled.div`
     }
     .pill {
         position: absolute;
-        bottom: -12px;
+        bottom: -17px;
         left: 8px;
         z-index: 1;
         height: 22px;
@@ -1961,7 +1980,7 @@ const Wrap = styled.div`
     .chip .sz {
         color: var(--r-muted);
     }
-    .bar {
+    .cbar {
         display: flex;
         align-items: flex-end;
         gap: 8px;
@@ -2072,6 +2091,12 @@ const Wrap = styled.div`
         .line {
             max-width: 80%;
         }
+        .bub {
+            padding: 8px 12px 8px;
+        }
+        .tm {
+            right: 12px;
+        }
         .composer {
             padding: 6px 8px max(8px, env(safe-area-inset-bottom));
         }
@@ -2079,7 +2104,7 @@ const Wrap = styled.div`
         .chip {
             margin: 2px 4px 6px;
         }
-        .bar {
+        .cbar {
             gap: 6px;
         }
         .picker {

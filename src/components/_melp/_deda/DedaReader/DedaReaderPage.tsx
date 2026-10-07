@@ -5,7 +5,6 @@ import { Drawer, Menu } from 'antd';
 import { DedaQuote, Logo, RichTextRenderer } from 'components';
 import { LinKnowledge } from 'components/_melp/_deda/DedaNotes/LinKnowledge/LinKnowledge';
 import { ContextNoteBody, ContextNoteHost } from 'components/atoms/ContextNote/ContextNote';
-import { useAppMenu } from 'components/layouts/AppLayout/appMenu';
 import { useDeviceSize } from 'hooks';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { useLogoTheme } from 'hooks/useTheme';
@@ -13,6 +12,7 @@ import { DedaNotesQueryResponse } from 'interfaces';
 import { ContextNoteData } from 'libs/contextNotes';
 import { contentfulImage } from 'libs/dedaHeader';
 import { DEFAULT_TEXT_SCALE, hasReviews, readTextScale, saveTextScale, writeDayToday } from 'libs/dedaReader';
+import { openShellMenu } from 'libs/newDesign';
 import {
     BookOpen,
     ChevronDown,
@@ -78,17 +78,17 @@ const NotesText = ({ dedaId, section }: { dedaId: string; section: 'introduction
     );
 };
 
-/** Ícones de traço fino da gaveta do menu, por chave do item (os itens e destinos vêm do menu da Plataforma). */
-const MENU_ICONS: Record<string, React.ReactNode> = {
-    home: <House {...ICON} />,
-    settings: <Settings {...ICON} />,
-    support: <Headset {...ICON} />,
-    logout: <LogOut {...ICON} />,
-};
-
 /** Aba DEDA Notes: sub-abas logo abaixo da barra do topo e o conteúdo (sem cabeçalho de imagem: o espaço é do texto). */
 const NotesTab = ({ dedaId }: { dedaId: string }) => {
     const [section, setSection] = useState<NotesSection>('introduction');
+    // O LinKnowledge monta em segundo plano logo depois da aba abrir (consultas e imagens prontas) e só aparece/some:
+    // trocar de sub-aba não remonta nada, então não pisca.
+    const [warm, setWarm] = useState(false);
+    useEffect(() => {
+        const id = window.setTimeout(() => setWarm(true), 700);
+        return () => window.clearTimeout(id);
+    }, []);
+    const lkOn = section === 'linknowledge';
     return (
         <>
             <div className="subnav">
@@ -105,12 +105,16 @@ const NotesTab = ({ dedaId }: { dedaId: string }) => {
                     ))}
                 </div>
             </div>
-            {section === 'linknowledge' ? (
+            {(lkOn || warm) && (
                 // LinKnowledge entra sem alteração, inclusive a fonte da Plataforma.
-                <div className={`lk ${platformFont.className}`}>
+                <div
+                    className={`lk ${platformFont.className}${lkOn ? '' : ' off'}`}
+                    aria-hidden={lkOn ? undefined : true}
+                >
                     <LinKnowledge dedaId={dedaId} />
                 </div>
-            ) : (
+            )}
+            {!lkOn && (
                 <div className="notes">
                     <NotesText dedaId={dedaId} section={section} />
                 </div>
@@ -144,17 +148,12 @@ export const DedaReaderPage: React.FC<Props> = ({
     useEffect(() => {
         if (reviews === false && activeTab === 'dedaReview') onTab(allTabs[0].key);
     }, [reviews, activeTab, onTab, allTabs]);
-    const [menuOpen, setMenuOpen] = useState(false);
     const [glossaryOpen, setGlossaryOpen] = useState(false);
     const [tabsOpen, setTabsOpen] = useState(false);
     const [quoteOpen, setQuoteOpen] = useState(false);
     // Uma camada só: a nota de contexto aberta de dentro da citação troca o conteúdo da mesma folha ("‹" volta);
     // X, toque fora ou Esc fecham tudo de uma vez.
     const [quoteNote, setQuoteNote] = useState<ContextNoteData | null>(null);
-    const menu = useAppMenu(() => setMenuOpen(false));
-    const menuItems = menu.items.map((item) =>
-        item?.key && MENU_ICONS[item.key as string] ? { ...item, icon: MENU_ICONS[item.key as string] } : item,
-    );
     const [timerSlot, setTimerSlot] = useState<HTMLSpanElement | null>(null);
 
     // Notas de contexto (ContextNote, fora da árvore) no escuro do leitor enquanto a página nova está aberta.
@@ -259,7 +258,7 @@ export const DedaReaderPage: React.FC<Props> = ({
                     {/* eslint-disable-next-line @next/next/no-img-element -- fundo decorativo */}
                     {stripBg && <img className="bg" src={stripBg} alt="" aria-hidden />}
                     <span className="shade" aria-hidden />
-                    <button type="button" className="ib" aria-label="Menu" onClick={() => setMenuOpen(true)}>
+                    <button type="button" className="ib" aria-label="Menu" onClick={openShellMenu}>
                         <MenuIcon {...ICON} />
                     </button>
                     <button
@@ -327,35 +326,6 @@ export const DedaReaderPage: React.FC<Props> = ({
                 </header>
 
                 {body}
-
-                <Drawer
-                    {...drawerProps}
-                    open={menuOpen}
-                    onClose={() => setMenuOpen(false)}
-                    placement="left"
-                    width={290}
-                    title={
-                        <button
-                            type="button"
-                            className="brand"
-                            aria-label="Mettle — Início"
-                            onClick={() => router.push('/')}
-                        >
-                            <Logo theme={logoTheme} />
-                        </button>
-                    }
-                >
-                    <DrawerBody>
-                        <Menu
-                            className="appmenu"
-                            mode="inline"
-                            inlineIndent={16}
-                            items={menuItems}
-                            selectedKeys={menu.selectedKeys}
-                            defaultOpenKeys={['imerso']}
-                        />
-                    </DrawerBody>
-                </Drawer>
 
                 <Drawer
                     {...drawerProps}

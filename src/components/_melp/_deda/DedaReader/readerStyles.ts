@@ -1190,10 +1190,6 @@ export const Shell = styled.div`
         width: 12px;
         height: 12px;
     }
-    /* DEDA que já passou: só o número, centrado (não há "Today" nem cadeado) */
-    .days.all button {
-        min-height: 44px;
-    }
     .days button.today {
         border-color: var(--r-gold);
     }
@@ -1571,6 +1567,14 @@ export const Shell = styled.div`
         color: var(--r-text);
     }
     /* LinKnowledge: componentes sem nenhuma alteração; aqui só devolvemos o que eles herdam na página atual. */
+    /* montado em segundo plano (sem espaço, invisível, sem foco) enquanto outra sub-aba está aberta */
+    .lk.off {
+        height: 0 !important;
+        padding: 0 !important;
+        overflow: hidden;
+        visibility: hidden;
+        pointer-events: none;
+    }
     .lk {
         font-size: 16px;
         font-weight: normal;
@@ -1612,42 +1616,10 @@ export const Shell = styled.div`
     ${LIGHT_ROOT} & .lk button[aria-label^='Day ']:not([aria-current]) > div:last-child > span {
         color: ${LK_LIGHT.text};
     }
-    /* pílula "TODAY" e podcasts no tema claro: nada de caixa escura (a pílula vira clara; o card de podcast, claro com o dourado
-       nos controles) */
+    /* pílula "TODAY" no tema claro: nada de caixa escura. Os podcasts mantêm as cores próprias (da capa) nos dois temas. */
     ${LIGHT_ROOT} & .lk button[aria-label^='Day '] > div:last-child span[aria-hidden] {
         background: ${LK_LIGHT.card};
         color: ${LK_LIGHT.todayText};
-    }
-    ${LIGHT_ROOT} & .lk [role='group'] {
-        background: ${LK_LIGHT.card} !important;
-        color: ${LK_LIGHT.text};
-        box-shadow: 0 1px 0 var(--r-line);
-    }
-    ${LIGHT_ROOT} & .lk [role='group']:focus-visible {
-        box-shadow: 0 0 0 2px var(--r-gold-hi);
-    }
-    ${LIGHT_ROOT} & .lk [role='group'] input[type='range'] {
-        accent-color: var(--r-gold);
-        background: linear-gradient(
-                to right,
-                var(--r-gold) 0 var(--progress, 0%),
-                var(--r-track) var(--progress, 0%) 100%
-            )
-            center / 100% 4px no-repeat;
-    }
-    ${LIGHT_ROOT} & .lk [role='group'] input[type='range']::-webkit-slider-thumb {
-        background: var(--r-gold);
-    }
-    ${LIGHT_ROOT} & .lk [role='group'] input[type='range']::-moz-range-thumb {
-        background: var(--r-gold);
-    }
-    ${LIGHT_ROOT} & .lk [role='group'] div button {
-        background: var(--r-hover);
-        color: ${LK_LIGHT.text};
-    }
-    ${LIGHT_ROOT} & .lk [role='group'] > button {
-        background: var(--r-gold);
-        color: var(--r-on-gold);
     }
     /* "Day N · gênero" nos cards comuns: dourado do tema com contraste AA nos dois temas (o do dia mantém o escuro) */
     .lk button[aria-label^='Day ']:not([aria-current]) .ant-typography {

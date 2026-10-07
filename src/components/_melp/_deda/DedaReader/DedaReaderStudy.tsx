@@ -230,6 +230,8 @@ const WatchVideo = ({ dedaId }: { dedaId: string }) => {
     );
 };
 
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+
 const WriteDays = ({
     dedaId,
     day,
@@ -268,11 +270,16 @@ const WriteDays = ({
                                 <span className="wd">Day </span>
                                 {d}
                             </b>
-                            {!pastDeda && (
-                                <small>
-                                    {state === 'today' ? 'Today' : state === 'locked' ? <Lock {...ICON} /> : null}
-                                </small>
-                            )}
+                            {/* Day 1..7 = segunda..domingo (writeDayToday): dias passados mostram o dia da semana */}
+                            <small>
+                                {state === 'today' ? (
+                                    'Today'
+                                ) : state === 'locked' ? (
+                                    <Lock {...ICON} />
+                                ) : (
+                                    WEEKDAYS[d - 1]
+                                )}
+                            </small>
                         </button>
                     );
                 })}

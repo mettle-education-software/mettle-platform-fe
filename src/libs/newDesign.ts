@@ -76,6 +76,12 @@ export const saveMenuCollapsed = (collapsed: boolean) => {
 /** Primeiro nome, como o cumprimento atual ("Olá, {nome}"). */
 export const firstName = (name?: string | null) => (name ?? '').trim().split(/\s+/)[0] ?? '';
 
+/** Páginas com cabeçalho próprio (leitor do DEDA) abrem o MESMO menu da casca (gaveta no celular): um menu só. */
+export const MENU_OPEN_EVENT = 'mettle-open-menu';
+export const openShellMenu = () => {
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event(MENU_OPEN_EVENT));
+};
+
 /** Aba inicial de /settings pelo `?tab=` (o item "Suporte" cai em `/settings?tab=help` sem o chat). */
 export const settingsTabFromQuery = (tab: string | null | undefined, keys: readonly string[]) =>
     tab && keys.includes(tab) ? tab : keys[0];

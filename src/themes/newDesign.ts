@@ -197,7 +197,7 @@ export const ui = css`
         font-size: 28px;
     }
     h2 {
-        font-size: 18px;
+        font-size: 20px;
     }
     p {
         margin: 0;

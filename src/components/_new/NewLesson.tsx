@@ -337,13 +337,17 @@ const Wrap = styled.div`
         position: relative;
         display: flex;
         align-items: center;
+        justify-content: space-between;
         margin: 0 0 24px;
-        border-bottom: 1px solid var(--r-line);
     }
     .tabs .seg {
-        flex: 1 1 auto;
+        flex: 0 1 auto;
         margin: 0;
-        border: 0;
+    }
+    /* abas do curso: um degrau abaixo das da página (a aba aberta em tom dourado suave, não cheio) */
+    .tabs .seg button[aria-selected='true'] {
+        background: var(--r-gold-tint);
+        color: var(--r-gold-hi);
     }
     .tabs .tools {
         flex: none;

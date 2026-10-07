@@ -824,16 +824,23 @@ export const Shell = styled.div`
         overflow: hidden;
         text-overflow: ellipsis;
     }
+    /* abas da página (DEDA Notes / DEDA / Review / My recordings): controle segmentado como o da LAMP, sobre a faixa */
     .tabs {
         display: flex;
-        align-self: stretch;
+        align-self: center;
         gap: 4px;
         margin-left: 16px;
+        padding: 3px;
+        border: 1px solid var(--r-line);
+        border-radius: 999px;
+        background: rgba(var(--r-bg-rgb), 0.72);
     }
     .tabs button {
         position: relative;
-        padding: 0 12px;
+        min-height: 34px;
+        padding: 0 16px;
         border: 0;
+        border-radius: 999px;
         background: none;
         color: var(--r-muted);
         font-size: 14px;
@@ -843,23 +850,14 @@ export const Shell = styled.div`
         white-space: nowrap;
         cursor: pointer;
     }
-    .tabs button:hover,
-    .tabs button[aria-current='page'] {
+    .tabs button:hover {
         color: var(--r-text);
+        background: var(--r-hover);
     }
-    .tabs button::after {
-        content: '';
-        position: absolute;
-        left: 12px;
-        right: 12px;
-        bottom: 0;
-        height: 1.5px;
+    .tabs button[aria-current='page'] {
         background: var(--r-gold);
-        opacity: 0;
-        transition: opacity var(--r-ease);
-    }
-    .tabs button[aria-current='page']::after {
-        opacity: 1;
+        color: var(--r-on-gold);
+        font-weight: 500;
     }
     .sp {
         flex: 1;
@@ -1485,20 +1483,25 @@ export const Shell = styled.div`
         z-index: 2;
         display: flex;
         justify-content: center;
-        padding: 0 16px;
+        padding: 10px 16px;
         background: var(--r-bg);
-        border-bottom: 1px solid var(--r-line);
     }
+    /* sub-abas (Introduction / Glossary / LinKnowledge): o mesmo controle, um degrau abaixo (aba aberta em tom suave) */
     .seg {
         display: flex;
-        gap: 8px;
+        gap: 4px;
         max-width: 100%;
+        padding: 3px;
+        border: 1px solid var(--r-line);
+        border-radius: 999px;
+        background: var(--r-surf);
     }
     .seg button {
         position: relative;
-        min-height: 44px;
-        padding: 0 14px;
+        min-height: 34px;
+        padding: 0 18px;
         border: 0;
+        border-radius: 999px;
         background: none;
         color: var(--r-muted);
         font-size: 14px;
@@ -1507,23 +1510,14 @@ export const Shell = styled.div`
         white-space: nowrap;
         cursor: pointer;
     }
-    .seg button:hover,
-    .seg button[aria-pressed='true'] {
+    .seg button:hover {
         color: var(--r-text);
+        background: var(--r-hover);
     }
-    .seg button::after {
-        content: '';
-        position: absolute;
-        left: 14px;
-        right: 14px;
-        bottom: -1px;
-        height: 1.5px;
-        background: var(--r-gold);
-        opacity: 0;
-        transition: opacity var(--r-ease);
-    }
-    .seg button[aria-pressed='true']::after {
-        opacity: 1;
+    .seg button[aria-pressed='true'] {
+        background: var(--r-gold-tint);
+        color: var(--r-gold-hi);
+        font-weight: 500;
     }
     .notes {
         padding: 28px 28px 80px;

@@ -139,9 +139,6 @@ const chrome = css`
         color: var(--r-muted);
         white-space: nowrap;
     }
-    .bar .melp span.melp-run {
-        display: none;
-    }
     .melp span.melp-run {
         margin-top: 4px;
         font-weight: 500;
@@ -694,7 +691,7 @@ const MelpRun: React.FC = () => {
 };
 
 /** Resumo do DEDA em andamento (o mesmo conteúdo do MelpSummary atual): nome, semana e dia do calendário. */
-const MelpMini: React.FC = () => {
+const MelpMini: React.FC<{ bar?: boolean }> = ({ bar }) => {
     const { melpSummary } = useMelpContext();
     if (melpSummary?.melp_status !== 'DEDA_STARTED') return null;
     const day = getWeekDay();
@@ -705,7 +702,7 @@ const MelpMini: React.FC = () => {
             <span>
                 Week {melpSummary.current_deda_week} · Day {day}
             </span>
-            <MelpRun />
+            {!bar && <MelpRun />}
         </div>
     );
 };
@@ -966,7 +963,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                                 <MenuIcon {...ICON} />
                             </button>
                             {brand}
-                            {withMelpSummary && <MelpMini />}
+                            {withMelpSummary && <MelpMini bar />}
                         </header>
                         {drawer}
                     </>

@@ -20,7 +20,7 @@ export const isNewDesignAccount = (uid?: string | null, forcedOff = NEW_DESIGN_F
  * só o conteúdo troca entre essas rotas: menu, barra e fundo nunca piscam.
  */
 export const isShellRoute = (pathname: string | null | undefined) =>
-    !!pathname && (pathname === '/' || /^\/(imerso|course|settings|guia)(\/|$)/.test(pathname));
+    !!pathname && (pathname === '/' || /^\/(imerso|course|settings|guia|suporte)(\/|$)/.test(pathname));
 
 /**
  * O aplicativo já hidratou? Antes disso, nada pode depender da sessão (o servidor não a conhece): a casca persistente
@@ -45,6 +45,7 @@ export const lessonIdFromPath = (pathname: string | null | undefined, fallback: 
 export const activeMenuKeys = (pathname: string): string[] => {
     if (pathname === '/' || pathname === '') return ['home'];
     if (pathname.startsWith('/settings')) return ['settings'];
+    if (pathname.startsWith('/suporte')) return ['support'];
     if (pathname.startsWith('/imerso/hpec')) return ['imerso', 'meplHpec'];
     if (pathname.startsWith('/imerso/deda')) return ['imerso', 'melpDeda'];
     if (pathname.startsWith('/imerso/lamp')) return ['imerso', 'melpLamp'];

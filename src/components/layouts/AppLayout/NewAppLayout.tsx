@@ -317,6 +317,7 @@ const Frame = styled.div`
 
     /* recolhido: trilho de ícones; cada item encolhe a um quadrado de 44 px (o ícone não se mexe) e o rótulo some em fade */
     &.rail .brand {
+        align-items: flex-start;
         min-height: 112px;
         padding-left: 10px;
     }

@@ -3,6 +3,7 @@
 import { css, Global } from '@emotion/react';
 import type { ApexOptions } from 'apexcharts';
 import { useGeneralWeeklyDevelopment, useOverallProgress } from 'hooks';
+import { useRecordingStats } from 'hooks/melp/dedaRecording';
 import { useDedaRun } from 'hooks/melp/lampDays';
 import { useTheme } from 'hooks/useTheme';
 import {
@@ -274,6 +275,7 @@ const Hero: React.FC<{ run: Run }> = ({ run }) => {
     const { user } = useAppContext();
     const { overallData } = useOverallProgress(user?.uid);
     const overall = overallData?.overallPerformance;
+    const rec = useRecordingStats();
     const line = runTodayLine(run);
     const ready = !run.loading || run.current > 0;
     return (
@@ -289,6 +291,11 @@ const Hero: React.FC<{ run: Run }> = ({ run }) => {
                         {typeof overall === 'number' ? `${overall.toFixed(1)}%` : '—'}
                         <small>Overall</small>
                     </span>
+                    {rec.allowed && rec.stats && (
+                        <span className="drun-o">
+                            {Math.round(rec.stats.rate * 100)}%<small>Recording rate</small>
+                        </span>
+                    )}
                 </div>
                 <p className="drun-best">
                     Best · <b>{daysText(Math.max(run.best, run.current))}</b>

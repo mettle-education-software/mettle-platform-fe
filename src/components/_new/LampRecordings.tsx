@@ -1,15 +1,16 @@
 'use client';
 
 import { css, Global } from '@emotion/react';
+import { Select } from 'antd';
 import { AudioPlayer } from 'components';
 import { useDedasGrid } from 'components/_melp/_deda/DedasGrid/DedasGrid';
-import { useDedaRecordings, useRecordingPlayUrl } from 'hooks/melp/dedaRecording';
+import { useDedaRecordings, useRecordingPlayUrl, useRecordingStats } from 'hooks/melp/dedaRecording';
 import { dedaPath } from 'libs/cleanUrls';
 import { IMAGE_MIRROR_HOSTS } from 'libs/contentImage';
 import { contentfulImage } from 'libs/dedaHeader';
 import { DedaRecording, formatDuration, formatRecordedOn, spokenDuration } from 'libs/dedaRecording';
 import { WEEK_DAYS } from 'libs/newDesign';
-import { ChevronDown, Play, SkipBack, SkipForward, X } from 'lucide-react';
+import { ChevronDown, Play, X } from 'lucide-react';
 import Link from 'next/link';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -33,19 +34,52 @@ const styles = css`
         margin: -8px 0 18px;
     }
     .lrec .find {
-        width: min(280px, 100%);
-        height: 40px;
-        padding: 0 14px;
-        border: 1px solid var(--r-line-strong);
-        border-radius: 999px;
-        background: transparent;
-        color: var(--r-text);
-        font: inherit;
-        font-size: 16px;
+        width: min(300px, 100%);
     }
-    .lrec .find::placeholder {
+    .lrec .find .ant-select-selector,
+    .lrec .find input {
+        font-size: 16px !important;
+    }
+    /* o antd esmaece a dica a ~2:1; fica legível (AA) */
+    .lrec .find .ant-select-selection-placeholder {
         color: var(--r-muted);
-        opacity: 1;
+    }
+    /* KPIs de gravação: leves, como os números do topo da LAMP */
+    .lrec .rk {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        margin: -4px 0 22px;
+    }
+    .lrec .rk > div {
+        padding: 14px 16px;
+        border: 1px solid var(--r-line);
+        border-radius: var(--r-radius);
+    }
+    .lrec .rk dt {
+        font-size: var(--r-label-size);
+        letter-spacing: var(--r-label-track);
+        text-transform: uppercase;
+        color: var(--r-muted);
+    }
+    .lrec .rk dd {
+        margin: 6px 0 0;
+        font-size: 24px;
+        font-weight: 300;
+        font-variant-numeric: tabular-nums;
+    }
+    .lrec .rk dd small {
+        display: block;
+        margin-top: 2px;
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--r-muted);
+    }
+    @media (max-width: 760px) {
+        .lrec .rk {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
     }
     .lrec .weeks {
         margin: 0;
@@ -178,16 +212,40 @@ const styles = css`
         font-variant-numeric: tabular-nums;
     }
     .lrec .cmp {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 6px 14px;
+        display: grid;
+        gap: 6px;
         margin: 0 0 14px 78px;
         padding: 10px 14px;
         border-radius: 10px;
         background: var(--r-gold-tint);
         font-size: 13.5px;
         color: var(--r-text);
+    }
+    .lrec .cmp p {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+    }
+    .lrec .cmp .recs {
+        margin: 0;
+    }
+    .lrec .inl {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 6px;
+        min-height: 52px;
+        padding: 4px 0;
+        border-top: 1px solid var(--r-line);
+    }
+    .lrec .inl .ap {
+        min-width: 0;
+    }
+    .lrec .inl .msg {
+        padding: 0 8px;
+        font-size: 13px;
+        color: var(--r-muted);
     }
     .lrec .cmp .btn {
         min-height: 36px;
@@ -231,40 +289,6 @@ const styles = css`
         font-size: 14.5px;
         color: var(--r-muted);
     }
-    /* o player: um só, fixo embaixo */
-    .lrec .player {
-        position: sticky;
-        bottom: 0;
-        z-index: 3;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 6px 16px;
-        margin-top: 20px;
-        padding: 12px 16px;
-        border: 1px solid var(--r-line);
-        border-radius: 14px;
-        background: var(--r-surf);
-        box-shadow: 0 -6px 24px var(--r-card-shadow);
-    }
-    .lrec .player .who {
-        min-width: 0;
-        font-size: 13.5px;
-    }
-    .lrec .player .who b {
-        font-weight: 500;
-    }
-    .lrec .player .who span {
-        color: var(--r-muted);
-    }
-    .lrec .player .ctl {
-        display: flex;
-        gap: 2px;
-    }
-    .lrec .player .ap {
-        grid-column: 1 / -1;
-        min-width: 0;
-    }
     @media (max-width: 760px) {
         .lrec .wh {
             grid-template-columns: 48px minmax(0, 1fr) 20px;
@@ -302,46 +326,20 @@ const thumbOf = (raw?: string) => {
     }
 };
 
-const Player: React.FC<{
-    rec: Rec;
-    onPrev?: () => void;
-    onNext?: () => void;
-    onEnd(): void;
-    onClose(): void;
-}> = ({ rec, onPrev, onNext, onEnd, onClose }) => {
+/**
+ * O player na própria linha (o mesmo player fino do passo 2 e de My recordings): um toque em ▶ já toca; terminou ou
+ * fechou, a linha volta a ser compacta. Endereço de 5 min: pede outro uma vez se falhar.
+ */
+const InlinePlayer: React.FC<{ rec: Rec; onEnd(): void; onClose(): void }> = ({ rec, onEnd, onClose }) => {
     const url = useRecordingPlayUrl(rec.id);
     const retried = useRef(false);
     return (
-        <div className="player" role="region" aria-label="Now playing">
-            <p className="who">
-                <b>{rec.title}</b>{' '}
-                <span>
-                    · W{Number(rec.week.replace('week', ''))} · Day {rec.weekDay.replace('day', '')} ·{' '}
-                    {formatRecordedOn(rec.recordedOn)}
-                </span>
-            </p>
-            <span className="ctl">
-                <button
-                    type="button"
-                    className="ib"
-                    aria-label="Previous recording"
-                    disabled={!onPrev}
-                    onClick={onPrev}
-                >
-                    <SkipBack {...ICON} size={18} />
-                </button>
-                <button type="button" className="ib" aria-label="Next recording" disabled={!onNext} onClick={onNext}>
-                    <SkipForward {...ICON} size={18} />
-                </button>
-                <button type="button" className="ib" aria-label="Close the player" onClick={onClose}>
-                    <X {...ICON} size={18} />
-                </button>
-            </span>
+        <div className="inl" role="group" aria-label={`Playing day ${rec.weekDay.replace('day', '')}`}>
             <div className="ap">
                 {url.isError ? (
-                    <p className="hint">We couldn&rsquo;t load this recording right now.</p>
+                    <p className="msg">We couldn&rsquo;t load this recording right now.</p>
                 ) : !url.data ? (
-                    <p className="hint">Loading…</p>
+                    <p className="msg">Loading…</p>
                 ) : (
                     <AudioPlayer
                         key={rec.id}
@@ -350,7 +348,6 @@ const Player: React.FC<{
                         audioURL={url.data}
                         onEnd={onEnd}
                         onError={() => {
-                            // o endereço vale 5 minutos: pede outro uma vez
                             if (!retried.current) {
                                 retried.current = true;
                                 url.refetch();
@@ -359,9 +356,33 @@ const Player: React.FC<{
                     />
                 )}
             </div>
+            <button type="button" className="ib" aria-label="Close the player" onClick={onClose}>
+                <X {...ICON} size={18} />
+            </button>
         </div>
     );
 };
+
+/** Uma gravação: linha compacta (▶ · rótulo · duração) ou, tocando, o player ali mesmo. */
+const RecRow: React.FC<{
+    rec: Rec;
+    label: string;
+    playing?: string;
+    play(rec: Rec, queue?: Rec[]): void;
+    onEnd(): void;
+    stop(): void;
+}> = ({ rec, label, playing, play, onEnd, stop }) =>
+    playing === rec.id ? (
+        <InlinePlayer rec={rec} onEnd={onEnd} onClose={stop} />
+    ) : (
+        <button type="button" aria-label={`Play ${label}, ${spokenDuration(rec.durationMs)}`} onClick={() => play(rec)}>
+            <span className="pi">
+                <Play {...ICON} size={14} aria-hidden />
+            </span>
+            <span>{label}</span>
+            <small>{formatDuration(rec.durationMs)}</small>
+        </button>
+    );
 
 /** Uma semana do gotejamento do aluno: cabeçalho sempre presente; os números chegam quando a linha fica perto da tela. */
 const WeekRow: React.FC<{
@@ -371,7 +392,9 @@ const WeekRow: React.FC<{
     onRecs(week: number, recs: Rec[]): void;
     playing?: string;
     play(rec: Rec, queue?: Rec[]): void;
-}> = ({ w, open, onToggle, onRecs, playing, play }) => {
+    onEnd(): void;
+    stop(): void;
+}> = ({ w, open, onToggle, onRecs, playing, play, onEnd, stop }) => {
     // só pede as gravações quando a linha chega perto da tela (o cabeçalho já está lá desde o começo)
     const ref = useRef<HTMLLIElement>(null);
     const [near, setNear] = useState(false);
@@ -408,7 +431,7 @@ const WeekRow: React.FC<{
     const wn = (r: Rec) => `W${Number(r.week.replace('week', ''))}`;
     const has = mine.length > 0;
     return (
-        <li ref={ref} className={`wk${open && has ? ' open' : ''}`}>
+        <li ref={ref} id={`wk-${w.week}`} className={`wk${open && has ? ' open' : ''}`}>
             <button type="button" className="wh" aria-expanded={open && has} disabled={!has} onClick={onToggle}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- miniatura do espelho, pequena */}
                 {thumb ? <img className="th" src={thumb} alt="" loading="lazy" /> : <span className="th" />}
@@ -440,12 +463,32 @@ const WeekRow: React.FC<{
                 <div className="wp">
                     <div>
                         {compare && (
-                            <p className="cmp">
-                                Hear your progress: {wn(first)} vs {wn(latest)}
-                                <button type="button" className="btn gold" onClick={() => play(first, [first, latest])}>
-                                    <Play {...ICON} size={14} aria-hidden /> First, then latest
-                                </button>
-                            </p>
+                            <div className="cmp">
+                                <p>
+                                    Hear your progress: {wn(first)} vs {wn(latest)}
+                                    <button
+                                        type="button"
+                                        className="btn gold"
+                                        onClick={() => play(first, [first, latest])}
+                                    >
+                                        <Play {...ICON} size={14} aria-hidden /> Play both
+                                    </button>
+                                </p>
+                                <ul className="recs">
+                                    {[first, latest].map((r) => (
+                                        <li key={`c-${r.id}`}>
+                                            <RecRow
+                                                rec={r}
+                                                label={`${wn(r)} · Day ${r.weekDay.replace('day', '')} · ${formatRecordedOn(r.recordedOn)}`}
+                                                playing={playing}
+                                                play={play}
+                                                onEnd={onEnd}
+                                                stop={stop}
+                                            />
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         )}
                         <ul className="recs">
                             {[1, 2, 3, 4, 5, 6, 7].map((d) => {
@@ -454,20 +497,14 @@ const WeekRow: React.FC<{
                                 return (
                                     <li key={d}>
                                         {r ? (
-                                            <button
-                                                type="button"
-                                                className={playing === r.id ? 'now' : undefined}
-                                                aria-label={`Play day ${d}, ${spokenDuration(r.durationMs)}`}
-                                                onClick={() => play(r)}
-                                            >
-                                                <span className="pi">
-                                                    <Play {...ICON} size={14} aria-hidden />
-                                                </span>
-                                                <span>
-                                                    Day {d} · {formatRecordedOn(r.recordedOn)}
-                                                </span>
-                                                <small>{formatDuration(r.durationMs)}</small>
-                                            </button>
+                                            <RecRow
+                                                rec={r}
+                                                label={`Day ${d} · ${formatRecordedOn(r.recordedOn)}`}
+                                                playing={playing}
+                                                play={play}
+                                                onEnd={onEnd}
+                                                stop={stop}
+                                            />
                                         ) : (
                                             <p className="none">
                                                 <span>
@@ -485,6 +522,18 @@ const WeekRow: React.FC<{
             )}
         </li>
     );
+};
+
+/** "Oct 5" */
+const shortDate = (iso: string) =>
+    new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+
+/** Tempo gravado: "36 s", "12 min", "1h 12". */
+const timeText = (ms: number) => {
+    const s = Math.round(ms / 1000);
+    if (s < 60) return `${s} s`;
+    const m = Math.round(s / 60);
+    return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}`;
 };
 
 export const LampRecordings: React.FC = () => {
@@ -512,14 +561,20 @@ export const LampRecordings: React.FC = () => {
                 }),
         [grid.unlockedDEDAs, current, byId],
     );
-    const [find, setFind] = useState('');
     const [open, setOpen] = useState<Record<number, boolean>>({});
     const [recs, setRecs] = useState<Record<number, Rec[]>>({});
     const [queue, setQueue] = useState<Rec[]>([]);
     const [now, setNow] = useState<Rec>();
 
-    const term = find.trim().toLowerCase();
-    const weeks = term ? allWeeks.filter((w) => w.title.toLowerCase().includes(term)) : allWeeks;
+    const weeks = allWeeks;
+    const stats = useRecordingStats();
+    // ir a um DEDA: abre a semana e rola até ela
+    const goTo = (week: number) => {
+        setOpen((o) => ({ ...o, [week]: true }));
+        requestAnimationFrame(() =>
+            document.getElementById(`wk-${week}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+        );
+    };
 
     const onRecs = (week: number, mine: Rec[]) =>
         setRecs((r) => (r[week]?.length === mine.length ? r : { ...r, [week]: mine }));
@@ -538,13 +593,21 @@ export const LampRecordings: React.FC = () => {
         }
     }, [recs, allWeeks]);
 
-    // ordem do player: as gravações conhecidas, da semana mais recente para trás, dia a dia
-    const flat = useMemo(() => allWeeks.flatMap((w) => recs[w.week] ?? []), [allWeeks, recs]);
     const play = (rec: Rec, q: Rec[] = []) => {
         setQueue(q.slice(1));
         setNow(rec);
     };
-    const at = now ? flat.findIndex((r) => r.id === now.id) : -1;
+    // terminou: o próximo da fila (Play both) ou a linha volta a ser compacta
+    const next = () => {
+        if (queue.length) {
+            setNow(queue[0]);
+            setQueue(queue.slice(1));
+        } else setNow(undefined);
+    };
+    const stop = () => {
+        setNow(undefined);
+        setQueue([]);
+    };
 
     const known = allWeeks.filter((w) => recs[w.week] !== undefined);
     const none = allWeeks.length > 0 && known.length === allWeeks.length && known.every((w) => !recs[w.week].length);
@@ -556,6 +619,33 @@ export const LampRecordings: React.FC = () => {
             <div className="sh">
                 <h2>Your recordings</h2>
             </div>
+            {stats.allowed && stats.stats && (
+                <dl className="rk">
+                    <div>
+                        <dt>Recording rate</dt>
+                        <dd>{Math.round(stats.stats.rate * 100)}%</dd>
+                    </div>
+                    <div>
+                        <dt>Recordings</dt>
+                        <dd>{stats.stats.recordings}</dd>
+                    </div>
+                    <div>
+                        <dt>Recording days</dt>
+                        <dd>
+                            {stats.stats.recordingDays}
+                            <small>since {shortDate(stats.stats.since)}</small>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Time recorded</dt>
+                        <dd>{timeText(stats.stats.totalMs)}</dd>
+                    </div>
+                    <div>
+                        <dt>Average length</dt>
+                        <dd>{(stats.stats.totalMs / stats.stats.recordings / 60000).toFixed(1)} min</dd>
+                    </div>
+                </dl>
+            )}
             <div className="tools">
                 <p className="hint">
                     {none ? (
@@ -571,13 +661,19 @@ export const LampRecordings: React.FC = () => {
                         <>Every reading you recorded in step 2. Listen back to hear how far you&rsquo;ve come.</>
                     )}
                 </p>
-                <input
+                <Select
                     className="find"
-                    type="search"
-                    placeholder="Find a DEDA"
-                    aria-label="Find a DEDA by name"
-                    value={find}
-                    onChange={(e) => setFind(e.target.value)}
+                    showSearch
+                    allowClear
+                    placeholder="Go to a DEDA"
+                    aria-label="Go to a DEDA"
+                    optionFilterProp="label"
+                    popupMatchSelectWidth={false}
+                    options={allWeeks.map((w) => ({
+                        value: w.week,
+                        label: `W${String(w.week).padStart(2, '0')} · ${w.title}`,
+                    }))}
+                    onChange={(week?: number) => week !== undefined && goTo(week)}
                 />
             </div>
             <ul className="weeks">
@@ -590,26 +686,11 @@ export const LampRecordings: React.FC = () => {
                         onRecs={onRecs}
                         playing={now?.id}
                         play={play}
+                        onEnd={next}
+                        stop={stop}
                     />
                 ))}
             </ul>
-            {now && (
-                <Player
-                    rec={now}
-                    onPrev={at > 0 ? () => play(flat[at - 1]) : undefined}
-                    onNext={at >= 0 && at < flat.length - 1 ? () => play(flat[at + 1]) : undefined}
-                    onEnd={() => {
-                        if (queue.length) {
-                            setNow(queue[0]);
-                            setQueue(queue.slice(1));
-                        }
-                    }}
-                    onClose={() => {
-                        setNow(undefined);
-                        setQueue([]);
-                    }}
-                />
-            )}
         </div>
     );
 };

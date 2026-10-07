@@ -362,3 +362,54 @@ export const pickMyReading = (recordings: DedaRecording[], today: string, isCurr
     if (isCurrentDeda) return ready.find((r) => r.recordedOn === today) ?? null;
     return ready.reduce<DedaRecording | null>((a, r) => (!a || r.recordedOn > a.recordedOn ? r : a), null);
 };
+
+// ---------- KPIs de gravação (LAMP) ----------
+
+/** Primeiro dia em que o gravador existiu para alguém (o piso da contagem): nada antes disso é "dia de gravar". */
+export const RECORDER_SINCE = '2026-10-05';
+
+/** Intervalos de pausa [início, fim) em AAAA-MM-DD, a partir das datas de pausa e de (re)início do programa. */
+export const pausedIntervals = (pauses: string[] = [], starts: string[] = []) => {
+    const d = (x: string) => brasiliaDate(new Date(x));
+    const ss = starts.map(d).sort();
+    return pauses
+        .map(d)
+        .sort()
+        .map((p) => ({ from: p, to: ss.find((s) => s > p) }));
+};
+
+const nextDay = (iso: string) => {
+    const t = new Date(`${iso}T12:00:00Z`);
+    t.setUTCDate(t.getUTCDate() + 1);
+    return t.toISOString().slice(0, 10);
+};
+
+/**
+ * KPIs de gravação: dias em que dava para gravar desde a primeira gravação do aluno (sem pausas; hoje só conta se já
+ * tem gravação — o dia ainda não acabou), gravações mantidas (uma por dia), taxa e tempo total.
+ */
+export const recordingStats = (
+    recordings: { recordedOn: string; durationMs: number }[],
+    today: string,
+    paused: { from: string; to?: string }[] = [],
+) => {
+    const byDay = new Map<string, number>();
+    for (const r of recordings) if (r.recordedOn >= RECORDER_SINCE) byDay.set(r.recordedOn, r.durationMs || 0);
+    const days = [...byDay.keys()].sort();
+    if (!days.length) return undefined;
+    const since = days[0];
+    const isPaused = (iso: string) => paused.some((p) => iso >= p.from && (!p.to || iso < p.to));
+    let possible = 0;
+    for (let d = since; d <= today; d = nextDay(d)) {
+        if (isPaused(d)) continue;
+        if (d < today || byDay.has(d)) possible++;
+    }
+    const total = [...byDay.values()].reduce((a, b) => a + b, 0);
+    return {
+        since,
+        recordingDays: possible,
+        recordings: byDay.size,
+        rate: possible ? byDay.size / possible : 0,
+        totalMs: total,
+    };
+};

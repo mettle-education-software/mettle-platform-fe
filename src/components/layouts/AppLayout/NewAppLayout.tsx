@@ -7,6 +7,7 @@ import { ThemeCycle, ThemeSwitch } from 'components/_new/ThemeSwitch';
 import { popupStyles } from 'components/_new/ui';
 import { Logo } from 'components/atoms/Logo/Logo';
 import { useDeviceSize } from 'hooks';
+import { useDedaRun } from 'hooks/melp/lampDays';
 import { useLogoTheme, useNewAntdTheme } from 'hooks/useTheme';
 import { getWeekDay } from 'libs';
 import { activeMenuKeys, firstName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
@@ -137,6 +138,14 @@ const chrome = css`
         letter-spacing: 0.02em;
         color: var(--r-muted);
         white-space: nowrap;
+    }
+    .bar .melp span.melp-run {
+        display: none;
+    }
+    .melp span.melp-run {
+        margin-top: 4px;
+        font-weight: 500;
+        color: var(--r-gold-hi);
     }
     .user {
         display: flex;
@@ -673,6 +682,17 @@ const Nav: React.FC<{
     </nav>
 );
 
+/** DEDA Run no rodapé do menu (o KPI principal do programa): "Run · 203". */
+const MelpRun: React.FC = () => {
+    const run = useDedaRun(2);
+    if (run.loading && !run.current) return null;
+    return (
+        <span className="melp-run" title="DEDA Run: days in a row with your DEDA at 80% or more">
+            Run · {run.current}
+        </span>
+    );
+};
+
 /** Resumo do DEDA em andamento (o mesmo conteúdo do MelpSummary atual): nome, semana e dia do calendário. */
 const MelpMini: React.FC = () => {
     const { melpSummary } = useMelpContext();
@@ -685,6 +705,7 @@ const MelpMini: React.FC = () => {
             <span>
                 Week {melpSummary.current_deda_week} · Day {day}
             </span>
+            <MelpRun />
         </div>
     );
 };

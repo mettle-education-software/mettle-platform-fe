@@ -714,7 +714,7 @@ export const NewLampInput: React.FC = () => {
                         <section aria-labelledby="lamp-deda">
                             <h3 id="lamp-deda">
                                 DEDA{' '}
-                                <Hint text="Rate the quality of your DEDA session. Quality counts from Good (4 stars) up." />
+                                <Hint text="Rate the quality of your DEDA session. The day counts for your DEDA Run at 80% or more." />
                             </h3>
                             <p className="ro">
                                 {dedaTime > 0

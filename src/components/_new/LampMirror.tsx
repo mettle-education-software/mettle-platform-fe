@@ -3,109 +3,209 @@
 import { css, Global } from '@emotion/react';
 import type { ApexOptions } from 'apexcharts';
 import { useGeneralWeeklyDevelopment, useOverallProgress } from 'hooks';
-import { useLampDays } from 'hooks/melp/lampDays';
+import { useDedaRun } from 'hooks/melp/lampDays';
 import { useTheme } from 'hooks/useTheme';
-import { statisticsColors } from 'libs';
 import {
     axisWords,
-    bestStreak,
-    constancyRuns,
-    DayStatus,
-    dayStatus,
+    countsForRun,
     DEDA_QUALITY_MIN,
     LampDay,
+    lastBreak,
     lastFourVsPrevious,
+    topRuns,
     WEEK_DAYS,
     weeklyQuality,
 } from 'libs/newDesign';
+import { Check } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useAppContext } from 'providers';
 import React, { useState } from 'react';
-import { DARK, LIGHT } from 'themes/newDesign';
+import { DARK, ICON, LIGHT } from 'themes/newDesign';
+import { DailyGoal } from './DailyGoal';
 import { useSoftChart } from './lampCharts';
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 /*
- * Performance da LAMP como espelho ("estou cumprindo o que me propus?"): a semana dia a dia contra a meta, a sequência
- * de DEDA bem feito e o Overall; depois a tendência e a qualidade do DEDA. Sem confete: linguagem adulta, constância.
+ * Performance da LAMP pela DEDA Run (decisão do André: o KPI mais importante do programa, sempre ao lado do Overall).
+ * Um dia conta só com o DEDA a 80% ou mais; abaixo disso, ou sem DEDA, a Run volta a zero. Hoje não quebra enquanto o
+ * dia não acaba. Sem confete: linguagem adulta.
  */
 
 const styles = css`
-    .mirror {
+    .drun {
         display: grid;
-        grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1.15fr);
-        gap: 28px 40px;
-        padding: 26px 28px 24px;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.5fr);
+        gap: 28px 48px;
+        padding: 28px 30px 26px;
         border: 1px solid var(--r-line);
         border-radius: 16px;
         background: var(--r-surf);
     }
-    .mirror > div {
-        min-width: 0;
+    .drun .drun-kpis {
+        display: flex;
+        align-items: flex-end;
+        gap: 40px;
+        flex-wrap: wrap;
     }
-    .mirror .big {
-        margin: 6px 0 2px;
-        font-size: 34px;
+    .drun .drun-n {
+        display: block;
+        font-size: 76px;
         font-weight: 300;
-        line-height: 1.1;
-        font-variant-numeric: tabular-nums;
-    }
-    .mirror .big small {
-        margin-left: 4px;
-        font-size: 14px;
-        font-weight: 400;
-        color: var(--r-muted);
-    }
-    .mirror .sub {
-        font-size: 13px;
-        line-height: 1.45;
-        color: var(--r-muted);
-    }
-    /* Overall e as frentes */
-    .fronts {
-        display: grid;
-        gap: 9px;
-        margin: 12px 0 0;
-        padding: 0;
-        list-style: none;
-    }
-    .fronts li {
-        display: grid;
-        grid-template-columns: 4.6em minmax(0, 1fr) 2.8em;
-        align-items: center;
-        gap: 10px;
-        font-size: 12.5px;
-        color: var(--r-muted);
-    }
-    .fronts b {
-        font-weight: 500;
-        text-align: right;
+        line-height: 0.95;
+        letter-spacing: -0.02em;
         font-variant-numeric: tabular-nums;
         color: var(--r-text);
     }
-    .fronts .bar {
-        position: relative;
-        height: 3px;
+    .drun .drun-n small,
+    .drun .drun-o small {
+        display: block;
+        margin-top: 6px;
+        font-size: 13px;
+        font-weight: 400;
+        letter-spacing: 0.01em;
+        color: var(--r-muted);
+    }
+    .drun .drun-o {
+        display: block;
+        font-size: 32px;
+        font-weight: 300;
+        line-height: 1.05;
+        font-variant-numeric: tabular-nums;
+    }
+    .drun .drun-best {
+        margin-top: 14px;
+        font-size: 14px;
+        color: var(--r-muted);
+    }
+    .drun .drun-best b {
+        font-weight: 500;
+        color: var(--r-text);
+    }
+    .drun .drun-now {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--r-text);
+    }
+    .drun .drun-now.ok {
+        color: var(--r-gold-hi);
+    }
+    .drun .drun-rule {
+        margin-top: 6px;
+        font-size: 12.5px;
+        line-height: 1.45;
+        color: var(--r-muted);
+    }
+    /* mapa de constância: uma coluna por semana do programa, 7 linhas (seg–dom) */
+    .cmap {
+        margin-top: 44px;
+    }
+    .cmap .cm-lead {
+        margin: -6px 0 12px;
+        font-size: 14px;
+        color: var(--r-text);
+    }
+    .cmap .cm-lead span {
+        color: var(--r-muted);
+    }
+    .cmap .cm-tops {
+        margin: -6px 0 14px;
+        font-size: 12.5px;
+        color: var(--r-muted);
+    }
+    .cmap .cm-wrap {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 6px;
+    }
+    .cmap .cm-rows {
+        display: grid;
+        grid-template-rows: repeat(7, var(--cell));
+        gap: 3px;
+        padding-top: 18px;
+        font-size: 10px;
+        line-height: var(--cell);
+        color: var(--r-muted);
+    }
+    .cmap .cm-scroll {
+        overflow-x: auto;
+        scrollbar-width: thin;
+    }
+    .cmap .cm-grid {
+        display: grid;
+        grid-auto-flow: column;
+        grid-template-rows: 15px repeat(7, var(--cell));
+        grid-auto-columns: var(--cell);
+        gap: 3px;
+        width: max-content;
+    }
+    .cmap .cm-wk {
+        font-size: 10px;
+        color: var(--r-muted);
+        white-space: nowrap;
+        overflow: visible;
+    }
+    .cmap .cm-c {
+        width: var(--cell);
+        height: var(--cell);
+        padding: 0;
+        border: 0;
+        border-radius: 3px;
+        background: var(--r-track);
+        cursor: pointer;
+    }
+    .cmap .cm-c.counted {
+        background: var(--r-gold);
+    }
+    .cmap .cm-c.low {
+        background: color-mix(in oklab, var(--r-danger) 45%, transparent);
+    }
+    .cmap .cm-c.future {
+        background: none;
+        box-shadow: inset 0 0 0 1px var(--r-line);
+        cursor: default;
+    }
+    .cmap .cm-c.sel {
+        outline: 2px solid var(--r-text);
+        outline-offset: 1px;
+    }
+    .cmap .cm-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        margin-top: 10px;
+        font-size: 12.5px;
+        color: var(--r-muted);
+    }
+    .cmap .cm-key {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+    .cmap .cm-key i {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin-right: 5px;
         border-radius: 2px;
+        vertical-align: -1px;
         background: var(--r-track);
     }
-    .fronts .bar i {
-        display: block;
-        height: 100%;
-        border-radius: 2px;
-        background: var(--c);
+    .cmap .cm-key .g i {
+        background: var(--r-gold);
     }
-    .fronts .bar s {
-        position: absolute;
-        top: -3px;
-        left: 80%;
-        width: 1px;
-        height: 9px;
-        background: var(--r-muted);
+    .cmap .cm-key .r i {
+        background: color-mix(in oklab, var(--r-danger) 45%, transparent);
     }
-    html[data-theme='light'] .fronts .bar i {
-        background: color-mix(in oklab, var(--c) 78%, #2a2622);
+    .cmap .cm-pick {
+        min-height: 20px;
+        color: var(--r-text);
     }
     /* tendência e qualidade */
     .mtwo {
@@ -118,111 +218,22 @@ const styles = css`
         margin-top: 0;
     }
     .cmp {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: baseline;
-        gap: 4px 18px;
         margin: 0 0 4px;
         font-size: 13px;
         color: var(--r-muted);
     }
     .cmp b {
-        font-size: 15px;
         font-weight: 500;
         color: var(--r-text);
-        font-variant-numeric: tabular-nums;
-    }
-    .crit {
-        margin: 8px 0 0;
-        padding: 0;
-        list-style: none;
-        border-top: 1px solid var(--r-line);
-    }
-    .crit li {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto 3.4em;
-        gap: 12px;
-        padding: 9px 0;
-        border-bottom: 1px solid var(--r-line);
-        font-size: 13.5px;
-        font-variant-numeric: tabular-nums;
-    }
-    .crit li span:nth-of-type(2) {
-        color: var(--r-text);
-    }
-    .crit li span:last-child {
-        text-align: right;
-        color: var(--r-muted);
-    }
-    .hist {
-        margin-top: 44px;
-    }
-    .hist .tl {
-        position: relative;
-        height: 10px;
-        margin: 10px 0 6px;
-        border-radius: 5px;
-        background: var(--r-track);
-    }
-    .hist .tl i {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        min-width: 3px;
-        border-radius: 5px;
-        background: var(--r-gold);
-        opacity: 0.55;
-    }
-    .hist .tl i.best {
-        opacity: 1;
-    }
-    .hist .tlx {
-        display: flex;
-        justify-content: space-between;
-        font-size: 11.5px;
-        color: var(--r-muted);
-    }
-    .hist .runs {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        max-width: 560px;
-        margin: 14px 0 0;
-        padding: 0;
-        list-style: none;
-    }
-    .hist .runs li {
-        display: flex;
-        align-items: baseline;
-        gap: 10px;
-        padding: 9px 0;
-        border-bottom: 1px solid var(--r-line);
-        font-size: 13.5px;
-        color: var(--r-muted);
-        font-variant-numeric: tabular-nums;
-    }
-    .hist .runs li span {
-        flex: 1;
-        min-width: 0;
-    }
-    .hist .runs b {
-        font-weight: 500;
-        color: var(--r-text);
-    }
-    .hist .runs em {
-        font-style: normal;
-        font-size: var(--r-label-size);
-        letter-spacing: var(--r-label-track);
-        text-transform: uppercase;
-        color: var(--r-gold-hi);
-    }
-    .hist .runs li.best b {
-        color: var(--r-gold-hi);
     }
     @media (max-width: 960px) {
-        .mirror {
+        .drun {
             grid-template-columns: minmax(0, 1fr);
-            padding: 20px 16px;
+            padding: 22px 16px;
             margin: 0 -4px;
+        }
+        .drun .drun-n {
+            font-size: 64px;
         }
         .mtwo {
             grid-template-columns: minmax(0, 1fr);
@@ -230,211 +241,176 @@ const styles = css`
     }
 `;
 
-/** Estilo dos 7 dias (também na faixa da home do IMERSO). */
-export const weekDotsStyles = css`
-    /* os 7 dias */
-    .wdots {
-        display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-        gap: 6px;
-        margin: 14px 0 12px;
-        padding: 0;
-        list-style: none;
-    }
-    .wdots li {
-        display: grid;
-        justify-items: center;
-        gap: 6px;
-        font-size: 11px;
-        letter-spacing: 0.06em;
-        color: var(--r-muted);
-    }
-    .wdots i {
-        display: block;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        border: 1.5px solid var(--r-line-strong);
-    }
-    .wdots .wd-kept i {
-        border-color: var(--r-gold);
-        background: var(--r-gold);
-    }
-    .wdots .wd-partial i {
-        border-color: var(--r-gold);
-        background: linear-gradient(90deg, var(--r-gold) 50%, transparent 50%);
-    }
-    .wdots .wd-missed i {
-        border-color: var(--r-line-strong);
-    }
-    .wdots .wd-today i {
-        border: 2px solid var(--r-gold-hi);
-        box-shadow: 0 0 0 3px var(--r-gold-tint);
-    }
-    .wdots .wd-future i {
-        border-style: dashed;
-        border-color: var(--r-line);
-    }
-    .wdots .wd-now {
-        color: var(--r-text);
-        font-weight: 500;
-    }
-    .wlegend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px 14px;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-        font-size: 12px;
-        color: var(--r-muted);
-    }
-    .wlegend span {
-        display: inline-block;
-        width: 9px;
-        height: 9px;
-        margin-right: 5px;
-        border-radius: 50%;
-        border: 1.5px solid var(--r-gold);
-        vertical-align: -1px;
-    }
-    .wlegend .k span {
-        background: var(--r-gold);
-    }
-    .wlegend .p span {
-        background: linear-gradient(90deg, var(--r-gold) 50%, transparent 50%);
-    }
-    .wlegend .m span {
-        border-color: var(--r-line-strong);
-    }
-`;
+/** "203 days" / "1 day". */
+export const daysText = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
 
-const STATUS_LABEL: Record<DayStatus, string> = {
-    kept: 'kept',
-    partial: 'partly done',
-    missed: 'missed',
-    today: 'today, in progress',
-    future: 'ahead',
-};
-
-/** Os 7 dias da semana em curso, contra a meta. Também usado na faixa da home do IMERSO (`compact`). */
-export const WeekDots: React.FC<{ days: LampDay[]; week: number; today: number; compact?: boolean }> = ({
-    days,
-    week,
-    today,
-    compact,
-}) => (
-    <ul className="wdots" aria-label={`Week ${week}, day by day`}>
-        {WEEK_DAYS.map((w, i) => {
-            const n = i + 1;
-            const d = days.find((x) => x.week === week && x.day === n);
-            const status = dayStatus(d, n === today, n > today);
-            return (
-                <li key={w.value} className={`wd-${status}`} title={`${w.label}: ${STATUS_LABEL[status]}`}>
-                    <i aria-hidden />
-                    <span className={n === today ? 'wd-now' : undefined}>
-                        {compact ? w.label[0] : w.label.slice(0, 3)}
-                        <span className="sr">: {STATUS_LABEL[status]}</span>
-                    </span>
-                </li>
-            );
-        })}
-    </ul>
-);
-
-/** "12 days" / "1 day" / "—". */
-export const daysText = (n: number) => (n ? `${n} day${n > 1 ? 's' : ''}` : '—');
-
-/** Dia da LAMP: a data ("Oct 2" / "Oct 2, 2025") ou, com pausas no programa, a semana ("Mon, W96"). */
-const dayLabel = (d: LampDay) => {
-    if (!d.date) return `${WEEK_DAYS[d.day - 1]?.label.slice(0, 3) ?? ''}, W${d.week}`;
+/** Dia da LAMP: "Tue, Oct 6" (sem pausa no programa) ou "Tue, W12". */
+export const dayLabel = (d: LampDay) => {
+    const wd = WEEK_DAYS[d.day - 1]?.label.slice(0, 3) ?? '';
+    if (!d.date) return `${wd}, W${d.week}`;
     const sameYear = d.date.getFullYear() === new Date().getFullYear();
-    return d.date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        ...(sameYear ? {} : { year: 'numeric' }),
-    });
+    return `${wd}, ${d.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) })}`;
 };
 
-type Days = ReturnType<typeof useLampDays>;
+type Run = ReturnType<typeof useDedaRun>;
 
-const Hero: React.FC<{ days: Days }> = ({ days }) => {
+/** A linha de hoje: o que falta, o que já contou ou onde a Run acabou. */
+export const runTodayLine = (run: Run): { text: string; ok: boolean } => {
+    if (run.todayCounted) return { text: `Today counted · ${run.current}`, ok: true };
+    if (run.beforeToday > 0)
+        return { text: `Do today’s DEDA at ${DEDA_QUALITY_MIN}%+ to reach ${run.beforeToday + 1}`, ok: false };
+    const brk = lastBreak(run.newestFirst);
+    if (brk && brk.previous > 0) {
+        const why = brk.day.deda > 0 ? `${Math.round(brk.day.deda)}%` : 'no DEDA';
+        return {
+            text: `Your run of ${daysText(brk.previous)} ended on ${dayLabel(brk.day)} (${why}). Start again today.`,
+            ok: false,
+        };
+    }
+    return { text: `Do today’s DEDA at ${DEDA_QUALITY_MIN}%+ to start your DEDA Run`, ok: false };
+};
+
+const Hero: React.FC<{ run: Run }> = ({ run }) => {
     const { user } = useAppContext();
     const { overallData } = useOverallProgress(user?.uid);
-    const { newestFirst, streak, currentWeek, today, weeksLoaded, loading } = days;
-    const thisWeek = newestFirst.filter((d) => d.week === currentWeek);
-    const kept = thisWeek.filter((d) => dayStatus(d, d.day === today) === 'kept').length;
-    const best = bestStreak([...newestFirst].reverse());
-    const by = overallData?.byActivity;
-    const fronts: [string, number | null | undefined, string][] = [
-        ['DEDA', by?.deda, statisticsColors.DEDA],
-        ['Active', by?.active, statisticsColors.Active],
-        ['Passive', by?.passive, statisticsColors.Passive],
-        ...(by && by.review !== null && by.review !== undefined
-            ? ([['Review', by.review, statisticsColors.Review]] as [string, number, string][])
-            : []),
-    ];
     const overall = overallData?.overallPerformance;
-
+    const line = runTodayLine(run);
+    const ready = !run.loading || run.current > 0;
     return (
-        <section className="mirror" aria-label="How you are doing" aria-busy={loading || undefined}>
-            <div>
-                <p className="eyebrow">This week · Week {String(currentWeek).padStart(2, '0')}</p>
-                <p className="big">
-                    {kept}
-                    <small>of {today} days kept so far</small>
-                </p>
-                <WeekDots days={newestFirst} week={currentWeek} today={today} />
-                <ul className="wlegend" aria-hidden>
-                    <li className="k">
-                        <span />
-                        Kept
-                    </li>
-                    <li className="p">
-                        <span />
-                        Partly
-                    </li>
-                    <li className="m">
-                        <span />
-                        Missed
-                    </li>
-                </ul>
-            </div>
+        <section className="drun" aria-label="DEDA Run" aria-busy={run.loading || undefined}>
             <div>
                 <p className="eyebrow">DEDA Run</p>
-                <p className="big">
-                    {loading && !streak.current ? '—' : streak.current}
-                    <small>{streak.current === 1 ? 'day' : 'days'} in a row</small>
+                <div className="drun-kpis">
+                    <span className="drun-n">
+                        {ready ? run.current : '—'}
+                        <small>{run.current === 1 ? 'day in a row' : 'days in a row'}</small>
+                    </span>
+                    <span className="drun-o">
+                        {typeof overall === 'number' ? `${overall.toFixed(1)}%` : '—'}
+                        <small>Overall</small>
+                    </span>
+                </div>
+                <p className="drun-best">
+                    Best · <b>{daysText(Math.max(run.best, run.current))}</b>
+                    {run.weeksLoaded < run.currentWeek && ` in the last ${run.weeksLoaded} weeks`}
                 </p>
-                {best > 0 && (
-                    <p className="sub">
-                        Best · <b>{daysText(best)}</b>
-                        {weeksLoaded < currentWeek && ` in the last ${weeksLoaded} weeks`}
+                {ready && (
+                    <p className={`drun-now${line.ok ? ' ok' : ''}`} role="status">
+                        {line.ok && <Check {...ICON} size={16} aria-hidden />}
+                        {line.text}
                     </p>
                 )}
-                <p className="sub">
-                    Days in a row with your DEDA done at quality {DEDA_QUALITY_MIN}% or more (an average of 3.5 stars).
-                    Today in progress doesn&rsquo;t break it; a missed day can&rsquo;t be made up.
+                <p className="drun-rule">
+                    A day counts when your DEDA is at {DEDA_QUALITY_MIN}% or more. Below that, or no DEDA, the run
+                    starts again from zero.
                 </p>
             </div>
             <div>
-                <p className="eyebrow">Overall</p>
-                <p className="big">
-                    {typeof overall === 'number' ? overall.toFixed(1) : '—'}
-                    <small>% · the program asks for 80%+</small>
+                <p className="eyebrow">Daily goal · Week {String(run.currentWeek).padStart(2, '0')}</p>
+                <p className="drun-rule" style={{ margin: '4px 0 12px' }}>
+                    Met = DEDA at {DEDA_QUALITY_MIN}%+, Active and Passive goals, all three.
                 </p>
-                <ul className="fronts">
-                    {fronts.map(([name, value, color]) => (
-                        <li key={name} style={{ '--c': color } as React.CSSProperties}>
-                            {name}
-                            <span className="bar" aria-hidden>
-                                <i style={{ width: `${Math.min(100, Math.max(0, value ?? 0))}%` }} />
-                                <s />
-                            </span>
-                            <b>{typeof value === 'number' ? `${Math.round(value)}%` : '—'}</b>
-                        </li>
+                <DailyGoal days={run.newestFirst} week={run.currentWeek} today={run.today} />
+            </div>
+        </section>
+    );
+};
+
+/** Mapa de constância: semanas em colunas, dias em linhas; ouro = contou, vermelho = abaixo de 80%, vazio = sem DEDA. */
+const ConstancyMap: React.FC<{ run: Run }> = ({ run }) => {
+    const [pick, setPick] = useState<LampDay>();
+    const oldestFirst = [...run.newestFirst].reverse();
+    const tops = topRuns(oldestFirst, 3);
+    const best = tops[0];
+    const first = oldestFirst[0]?.week ?? run.currentWeek;
+    const weeks = Array.from({ length: run.currentWeek - first + 1 }, (_, i) => first + i);
+    const at = new Map(oldestFirst.map((d) => [`${d.week}:${d.day}`, d]));
+    const cell = weeks.length > 60 ? 9 : weeks.length > 40 ? 11 : weeks.length > 26 ? 13 : 16;
+    const label = (d: LampDay) => `${dayLabel(d)} · ${d.deda > 0 ? `${Math.round(d.deda)}%` : 'no DEDA'}`;
+    return (
+        <section className="cmap" aria-label="Constancy map">
+            <div className="sh">
+                <h2>Constancy map</h2>
+                {first > 1 && (
+                    <button type="button" className="lnk gold" onClick={() => run.more(8)} disabled={run.loading}>
+                        {run.loading ? 'Loading…' : 'Earlier weeks'}
+                    </button>
+                )}
+            </div>
+            {best ? (
+                <>
+                    <p className="cm-lead">
+                        Best run · {daysText(best.days)}{' '}
+                        <span>
+                            ({dayLabel(best.from)} → {dayLabel(best.to)})
+                        </span>
+                    </p>
+                    {tops.length > 1 && (
+                        <p className="cm-tops">
+                            Next:{' '}
+                            {tops
+                                .slice(1)
+                                .map((r) => `${daysText(r.days)} (${dayLabel(r.from)} → ${dayLabel(r.to)})`)
+                                .join(' · ')}
+                        </p>
+                    )}
+                </>
+            ) : (
+                <p className="cm-lead">
+                    <span>No run in these weeks yet. One DEDA at {DEDA_QUALITY_MIN}%+ today starts the first.</span>
+                </p>
+            )}
+            <div className="cm-wrap" style={{ '--cell': `${cell}px` } as React.CSSProperties}>
+                <div className="cm-rows" aria-hidden>
+                    {['Mon', '', 'Wed', '', 'Fri', '', 'Sun'].map((t, i) => (
+                        <span key={i}>{t}</span>
                     ))}
-                </ul>
+                </div>
+                <div className="cm-scroll">
+                    <div className="cm-grid" role="grid" aria-label={`Weeks ${first} to ${run.currentWeek}`}>
+                        {weeks.map((w) => (
+                            <React.Fragment key={w}>
+                                <span className="cm-wk" aria-hidden>
+                                    {(w - first) % (cell < 11 ? 8 : 4) === 0 ? `W${w}` : ''}
+                                </span>
+                                {[1, 2, 3, 4, 5, 6, 7].map((day) => {
+                                    const d = at.get(`${w}:${day}`);
+                                    if (!d) return <span key={day} className="cm-c future" aria-hidden />;
+                                    const cls = countsForRun(d.deda) ? 'counted' : d.deda > 0 ? 'low' : 'none';
+                                    return (
+                                        <button
+                                            key={day}
+                                            type="button"
+                                            className={`cm-c ${cls}${pick === d ? ' sel' : ''}`}
+                                            title={label(d)}
+                                            aria-label={label(d)}
+                                            onClick={() => setPick(d)}
+                                        />
+                                    );
+                                })}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </div>
+            </div>
+            <div className="cm-foot">
+                <span className="cm-key" aria-hidden>
+                    <span className="g">
+                        <i />
+                        Counted ({DEDA_QUALITY_MIN}%+)
+                    </span>
+                    <span className="r">
+                        <i />
+                        Below {DEDA_QUALITY_MIN}%
+                    </span>
+                    <span>
+                        <i />
+                        No DEDA
+                    </span>
+                </span>
+                <span className="cm-pick" aria-live="polite">
+                    {pick ? label(pick) : 'Tap a day to see its date and %'}
+                </span>
             </div>
         </section>
     );
@@ -446,9 +422,10 @@ const Trend: React.FC = () => {
     const c = light ? LIGHT : DARK;
     const { user } = useAppContext();
     const { weeklyDevelopment, weeklyDevelopmentData, isLoading } = useGeneralWeeklyDevelopment(user?.uid);
-    if (isLoading || !weeklyDevelopmentData) return <div className="skel" aria-busy />;
-    const values = (weeklyDevelopmentData[1] ?? []).map(Number);
-    const cmp = lastFourVsPrevious(values);
+    // a anotação do eixo Y quebra o ApexCharts com a série ainda vazia: só desenha com dados
+    if (isLoading || !weeklyDevelopmentData || !weeklyDevelopment.series?.length)
+        return <div className="skel" aria-busy />;
+    const cmp = lastFourVsPrevious((weeklyDevelopmentData[1] ?? []).map(Number));
     const base = soft(
         {
             ...weeklyDevelopment.options,
@@ -480,40 +457,31 @@ const Trend: React.FC = () => {
         xaxis: {
             ...base.xaxis,
             tickAmount: 8,
-            // 104 semanas: só os rótulos (a cada ~12), sem marca por semana
-            axisTicks: { show: false },
+            axisTicks: { show: false }, // 104 semanas: só os rótulos, sem marca por semana
             labels: { ...base.xaxis?.labels, rotate: 0, hideOverlappingLabels: true },
         },
         yaxis: { ...(base.yaxis as object), tickAmount: 4 },
     } as ApexOptions;
-    const pts = (n?: number) => (n === undefined ? '—' : `${Math.round(n)}%`);
+    const words =
+        cmp.last !== undefined && cmp.prev !== undefined
+            ? `Last 4 weeks ${Math.round(cmp.last)}% · ${
+                  Math.round(cmp.last) === Math.round(cmp.prev)
+                      ? 'same as the 4 before'
+                      : `${cmp.last > cmp.prev ? 'up' : 'down'} from ${Math.round(cmp.prev)}%`
+              }`
+            : undefined;
     return (
         <section aria-label="Weekly progress">
             <div className="sh">
                 <h2>Weekly progress</h2>
             </div>
-            <p className="cmp">
-                <span>
-                    Last 4 weeks <b>{pts(cmp.last)}</b>
-                </span>
-                <span>
-                    Previous 4 <b>{pts(cmp.prev)}</b>
-                </span>
-                {cmp.delta !== undefined && (
-                    <span>
-                        <b>
-                            {cmp.delta >= 0 ? '+' : '−'}
-                            {Math.abs(Math.round(cmp.delta))} pts
-                        </b>
-                    </span>
-                )}
-            </p>
+            {words && <p className="cmp">{words}</p>}
             <div className="chart">
                 <ReactApexChart
                     options={options}
                     series={weeklyDevelopment.series}
                     type="area"
-                    height={260}
+                    height={240}
                     width="100%"
                 />
             </div>
@@ -521,19 +489,12 @@ const Trend: React.FC = () => {
     );
 };
 
-const CRITERIA = ['Place/Time', 'Five steps', 'State of mind', 'State of being', 'Focus'];
-
-const Quality: React.FC<{ days: Days }> = ({ days }) => {
+const Quality: React.FC<{ run: Run }> = ({ run }) => {
     const soft = useSoftChart();
     const light = useTheme().resolved === 'light';
     const c = light ? LIGHT : DARK;
-    const { newestFirst, loading } = days;
-    const weeks = weeklyQuality(newestFirst).slice(-8);
-    if (loading && !weeks.length) return <div className="skel" aria-busy />;
-    const recent = weeks.slice(-4);
-    const before = weeks.slice(-8, -4);
-    const avg = (ws: typeof weeks, k: number) =>
-        ws.length ? ws.reduce((t, w) => t + w.criteria[k], 0) / ws.length : undefined;
+    const weeks = weeklyQuality(run.newestFirst).slice(-12);
+    if (run.loading && !weeks.length) return <div className="skel" aria-busy />;
     const options = soft(
         {
             chart: { type: 'line', toolbar: { show: false }, zoom: { enabled: false } },
@@ -544,6 +505,7 @@ const Quality: React.FC<{ days: Days }> = ({ days }) => {
                 categories: weeks.map((w) => `W${w.week}`),
                 axisBorder: { show: false },
                 axisTicks: { show: false },
+                labels: { rotate: 0, hideOverlappingLabels: true },
             },
             yaxis: { min: 0, max: 100, tickAmount: 4, labels: { formatter: (v: number) => `${Math.round(v)}%` } },
             annotations: {
@@ -565,118 +527,36 @@ const Quality: React.FC<{ days: Days }> = ({ days }) => {
             <div className="sh">
                 <h2>DEDA quality</h2>
             </div>
-            <p className="cmp">
-                <span>Rated days, last {weeks.length} weeks · line at 70%</span>
-            </p>
+            <p className="cmp">Weekly average of your rated days · line at {DEDA_QUALITY_MIN}%</p>
             {weeks.length ? (
                 <div className="chart">
                     <ReactApexChart
                         options={options}
                         series={[{ name: 'Quality', data: weeks.map((w) => Math.round(w.score)) }]}
                         type="line"
-                        height={180}
+                        height={240}
                         width="100%"
                     />
                 </div>
             ) : (
                 <p className="hint">No rated DEDA in these weeks yet.</p>
             )}
-            <ul className="crit" aria-label="The five criteria, last 4 weeks">
-                {CRITERIA.map((name, k) => {
-                    const now = avg(recent, k);
-                    const prev = avg(before, k);
-                    const delta = now !== undefined && prev !== undefined ? now - prev : undefined;
-                    return (
-                        <li key={name}>
-                            <span>{name}</span>
-                            <span>{now === undefined ? '—' : `${now.toFixed(1)} ★`}</span>
-                            <span>
-                                {delta === undefined || Math.abs(delta) < 0.05
-                                    ? '='
-                                    : `${delta > 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}`}
-                            </span>
-                        </li>
-                    );
-                })}
-            </ul>
         </section>
     );
 };
 
-/** Suas DEDA Runs: cada sequência numa linha do tempo (dias carregados) e numa lista, a maior em destaque. */
-const History: React.FC<{ days: Days; onMore?: () => void }> = ({ days, onMore }) => {
-    const oldestFirst = [...days.newestFirst].reverse();
-    const runs = constancyRuns(oldestFirst);
-    const best = Math.max(0, ...runs.map((r) => r.days));
-    const total = oldestFirst.length;
-    const index = (d: LampDay) => oldestFirst.indexOf(d);
-    const first = oldestFirst[0];
-    return (
-        <section className="hist" aria-label="Your DEDA Runs">
-            <div className="sh">
-                <h2>Your DEDA Runs</h2>
-                {onMore && first && first.week > 1 && (
-                    <button type="button" className="lnk gold" onClick={onMore}>
-                        Earlier weeks
-                    </button>
-                )}
-            </div>
-            <p className="cmp">
-                <span>
-                    Every run of days with your DEDA at {DEDA_QUALITY_MIN}%+, last {days.weeksLoaded} weeks
-                </span>
-            </p>
-            {!runs.length ? (
-                <p className="hint">No DEDA Run in these weeks yet. One good DEDA today starts the first.</p>
-            ) : (
-                <>
-                    <div className="tl" aria-hidden>
-                        {runs.map((r) => (
-                            <i
-                                key={`${r.from.week}-${r.from.day}`}
-                                className={r.days === best ? 'best' : undefined}
-                                style={{
-                                    left: `${(index(r.from) / total) * 100}%`,
-                                    width: `${(r.days / total) * 100}%`,
-                                }}
-                            />
-                        ))}
-                    </div>
-                    <div className="tlx" aria-hidden>
-                        <span>{first ? dayLabel(first) : ''}</span>
-                        <span>Today</span>
-                    </div>
-                    <ol className="runs">
-                        {[...runs].reverse().map((r) => (
-                            <li key={`${r.from.week}-${r.from.day}`} className={r.days === best ? 'best' : undefined}>
-                                <span>
-                                    {dayLabel(r.from)} → {r.to === oldestFirst[total - 1] ? 'today' : dayLabel(r.to)}
-                                </span>
-                                <b>{daysText(r.days)}</b>
-                                {r.days === best && <em>Best</em>}
-                            </li>
-                        ))}
-                    </ol>
-                </>
-            )}
-        </section>
-    );
-};
-
-/** Topo da aba Performance: o espelho, a tendência e a qualidade. */
+/** Topo da aba Performance: a DEDA Run (com o Overall), a semana da Run, o mapa de constância, a tendência e a qualidade. */
 export const LampMirror: React.FC = () => {
-    const [weeks, setWeeks] = useState(8);
-    const days = useLampDays(weeks);
+    const run = useDedaRun(12);
     return (
         <>
             <Global styles={styles} />
-            <Global styles={weekDotsStyles} />
-            <Hero days={days} />
+            <Hero run={run} />
+            <ConstancyMap run={run} />
             <div className="mtwo">
                 <Trend />
-                <Quality days={days} />
+                <Quality run={run} />
             </div>
-            <History days={days} onMore={() => setWeeks(days.weeksLoaded + 8)} />
         </>
     );
 };

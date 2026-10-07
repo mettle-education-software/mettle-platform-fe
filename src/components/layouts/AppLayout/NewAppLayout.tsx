@@ -9,8 +9,10 @@ import { Logo } from 'components/atoms/Logo/Logo';
 import { auth } from 'config/firebase';
 import { useDeviceSize } from 'hooks';
 import { useDedaRun } from 'hooks/melp/lampDays';
+import { useSegmentCounts } from 'hooks/useAdmin';
 import { useLogoTheme, useNewAntdTheme } from 'hooks/useTheme';
 import { getWeekDay } from 'libs';
+import { ADMIN_SEGMENTS, SEGMENT_OWNERS } from 'libs/adminSegments';
 import { isLeituraOwner } from 'libs/leitura';
 import { activeMenuKeys, firstName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
@@ -719,9 +721,11 @@ const AdminItem: React.FC = () => {
     const antdTheme = useNewAntdTheme();
     const { user } = useAppContext();
     const router = useRouter();
-    if (!admin.isAdmin) return null;
     // Impersonando, o contexto traz o uid do aluno; as chaves do dono olham a conta que fez o login.
     const realUid = auth.currentUser?.uid;
+    const segmentsOn = admin.isAdmin && !!realUid && SEGMENT_OWNERS.includes(realUid) && !admin.impersonating;
+    const counts = useSegmentCounts(segmentsOn && admin.visible);
+    if (!admin.isAdmin) return null;
     const mercyUid = admin.impersonating ? user?.uid : admin.selectedUserToImpersonate;
     const mercyLabel = admin.impersonating
         ? user?.name
@@ -758,33 +762,53 @@ const AdminItem: React.FC = () => {
                                 </Button>
                             </Flex>
                         ) : (
-                            <Flex gap={8} wrap style={{ width: '100%' }}>
-                                <Select
-                                    aria-labelledby="admin-impersonate"
-                                    loading={admin.isMettleUsersLoading}
-                                    showSearch
-                                    allowClear
-                                    onClear={admin.handleClear}
-                                    onSearch={admin.handleSearch}
-                                    filterOption={false}
-                                    onSelect={(value) => admin.setSelectedUserToImpersonate(value)}
-                                    value={admin.selectedUserToImpersonate}
-                                    style={{ flex: '1 1 220px', minWidth: 0 }}
-                                    popupMatchSelectWidth={false}
-                                    dropdownStyle={{ maxWidth: 'min(520px, 92vw)' }}
-                                    placeholder="Nome ou e-mail do aluno"
-                                    options={admin.options}
-                                />
-                                <Button
-                                    style={{ flex: 'none' }}
-                                    type="primary"
-                                    loading={admin.impersonate.isPending}
-                                    onClick={admin.handleImpersonate}
-                                    disabled={!admin.selectedUserToImpersonate}
-                                >
-                                    Acessar
-                                </Button>
-                            </Flex>
+                            <>
+                                {segmentsOn && (
+                                    <div className="seg" role="group" aria-label="Segmento de alunos">
+                                        {ADMIN_SEGMENTS.map((s) => (
+                                            <button
+                                                key={s.key}
+                                                type="button"
+                                                aria-pressed={admin.segment === s.key}
+                                                onClick={() => {
+                                                    admin.setSegment(admin.segment === s.key ? null : s.key);
+                                                    admin.setSelectedUserToImpersonate(undefined);
+                                                }}
+                                            >
+                                                {s.label}
+                                                <span className="n">{counts.data?.[s.key] ?? '–'}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                <Flex gap={8} wrap style={{ width: '100%' }}>
+                                    <Select
+                                        aria-labelledby="admin-impersonate"
+                                        loading={admin.isMettleUsersLoading}
+                                        showSearch
+                                        allowClear
+                                        onClear={admin.handleClear}
+                                        onSearch={admin.handleSearch}
+                                        filterOption={false}
+                                        onSelect={(value) => admin.setSelectedUserToImpersonate(value)}
+                                        value={admin.selectedUserToImpersonate}
+                                        style={{ flex: '1 1 220px', minWidth: 0 }}
+                                        popupMatchSelectWidth={false}
+                                        dropdownStyle={{ maxWidth: 'min(520px, 92vw)' }}
+                                        placeholder="Nome ou e-mail do aluno"
+                                        options={admin.options}
+                                    />
+                                    <Button
+                                        style={{ flex: 'none' }}
+                                        type="primary"
+                                        loading={admin.impersonate.isPending}
+                                        onClick={admin.handleImpersonate}
+                                        disabled={!admin.selectedUserToImpersonate}
+                                    >
+                                        Acessar
+                                    </Button>
+                                </Flex>
+                            </>
                         )}
                         {!!realUid && MERCY_MODE_UIDS.includes(realUid) && (
                             <MercyMode studentUid={mercyUid} studentLabel={mercyLabel} />

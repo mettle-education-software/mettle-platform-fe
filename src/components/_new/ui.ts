@@ -52,6 +52,49 @@ export const popupStyles = css`
     .ui-new-modal .modal-body p {
         margin: 0;
     }
+    /* segmentos de alunos no painel de administração: o mesmo controle segmentado das páginas, compacto */
+    .ui-new-modal .modal-body .seg {
+        display: flex;
+        gap: 4px;
+        max-width: 100%;
+        margin: 0 0 12px;
+        padding: 4px;
+        border: 1px solid var(--r-line);
+        /* cabe numa linha no computador; no celular quebra em duas (nada escondido por rolagem) */
+        flex-wrap: wrap;
+        border-radius: 20px;
+        background: var(--r-surf);
+    }
+    .ui-new-modal .modal-body .seg button {
+        flex: 1 1 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 34px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 999px;
+        background: none;
+        color: var(--r-muted);
+        font: inherit;
+        font-size: 12.5px;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+    .ui-new-modal .modal-body .seg button:hover {
+        color: var(--r-text);
+        background: var(--r-hover);
+    }
+    .ui-new-modal .modal-body .seg button[aria-pressed='true'] {
+        background: var(--r-gold);
+        color: var(--r-on-gold);
+        font-weight: 500;
+    }
+    .ui-new-modal .modal-body .seg .n {
+        font-variant-numeric: tabular-nums;
+        opacity: 0.75;
+    }
     .ui-new-modal .modal-body .eyebrow {
         margin: 0 0 -6px;
         font-size: 11px;

@@ -14,6 +14,12 @@ import {
     lockedNotes,
     NEW_DESIGN_UIDS,
     parseHm,
+    dayStatus,
+    dedaStreak,
+    bestStreak,
+    constancyRuns,
+    lastFourVsPrevious,
+    weeklyQuality,
     parseDuration,
     durationText,
     implausibleEntry,
@@ -329,5 +335,48 @@ describe('campo de tempo em minutos (Input)', () => {
         expect(implausibleEntry(300, 400)).toBeUndefined();
         expect(implausibleEntry(900, 900)).toEqual({ suggestion: 15 });
         expect(implausibleEntry(120, 800)).toEqual({ suggestion: undefined });
+    });
+});
+
+describe('LAMP como espelho', () => {
+    const d = (deda: number, active = 0, passive = 0, day = 1, week = 1) => ({
+        week,
+        day,
+        deda,
+        active,
+        passive,
+        ratings: [4, 4, 3, 4, 3],
+    });
+    it('classifica o dia', () => {
+        expect(dayStatus(d(80, 100, 100), false)).toBe('kept');
+        expect(dayStatus(d(60, 100, 100), false)).toBe('partial');
+        expect(dayStatus(d(0, 0, 0), false)).toBe('missed');
+        expect(dayStatus(undefined, false)).toBe('missed');
+        expect(dayStatus(d(0, 20, 0), true)).toBe('today');
+        expect(dayStatus(d(80, 100, 100), true)).toBe('kept');
+        expect(dayStatus(undefined, false, true)).toBe('future');
+    });
+    it('conta a sequência de DEDA bem feito; hoje em andamento não quebra', () => {
+        expect(dedaStreak([d(0), d(80), d(90), d(60), d(80)])).toEqual({ current: 2, toEdge: false });
+        expect(dedaStreak([d(80), d(80)])).toEqual({ current: 2, toEdge: true });
+        expect(dedaStreak([d(0), d(0)])).toEqual({ current: 0, toEdge: false });
+        expect(bestStreak([d(80), d(80), d(0), d(80), d(80), d(80)])).toBe(3);
+        const runs = constancyRuns([d(80, 0, 0, 1), d(80, 0, 0, 2), d(0, 0, 0, 3), d(90, 0, 0, 4)]);
+        expect(runs.map((r) => [r.from.day, r.to.day, r.days])).toEqual([
+            [1, 2, 2],
+            [4, 4, 1],
+        ]);
+    });
+    it('compara as últimas 4 semanas fechadas com as 4 anteriores', () => {
+        expect(lastFourVsPrevious([50, 50, 50, 50, 70, 70, 70, 70, 10])).toEqual({ last: 70, prev: 50, delta: 20 });
+        expect(lastFourVsPrevious([60, 80, 5]).prev).toBeUndefined();
+    });
+    it('qualidade por semana só nos dias avaliados', () => {
+        const q = weeklyQuality([d(80, 0, 0, 1, 1), d(0, 0, 0, 2, 1), d(60, 0, 0, 1, 2)]);
+        expect(q.map((w) => [w.week, w.score, w.days])).toEqual([
+            [1, 80, 1],
+            [2, 60, 1],
+        ]);
+        expect(q[0].criteria).toEqual([4, 4, 3, 4, 3]);
     });
 });

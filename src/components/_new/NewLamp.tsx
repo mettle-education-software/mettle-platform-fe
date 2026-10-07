@@ -3,6 +3,7 @@
 import { css, Global } from '@emotion/react';
 import { Select } from 'antd';
 import { useGeneralWeeklyDevelopment, useGetDedasList, useGetWeeklyPerformance, useOverallProgress } from 'hooks';
+import { RECORDER_FLAG_ON } from 'hooks/melp/dedaRecording';
 import { statisticsColors } from 'libs';
 import { axisWords, minutesText } from 'libs/newDesign';
 import dynamic from 'next/dynamic';
@@ -10,7 +11,9 @@ import { useSearchParams } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { LampGoals } from './LampGoals';
+import { LampMirror } from './LampMirror';
 import { LampOverallStats, LampStatsSort } from './LampOverallStats';
+import { LampRecordings } from './LampRecordings';
 import { NewLampInput } from './NewLampInput';
 import { NewPage } from './NewPage';
 import { PageHead } from './PageHead';
@@ -435,67 +438,6 @@ const lampStyles = css`
 
 /* ---------- Performance ---------- */
 
-const Legend: React.FC<{ name: string; color: string; value?: number | null }> = ({ name, color, value }) => (
-    <li>
-        <b>{Math.round(value ?? 0)}%</b>
-        <i style={{ background: color }} aria-hidden />
-        {name}
-    </li>
-);
-
-const Overall: React.FC = () => {
-    const soft = useSoftChart();
-    const { user } = useAppContext();
-    const { overallGraph, isLoading, overallData } = useOverallProgress(user?.uid);
-    if (isLoading || !overallData) return <div className="skel" aria-busy />;
-    return (
-        <div>
-            <div className="chart">
-                <ReactApexChart
-                    options={soft(overallGraph.options)}
-                    series={overallGraph.series}
-                    type="radialBar"
-                    width="100%"
-                    height={300}
-                />
-                <div className="center" aria-hidden>
-                    {overallData.overallPerformance.toFixed(2)}%
-                </div>
-            </div>
-            <ul className="legend" aria-label="Overall progress by activity">
-                <Legend name="DEDA" color={statisticsColors.DEDA} value={overallData.byActivity.deda} />
-                <Legend name="Active" color={statisticsColors.Active} value={overallData.byActivity.active} />
-                <Legend name="Passive" color={statisticsColors.Passive} value={overallData.byActivity.passive} />
-                {overallData.byActivity.review !== null && overallData.byActivity.review !== undefined && (
-                    <Legend name="Review" color={statisticsColors.Review} value={overallData.byActivity.review} />
-                )}
-            </ul>
-        </div>
-    );
-};
-
-const Weekly: React.FC = () => {
-    const soft = useSoftChart();
-    const { user } = useAppContext();
-    const { weeklyDevelopment, isLoading, weeklyDevelopmentData } = useGeneralWeeklyDevelopment(user?.uid);
-    if (isLoading || !weeklyDevelopmentData) return <div className="skel" aria-busy />;
-    // até 100+ semanas no eixo: uma marca a cada ~10, sem rótulos inclinados
-    const base = soft(weeklyDevelopment.options, (v, x) => [`${Math.round(v)}%`, `${axisWords(x)} · progress`]);
-    const options = {
-        ...base,
-        xaxis: {
-            ...base.xaxis,
-            tickAmount: 10,
-            labels: { ...base.xaxis?.labels, rotate: 0, hideOverlappingLabels: true },
-        },
-    };
-    return (
-        <div className="chart">
-            <ReactApexChart options={options} series={weeklyDevelopment.series} type="area" height={300} width="100%" />
-        </div>
-    );
-};
-
 const DedaStats: React.FC<{ week?: string }> = ({ week }) => {
     const soft = useSoftChart();
     const [daily, setDaily] = useState<'dedaTime' | 'readingTime'>('dedaTime');
@@ -568,20 +510,7 @@ const Performance: React.FC = () => {
 
     return (
         <div className="panel" role="tabpanel">
-            <div className="two hero">
-                <section aria-label="Overall progress">
-                    <div className="sh">
-                        <h2>Overall</h2>
-                    </div>
-                    <Overall />
-                </section>
-                <section aria-label="Weekly progress">
-                    <div className="sh">
-                        <h2>Weekly progress</h2>
-                    </div>
-                    <Weekly />
-                </section>
-            </div>
+            <LampMirror />
             <section className="quiet" aria-label="DEDA stats">
                 <div className="sh">
                     <h2>DEDA stats</h2>
@@ -641,6 +570,7 @@ const TABS = [
     { key: 'performance', label: 'Performance' },
     { key: 'input', label: 'Input' },
     { key: 'goal', label: 'Goals' },
+    { key: 'recordings', label: 'Recordings' },
 ] as const;
 type TabKey = (typeof TABS)[number]['key'];
 
@@ -652,7 +582,10 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
     // na casca persistente a página nem sempre recebe searchParams: o endereço é a fonte (?lampTab=goal)
     const params = useSearchParams();
     const asked = initialTab ?? params?.get('lampTab') ?? undefined;
-    const [tab, setTab] = useState<TabKey>(TABS.some((t) => t.key === asked) ? (asked as TabKey) : 'performance');
+    // Recordings: só com o gravador ligado e na própria conta (navegar "como o aluno" nunca mostra gravações)
+    const { user } = useAppContext();
+    const tabs = TABS.filter((t) => t.key !== 'recordings' || (RECORDER_FLAG_ON && !!user && !user.impersonating));
+    const [tab, setTab] = useState<TabKey>(tabs.some((t) => t.key === asked) ? (asked as TabKey) : 'performance');
 
     return (
         <NewPage className="lamp">
@@ -663,7 +596,7 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
                 subtitle="Language Acquisition Management Platform"
                 tabs={
                     <div className="seg" role="tablist" aria-label="LAMP">
-                        {TABS.map((t) => (
+                        {tabs.map((t) => (
                             <button
                                 key={t.key}
                                 type="button"
@@ -684,6 +617,7 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
             {tab === 'performance' && <Performance />}
             {tab === 'input' && <NewLampInput />}
             {tab === 'goal' && <LampGoals help={GOALS_HELP} />}
+            {tab === 'recordings' && tabs.some((t) => t.key === 'recordings') && <LampRecordings />}
         </NewPage>
     );
 };

@@ -123,7 +123,7 @@ const Voice: React.FC<{ m: ChatMessage; url: string; who: { name: string; avatar
     const [playing, setPlaying] = useState(false);
     const [pos, setPos] = useState(0);
     const [dur, setDur] = useState(0);
-    const bars = useMemo(() => waveform(m.id), [m.id]);
+    const bars = useMemo(() => waveform(m.id, 40), [m.id]);
     const toggle = () => {
         const a = audio.current;
         if (!a) return;
@@ -164,11 +164,15 @@ const Voice: React.FC<{ m: ChatMessage; url: string; who: { name: string; avatar
                     } else setDur(d);
                 }}
             />
+            <span className="vav">
+                <Avatar name={who.name} src={who.avatar} size={46} />
+                <Mic size={15} strokeWidth={2.2} className="vmic" aria-hidden />
+            </span>
             <button type="button" className="play" aria-label={playing ? 'Pausar' : 'Ouvir'} onClick={toggle}>
                 {playing ? (
-                    <Pause size={22} fill="currentColor" strokeWidth={0} />
+                    <Pause size={24} fill="currentColor" strokeWidth={0} />
                 ) : (
-                    <Play size={22} fill="currentColor" strokeWidth={0} />
+                    <Play size={24} fill="currentColor" strokeWidth={0} />
                 )}
             </button>
             <div className="wv">
@@ -187,10 +191,6 @@ const Voice: React.FC<{ m: ChatMessage; url: string; who: { name: string; avatar
                     <Meta m={m} seen={seen} className="inl" />
                 </div>
             </div>
-            <span className="vav">
-                <Avatar name={who.name} src={who.avatar} size={46} />
-                <Mic size={16} strokeWidth={2.2} className="vmic" aria-hidden />
-            </span>
         </div>
     );
 };
@@ -709,16 +709,27 @@ const NewChat: React.FC = () => {
               };
 
     const rows = useMemo(() => chatRows(messages), [messages]);
+    /** Nome do atendente só quando ele MUDA na conversa (numa conversa 1:1 o WhatsApp não mostra nomes). */
+    const namedIds = useMemo(() => {
+        const ids = new Set<number>();
+        let prev = '';
+        for (const m of messages) {
+            if (m.mine || !m.from) continue;
+            if (prev && m.from.name !== prev) ids.add(m.id);
+            prev = m.from.name;
+        }
+        return ids;
+    }, [messages]);
     const canSend = !!text.trim() || !!file;
 
-    const bubble = (m: ChatMessage, first: boolean) => {
+    const bubble = (m: ChatMessage, first: boolean, last: boolean) => {
         const seen = m.mine && teamSeenAt >= m.at;
         const img = m.files.find((f) => f.kind === 'image');
         const audio = m.files.find((f) => f.kind === 'audio');
         const docs = m.files.filter((f) => f.kind === 'file');
         const sticker = m.sticker || (!!img && !m.text && img.ext === 'webp' && m.files.length === 1);
         const big = !m.files.length && bigEmoji(m.text);
-        const showName = first && !m.mine && !sticker && !big;
+        const showName = first && !m.mine && !sticker && !big && namedIds.has(m.id);
         const nameStyle = m.from ? ({ '--h': nameHue(m.from.name) } as React.CSSProperties) : undefined;
         const quote = m.reply ? <QuoteBlock q={m.reply} me="Você" onClick={() => jumpTo(m.reply!.id)} /> : null;
 
@@ -738,7 +749,7 @@ const NewChat: React.FC = () => {
         const onlyImage = !!img && !m.text && !audio && !docs.length;
         return (
             <div
-                className={`bub${first ? ' tail' : ''}${onlyImage ? ' media' : ''}${audio ? ' vn' : ''}`}
+                className={`bub${last ? ' tail' : ''}${onlyImage ? ' media' : ''}${audio ? ' vn' : ''}${m.reply ? ' hasq' : ''}`}
                 {...touchHandlers(m)}
             >
                 {showName && (
@@ -848,7 +859,7 @@ const NewChat: React.FC = () => {
                                         className={`msg${r.m.mine ? ' me' : ''}${r.first ? ' first' : ''}${r.last ? ' last' : ''}${r.m.reaction ? ' rx' : ''}${flash === r.m.id ? ' flash' : ''}`}
                                     >
                                         <div className="line">
-                                            {bubble(r.m, r.first)}
+                                            {bubble(r.m, r.first, r.last)}
                                             {!r.m.pending && (
                                                 <span className="acts">
                                                     <button
@@ -1262,7 +1273,7 @@ const Wrap = styled.div`
         margin-top: 2px;
     }
     .msg.first {
-        margin-top: 10px;
+        margin-top: 8px;
     }
     .day + .msg.first {
         margin-top: 0;
@@ -1271,7 +1282,7 @@ const Wrap = styled.div`
         align-items: flex-end;
     }
     .msg.rx {
-        margin-bottom: 14px;
+        margin-bottom: 12px;
     }
     .line {
         position: relative;
@@ -1297,17 +1308,18 @@ const Wrap = styled.div`
         }
     }
 
+    /* medidas do WhatsApp Web: raio 18, padding 6/10, texto 14,5 com linha de 19, hora 11 */
     .bub {
         position: relative;
         min-width: 0;
         max-width: 100%;
-        padding: 6px 7px 8px 9px;
-        border-radius: 8px;
+        padding: 6px 10px 7px;
+        border-radius: 18px;
         background: var(--c-in);
         box-shadow: var(--c-shadow);
         color: var(--r-text);
         font-size: 14.5px;
-        line-height: 1.38;
+        line-height: 19px;
         overflow-wrap: anywhere;
         transition: transform 120ms ease;
         touch-action: pan-y;
@@ -1316,28 +1328,31 @@ const Wrap = styled.div`
         background: var(--c-out);
         color: var(--c-out-text);
     }
-    /* rabinho: só no primeiro balão de um grupo, no canto de cima, para fora */
+    /* rabinho curvo só no ÚLTIMO balão do grupo, no canto de baixo, para fora */
     .bub.tail {
-        border-top-left-radius: 0;
+        border-bottom-left-radius: 4px;
     }
-    .bub.tail::before {
+    .bub.tail::after {
         content: '';
         position: absolute;
-        top: 0;
-        left: -8px;
-        width: 8px;
-        height: 13px;
+        bottom: 0;
+        left: -7px;
+        width: 10px;
+        height: 14px;
         background: inherit;
-        clip-path: polygon(0 0, 100% 0, 100% 100%);
+        clip-path: path('M10 0 C10 7 8 11 0 14 L10 14 Z');
     }
     .msg.me .bub.tail {
-        border-top-left-radius: 8px;
-        border-top-right-radius: 0;
+        border-bottom-left-radius: 18px;
+        border-bottom-right-radius: 4px;
     }
-    .msg.me .bub.tail::before {
+    .msg.me .bub.tail::after {
         left: auto;
-        right: -8px;
-        clip-path: polygon(0 0, 100% 0, 0 100%);
+        right: -7px;
+        clip-path: path('M0 0 C0 7 2 11 10 14 L0 14 Z');
+    }
+    .bub.hasq {
+        padding-top: 4px;
     }
     .nm {
         display: block;
@@ -1359,15 +1374,15 @@ const Wrap = styled.div`
     /* inline com um "word joiner": fica grudado na última palavra; se não couber, a palavra desce junto (como no WhatsApp),
        em vez de a hora ficar sozinha numa linha nova */
     .sp {
-        padding-right: 46px;
+        padding-right: 44px;
     }
     .sp.me {
-        padding-right: 66px;
+        padding-right: 64px;
     }
     .tm {
         position: absolute;
-        right: 7px;
-        bottom: 5px;
+        right: 10px;
+        bottom: 6px;
         display: inline-flex;
         align-items: center;
         gap: 3px;
@@ -1418,13 +1433,14 @@ const Wrap = styled.div`
     .q {
         display: grid;
         gap: 1px;
-        width: calc(100% + 10px);
+        width: calc(100% + 14px);
         min-width: 180px;
-        margin: -3px -4px 4px -6px;
-        padding: 5px 8px 6px 8px;
+        max-width: calc(100% + 14px);
+        margin: 0 -7px 5px;
+        padding: 6px 10px 7px 10px;
         border: 0;
         border-left: 4px solid hsl(var(--h) 52% var(--c-name-l));
-        border-radius: 6px;
+        border-radius: 12px;
         background: var(--c-quote);
         color: inherit;
         text-align: left;
@@ -1437,17 +1453,21 @@ const Wrap = styled.div`
         color: hsl(var(--h) 52% var(--c-name-l));
     }
     .qt {
-        font-size: 13px;
+        min-width: 0;
+        font-size: 13.5px;
+        line-height: 18px;
         opacity: 0.8;
         overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
+        white-space: nowrap;
+        text-overflow: ellipsis;
     }
 
     /* foto: arredondada, hora por cima */
     .bub.media {
         padding: 3px;
+    }
+    .bub.media .img {
+        border-radius: 15px;
     }
     .img {
         position: relative;
@@ -1526,47 +1546,49 @@ const Wrap = styled.div`
         opacity: 0.7;
     }
 
-    /* nota de voz */
+    /* nota de voz (como no WhatsApp): avatar com microfone, play, onda fina com bolinha; duração embaixo do início da
+       onda e a hora com os vistos no canto */
     .bub.vn {
-        padding: 8px 8px 6px 6px;
+        padding: 8px 10px 6px 8px;
     }
     .voice {
         display: grid;
-        grid-template-columns: 40px minmax(150px, 1fr) 52px;
+        grid-template-columns: 46px 34px minmax(160px, 1fr);
         align-items: center;
-        gap: 6px;
-        width: min(330px, 70vw);
+        gap: 0 8px;
+        width: min(330px, 72vw);
     }
     .play {
         display: grid;
         place-items: center;
-        width: 40px;
-        height: 40px;
+        width: 34px;
+        height: 34px;
+        padding: 0;
         border: 0;
         background: none;
         color: inherit;
-        opacity: 0.8;
+        opacity: 0.75;
         cursor: pointer;
     }
     .wv {
         display: grid;
-        gap: 4px;
-        padding-top: 12px;
+        gap: 2px;
+        padding-top: 14px;
     }
     .bars {
         position: relative;
         display: flex;
         align-items: center;
-        gap: 2px;
-        height: 26px;
+        justify-content: space-between;
+        height: 24px;
         cursor: pointer;
     }
     .bars i {
-        flex: 1;
+        width: 3px;
         min-height: 3px;
-        border-radius: 2px;
+        border-radius: 3px;
         background: currentColor;
-        opacity: 0.35;
+        opacity: 0.4;
     }
     .bars i.on {
         opacity: 0.95;
@@ -1574,15 +1596,17 @@ const Wrap = styled.div`
     .knob {
         position: absolute;
         top: 50%;
-        width: 12px;
-        height: 12px;
-        margin: -6px 0 0 -6px;
+        width: 13px;
+        height: 13px;
+        margin: -6.5px 0 0 -2px;
         border-radius: 50%;
-        background: var(--r-gold-hi);
+        background: currentColor;
     }
     .vmeta {
         display: flex;
         justify-content: space-between;
+        align-items: center;
+        min-height: 16px;
         font-size: 11px;
         font-variant-numeric: tabular-nums;
         color: var(--c-meta);
@@ -1592,14 +1616,18 @@ const Wrap = styled.div`
     }
     .vav {
         position: relative;
-        justify-self: end;
+        width: 46px;
+        height: 46px;
     }
     .vmic {
         position: absolute;
-        left: -6px;
-        bottom: -2px;
-        color: var(--r-gold-hi);
-        filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+        right: -4px;
+        bottom: -1px;
+        color: var(--c-meta);
+        filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.4));
+    }
+    .msg.me .vmic {
+        color: color-mix(in srgb, var(--c-out-text) 70%, transparent);
     }
     .av {
         flex: none;
@@ -1686,16 +1714,17 @@ const Wrap = styled.div`
     }
     .pill {
         position: absolute;
-        bottom: -14px;
-        left: 10px;
+        bottom: -12px;
+        left: 8px;
         z-index: 1;
-        padding: 1px 6px;
-        border: 2px solid var(--c-wall);
-        border-radius: 12px;
+        height: 22px;
+        padding: 0 5px;
+        border: 0;
+        border-radius: 11px;
         background: var(--c-chip);
-        box-shadow: var(--c-shadow);
-        font-size: 14px;
-        line-height: 20px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        font-size: 13px;
+        line-height: 22px;
         cursor: pointer;
     }
     .msg.me .pill {

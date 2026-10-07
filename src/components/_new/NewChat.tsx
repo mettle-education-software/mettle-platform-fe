@@ -279,6 +279,18 @@ const NewChat: React.FC = () => {
         } else if (stick.current) el.scrollTop = el.scrollHeight;
     }, [messages, typing, state]);
 
+    // imagens e áudios crescem depois de carregar: quem está no fim continua no fim
+    useEffect(() => {
+        const el = list.current;
+        const col = el?.firstElementChild;
+        if (!el || !col || typeof ResizeObserver === 'undefined') return;
+        const ro = new ResizeObserver(() => {
+            if (stick.current && keepFrom.current == null) el.scrollTop = el.scrollHeight;
+        });
+        ro.observe(col);
+        return () => ro.disconnect();
+    }, []);
+
     const loadOlder = async () => {
         const oldest = messages.find((m) => !m.pending);
         if (!oldest || olderLoading) return;

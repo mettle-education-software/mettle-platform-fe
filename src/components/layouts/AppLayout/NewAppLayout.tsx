@@ -456,8 +456,13 @@ const Frame = styled.div`
     }
 
     /* ---------- barra do celular ---------- */
+    /* sticky no topo: o Safari 26 (iOS) reconhece a barra fixa e estende a cor dela sob a barra de status, em vez de
+       aplicar o desfoque de borda (scroll edge effect) por cima da primeira linha de texto da barra */
     .bar {
         ${chrome};
+        position: sticky;
+        top: 0;
+        z-index: 5;
         display: flex;
         align-items: center;
         gap: 4px;

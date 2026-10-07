@@ -1,4 +1,17 @@
-import { chatRows, contextPrefill, dayLabel, linkParts, mergeMessages, type ChatMessage } from '../chat';
+import {
+    bigEmoji,
+    chatRows,
+    contextPrefill,
+    dayLabel,
+    fileName,
+    linkParts,
+    mergeMessages,
+    nameHue,
+    quoteText,
+    unreadStart,
+    waveform,
+    type ChatMessage,
+} from '../chat';
 
 const msg = (id: number, at: number, mine: boolean, name = 'Pedro', extra: Partial<ChatMessage> = {}): ChatMessage => ({
     id,
@@ -79,5 +92,45 @@ describe('linkParts', () => {
             { text: '. ok' },
         ]);
         expect(linkParts('sem link')).toEqual([{ text: 'sem link' }]);
+    });
+});
+
+describe('WhatsApp: emoji grande, cor do nome, onda, não lidas', () => {
+    it('só 1 a 3 emojis viram emoji grande', () => {
+        expect(bigEmoji('👍')).toBe(true);
+        expect(bigEmoji('😂😂😂')).toBe(true);
+        expect(bigEmoji('❤️ 👍')).toBe(true);
+        expect(bigEmoji('🇧🇷')).toBe(true);
+        expect(bigEmoji('😂😂😂😂')).toBe(false);
+        expect(bigEmoji('ok 👍')).toBe(false);
+        expect(bigEmoji('123')).toBe(false);
+        expect(bigEmoji('')).toBe(false);
+    });
+    it('cor do nome é estável por nome', () => {
+        expect(nameHue('André Floriano')).toBe(nameHue('André Floriano'));
+        expect(typeof nameHue('Pedro')).toBe('number');
+    });
+    it('onda determinística, 36 barras entre 0,2 e 1', () => {
+        const w = waveform(11714);
+        expect(w).toEqual(waveform(11714));
+        expect(w).toHaveLength(36);
+        expect(Math.min(...w)).toBeGreaterThanOrEqual(0.2);
+        expect(Math.max(...w)).toBeLessThanOrEqual(1);
+        expect(waveform(1)).not.toEqual(w);
+    });
+    it('faixa de não lidas antes da N-ésima mensagem da equipe, do fim para trás', () => {
+        const ms = [msg(1, 1, false), msg(2, 2, true), msg(3, 3, false), msg(4, 4, true), msg(5, 5, false)];
+        expect(unreadStart(ms, 2)).toBe(3);
+        expect(unreadStart(ms, 1)).toBe(5);
+        expect(unreadStart(ms, 0)).toBeNull();
+        expect(unreadStart(ms, 9)).toBeNull();
+    });
+    it('citação e nome de arquivo', () => {
+        expect(quoteText({ text: '', kind: 'image' })).toBe('📷 Foto');
+        expect(quoteText({ text: 'oi', kind: 'image' })).toBe('oi');
+        expect(
+            fileName('https://chat.mettle.com.br/rails/active_storage/blobs/redirect/abc/Guia%20Final.pdf', 'pdf'),
+        ).toBe('Guia Final.pdf');
+        expect(fileName('blob:https://x/123', 'pdf')).toBe('arquivo.pdf');
     });
 });

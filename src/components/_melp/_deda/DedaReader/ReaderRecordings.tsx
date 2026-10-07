@@ -15,7 +15,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ICON } from './readerStyles';
 
 /** A linha do dia tocando: o mesmo player dos passos 2 e 4, no lugar do conteúdo da linha. */
-const RowPlayer = ({ recording }: { recording: DedaRecording }) => {
+export const RowPlayer = ({ recording }: { recording: DedaRecording }) => {
     const playUrl = useRecordingPlayUrl(recording.id);
     const retried = useRef(false);
     if (playUrl.isError)

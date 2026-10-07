@@ -181,6 +181,10 @@ const styles = css`
     .ostats .os-idle span {
         color: var(--r-muted);
     }
+    .ostats .os-idle .os-idle-head {
+        display: block;
+        margin-bottom: 2px;
+    }
     .ostats .os-sub {
         display: flex;
         align-items: baseline;
@@ -300,7 +304,12 @@ const Category: React.FC<{ name: string; color: string; rows: Row[]; total: numb
             )}
             {idle.length > 0 && (
                 <p className="os-idle">
-                    <span>{done.length ? 'Not started yet: ' : 'Nothing logged yet: '}</span>
+                    {/* categoria toda zerada: o aviso numa linha, a lista embaixo */}
+                    {done.length ? (
+                        <span>Not started yet: </span>
+                    ) : (
+                        <span className="os-idle-head">Not started yet</span>
+                    )}
                     {idle.map((r) => r.label).join(', ')}
                 </p>
             )}

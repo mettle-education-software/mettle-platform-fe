@@ -288,6 +288,11 @@ const Wrap = styled.div`
         margin-left: auto;
         margin-right: auto;
     }
+    /* na aba Video o cabeçalho tem a largura e a borda esquerda do vídeo (o resumo e os recursos seguem a coluna de leitura) */
+    .body[data-tab='video'] .lh,
+    .body[data-tab='video'] .tabs {
+        max-width: none;
+    }
     /* troca de aula: o miolo novo entra com um esmaecer curto; enquanto chega, o anterior fica esmaecido */
     .swap {
         animation: r-lesson-in 160ms ease-out;
@@ -323,6 +328,19 @@ const Wrap = styled.div`
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+    /* "módulo" cede (reticências); "Lesson n of N" nunca é cortado */
+    .lh .eyebrow.eb {
+        display: flex;
+    }
+    .lh .eb-lead {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .lh .eb-tail {
+        flex: none;
+        white-space: pre;
     }
     .lh h1 {
         margin-top: 4px;
@@ -916,11 +934,12 @@ export const NewLesson: React.FC<NewLessonProps> = ({
         });
 
     // celular: módulo e posição (o nome do curso está na folha); trilho recolhido: curso · módulo · aula n de N
-    const eyebrow = isMobile
-        ? [current?.module.title, current && `${position}/${total}`].filter(Boolean).join(' · ')
-        : [railCollapsed && course.title, current?.module.title, current && t.lessonOf(position, total)]
-              .filter(Boolean)
-              .join(' · ');
+    // "curso · módulo" (cede espaço, com reticências) + "aula n de N" (nunca é cortado)
+    const eyebrowLead = (isMobile ? [current?.module.title] : [railCollapsed && course.title, current?.module.title])
+        .filter(Boolean)
+        .join(' · ');
+    const eyebrowTail = current ? (isMobile ? `${position}/${total}` : t.lessonOf(position, total)) : '';
+    const eyebrow = [eyebrowLead, eyebrowTail].filter(Boolean).join(' · ');
 
     const list = (
         <RailList
@@ -971,7 +990,14 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                 </button>
             )}
             <div className="ttl">
-                {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+                {eyebrow && (
+                    <p className="eyebrow eb" aria-label={eyebrow}>
+                        {eyebrowLead && <span className="eb-lead">{eyebrowLead}</span>}
+                        {eyebrowTail && (
+                            <span className="eb-tail">{eyebrowLead ? ` · ${eyebrowTail}` : eyebrowTail}</span>
+                        )}
+                    </p>
+                )}
                 <h1>{(switching ? current?.title : lesson?.lessonTitle) ?? current?.title ?? ' '}</h1>
             </div>
             {!isMobile && tabs.length > 0 && <div className="hd-tabs">{tabsEl}</div>}
@@ -1133,7 +1159,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                         {list}
                     </aside>
                 )}
-                <div className="body" aria-busy={switching || undefined}>
+                <div className="body" data-tab={active} aria-busy={switching || undefined}>
                     {header}
                     {/* key: o miolo da aula nova entra com o esmaecer curto; a casca e o trilho ficam */}
                     <div className={switching ? 'swap stale' : 'swap'} key={lesson?.lessonId ?? 'none'}>

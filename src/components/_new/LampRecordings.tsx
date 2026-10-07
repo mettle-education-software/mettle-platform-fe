@@ -1,226 +1,617 @@
 'use client';
 
 import { css, Global } from '@emotion/react';
-import { RowPlayer } from 'components/_melp/_deda/DedaReader/ReaderRecordings';
-import { useGetDedasList } from 'hooks';
-import { useDedaRecordings } from 'hooks/melp/dedaRecording';
-import { formatDuration, formatRecordedOn, spokenDuration } from 'libs/dedaRecording';
-import { Play, X } from 'lucide-react';
+import { AudioPlayer } from 'components';
+import { useDedasGrid } from 'components/_melp/_deda/DedasGrid/DedasGrid';
+import { useDedaRecordings, useRecordingPlayUrl } from 'hooks/melp/dedaRecording';
+import { dedaPath } from 'libs/cleanUrls';
+import { IMAGE_MIRROR_HOSTS } from 'libs/contentImage';
+import { contentfulImage } from 'libs/dedaHeader';
+import { DedaRecording, formatDuration, formatRecordedOn, spokenDuration } from 'libs/dedaRecording';
+import { ChevronDown, Play, SkipBack, SkipForward, X } from 'lucide-react';
+import Link from 'next/link';
 import { useMelpContext } from 'providers';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 
 /*
- * Aba Recordings da LAMP (plataforma nova): todas as gravações do aluno, por DEDA/semana, da mais recente para trás.
- * A API só lista com ?dedaId=, então é a MESMA consulta da aba "My recordings" de cada DEDA (mesma chave), quatro
- * DEDAs por vez ("Earlier weeks") para poupar o servidor. O player é o mesmo (RowPlayer, endereço de 5 min).
+ * Aba Recordings da LAMP (plataforma nova): um acordeão por semana (DEDA), do mais recente para trás, que aguenta de
+ * poucas gravações a 156 semanas × 7. A API só lista com ?dedaId= (todas as voltas daquele DEDA de uma vez), então é
+ * uma consulta por DEDA, a MESMA da aba "My recordings" (mesma chave), carregada aos poucos conforme a rolagem. Um só
+ * player fixo embaixo; quando o mesmo DEDA tem gravações em mais de uma volta, "Hear your progress" toca a primeira e
+ * depois a mais recente. Miniaturas só pelo espelho de imagens (/ctfimg), pequenas e preguiçosas.
  */
 
 const styles = css`
-    .lrecs .grp {
-        padding: 18px 0 14px;
-        border-top: 1px solid var(--r-line);
-    }
-    .lrecs .grp header {
+    .lrec .tools {
         display: flex;
-        align-items: baseline;
+        align-items: center;
         justify-content: space-between;
         flex-wrap: wrap;
-        gap: 4px 16px;
-        margin-bottom: 8px;
+        gap: 10px 16px;
+        margin: -8px 0 18px;
     }
-    .lrecs .grp h3 {
-        margin: 0;
+    .lrec .find {
+        width: min(280px, 100%);
+        height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--r-line-strong);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--r-text);
+        font: inherit;
         font-size: 16px;
-        font-weight: 400;
     }
-    .lrecs .grp h3 span {
-        margin-right: 8px;
-        font-size: var(--r-label-size);
-        letter-spacing: var(--r-label-track);
+    .lrec .find::placeholder {
         color: var(--r-muted);
+        opacity: 1;
     }
-    .lrecs .grp header small {
-        font-size: 12.5px;
-        color: var(--r-muted);
-        font-variant-numeric: tabular-nums;
-    }
-    .lrecs .grp.empty {
-        padding: 12px 0;
-    }
-    .lrecs .grp.empty header {
-        margin: 0;
-    }
-    .lrecs ul {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 8px 16px;
+    .lrec .weeks {
         margin: 0;
         padding: 0;
         list-style: none;
+        border-top: 1px solid var(--r-line);
     }
-    .lrecs li {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-height: 52px;
-        min-width: 0;
+    .lrec .wk {
+        border-bottom: 1px solid var(--r-line);
     }
-    .lrecs .play {
-        display: flex;
+    .lrec .wh {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr) auto 20px;
         align-items: center;
-        gap: 12px;
-        flex: 1;
-        min-width: 0;
-        min-height: 48px;
-        padding: 6px 12px 6px 6px;
-        border: 1px solid var(--r-line);
-        border-radius: 999px;
+        gap: 14px;
+        width: 100%;
+        min-height: 56px;
+        padding: 10px 2px;
+        border: 0;
         background: none;
         color: var(--r-text);
         font: inherit;
         text-align: left;
         cursor: pointer;
     }
-    .lrecs .play:hover {
-        border-color: var(--r-gold);
+    .lrec .wh:hover .t b {
+        color: var(--r-gold-hi);
     }
-    .lrecs .play i {
+    .lrec .th {
+        width: 64px;
+        height: 36px;
+        border-radius: 6px;
+        background: var(--r-track);
+        object-fit: cover;
+    }
+    .lrec .t {
+        min-width: 0;
+        font-size: 14.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .lrec .t small {
+        margin-right: 8px;
+        font-size: var(--r-label-size);
+        letter-spacing: var(--r-label-track);
+        color: var(--r-muted);
+    }
+    .lrec .t b {
+        font-weight: 400;
+    }
+    .lrec .kpi {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 12.5px;
+        color: var(--r-muted);
+        font-variant-numeric: tabular-nums;
+    }
+    .lrec .d7 {
+        display: flex;
+        gap: 3px;
+    }
+    .lrec .d7 i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--r-track);
+    }
+    .lrec .d7 i.on {
+        background: var(--r-gold);
+    }
+    .lrec .chev {
+        color: var(--r-muted);
+        transition: transform 200ms ease;
+    }
+    .lrec .wk.open .chev {
+        transform: rotate(180deg);
+    }
+    /* painel: abre com suavidade (0fr → 1fr) */
+    .lrec .wp {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 220ms ease;
+    }
+    .lrec .wk.open .wp {
+        grid-template-rows: 1fr;
+    }
+    .lrec .wp > div {
+        overflow: hidden;
+    }
+    .lrec .recs {
+        margin: 0 0 12px 78px;
+        padding: 0;
+        list-style: none;
+    }
+    .lrec .recs button {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 44px;
+        padding: 0 4px;
+        border: 0;
+        border-top: 1px solid var(--r-line);
+        background: none;
+        color: var(--r-text);
+        font: inherit;
+        font-size: 14px;
+        text-align: left;
+        cursor: pointer;
+    }
+    .lrec .recs button:hover,
+    .lrec .recs button.now {
+        color: var(--r-gold-hi);
+    }
+    .lrec .recs .pi {
         display: grid;
         place-items: center;
-        flex: none;
-        width: 36px;
-        height: 36px;
+        width: 28px;
+        height: 28px;
         border-radius: 50%;
         background: var(--r-gold-tint);
         color: var(--r-gold-hi);
     }
-    .lrecs .play span {
-        flex: 1;
-        min-width: 0;
-        font-size: 14px;
-    }
-    .lrecs .play small {
+    .lrec .recs small {
         font-size: 13px;
         color: var(--r-muted);
         font-variant-numeric: tabular-nums;
     }
-    .lrecs li .msg {
-        flex: 1;
+    .lrec .cmp {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        margin: 0 0 14px 78px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: var(--r-gold-tint);
+        font-size: 13.5px;
+        color: var(--r-text);
+    }
+    .lrec .cmp .btn {
+        min-height: 36px;
+        padding: 0 14px;
         font-size: 13px;
+    }
+    .lrec .gap {
+        padding: 12px 2px;
+        border-bottom: 1px solid var(--r-line);
+        font-size: 12.5px;
         color: var(--r-muted);
     }
-    .lrecs li > div {
-        flex: 1;
+    .lrec .more {
+        height: 1px;
+    }
+    .lrec .empty {
+        margin: 8px 0;
+        font-size: 14.5px;
+        color: var(--r-muted);
+    }
+    /* o player: um só, fixo embaixo */
+    .lrec .player {
+        position: sticky;
+        bottom: 0;
+        z-index: 3;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 6px 16px;
+        margin-top: 20px;
+        padding: 12px 16px;
+        border: 1px solid var(--r-line);
+        border-radius: 14px;
+        background: var(--r-surf);
+        box-shadow: 0 -6px 24px var(--r-card-shadow);
+    }
+    .lrec .player .who {
+        min-width: 0;
+        font-size: 13.5px;
+    }
+    .lrec .player .who b {
+        font-weight: 500;
+    }
+    .lrec .player .who span {
+        color: var(--r-muted);
+    }
+    .lrec .player .ctl {
+        display: flex;
+        gap: 2px;
+    }
+    .lrec .player .ap {
+        grid-column: 1 / -1;
         min-width: 0;
     }
-    .lrecs .more {
-        margin-top: 16px;
+    @media (max-width: 760px) {
+        .lrec .wh {
+            grid-template-columns: 48px minmax(0, 1fr) 20px;
+            gap: 10px;
+        }
+        .lrec .th {
+            width: 48px;
+            height: 27px;
+        }
+        .lrec .kpi {
+            grid-column: 2 / 3;
+            margin-top: -6px;
+        }
+        .lrec .chev {
+            grid-row: 1;
+            grid-column: 3;
+        }
+        .lrec .recs,
+        .lrec .cmp {
+            margin-left: 0;
+        }
     }
 `;
 
-const Group: React.FC<{ dedaId: string; week: number; title: string; first: boolean }> = ({
-    dedaId,
-    week,
-    title,
-    first,
-}) => {
-    const recs = useDedaRecordings(dedaId);
-    const [playing, setPlaying] = useState<string | null>(null);
-    if (recs.data?.enabled === false)
-        return first ? <p className="hint">Recordings aren&rsquo;t available for your account yet.</p> : null;
-    const list = recs.data?.recordings ?? [];
-    const total = list.reduce((t, r) => t + (r.durationMs || 0), 0);
-    const head = (
-        <header>
-            <h3>
-                <span>W{String(week).padStart(2, '0')}</span>
-                {title}
-            </h3>
-            <small>
-                {recs.isLoading
-                    ? 'Loading…'
-                    : list.length
-                      ? `${list.length} of 7 days · ${formatDuration(total)}`
-                      : 'No recordings'}
-            </small>
-        </header>
-    );
-    if (!list.length) return <section className="grp empty">{head}</section>;
+type Week = { week: number; dedaId: string; title: string; slug?: string; image?: string };
+type Rec = DedaRecording & { title: string };
+
+/** Miniatura só do espelho (/ctfimg): nunca direto do Contentful. Pequena (128×72 para 2×) e preguiçosa. */
+const thumbOf = (raw?: string) => {
+    const src = contentfulImage(raw, { w: 128, h: 72, fit: 'fill', fm: 'webp', q: 60 });
+    try {
+        return src && IMAGE_MIRROR_HOSTS.includes(new URL(src).hostname) ? src : undefined;
+    } catch {
+        return undefined;
+    }
+};
+
+/** Gravações de um DEDA (todas as voltas), pela mesma consulta da aba "My recordings". */
+const useDedaRecs = (dedaId: string) => useDedaRecordings(dedaId);
+
+const Player: React.FC<{
+    rec: Rec;
+    onPrev?: () => void;
+    onNext?: () => void;
+    onEnd(): void;
+    onClose(): void;
+}> = ({ rec, onPrev, onNext, onEnd, onClose }) => {
+    const url = useRecordingPlayUrl(rec.id);
+    const retried = useRef(false);
     return (
-        <section className="grp" aria-label={`Week ${week}, ${title}`}>
-            {head}
-            <ul>
-                {[...list]
-                    .sort((a, b) => a.weekDay.localeCompare(b.weekDay))
-                    .map((r) => (
-                        <li key={r.id}>
-                            {playing === r.id ? (
-                                <>
-                                    <div>
-                                        <RowPlayer key={r.id} recording={r} />
-                                    </div>
-                                    <button
-                                        type="button"
-                                        className="ib"
-                                        aria-label="Close the player"
-                                        onClick={() => setPlaying(null)}
-                                    >
-                                        <X {...ICON} size={18} aria-hidden />
-                                    </button>
-                                </>
-                            ) : (
-                                <button
-                                    type="button"
-                                    className="play"
-                                    aria-label={`Play day ${r.weekDay.replace('day', '')}, ${spokenDuration(r.durationMs)}`}
-                                    onClick={() => setPlaying(r.id)}
-                                >
-                                    <i>
-                                        <Play {...ICON} size={16} aria-hidden />
-                                    </i>
-                                    <span>
-                                        Day {r.weekDay.replace('day', '')} · {formatRecordedOn(r.recordedOn)}
-                                    </span>
-                                    <small>{formatDuration(r.durationMs)}</small>
-                                </button>
-                            )}
-                        </li>
-                    ))}
-            </ul>
-        </section>
+        <div className="player" role="region" aria-label="Now playing">
+            <p className="who">
+                <b>{rec.title}</b>{' '}
+                <span>
+                    · W{Number(rec.week.replace('week', ''))} · Day {rec.weekDay.replace('day', '')} ·{' '}
+                    {formatRecordedOn(rec.recordedOn)}
+                </span>
+            </p>
+            <span className="ctl">
+                <button
+                    type="button"
+                    className="ib"
+                    aria-label="Previous recording"
+                    disabled={!onPrev}
+                    onClick={onPrev}
+                >
+                    <SkipBack {...ICON} size={18} />
+                </button>
+                <button type="button" className="ib" aria-label="Next recording" disabled={!onNext} onClick={onNext}>
+                    <SkipForward {...ICON} size={18} />
+                </button>
+                <button type="button" className="ib" aria-label="Close the player" onClick={onClose}>
+                    <X {...ICON} size={18} />
+                </button>
+            </span>
+            <div className="ap">
+                {url.isError ? (
+                    <p className="hint">We couldn&rsquo;t load this recording right now.</p>
+                ) : !url.data ? (
+                    <p className="hint">Loading…</p>
+                ) : (
+                    <AudioPlayer
+                        key={rec.id}
+                        compact
+                        autoPlay
+                        audioURL={url.data}
+                        onEnd={onEnd}
+                        onError={() => {
+                            // o endereço vale 5 minutos: pede outro uma vez
+                            if (!retried.current) {
+                                retried.current = true;
+                                url.refetch();
+                            }
+                        }}
+                    />
+                )}
+            </div>
+        </div>
     );
 };
 
+const WeekRow: React.FC<{
+    w: Week;
+    open: boolean;
+    onToggle(): void;
+    onRecs(week: number, recs: Rec[]): void;
+    playing?: string;
+    play(rec: Rec, queue?: Rec[]): void;
+    hideEmpty: boolean;
+}> = ({ w, open, onToggle, onRecs, playing, play, hideEmpty }) => {
+    const q = useDedaRecs(w.dedaId);
+    const all = useMemo(() => (q.data?.recordings ?? []).map((r) => ({ ...r, title: w.title })), [q.data, w.title]);
+    const mine = all.filter((r) => r.week === `week${w.week}`).sort((a, b) => a.weekDay.localeCompare(b.weekDay));
+    useEffect(() => {
+        if (q.data) onRecs(w.week, mine);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [q.data, w.week]);
+    // mesmo DEDA em mais de uma volta: a primeira gravação de todas e a mais recente
+    const weeksWith = new Set(all.map((r) => r.week));
+    const sorted = [...all].sort((a, b) => a.recordedOn.localeCompare(b.recordedOn));
+    const first = sorted[0];
+    const latest = sorted[sorted.length - 1];
+    const compare = weeksWith.size > 1 && first && latest && first.id !== latest.id;
+    if (q.data && !mine.length && hideEmpty) return null;
+    const days = new Set(mine.map((r) => r.weekDay));
+    const total = mine.reduce((t, r) => t + (r.durationMs || 0), 0);
+    const thumb = thumbOf(w.image);
+    const wn = (r: Rec) => `W${Number(r.week.replace('week', ''))}`;
+    return (
+        <li className={`wk${open && mine.length ? ' open' : ''}`}>
+            <button
+                type="button"
+                className="wh"
+                aria-expanded={open && mine.length > 0}
+                disabled={!mine.length}
+                onClick={onToggle}
+            >
+                {/* eslint-disable-next-line @next/next/no-img-element -- miniatura do espelho, pequena */}
+                {thumb ? <img className="th" src={thumb} alt="" loading="lazy" /> : <span className="th" />}
+                <span className="t">
+                    <small>W{String(w.week).padStart(2, '0')}</small>
+                    <b>{w.title}</b>
+                </span>
+                <span className="kpi">
+                    {q.isLoading ? (
+                        '…'
+                    ) : mine.length ? (
+                        <>
+                            <span>
+                                {days.size} of 7 days · {formatDuration(total)}
+                            </span>
+                            <span className="d7" aria-hidden>
+                                {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+                                    <i key={d} className={days.has(`day${d}`) ? 'on' : undefined} />
+                                ))}
+                            </span>
+                        </>
+                    ) : (
+                        'No recordings'
+                    )}
+                </span>
+                <ChevronDown {...ICON} size={18} className="chev" aria-hidden />
+            </button>
+            {mine.length > 0 && (
+                <div className="wp">
+                    <div>
+                        {compare && (
+                            <p className="cmp">
+                                Hear your progress: {wn(first)} vs {wn(latest)}
+                                <button type="button" className="btn gold" onClick={() => play(first, [first, latest])}>
+                                    <Play {...ICON} size={14} aria-hidden /> First, then latest
+                                </button>
+                            </p>
+                        )}
+                        <ul className="recs">
+                            {mine.map((r) => (
+                                <li key={r.id}>
+                                    <button
+                                        type="button"
+                                        className={playing === r.id ? 'now' : undefined}
+                                        aria-label={`Play day ${r.weekDay.replace('day', '')}, ${spokenDuration(r.durationMs)}`}
+                                        onClick={() => play(r)}
+                                    >
+                                        <span className="pi">
+                                            <Play {...ICON} size={14} aria-hidden />
+                                        </span>
+                                        <span>
+                                            Day {r.weekDay.replace('day', '')} · {formatRecordedOn(r.recordedOn)}
+                                        </span>
+                                        <small>{formatDuration(r.durationMs)}</small>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
+        </li>
+    );
+};
+
+const STEP = 8;
+
 export const LampRecordings: React.FC = () => {
     const { melpSummary } = useMelpContext();
-    const { dedasList } = useGetDedasList();
-    const [shown, setShown] = useState(4);
+    const grid = useDedasGrid('allDedas');
     const current = melpSummary?.current_deda_week ?? 0;
-    const unlocked = melpSummary?.unlocked_dedas ?? [];
-    const weeks = Array.from({ length: Math.min(shown, current) }, (_, i) => current - i).filter((w) => unlocked[w]);
+    const unlocked = useMemo(() => melpSummary?.unlocked_dedas ?? [], [melpSummary?.unlocked_dedas]);
+    const byId = useMemo(() => new Map((grid.allDedas ?? []).map((d) => [d.dedaId, d])), [grid.allDedas]);
+    const allWeeks: Week[] = useMemo(
+        () =>
+            Array.from({ length: current }, (_, i) => current - i)
+                .filter((w) => unlocked[w])
+                .map((w) => {
+                    const deda = byId.get(unlocked[w]);
+                    return {
+                        week: w,
+                        dedaId: unlocked[w],
+                        title: deda?.dedaTitle ?? unlocked[w],
+                        slug: deda?.dedaSlug,
+                        image: deda?.dedaFeaturedImage?.url,
+                    };
+                }),
+        [current, unlocked, byId],
+    );
+    const [find, setFind] = useState('');
+    const [shown, setShown] = useState(STEP);
+    const [open, setOpen] = useState<Record<number, boolean>>({});
+    const [recs, setRecs] = useState<Record<number, Rec[]>>({});
+    const [queue, setQueue] = useState<Rec[]>([]);
+    const [now, setNow] = useState<Rec>();
+
+    const term = find.trim().toLowerCase();
+    const weeks = term ? allWeeks.filter((w) => w.title.toLowerCase().includes(term)) : allWeeks.slice(0, shown);
+
+    const onRecs = (week: number, mine: Rec[]) =>
+        setRecs((r) => (r[week]?.length === mine.length ? r : { ...r, [week]: mine }));
+    // a semana mais recente com gravações abre sozinha (uma vez), quando as mais novas já se sabe que estão vazias
+    const autoOpened = useRef(false);
+    useEffect(() => {
+        if (autoOpened.current) return;
+        for (const w of allWeeks) {
+            const known = recs[w.week];
+            if (known === undefined) return;
+            if (known.length) {
+                autoOpened.current = true;
+                setOpen((o) => ({ ...o, [w.week]: true }));
+                return;
+            }
+        }
+    }, [recs, allWeeks]);
+
+    // carrega mais semanas ao chegar perto do fim
+    const sentinel = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const el = sentinel.current;
+        if (!el || term) return;
+        const io = new IntersectionObserver(
+            (entries) => entries.some((e) => e.isIntersecting) && setShown((n) => Math.min(allWeeks.length, n + STEP)),
+            { rootMargin: '400px' },
+        );
+        io.observe(el);
+        return () => io.disconnect();
+    }, [allWeeks.length, term, shown]);
+
+    // ordem do player: as gravações carregadas, da semana mais recente para trás, dia a dia
+    const flat = useMemo(
+        () => allWeeks.flatMap((w) => recs[w.week] ?? []).filter((r, i, a) => a.findIndex((x) => x.id === r.id) === i),
+        [allWeeks, recs],
+    );
+    const play = (rec: Rec, q: Rec[] = []) => {
+        setQueue(q.slice(1));
+        setNow(rec);
+    };
+    const at = now ? flat.findIndex((r) => r.id === now.id) : -1;
+
+    // semanas vazias seguidas viram uma linha só
+    const loadedEmpty = (w: Week) => recs[w.week]?.length === 0;
+    const rows: React.ReactNode[] = [];
+    for (let i = 0; i < weeks.length; i++) {
+        const w = weeks[i];
+        if (loadedEmpty(w) && !term) {
+            let j = i;
+            while (j + 1 < weeks.length && loadedEmpty(weeks[j + 1])) j++;
+            rows.push(
+                <li key={`gap-${w.week}`} className="gap">
+                    No recordings · {j > i ? `W${weeks[j].week}–W${w.week}` : `W${w.week}`}
+                </li>,
+            );
+            // as semanas vazias seguem montadas (escondidas) para manter as consultas em cache
+            for (let k = i; k <= j; k++)
+                rows.push(
+                    <WeekRow
+                        key={weeks[k].week}
+                        w={weeks[k]}
+                        open={false}
+                        onToggle={() => undefined}
+                        onRecs={onRecs}
+                        play={play}
+                        hideEmpty
+                    />,
+                );
+            i = j;
+            continue;
+        }
+        rows.push(
+            <WeekRow
+                key={w.week}
+                w={w}
+                open={!!open[w.week]}
+                onToggle={() => setOpen((o) => ({ ...o, [w.week]: !o[w.week] }))}
+                onRecs={onRecs}
+                playing={now?.id}
+                play={play}
+                hideEmpty={false}
+            />,
+        );
+    }
+
+    const loadedAll = !term && shown >= allWeeks.length;
+    const none = loadedAll && allWeeks.every((w) => recs[w.week]?.length === 0);
+    const today = allWeeks[0];
+
     return (
-        <div className="panel lrecs" role="tabpanel">
+        <div className="panel lrec" role="tabpanel">
             <Global styles={styles} />
             <div className="sh">
                 <h2>Your recordings</h2>
             </div>
-            <p className="hint" style={{ margin: '-8px 0 16px' }}>
-                Every reading you recorded in step 2, week by week. Listen back to hear how far you&rsquo;ve come.
-            </p>
-            {weeks.map((w) => (
-                <Group
-                    key={w}
-                    dedaId={unlocked[w]}
-                    week={w}
-                    first={w === current}
-                    title={dedasList[w - 1]?.label.replace(/^W\d+\s*\|\s*/, '') ?? unlocked[w]}
+            <div className="tools">
+                <p className="hint">
+                    Every reading you recorded in step 2. Listen back to hear how far you&rsquo;ve come.
+                </p>
+                <input
+                    className="find"
+                    type="search"
+                    placeholder="Find a DEDA"
+                    aria-label="Find a DEDA by name"
+                    value={find}
+                    onChange={(e) => setFind(e.target.value)}
                 />
-            ))}
-            {shown < current && (
-                <button type="button" className="btn line more" onClick={() => setShown((n) => n + 4)}>
-                    Earlier weeks
-                </button>
+            </div>
+            {none ? (
+                <p className="empty">
+                    Your readings from step 2 will appear here, week by week.{' '}
+                    {today?.slug && (
+                        <Link className="lnk gold" href={dedaPath(today.slug)}>
+                            Record today&rsquo;s reading
+                        </Link>
+                    )}
+                </p>
+            ) : (
+                <ul className="weeks">{rows}</ul>
+            )}
+            {!term && shown < allWeeks.length && <div ref={sentinel} className="more" aria-hidden />}
+            {now && (
+                <Player
+                    rec={now}
+                    onPrev={at > 0 ? () => play(flat[at - 1]) : undefined}
+                    onNext={at >= 0 && at < flat.length - 1 ? () => play(flat[at + 1]) : undefined}
+                    onEnd={() => {
+                        if (queue.length) {
+                            setNow(queue[0]);
+                            setQueue(queue.slice(1));
+                        }
+                    }}
+                    onClose={() => {
+                        setNow(undefined);
+                        setQueue([]);
+                    }}
+                />
             )}
         </div>
     );

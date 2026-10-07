@@ -186,7 +186,9 @@ export function fileName(url: string, ext: string | null): string {
 }
 
 export const durationLabel = (s: number) =>
-    !isFinite(s) || s <= 0 ? '0:00' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+    !isFinite(s) || s <= 0
+        ? '0:00'
+        : `${Math.floor(Math.round(s) / 60)}:${String(Math.round(s) % 60).padStart(2, '0')}`;
 
 /** Abaixo disto a barra é silêncio (vira um pontinho, como no WhatsApp). */
 export const SILENCE = 0.12;

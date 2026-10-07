@@ -30,7 +30,7 @@ export interface Alignment {
 }
 
 /** Versão pedida ao espelho: o cache do JSON é longo, trocar a versão troca a URL. */
-export const READALONG_VERSION = 1;
+export const READALONG_VERSION = 2;
 
 /**
  * Endereço dos tempos: só quando o áudio vem do espelho (`<origem>/media/<assetId>/…`). Áudio do Contentful

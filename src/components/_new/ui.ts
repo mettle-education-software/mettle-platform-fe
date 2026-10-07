@@ -167,6 +167,31 @@ export const Page = styled.div`
         font-weight: 500;
         color: var(--r-text);
     }
+    /* cabeçalho com abas (PageHead): abas à direita do título a partir de 1024 px; abaixo, sob o título */
+    .phead {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px 32px;
+    }
+    .phead .phead-id {
+        flex: 1 1 360px;
+        min-width: 0;
+    }
+    .phead .seg {
+        flex: none;
+        margin: 0;
+    }
+    @media (max-width: 1023px) {
+        .phead .seg {
+            display: flex;
+            flex: 1 1 100%;
+        }
+        .phead .seg button {
+            flex: 1 1 auto;
+        }
+    }
     /* citação: leitura leve, sem moldura */
     .ph .quote {
         max-width: 44em;
@@ -201,9 +226,9 @@ export const Page = styled.div`
     }
     .sh h2 {
         min-width: 0;
-        font-size: 16px;
-        font-weight: 500;
-        letter-spacing: 0.01em;
+        font-size: 20px;
+        font-weight: 400;
+        letter-spacing: 0.005em;
     }
     .sh h2 span {
         margin-left: 6px;
@@ -379,10 +404,10 @@ export const Page = styled.div`
     /* DEDA de hoje (home): imagem à esquerda, texto à direita */
     .cc.today {
         display: grid;
-        grid-template-columns: 200px minmax(0, 1fr);
+        grid-template-columns: 280px minmax(0, 1fr);
         align-items: center;
-        gap: 0 20px;
-        max-width: 620px;
+        gap: 0 28px;
+        max-width: 780px;
     }
     .cc.today .img {
         grid-row: 1 / 5;
@@ -396,7 +421,12 @@ export const Page = styled.div`
         white-space: nowrap;
     }
     .cc.today b {
-        font-size: 18px;
+        font-size: 24px;
+        font-weight: 400;
+    }
+    /* o resto da home fica mais quieto que o DEDA de hoje */
+    .cards .cc b {
+        font-weight: 400;
     }
 
     /* ---------- card de DEDA ---------- */
@@ -581,11 +611,16 @@ export const Page = styled.div`
     }
 
     /* ---------- abas (Configurações) ---------- */
+    /* abas da página: controle segmentado (o mesmo da LAMP), claramente clicável; a aba aberta em dourado */
     .seg {
-        display: flex;
-        gap: 8px;
-        margin: 0 0 28px;
-        border-bottom: 1px solid var(--r-line);
+        display: inline-flex;
+        gap: 4px;
+        max-width: 100%;
+        margin: 0 0 32px;
+        padding: 4px;
+        border: 1px solid var(--r-line);
+        border-radius: 999px;
+        background: var(--r-surf);
         overflow-x: auto;
         scrollbar-width: none;
     }
@@ -594,34 +629,26 @@ export const Page = styled.div`
     }
     .seg button {
         position: relative;
-        min-height: 44px;
-        padding: 0 14px;
+        min-height: 40px;
+        padding: 0 22px;
         border: 0;
+        border-radius: 999px;
         background: none;
         color: var(--r-muted);
-        font-size: 14px;
+        font-size: 14.5px;
         font-weight: 400;
         letter-spacing: 0.01em;
         white-space: nowrap;
         cursor: pointer;
     }
-    .seg button:hover,
-    .seg button[aria-selected='true'] {
+    .seg button:hover {
         color: var(--r-text);
+        background: var(--r-hover);
     }
-    .seg button::after {
-        content: '';
-        position: absolute;
-        left: 14px;
-        right: 14px;
-        bottom: -1px;
-        height: 1.5px;
+    .seg button[aria-selected='true'] {
         background: var(--r-gold);
-        opacity: 0;
-        transition: opacity var(--r-ease);
-    }
-    .seg button[aria-selected='true']::after {
-        opacity: 1;
+        color: var(--r-on-gold);
+        font-weight: 500;
     }
     .panel h2 {
         font-size: 20px;
@@ -762,17 +789,13 @@ export const Page = styled.div`
             display: none;
         }
         .seg {
-            gap: 0;
-            margin-left: -10px;
-            margin-right: -10px;
+            display: flex;
+            margin-bottom: 24px;
         }
         .seg button {
-            padding: 0 10px;
-            font-size: 13.5px;
-        }
-        .seg button::after {
-            left: 10px;
-            right: 10px;
+            flex: 1 1 auto;
+            padding: 0 12px;
+            font-size: 14px;
         }
         .hc {
             flex-basis: 210px;

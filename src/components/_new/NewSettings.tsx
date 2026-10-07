@@ -9,6 +9,7 @@ import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewPage } from './NewPage';
+import { PageHead } from './PageHead';
 import { ThemeSwitch } from './ThemeSwitch';
 
 /* ---------- abas: mesmos campos, regras, textos e chamadas de app/settings/page.tsx ---------- */
@@ -248,22 +249,24 @@ export const NewSettings: React.FC = () => {
 
     return (
         <NewPage className="narrow">
-            <header className="ph">
-                <h1>Configurações</h1>
-            </header>
-            <div className="seg" role="tablist" aria-label="Configurações">
-                {tabs.map((t) => (
-                    <button
-                        key={t.key}
-                        type="button"
-                        role="tab"
-                        aria-selected={t.key === current.key}
-                        onClick={() => setTab(t.key)}
-                    >
-                        {t.label}
-                    </button>
-                ))}
-            </div>
+            <PageHead
+                title="Configurações"
+                tabs={
+                    <div className="seg" role="tablist" aria-label="Configurações">
+                        {tabs.map((t) => (
+                            <button
+                                key={t.key}
+                                type="button"
+                                role="tab"
+                                aria-selected={t.key === current.key}
+                                onClick={() => setTab(t.key)}
+                            >
+                                {t.label}
+                            </button>
+                        ))}
+                    </div>
+                }
+            />
             {current.panel}
         </NewPage>
     );

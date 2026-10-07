@@ -382,8 +382,8 @@ const Frame = styled.div`
     &.rail.settled .sb {
         overflow: visible;
     }
-    &.rail .grp:hover .sub,
-    &.rail .grp:focus-within .sub {
+    &.rail .grp:not([data-closed]):hover .sub,
+    &.rail .grp:not([data-closed]):focus-within .sub {
         display: grid;
         position: absolute;
         left: calc(100% + 6px);
@@ -405,8 +405,8 @@ const Frame = styled.div`
     &.rail .sub .it .lbl {
         opacity: 1;
     }
-    &.rail .grp:hover .sub::before,
-    &.rail .grp:focus-within .sub::before {
+    &.rail .grp:not([data-closed]):hover .sub::before,
+    &.rail .grp:not([data-closed]):focus-within .sub::before {
         content: '';
         position: absolute;
         left: -8px;
@@ -576,6 +576,71 @@ const labelText = (item: MenuItem) => (typeof item.label === 'string' ? item.lab
 const fire = (item: MenuItem, event: React.MouseEvent) =>
     (item.onClick as ((info: { domEvent: React.MouseEvent }) => void) | undefined)?.({ domEvent: event });
 
+/**
+ * IMERSO com HPEC/DEDA/LAMP. No menu recolhido a lista sai num balão ao passar o mouse ou focar; depois de um clique, ou de
+ * trocar de rota, o balão FECHA (o link clicado continua com o foco, o que o manteria aberto) e só volta no próximo hover
+ * ou foco de teclado. Esc fecha; sair com Tab fecha por si.
+ */
+const NavGroup: React.FC<{
+    item: MenuItem;
+    current: boolean;
+    active: string[];
+    rail: boolean;
+    goImerso: (event: React.MouseEvent) => void;
+}> = ({ item, current, active, rail, goImerso }) => {
+    const pathname = usePathname();
+    const [closed, setClosed] = useState(false);
+    useEffect(() => setClosed(true), [pathname]);
+    const dismiss = (el: HTMLElement | null) => {
+        setClosed(true);
+        el?.blur();
+    };
+    const key = String(item.key);
+    return (
+        <div
+            className={`grp${current ? ' on' : ''}`}
+            data-closed={closed || undefined}
+            onMouseEnter={() => setClosed(false)}
+            onFocus={(event) => event.target.matches(':focus-visible') && setClosed(false)}
+            onKeyDown={(event) => event.key === 'Escape' && dismiss(event.target as HTMLElement)}
+        >
+            <button
+                type="button"
+                className="it"
+                aria-current={current && active.length === 1 ? 'page' : undefined}
+                title={rail ? labelText(item) : undefined}
+                onClick={(event) => {
+                    goImerso(event);
+                    dismiss(event.currentTarget);
+                }}
+            >
+                {MENU_ICONS[key]}
+                <span className="lbl">{item.label}</span>
+            </button>
+            <div className="sub">
+                {item.children?.map((child) => {
+                    const childKey = String(child.key);
+                    return (
+                        <button
+                            key={childKey}
+                            type="button"
+                            className="it s"
+                            disabled={child.disabled}
+                            aria-current={active.includes(childKey) ? 'page' : undefined}
+                            onClick={(event) => {
+                                fire(child, event);
+                                dismiss(event.currentTarget);
+                            }}
+                        >
+                            <span className="lbl">{child.label}</span>
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 const Nav: React.FC<{
     items: MenuItem[];
     active: string[];
@@ -588,35 +653,7 @@ const Nav: React.FC<{
             const current = active.includes(key);
             if (item.children)
                 return (
-                    <div key={key} className={`grp${current ? ' on' : ''}`}>
-                        <button
-                            type="button"
-                            className="it"
-                            aria-current={current && active.length === 1 ? 'page' : undefined}
-                            title={rail ? labelText(item) : undefined}
-                            onClick={goImerso}
-                        >
-                            {MENU_ICONS[key]}
-                            <span className="lbl">{item.label}</span>
-                        </button>
-                        <div className="sub">
-                            {item.children.map((child) => {
-                                const childKey = String(child.key);
-                                return (
-                                    <button
-                                        key={childKey}
-                                        type="button"
-                                        className="it s"
-                                        disabled={child.disabled}
-                                        aria-current={active.includes(childKey) ? 'page' : undefined}
-                                        onClick={(event) => fire(child, event)}
-                                    >
-                                        <span className="lbl">{child.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
+                    <NavGroup key={key} item={item} current={current} active={active} rail={rail} goImerso={goImerso} />
                 );
             return (
                 <button

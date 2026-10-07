@@ -13,6 +13,7 @@ import { LampGoals } from './LampGoals';
 import { LampOverallStats, LampStatsSort } from './LampOverallStats';
 import { NewLampInput } from './NewLampInput';
 import { NewPage } from './NewPage';
+import { PageHead } from './PageHead';
 import { useSoftChart } from './lampCharts';
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -24,7 +25,6 @@ const lampStyles = css`
     .ui-new-page.lamp .seg {
         display: inline-flex;
         gap: 4px;
-        margin: -8px 0 32px;
         padding: 4px;
         border: 1px solid var(--r-line);
         border-radius: 999px;
@@ -404,10 +404,6 @@ const lampStyles = css`
         .ui-new-page.lamp .hm {
             font-size: 16px; /* menos que isso o Safari do iPhone amplia a página ao tocar */
         }
-        .ui-new-page.lamp .seg {
-            display: flex;
-            margin-bottom: 24px;
-        }
         .ui-new-page.lamp .seg button {
             flex: 1 1 0;
             padding: 0 8px;
@@ -661,28 +657,30 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
     return (
         <NewPage className="lamp">
             <Global styles={lampStyles} />
-            <header className="ph">
-                <p className="eyebrow">IMERSO</p>
-                <h1>LAMP</h1>
-                <p className="ctx">Language Acquisition Management Platform</p>
-            </header>
-            <div className="seg" role="tablist" aria-label="LAMP">
-                {TABS.map((t) => (
-                    <button
-                        key={t.key}
-                        type="button"
-                        role="tab"
-                        aria-selected={t.key === tab}
-                        onClick={() => {
-                            // só o endereço muda (o roteador do Next acompanha): sem ida ao servidor nem remontar a página
-                            window.history.replaceState(null, '', `/imerso/lamp?lampTab=${t.key}`);
-                            setTab(t.key);
-                        }}
-                    >
-                        {t.label}
-                    </button>
-                ))}
-            </div>
+            <PageHead
+                eyebrow="IMERSO"
+                title="LAMP"
+                subtitle="Language Acquisition Management Platform"
+                tabs={
+                    <div className="seg" role="tablist" aria-label="LAMP">
+                        {TABS.map((t) => (
+                            <button
+                                key={t.key}
+                                type="button"
+                                role="tab"
+                                aria-selected={t.key === tab}
+                                onClick={() => {
+                                    // só o endereço muda (o roteador do Next acompanha): sem ida ao servidor nem remontar a página
+                                    window.history.replaceState(null, '', `/imerso/lamp?lampTab=${t.key}`);
+                                    setTab(t.key);
+                                }}
+                            >
+                                {t.label}
+                            </button>
+                        ))}
+                    </div>
+                }
+            />
             {tab === 'performance' && <Performance />}
             {tab === 'input' && <NewLampInput />}
             {tab === 'goal' && <LampGoals help={GOALS_HELP} />}

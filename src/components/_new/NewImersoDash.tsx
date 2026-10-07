@@ -1,9 +1,11 @@
 'use client';
 
+import { Global } from '@emotion/react';
 import styled from '@emotion/styled';
 import { useQuery } from '@tanstack/react-query';
 import { useDedasGrid } from 'components/_melp/_deda/DedasGrid/DedasGrid';
 import { useGetHpecsModules, useOverallProgress } from 'hooks';
+import { useLampDays } from 'hooks/melp/lampDays';
 import { useHpecProgress } from 'hooks/useHpecProgress';
 import { statisticsColors } from 'libs';
 import { dedaPath, hpecLessonPath } from 'libs/cleanUrls';
@@ -15,6 +17,7 @@ import Link from 'next/link';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { useMemo, useState } from 'react';
 import { ICON } from 'themes/newDesign';
+import { daysText, WeekDots, weekDotsStyles } from './LampMirror';
 import { NewHpecTrail } from './NewHpecTrail';
 
 /* Estilos só desta página (as classes comuns de components/_new/ui ficam como estão). */
@@ -77,7 +80,7 @@ export const Dash = styled.div`
     /* ---------- KPIs: a faixa inteira leva à LAMP ---------- */
     .kpis {
         display: grid;
-        grid-template-columns: max-content minmax(0, 1fr) auto;
+        grid-template-columns: max-content max-content minmax(0, 1fr) auto;
         align-items: center;
         gap: 0 56px;
         padding: 20px 0;
@@ -88,6 +91,31 @@ export const Dash = styled.div`
     }
     .kpi {
         min-width: 0;
+    }
+    /* classes genéricas (.row da página, .bar da casca) não vazam para a faixa */
+    .kpis .cats .row {
+        padding: 0;
+        border-bottom: 0;
+    }
+    .kpis .cats .bar {
+        display: block;
+        padding: 0;
+        border-bottom: 0;
+    }
+    .kpi.wk .wdots {
+        gap: 4px;
+        margin: 0;
+    }
+    .kpi.wk .wdots i {
+        width: 14px;
+        height: 14px;
+    }
+    .kpi.wk .wdots li {
+        gap: 4px;
+        font-size: 10.5px;
+    }
+    .kpi.wk .k {
+        margin-top: 8px;
     }
     .kpi .v {
         display: block;
@@ -470,14 +498,23 @@ export const Kpis: React.FC = () => {
             : []),
     ];
     const total = overallData?.overallPerformance;
+    // a semana dia a dia e a constância (mesma leitura da aba Input, só as últimas 2 semanas; cresce se precisar)
+    const days = useLampDays(2);
     return (
         <Link href="/imerso/lamp" className="kpis" aria-label="Overall progress — open LAMP">
+            <Global styles={weekDotsStyles} />
             <span className="kpi">
                 <span className="v">
                     {typeof total === 'number' ? total.toFixed(2) : '—'}
                     {typeof total === 'number' && <small>%</small>}
                 </span>
                 <span className="k">Overall</span>
+            </span>
+            <span className="kpi wk">
+                <WeekDots days={days.newestFirst} week={days.currentWeek} today={days.today} compact />
+                <span className="k">
+                    DEDA Run · {days.loading && !days.streak.current ? '—' : daysText(days.streak.current)}
+                </span>
             </span>
             <ul className="cats">
                 {cats.map(([name, value, color]) => (

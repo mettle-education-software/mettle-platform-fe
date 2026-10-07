@@ -408,6 +408,103 @@ export const implausibleEntry = (minutes: number, dayTotal: number) => {
     return { suggestion: minutes >= 6 * 60 ? suggestion : undefined };
 };
 
+// ---------- LAMP · Performance como espelho ----------
+
+/** Um dia da LAMP, como a aba Input lê (/input/v2): notas do servidor (0–100) e as 5 estrelas do DEDA. */
+export type LampDay = {
+    week: number;
+    day: number;
+    /** nota do DEDA no dia: média das estrelas ÷ 5 (0 = não avaliado) */
+    deda: number;
+    active: number;
+    passive: number;
+    ratings: number[];
+    /** data do dia no calendário (só quando o programa nunca foi pausado: aí semana/dia batem com o calendário) */
+    date?: Date;
+};
+
+export type DayStatus = 'kept' | 'partial' | 'missed' | 'today' | 'future';
+
+/** DEDA "feito bem": avaliado com média ≥ 3,5 estrelas (70%) — "Still Bad" sozinho não conta. */
+export const DEDA_QUALITY_MIN = 70;
+
+/** Dia cumprido = DEDA ≥ 70% e as metas de Active e Passive batidas; parcial = algo registrado; hoje = em andamento. */
+export const dayStatus = (d: LampDay | undefined, today: boolean, future = false): DayStatus => {
+    if (future) return 'future';
+    const kept = !!d && d.deda >= DEDA_QUALITY_MIN && d.active >= 99.5 && d.passive >= 99.5;
+    if (kept) return 'kept';
+    if (today) return 'today';
+    return d && (d.deda > 0 || d.active > 0 || d.passive > 0) ? 'partial' : 'missed';
+};
+
+const qualifies = (d?: LampDay) => !!d && d.deda >= DEDA_QUALITY_MIN;
+
+/**
+ * Sequência atual de DEDA bem feito, do dia mais recente para trás (`newestFirst`, o primeiro é hoje). Hoje ainda
+ * sem DEDA não quebra a sequência. `toEdge`: a sequência chegou ao dia mais antigo carregado (pode ser maior).
+ */
+export const dedaStreak = (newestFirst: LampDay[]) => {
+    let i = qualifies(newestFirst[0]) ? 0 : 1;
+    let n = 0;
+    for (; i < newestFirst.length && qualifies(newestFirst[i]); i++) n++;
+    return { current: n, toEdge: n > 0 && i >= newestFirst.length };
+};
+
+/** Maior sequência dentro dos dias carregados. */
+export const bestStreak = (days: LampDay[]) => {
+    let best = 0;
+    let run = 0;
+    for (const d of days) {
+        run = qualifies(d) ? run + 1 : 0;
+        best = Math.max(best, run);
+    }
+    return best;
+};
+
+/** Sequências de constância (dias seguidos com DEDA ≥ 70%) dentro dos dias carregados, do mais antigo ao mais novo. */
+export const constancyRuns = (oldestFirst: LampDay[]) => {
+    const runs: { from: LampDay; to: LampDay; days: number }[] = [];
+    let start = -1;
+    oldestFirst.forEach((d, i) => {
+        if (qualifies(d)) {
+            if (start < 0) start = i;
+        } else if (start >= 0) {
+            runs.push({ from: oldestFirst[start], to: oldestFirst[i - 1], days: i - start });
+            start = -1;
+        }
+    });
+    if (start >= 0)
+        runs.push({
+            from: oldestFirst[start],
+            to: oldestFirst[oldestFirst.length - 1],
+            days: oldestFirst.length - start,
+        });
+    return runs;
+};
+
+/** Últimas 4 semanas fechadas contra as 4 anteriores (a semana em curso fica de fora). */
+export const lastFourVsPrevious = (weekly: number[]) => {
+    const closed = weekly.slice(0, -1);
+    const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : undefined);
+    const last = avg(closed.slice(-4));
+    const prev = closed.length > 4 ? avg(closed.slice(-8, -4)) : undefined;
+    return { last, prev, delta: last !== undefined && prev !== undefined ? last - prev : undefined };
+};
+
+/** Qualidade do DEDA por semana, só nos dias avaliados: a nota média e a média de cada um dos 5 critérios. */
+export const weeklyQuality = (days: LampDay[]) => {
+    const byWeek = new Map<number, LampDay[]>();
+    for (const d of days) if (d.deda > 0) byWeek.set(d.week, [...(byWeek.get(d.week) ?? []), d]);
+    return Array.from(byWeek.entries())
+        .sort(([a], [b]) => a - b)
+        .map(([week, ds]) => ({
+            week,
+            score: ds.reduce((t, d) => t + d.deda, 0) / ds.length,
+            criteria: [0, 1, 2, 3, 4].map((k) => ds.reduce((t, d) => t + (d.ratings[k] || 0), 0) / ds.length),
+            days: ds.length,
+        }));
+};
+
 export const WEEK_DAYS = [
     { label: 'Monday', value: 'day1' },
     { label: 'Tuesday', value: 'day2' },

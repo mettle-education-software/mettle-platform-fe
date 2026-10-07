@@ -303,6 +303,57 @@ export const fullLoadWeek = (days: GoalDay[]) => {
     return days.find((d) => d.total === max)?.week ?? 1;
 };
 
+/** Nomes dos 5 níveis das estrelas do DEDA (decisão do André: a qualidade só conta de 4 para cima). Valores 1–5 inalterados. */
+export const STAR_NAMES = ['Terrible', 'Bad', 'Still Bad', 'Good', 'Great'] as const;
+export const starName = (value?: number) => (value && value >= 1 ? STAR_NAMES[Math.min(5, Math.round(value)) - 1] : '');
+
+/**
+ * Tempo do dia contra a meta, como o servidor pontua (min(feito ÷ meta, 100%)): o que conta, o que passou da meta
+ * (não conta) e quanto falta.
+ */
+export const goalProgress = (done: number, goal: number) => {
+    const d = Math.max(0, done || 0);
+    const g = Math.max(0, goal || 0);
+    return {
+        counted: Math.min(d, g),
+        extra: Math.max(0, d - g),
+        missing: Math.max(0, g - d),
+        met: g > 0 && d >= g,
+        ratio: g > 0 ? Math.min(1, d / g) : d > 0 ? 1 : 0,
+    };
+};
+
+/** Soma de minutos rápida (+5/+15/+30), no limite do campo (99:59). */
+export const addMinutes = (value: number, delta: number) => Math.max(0, Math.min(99 * 60 + 59, (value || 0) + delta));
+
+/**
+ * Dia anterior/seguinte na LAMP, atravessando semanas. `weeks` são as semanas que o aluno pode abrir ("week1"…); na
+ * semana em curso, só até hoje (mesma regra do seletor). Devolve undefined quando não há para onde ir.
+ */
+export const stepDay = (
+    week: string,
+    day: string,
+    dir: -1 | 1,
+    weeks: string[],
+    currentWeek: number | undefined,
+    today: number,
+) => {
+    const w = Number(week.replace('week', ''));
+    let d = Number(day.replace('day', '')) + dir;
+    let nw = w;
+    if (d < 1) {
+        nw = w - 1;
+        d = 7;
+    } else if (d > 7) {
+        nw = w + 1;
+        d = 1;
+    }
+    if (!weeks.includes(`week${nw}`)) return undefined;
+    if (nw === currentWeek && d > today) return undefined;
+    if (currentWeek !== undefined && nw > currentWeek) return undefined;
+    return { week: `week${nw}`, day: `day${d}` };
+};
+
 export const WEEK_DAYS = [
     { label: 'Monday', value: 'day1' },
     { label: 'Tuesday', value: 'day2' },

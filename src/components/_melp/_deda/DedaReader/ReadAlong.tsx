@@ -32,8 +32,6 @@ import React, { ReactNode, useEffect, useRef, useState, useSyncExternalStore } f
 const HIGHLIGHT = 'deda-readalong';
 /** Palavra dita dentro do bloco (modos Phrase e Sentence): sublinhado fino, na cor do texto sobre o amarelo. */
 const HIGHLIGHT_WORD = 'deda-readalong-word';
-/** "My reading": palavras lidas com outra no lugar, com fundo vermelho suave enquanto a faixa do aluno está à vista. */
-const HIGHLIGHT_MISS = 'deda-readalong-miss';
 
 // ---------- "My reading": qual gravação do aluno está no player (publicada pelo TwoTrackPlayer) ----------
 
@@ -213,16 +211,6 @@ const highlightStyle = css`
     ::highlight(${HIGHLIGHT}) {
         color: var(--r-readalong-text, #1d1a17);
     }
-    /* vermelho suave atrás da palavra trocada (texto AA: ~7,5:1 no escuro, ~9,5:1 no claro) */
-    :root {
-        --ra-miss: rgba(229, 96, 76, 0.36);
-    }
-    html[data-theme='light'] {
-        --ra-miss: rgba(214, 69, 50, 0.26);
-    }
-    ::highlight(${HIGHLIGHT_MISS}) {
-        background-color: var(--ra-miss);
-    }
     ::highlight(${HIGHLIGHT_WORD}) {
         color: var(--r-readalong-text, #1d1a17);
         text-decoration: underline;
@@ -245,6 +233,11 @@ const Box = styled.div`
         border-radius: 0.22em;
         /* marca-texto amarelo (themes/palette: --r-readalong) */
         background: var(--r-readalong, rgba(255, 214, 10, 0.88));
+    }
+    /* "My reading": palavra lida com outra no lugar, no trecho que está tocando — a mesma marca, em vermelho
+       (texto escuro do destaque: 6,2:1 no claro, 4,7:1 no escuro) */
+    > .ra-marks i.miss {
+        background: rgba(255, 90, 74, 0.88);
     }
     /* troca de bloco: o novo aparece e o anterior some em ~120 ms (sem movimento com prefers-reduced-motion) */
     > .ra-marks i.in {
@@ -380,11 +373,10 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
         if ((!align && !own) || !registry) return;
         const hl = new Highlight();
         const hlWord = new Highlight();
-        const hlMiss = new Highlight();
         registry.set(HIGHLIGHT, hl);
         registry.set(HIGHLIGHT_WORD, hlWord);
-        registry.set(HIGHLIGHT_MISS, hlMiss);
         const ownLine = own ? ownTimeline(own.words) : null;
+        const missed = new Set(own?.miss ?? []);
         let okOwn = false; // tempos da gravação conferem com o texto?
         let source: 'original' | 'mine' | null = null; // faixa à vista que manda no destaque
         let line: [number, number][] = align?.words ?? [];
@@ -462,28 +454,30 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
             const el = parts[0]?.startContainer.parentElement;
             if (!el) return;
             const font = fontOf(el);
-            const rects = parts.flatMap((r) => Array.from(r.getClientRects()));
-            for (const line of lineRects(rects, font.size / 2)) {
-                const m = markBox(line, origin, font);
-                const mark = document.createElement('i');
-                if (fade) mark.className = 'in';
-                mark.style.cssText = `left:${m.left}px;top:${m.top}px;width:${m.width}px;height:${m.height}px`;
-                layer.appendChild(mark);
-            }
+            const draw = (rs: Range[], cls: string) => {
+                const rects = rs.flatMap((r) => Array.from(r.getClientRects()));
+                for (const line of lineRects(rects, font.size / 2)) {
+                    const m = markBox(line, origin, font);
+                    const mark = document.createElement('i');
+                    mark.className = [cls, fade ? 'in' : ''].filter(Boolean).join(' ');
+                    mark.style.cssText = `left:${m.left}px;top:${m.top}px;width:${m.width}px;height:${m.height}px`;
+                    layer.appendChild(mark);
+                }
+            };
+            // "My reading": as palavras trocadas do trecho atual ganham a mesma marca em vermelho, por cima do amarelo;
+            // no modo Word, a própria palavra fica só vermelha. Fora do trecho que está tocando, nada de vermelho.
+            const [s, e] = blocks[b] ?? [0, -1];
+            const miss =
+                source === 'mine'
+                    ? Array.from({ length: e - s + 1 }, (_, n) => s + n).filter((k) => missed.has(k))
+                    : [];
+            if (!(blocksMode === 'word' && miss.length)) draw(parts, '');
+            if (miss.length) draw(miss.map((k) => ranges.current[k]).filter(Boolean), 'miss');
         };
         // "Aa", largura da janela, celular girado: a palavra muda de lugar — a marca vai junto
         const layerAtStart = marks.current;
         const resize = new ResizeObserver(() => current.current >= 0 && place(current.current));
         if (box.current) resize.observe(box.current);
-
-        // Vermelho de "My reading": sempre à vista na faixa do aluno, menos no trecho que está tocando (o fundo do
-        // ::highlight fica por cima da marca amarela; ali o amarelo manda, para a palavra atual ficar clara).
-        const paintMiss = (b: number) => {
-            hlMiss.clear();
-            if (source !== 'mine' || !own) return;
-            const [s, e] = b >= 0 && blocks[b] ? blocks[b] : [-1, -2];
-            for (const k of own.miss) if ((k < s || k > e) && ranges.current[k]) hlMiss.add(ranges.current[k]);
-        };
 
         const tick = (now: number) => {
             raf = requestAnimationFrame(tick);
@@ -500,7 +494,6 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
                     line = next === 'mine' && ownLine ? ownLine : (align?.words ?? []);
                     word = -1;
                     current.current = -2; // força redesenhar a marca
-                    paintMiss(-1);
                 }
             }
             const on = !!audio && !!source && audio.currentTime > 0 && ready;
@@ -517,7 +510,6 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
             const fade = !byWord && current.current >= 0 && b >= 0;
             current.current = b;
             hl.clear();
-            paintMiss(b);
             place(b, fade);
             if (b < 0) return;
             blockRanges(b).forEach((r) => hl.add(r));
@@ -572,7 +564,6 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
             el?.removeEventListener('click', onClick);
             registry.delete(HIGHLIGHT);
             registry.delete(HIGHLIGHT_WORD);
-            registry.delete(HIGHLIGHT_MISS);
             setModeState({ available: false });
             ranges.current = [];
             current.current = -1;

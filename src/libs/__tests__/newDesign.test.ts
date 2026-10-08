@@ -1,5 +1,6 @@
 import { DEDA_READER_UIDS } from '../dedaReader';
 import {
+    weekPoints,
     runMilestone,
     weekAxisSpan,
     weekTickLabels,
@@ -474,5 +475,19 @@ describe('marcos da DEDA Run', () => {
         expect(runMilestone(99)).toBe(50);
         expect(runMilestone(100)).toBe(100);
         expect(runMilestone(400)).toBe(365);
+    });
+});
+
+describe('pontos semana → valor', () => {
+    it('a semana vem do rótulo, em ordem crescente, mesmo com a resposta da mais nova para a mais antiga', () => {
+        expect(weekPoints(['W3', 'W2', 'W1'], [30, 20, 10])).toEqual([
+            { x: 1, y: 10 },
+            { x: 2, y: 20 },
+            { x: 3, y: 30 },
+        ]);
+        const pts = weekPoints(['Week 98', 'Week 5'], ['100', 40]);
+        expect(pts.find((p) => p.x === 5)?.y).toBe(40);
+        expect(pts.find((p) => p.x === 98)?.y).toBe(100);
+        expect(weekPoints([7, 'W?'], [null, 1])).toEqual([{ x: 7, y: 0 }]);
     });
 });

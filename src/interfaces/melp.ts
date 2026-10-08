@@ -34,7 +34,21 @@ export interface MelpSummaryResponse {
         deda_difficulty: DedaDifficulty;
         remaining_pauses: number;
         remaining_resets: number;
+        /** Histórico do programa (melp_event), em ordem; ausente em respostas antigas. */
+        program_events?: ProgramEvent[];
     };
+}
+
+/** Um evento do programa (GET /melp/v2/:uid/summary → program_events). `kind` desconhecido é ignorado na tela. */
+export interface ProgramEvent {
+    id: string | number;
+    kind: string;
+    at: string;
+    effectiveAt: string | null;
+    actor: string;
+    backfilled: boolean;
+    reason?: string | null;
+    lampWeek?: number | null;
 }
 
 export interface IWeeklyStatistics {

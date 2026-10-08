@@ -755,6 +755,27 @@ export const Page = styled.div`
         justify-content: flex-end;
         padding: 20px 0 0;
     }
+    /* Histórico do programa (Configurações → IMERSO e /admin/historico): título + a mesma lista de linhas */
+    .history {
+        margin-top: 36px;
+    }
+    .history h3 {
+        margin: 0 0 12px;
+        font-size: 16px;
+        font-weight: 500;
+    }
+    .history ol.rows {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .history .row {
+        padding: 14px 0;
+    }
+    .history .row .field {
+        font-variant-numeric: tabular-nums;
+        color: var(--r-text);
+    }
     .links {
         display: grid;
         gap: 2px;

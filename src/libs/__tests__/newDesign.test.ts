@@ -1,5 +1,8 @@
 import { DEDA_READER_UIDS } from '../dedaReader';
 import {
+    runMilestone,
+    weekAxisSpan,
+    weekTickLabels,
     activeMenuKeys,
     clampWeekDay,
     fileSizeLabel,
@@ -433,7 +436,9 @@ describe('calendário da LAMP', () => {
     it('põe os dias do programa nas datas, pulando a pausa', () => {
         // hoje 7/out; pausa de 3 a 5/out (volta dia 5): programa = 7, 6, 2, 1/out
         const nf = [day(2, 4), day(2, 3), day(2, 2), day(2, 1)];
-        const { byDate, pausedDays, start } = calendarDays(nf, '2026-10-07', [{ from: '2026-10-03', to: '2026-10-05' }]);
+        const { byDate, pausedDays, start } = calendarDays(nf, '2026-10-07', [
+            { from: '2026-10-03', to: '2026-10-05' },
+        ]);
         expect([...byDate.keys()]).toEqual(['2026-10-07', '2026-10-06', '2026-10-05', '2026-10-02']);
         expect([...pausedDays].sort()).toEqual(['2026-10-03', '2026-10-04']);
         expect(start).toBe('2026-10-02');
@@ -442,5 +447,32 @@ describe('calendário da LAMP', () => {
         const g = monthGrid(2026, 9); // outubro de 2026 começa numa quinta
         expect(g[0]).toEqual([null, null, null, '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04']);
         expect(g.every((w) => w.length === 7)).toBe(true);
+    });
+});
+
+describe('eixo das semanas', () => {
+    it('até a 10ª semana: W1…W10, um por posição', () => {
+        expect(weekTickLabels(3)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        expect(weekTickLabels(10)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        expect(weekAxisSpan(4)).toEqual({ min: 1, max: 10 });
+    });
+    it('depois: 10 rótulos igualmente espaçados, do W1 até a semana atual', () => {
+        expect(weekTickLabels(100)).toEqual([1, 12, 23, 34, 45, 56, 67, 78, 89, 100]);
+        const l = weekTickLabels(21);
+        expect(l).toHaveLength(10);
+        expect(l[0]).toBe(1);
+        expect(l[9]).toBe(21);
+        expect(weekAxisSpan(21)).toEqual({ min: 1, max: 21 });
+    });
+});
+
+describe('marcos da DEDA Run', () => {
+    it('o maior marco alcançado', () => {
+        expect(runMilestone(0)).toBe(0);
+        expect(runMilestone(6)).toBe(0);
+        expect(runMilestone(7)).toBe(7);
+        expect(runMilestone(99)).toBe(50);
+        expect(runMilestone(100)).toBe(100);
+        expect(runMilestone(400)).toBe(365);
     });
 });

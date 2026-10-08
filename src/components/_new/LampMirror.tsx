@@ -6,13 +6,14 @@ import { useGeneralWeeklyDevelopment, useOverallProgress } from 'hooks';
 import { useDedaRun } from 'hooks/melp/lampDays';
 import { useTheme } from 'hooks/useTheme';
 import { statisticsColors } from 'libs';
-import { axisWords, DEDA_QUALITY_MIN, weeklyQuality } from 'libs/newDesign';
+import { axisWords, DEDA_QUALITY_MIN, WEEK_TICKS, weekAxisSpan, weeklyQuality } from 'libs/newDesign';
 import dynamic from 'next/dynamic';
 import { useAppContext } from 'providers';
 import React from 'react';
 import { DARK, LIGHT } from 'themes/newDesign';
 import { LampCalendar } from './LampCalendar';
 import { Hint } from './NewLampInput';
+import { RunCard } from './RunGold';
 import { useSoftChart } from './lampCharts';
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -24,34 +25,21 @@ const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false })
  */
 
 const styles = css`
-    /* topo: a DEDA Run à esquerda, o anel do Overall (DEDA/Active/Passive/Review) à direita */
-    .drun {
+    /* topo: dois cartões — a DEDA Run (ouro) e o Overall (anel e índices); no celular, a Run primeiro */
+    .hero2 {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+    }
+    .hero2 .ovc {
+        display: grid;
         align-items: center;
-        gap: 24px 40px;
-        padding: 24px 30px;
+        min-height: 300px;
+        margin: 0;
+        padding: 18px 24px;
         border: 1px solid var(--r-line);
         border-radius: 16px;
         background: var(--r-surf);
-    }
-    .drun > .drun-l {
-        justify-self: center;
-    }
-    .drun .drun-eb {
-        display: flex;
-        align-items: center;
-        gap: 2px;
-        margin: 0 0 -4px;
-    }
-    .drun .drun-n {
-        display: block;
-        font-size: 96px;
-        font-weight: 300;
-        line-height: 1;
-        letter-spacing: -0.02em;
-        font-variant-numeric: tabular-nums;
-        color: var(--r-text);
     }
     .cmap {
         margin-top: 44px;
@@ -65,13 +53,9 @@ const styles = css`
         margin-top: 44px;
     }
     @media (max-width: 960px) {
-        .drun {
+        .hero2 {
             grid-template-columns: minmax(0, 1fr);
-            padding: 22px 16px;
-            margin: 0 -4px;
-        }
-        .drun .drun-n {
-            font-size: 76px;
+            gap: 14px;
         }
         .mtwo {
             grid-template-columns: minmax(0, 1fr);
@@ -125,18 +109,21 @@ const Overall: React.FC = () => {
 const Hero: React.FC<{ run: Run }> = ({ run }) => {
     const ready = !run.loading || run.current > 0;
     return (
-        <section className="drun" aria-label="DEDA Run" aria-busy={run.loading || undefined}>
-            <div className="drun-l">
-                <p className="eyebrow drun-eb">
-                    DEDA Run
+        <div className="hero2" aria-busy={run.loading || undefined}>
+            <RunCard
+                current={run.current}
+                counted={run.todayCounted}
+                ready={ready}
+                hint={
                     <Hint
                         text={`A day counts when your DEDA is at ${DEDA_QUALITY_MIN}% or more. Below that, or no DEDA, the run starts again from zero.`}
                     />
-                </p>
-                <span className="drun-n">{ready ? run.current : '—'}</span>
-            </div>
-            <Overall />
-        </section>
+                }
+            />
+            <section className="ovc" aria-label="Overall">
+                <Overall />
+            </section>
+        </div>
     );
 };
 
@@ -147,14 +134,21 @@ const ConstancyMap: React.FC<{ run: Run }> = ({ run }) => (
     </section>
 );
 
-/** Eixo das semanas, igual nos dois gráficos lado a lado (Weekly progress e DEDA quality). */
-const weekAxis = (cats: (string | number)[]) => ({
-    categories: cats,
-    tickAmount: Math.max(1, Math.min(8, cats.length - 1)),
+/**
+ * Eixo das semanas, idêntico nos dois gráficos (Weekly progress e DEDA quality): 10 rótulos sempre nas mesmas
+ * posições; até a 10ª semana, W1…W10; depois, semanas espaçadas por igual de W1 até a atual.
+ */
+const weekAxis = (current: number) => ({
+    type: 'numeric' as const,
+    ...weekAxisSpan(current),
+    tickAmount: WEEK_TICKS - 2, // o ApexCharts põe um intervalo a mais no eixo numérico: 8 dá as 10 marcas
     axisBorder: { show: false },
     axisTicks: { show: false },
+    tooltip: { enabled: false },
 });
-const WEEK_LABELS = { rotate: 0, hideOverlappingLabels: true };
+const WEEK_LABELS = { rotate: 0, hideOverlappingLabels: true, formatter: (v: string) => `W${Math.round(Number(v))}` };
+const weekNumber = (label: string | number) => Number(String(label).replace(/\D/g, '')) || 0;
+const weekTip = (x: string) => axisWords(`W${weekNumber(x)}`);
 
 const Trend: React.FC = () => {
     const soft = useSoftChart();
@@ -165,6 +159,14 @@ const Trend: React.FC = () => {
     // a anotação do eixo Y quebra o ApexCharts com a série ainda vazia: só desenha com dados
     if (isLoading || !weeklyDevelopmentData || !weeklyDevelopment.series?.length)
         return <div className="skel" aria-busy />;
+    const labels = weeklyDevelopmentData[0] ?? [];
+    const current = Math.max(1, ...labels.map(weekNumber));
+    const series = [
+        {
+            name: 'Weekly Progress',
+            data: labels.map((l, i) => ({ x: weekNumber(l), y: Number(weeklyDevelopmentData[1]?.[i] ?? 0) })),
+        },
+    ];
     const base = soft(
         {
             ...weeklyDevelopment.options,
@@ -182,13 +184,13 @@ const Trend: React.FC = () => {
                 ],
             },
         } as ApexOptions,
-        (v, x) => [`${Math.round(v)}%`, `${axisWords(x)} · progress`],
+        (v, x) => [`${Math.round(v)}%`, `${weekTip(x)} · progress`],
     );
     const options = {
         ...base,
         xaxis: {
             ...base.xaxis,
-            ...weekAxis(weeklyDevelopmentData[0] ?? []),
+            ...weekAxis(current),
             labels: { ...base.xaxis?.labels, ...WEEK_LABELS },
         },
         yaxis: { ...(base.yaxis as object), tickAmount: 4 },
@@ -199,13 +201,7 @@ const Trend: React.FC = () => {
                 <h2>Weekly progress</h2>
             </div>
             <div className="chart">
-                <ReactApexChart
-                    options={options}
-                    series={weeklyDevelopment.series}
-                    type="area"
-                    height={240}
-                    width="100%"
-                />
+                <ReactApexChart options={options} series={series} type="area" height={240} width="100%" />
             </div>
         </section>
     );
@@ -220,15 +216,17 @@ const Quality: React.FC<{ run: Run }> = ({ run }) => {
     const cats = useGeneralWeeklyDevelopment(user?.uid).weeklyDevelopmentData?.[0] ?? [];
     const weeks = weeklyQuality(run.newestFirst);
     if ((run.loading && !weeks.length) || !cats.length) return <div className="skel" aria-busy />;
+    // semana sem DEDA avaliado conta 0% (a linha desce a zero; nunca fica buraco)
+    const current = Math.max(1, ...cats.map(weekNumber));
     const byWeek = new Map(weeks.map((w) => [w.week, Math.round(w.score)]));
-    const data = cats.map((l) => byWeek.get(Number(String(l).replace(/\D/g, ''))) ?? null);
+    const data = Array.from({ length: current }, (_, i) => ({ x: i + 1, y: byWeek.get(i + 1) ?? 0 }));
     const options = soft(
         {
             chart: { type: 'line', toolbar: { show: false }, zoom: { enabled: false } },
             colors: [c['--r-gold']],
             stroke: { curve: 'straight', width: 2 },
-            markers: { size: cats.length > 30 ? 0 : 3 },
-            xaxis: { ...weekAxis(cats), labels: WEEK_LABELS },
+            markers: { size: current > 30 ? 0 : 3 },
+            xaxis: { ...weekAxis(current), labels: WEEK_LABELS },
             yaxis: { min: 0, max: 100, tickAmount: 4, labels: { formatter: (v: number) => `${Math.round(v)}%` } },
             annotations: {
                 yaxis: [
@@ -242,7 +240,7 @@ const Quality: React.FC<{ run: Run }> = ({ run }) => {
             },
             legend: { show: false },
         } as ApexOptions,
-        (v, x) => [v == null ? '—' : `${Math.round(v)}%`, `${axisWords(x)} · DEDA quality`],
+        (v, x) => [`${Math.round(v ?? 0)}%`, `${weekTip(x)} · DEDA quality`],
     );
     return (
         <section aria-label="DEDA quality">

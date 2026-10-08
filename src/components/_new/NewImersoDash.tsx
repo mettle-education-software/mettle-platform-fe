@@ -18,6 +18,7 @@ import React, { useMemo, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { DailyGoal } from './DailyGoal';
 import { NewHpecTrail } from './NewHpecTrail';
+import { RunChip } from './RunGold';
 
 /* Estilos só desta página (as classes comuns de components/_new/ui ficam como estão). */
 export const Dash = styled.div`
@@ -103,9 +104,6 @@ export const Dash = styled.div`
     }
     .kpi.wk .k {
         margin-top: 4px;
-    }
-    .kpi.run .v {
-        color: var(--r-gold-hi);
     }
     .kpi .v {
         display: block;
@@ -497,11 +495,7 @@ export const Kpis: React.FC = () => {
     return (
         <Link href="/imerso/lamp" className="kpis" aria-label="DEDA Run and overall progress — open LAMP">
             <span className="kpi run">
-                <span className="v">
-                    {run.loading && !run.current ? '—' : run.current}
-                    <small>{run.current === 1 ? 'day' : 'days'}</small>
-                </span>
-                <span className="k">DEDA Run · {run.todayCounted ? 'today counted' : 'today pending'}</span>
+                <RunChip current={run.current} counted={run.todayCounted} large />
             </span>
             <span className="kpi">
                 <span className="v">

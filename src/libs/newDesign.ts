@@ -591,11 +591,7 @@ const isoPlus = (iso: string, n: number) => {
  * Dias do programa no calendário: do mais recente (hoje) para trás, um dia do programa por dia de calendário, pulando
  * os dias em pausa (a pausa congela o programa). Devolve a data de cada dia, os dias pausados e o primeiro dia.
  */
-export const calendarDays = (
-    newestFirst: LampDay[],
-    today: string,
-    paused: { from: string; to?: string }[] = [],
-) => {
+export const calendarDays = (newestFirst: LampDay[], today: string, paused: { from: string; to?: string }[] = []) => {
     const isPaused = (iso: string) => paused.some((p) => iso >= p.from && (!p.to || iso < p.to));
     const byDate = new Map<string, LampDay>();
     const pausedDays = new Set<string>();
@@ -682,3 +678,21 @@ export const softChart = <T extends { chart?: object; grid?: object; tooltip?: o
         yaxis: Array.isArray(o.yaxis) ? o.yaxis.map(axis) : axis(o.yaxis),
     };
 };
+
+// ---------- eixo das semanas (Weekly progress e DEDA quality) ----------
+
+/** Quantos rótulos o eixo das semanas mostra, sempre nas mesmas posições. */
+export const WEEK_TICKS = 10;
+/** Faixa do eixo: W1…W10 até a 10ª semana; depois, W1…semana atual. */
+export const weekAxisSpan = (current: number) => ({ min: 1, max: Math.max(WEEK_TICKS, Math.round(current) || 1) });
+/** Os rótulos nas 10 posições fixas: semanas "redondas", igualmente espaçadas, sempre terminando na atual. */
+export const weekTickLabels = (current: number) => {
+    const { min, max } = weekAxisSpan(current);
+    return Array.from({ length: WEEK_TICKS }, (_, k) => Math.round(min + (k * (max - min)) / (WEEK_TICKS - 1)));
+};
+
+// ---------- DEDA Run: marcos ----------
+
+export const RUN_MILESTONES = [7, 30, 50, 100, 200, 365, 500, 730, 1000] as const;
+/** Maior marco já alcançado pela Run (0 = nenhum). */
+export const runMilestone = (current: number) => RUN_MILESTONES.filter((m) => current >= m).pop() ?? 0;

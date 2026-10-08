@@ -2,6 +2,7 @@
 
 import { css, Global } from '@emotion/react';
 import styled from '@emotion/styled';
+import { auth } from 'config/firebase';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { DedaListenQueryResponse } from 'interfaces';
@@ -12,8 +13,12 @@ import {
     blockAt,
     blocksOf,
     isUsableAlignment,
+    isUsableOwnAlignment,
     lineRects,
     markBox,
+    OwnAlignment,
+    ownAlignUrl,
+    ownTimeline,
     rangeIndexAt,
     READALONG_MODES,
     ReadAlongMode,
@@ -27,6 +32,30 @@ import React, { ReactNode, useEffect, useRef, useState, useSyncExternalStore } f
 const HIGHLIGHT = 'deda-readalong';
 /** Palavra dita dentro do bloco (modos Phrase e Sentence): sublinhado fino, na cor do texto sobre o amarelo. */
 const HIGHLIGHT_WORD = 'deda-readalong-word';
+/** "My reading": palavras lidas com outra no lugar, tingidas de leve enquanto a faixa do aluno está à vista. */
+const HIGHLIGHT_MISS = 'deda-readalong-miss';
+
+// ---------- "My reading": qual gravação do aluno está no player (publicada pelo TwoTrackPlayer) ----------
+
+type MyReading = { recordingId: string; uid: string; url: string } | null;
+let myReading: MyReading = null;
+const myListeners = new Set<() => void>();
+/** O player de duas faixas avisa qual gravação "My reading" está tocando (ou null). */
+export const publishMyReading = (next: MyReading) => {
+    if (next?.recordingId === myReading?.recordingId && next?.url === myReading?.url && next?.uid === myReading?.uid)
+        return;
+    myReading = next;
+    myListeners.forEach((l) => l());
+};
+const useMyReading = () =>
+    useSyncExternalStore(
+        (l) => {
+            myListeners.add(l);
+            return () => void myListeners.delete(l);
+        },
+        () => myReading,
+        () => null,
+    );
 
 // ---------- modo (Word · Phrase · Sentence): por aparelho, padrão Phrase ----------
 
@@ -184,6 +213,12 @@ const highlightStyle = css`
     ::highlight(${HIGHLIGHT}) {
         color: var(--r-readalong-text, #1d1a17);
     }
+    ::highlight(${HIGHLIGHT_MISS}) {
+        text-decoration: underline wavy;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.22em;
+        text-decoration-color: var(--r-danger, #e58f80);
+    }
     ::highlight(${HIGHLIGHT_WORD}) {
         color: var(--r-readalong-text, #1d1a17);
         text-decoration: underline;
@@ -290,6 +325,8 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
     const url = allowed ? alignUrlFor(audioUrl, dedaId) : null;
     const box = useRef<HTMLDivElement>(null);
     const [align, setAlign] = useState<Alignment | null>(null);
+    const mine = useMyReading();
+    const [own, setOwn] = useState<OwnAlignment | null>(null);
     const [follow, setFollow] = useState(true);
     const [active, setActive] = useState(false);
     const followRef = useRef(true);
@@ -313,14 +350,40 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
         return () => ctrl.abort();
     }, [url]);
 
+    // "My reading": tempos da própria gravação (Worker; só o dono e a equipe). Sem tempos ainda: toca sem destaque.
+    useEffect(() => {
+        setOwn(null);
+        if (!allowed || !mine || !highlights()) return;
+        const ctrl = new AbortController();
+        auth.currentUser
+            ?.getIdToken()
+            .then((token) =>
+                fetch(ownAlignUrl(mine.uid, mine.recordingId), {
+                    headers: { Authorization: `Bearer ${token}` },
+                    cache: 'no-store',
+                    signal: ctrl.signal,
+                }),
+            )
+            .then((r) => (r.ok ? r.json() : null))
+            .then((json) => json && !json.noReading && setOwn(json))
+            .catch(() => undefined);
+        return () => ctrl.abort();
+    }, [allowed, mine]);
+
     useEffect(() => {
         const registry = highlights();
         const prose = () => box.current?.querySelector('.prose');
-        if (!align || !registry) return;
+        if ((!align && !own) || !registry) return;
         const hl = new Highlight();
         const hlWord = new Highlight();
+        const hlMiss = new Highlight();
         registry.set(HIGHLIGHT, hl);
         registry.set(HIGHLIGHT_WORD, hlWord);
+        registry.set(HIGHLIGHT_MISS, hlMiss);
+        const ownLine = own ? ownTimeline(own.words) : null;
+        let okOwn = false; // tempos da gravação conferem com o texto?
+        let source: 'original' | 'mine' | null = null; // faixa à vista que manda no destaque
+        let line: [number, number][] = align?.words ?? [];
         const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         let raf = 0;
         let audio: HTMLAudioElement | null = null;
@@ -337,18 +400,21 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
             const stale = !ranges.current.length || !ranges.current[0].startContainer.isConnected;
             if (stale) {
                 ({ ranges: ranges.current, runs } = wordRanges(root));
-                ok = isUsableAlignment(align, dedaId, audioUrl, ranges.current.length);
-                setModeState({ available: ok });
+                ok = !!align && isUsableAlignment(align, dedaId, audioUrl, ranges.current.length);
+                okOwn = !!own && isUsableOwnAlignment(own, dedaId, ranges.current.length);
+                setModeState({ available: ok || okOwn });
                 current.current = -1;
+                source = null; // faixas novas: escolhe a fonte (e as marcas de "My reading") de novo
+                lastLookup = 0;
                 blocksMode = null;
             }
-            if (ok && blocksMode !== modeRef.current) {
+            if ((ok || okOwn) && blocksMode !== modeRef.current) {
                 const { words, gaps } = wordsAndGaps(runs);
                 blocksMode = modeRef.current;
                 blocks = blocksOf(words, gaps, blocksMode);
                 current.current = -1;
             }
-            return !!ok;
+            return !!ok || okOwn;
         };
 
         /** Faixas do bloco b, uma por nó de texto (palavra a palavra, com a pontuação entre elas). */
@@ -408,14 +474,27 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
 
         const tick = (now: number) => {
             raf = requestAnimationFrame(tick);
-            if (now - lastLookup > 500 || (audio && !audio.isConnected)) {
-                audio = findOriginal(audioUrl);
-                lastLookup = now;
-            }
             const ready = sync(); // também liga o seletor de modo assim que o texto confere com os tempos
-            const on = !!audio && audio.currentTime > 0 && ready;
+            if (now - lastLookup > 500 || (audio && !audio.isConnected)) {
+                // a faixa visível manda: "My reading" (se houver tempos da gravação) ou o original
+                const mineEl = okOwn && mine ? findOriginal(mine.url) : null;
+                const origEl = ok ? findOriginal(audioUrl) : null;
+                const next = mineEl ? 'mine' : origEl ? 'original' : null;
+                audio = mineEl ?? origEl;
+                lastLookup = now;
+                if (next !== source) {
+                    source = next;
+                    line = next === 'mine' && ownLine ? ownLine : (align?.words ?? []);
+                    word = -1;
+                    current.current = -2; // força redesenhar a marca
+                    hlMiss.clear();
+                    if (next === 'mine' && own)
+                        own.miss.forEach((k) => ranges.current[k] && hlMiss.add(ranges.current[k]));
+                }
+            }
+            const on = !!audio && !!source && audio.currentTime > 0 && ready;
             setActive(on); // mesmo valor = sem re-render
-            const i = on && audio ? wordAt(align.words, audio.currentTime * 1000) : -1;
+            const i = on && audio ? wordAt(line, audio.currentTime * 1000) : -1;
             const b = i >= 0 ? blockAt(blocks, i) : -1;
             const byWord = blocksMode === 'word';
             if (i !== word) {
@@ -463,7 +542,9 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
             const i = node ? rangeIndexAt(ranges.current, node, offset) : -1;
             if (i < 0) return;
             const b = blockAt(blocks, i); // Phrase/Sentence: do começo do bloco
-            audio.currentTime = align.words[b >= 0 ? blocks[b][0] : i][0] / 1000;
+            const t = line[b >= 0 ? blocks[b][0] : i]?.[0];
+            if (t === undefined || !Number.isFinite(t)) return; // palavra que o aluno pulou: sem tempo
+            audio.currentTime = t / 1000;
             setFollow(true);
         };
         const el = box.current;
@@ -479,19 +560,20 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
             el?.removeEventListener('click', onClick);
             registry.delete(HIGHLIGHT);
             registry.delete(HIGHLIGHT_WORD);
+            registry.delete(HIGHLIGHT_MISS);
             setModeState({ available: false });
             ranges.current = [];
             current.current = -1;
             scrollNow.current = () => undefined;
         };
-    }, [align, audioUrl, dedaId]);
+    }, [align, own, mine, audioUrl, dedaId]);
 
     return (
         <Box ref={box}>
-            {align && <Global styles={highlightStyle} />}
+            {(align || own) && <Global styles={highlightStyle} />}
             <div className="ra-marks" ref={marks} aria-hidden />
             <div className="ra-text">{children}</div>
-            {align && active && !follow && (
+            {(align || own) && active && !follow && (
                 <FollowButton
                     type="button"
                     onClick={() => {

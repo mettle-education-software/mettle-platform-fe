@@ -57,6 +57,58 @@ export const isUsableAlignment = (a: unknown, dedaId: string, audioUrl: string, 
     );
 };
 
+// ---------- read-along da própria gravação ("My reading") ----------
+// Tempos gerados no VPS da Mettle (mibe/tools/leitura) a partir da gravação do aluno, servidos pelo Worker mettle-events
+// só ao dono da gravação (e à equipe). Mesma tokenização do texto; palavra pulada = null (nunca destacada).
+
+export interface OwnAlignment {
+    recordingId: string;
+    dedaId: string;
+    version: number;
+    wordCount: number;
+    /** [início, fim] em ms por palavra do texto, ou null (pulada/omitida) */
+    words: ([number, number] | null)[];
+    /** palavras lidas com outra palavra no lugar (o front só as tinge de leve) */
+    miss: number[];
+    noReading?: boolean;
+}
+
+export const ownAlignUrl = (uid: string, recordingId: string) =>
+    `https://events.mettle.com.br/plataforma/leitura/align/${encodeURIComponent(uid)}/${encodeURIComponent(recordingId)}.json`;
+
+/** JSON confiável para este texto? (mesmo DEDA, mesma contagem, tempos válidos e em ordem entre os lidos) */
+export const isUsableOwnAlignment = (a: unknown, dedaId: string, wordCount: number): a is OwnAlignment => {
+    const x = a as OwnAlignment;
+    if (!x || x.dedaId !== dedaId || !Array.isArray(x.words) || x.words.length !== wordCount || !wordCount)
+        return false;
+    let last = -Infinity;
+    let timed = 0;
+    for (const w of x.words) {
+        if (w === null) continue;
+        if (!Array.isArray(w) || !Number.isFinite(w[0]) || !(w[1] >= w[0]) || w[0] < last) return false;
+        last = w[0];
+        timed++;
+    }
+    return timed > 0;
+};
+
+/**
+ * Linha do tempo para `wordAt`: a palavra pulada ganha o início da próxima lida (com duração zero), então a busca
+ * sempre cai na lida, que tem índice maior; depois da última lida, nunca é alcançada.
+ */
+export const ownTimeline = (words: OwnAlignment['words']): [number, number][] => {
+    const out: [number, number][] = new Array(words.length);
+    let next = Number.POSITIVE_INFINITY;
+    for (let i = words.length - 1; i >= 0; i--) {
+        const w = words[i];
+        if (w) {
+            out[i] = [w[0], w[1]];
+            next = w[0];
+        } else out[i] = [next, next];
+    }
+    return out;
+};
+
 /** Depois do fim de uma palavra, o destaque fica até a próxima começar, no máximo este tanto (pausas longas). */
 const HOLD_MS = 1200;
 

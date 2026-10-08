@@ -3,6 +3,8 @@ import {
     blockAt,
     blocksOf,
     isUsableAlignment,
+    isUsableOwnAlignment,
+    ownTimeline,
     lineRects,
     MARK_EM,
     markBox,
@@ -245,5 +247,34 @@ describe('blocos do read-along (Phrase e Sentence)', () => {
             { left: 10, top: 0, width: 55, height: 20 },
             { left: 0, top: 30, width: 25, height: 20 },
         ]);
+    });
+});
+
+describe('read-along da própria gravação', () => {
+    const own = {
+        recordingId: 'r',
+        dedaId: 'DEDA35',
+        version: 1,
+        wordCount: 5,
+        words: [[100, 300], null, [500, 700], [800, 900], null] as ([number, number] | null)[],
+        miss: [3],
+    };
+    it('aceita só o JSON do mesmo DEDA, com a mesma contagem e tempos em ordem', () => {
+        expect(isUsableOwnAlignment(own, 'DEDA35', 5)).toBe(true);
+        expect(isUsableOwnAlignment(own, 'DEDA34', 5)).toBe(false);
+        expect(isUsableOwnAlignment(own, 'DEDA35', 6)).toBe(false);
+        expect(isUsableOwnAlignment({ ...own, words: [[500, 700], null, [100, 300], null, null] }, 'DEDA35', 5)).toBe(
+            false,
+        );
+        expect(isUsableOwnAlignment({ ...own, words: [null, null, null, null, null] }, 'DEDA35', 5)).toBe(false);
+    });
+    it('palavra pulada nunca é a destacada; depois da última lida, nada', () => {
+        const t = ownTimeline(own.words);
+        expect(wordAt(t, 50)).toBe(-1);
+        expect(wordAt(t, 200)).toBe(0);
+        expect(wordAt(t, 450)).toBe(0); // pausa curta: segura a anterior, não a pulada (índice 1)
+        expect(wordAt(t, 600)).toBe(2);
+        expect(wordAt(t, 850)).toBe(3);
+        expect(wordAt(t, 999999)).toBe(-1);
     });
 });

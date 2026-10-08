@@ -7,7 +7,7 @@ import { brasiliaDate, formatDuration, formatRecordedOn, pickMyReading } from 'l
 import { Mic } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AudioPlayerRef } from 'react-audio-play';
-import { ReadAlongModes } from '../DedaReader/ReadAlong';
+import { publishMyReading, ReadAlongModes } from '../DedaReader/ReadAlong';
 import { RecButton, SrOnly } from './ui';
 
 const Wrapper = styled.div`
@@ -171,6 +171,16 @@ export const TwoTrackPlayer: React.FC<Props> = ({
     const playUrl = useRecordingPlayUrl(localUrl ? null : mine?.id);
     const mineUrl = localUrl ?? playUrl.data ?? null;
     const hasMine = !!queued.data || !!mine;
+    // Read-along de "My reading" (página nova): qual gravação do servidor está no player. Cópia local (sem internet) não.
+    const myId = docked && !localUrl ? mine?.id : undefined;
+    useEffect(() => {
+        publishMyReading(
+            myId && recordings.uid && playUrl.data
+                ? { recordingId: myId, uid: recordings.uid, url: playUrl.data }
+                : null,
+        );
+        return () => publishMyReading(null);
+    }, [myId, recordings.uid, playUrl.data]);
 
     const [track, setTrack] = useState<Track>('mine');
     const [finishedMine, setFinishedMine] = useState(false);

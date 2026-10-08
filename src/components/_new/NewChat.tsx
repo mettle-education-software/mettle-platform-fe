@@ -40,6 +40,7 @@ import {
     Smile,
     Trash2,
     X,
+    Copy,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -287,6 +288,46 @@ export const QuoteBlock: React.FC<{ q: ChatQuote; onClick?: () => void; me: stri
 };
 
 /** Gravação de nota de voz pelo MediaRecorder do navegador (nada pago): webm/opus no Chrome, mp4 no Safari. */
+/**
+ * Celular (toque, sem hover): segurar um balão abre o NOSSO menu (reações, responder, copiar), nunca a seleção de texto
+ * do iOS (Copiar/Pesquisar/Traduzir e as alças azuis). No computador a seleção continua normal.
+ */
+export function useNoNativeSelection() {
+    useEffect(() => {
+        const touchOnly = () => matchMedia('(hover: none)').matches;
+        const onBubble = (t: EventTarget | null) => {
+            const el = t instanceof Element ? t : (t as Node | null)?.parentElement;
+            return !!el?.closest?.('.bub, .bare, .voice, .msg');
+        };
+        const block = (e: Event) => {
+            if (touchOnly() && onBubble(e.target)) e.preventDefault();
+        };
+        document.addEventListener('selectstart', block);
+        document.addEventListener('contextmenu', block);
+        return () => {
+            document.removeEventListener('selectstart', block);
+            document.removeEventListener('contextmenu', block);
+        };
+    }, []);
+}
+
+/** Copia o texto da mensagem (API da área de transferência; sem ela, o caminho antigo do execCommand). */
+export async function copyText(text: string) {
+    try {
+        await navigator.clipboard.writeText(text);
+    } catch {
+        const t = document.createElement('textarea');
+        t.value = text;
+        t.setAttribute('readonly', '');
+        t.style.position = 'fixed';
+        t.style.opacity = '0';
+        document.body.appendChild(t);
+        t.select();
+        document.execCommand('copy');
+        t.remove();
+    }
+}
+
 export function useRecorder(onDone: (blob: Blob, name: string) => void) {
     const [rec, setRec] = useState<{ started: number } | null>(null);
     const [now, setNow] = useState(0);
@@ -377,6 +418,7 @@ function useCable(ws: ChatPage['ws'] | null, onEvent: (event: string, data: Reco
 }
 
 const NewChat: React.FC = () => {
+    useNoNativeSelection();
     // a área segura (env(safe-area-inset-bottom)) só existe com viewport-fit=cover; liga só enquanto o chat está aberto
     useEffect(() => {
         const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
@@ -1001,6 +1043,20 @@ const NewChat: React.FC = () => {
                                                     >
                                                         <Reply size={18} strokeWidth={1.8} />
                                                     </button>
+                                                    {r.m.text && (
+                                                        <button
+                                                            type="button"
+                                                            className="rr"
+                                                            role="menuitem"
+                                                            aria-label="Copiar"
+                                                            onClick={() => {
+                                                                copyText(r.m.text);
+                                                                setMenuFor(null);
+                                                            }}
+                                                        >
+                                                            <Copy size={17} strokeWidth={1.8} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -1304,6 +1360,22 @@ export const Wrap = styled.div`
     @media (display-mode: standalone) and (pointer: coarse) {
         /* app instalado no celular: se o iOS não informar a área segura, reserva a do indicador de início */
         --sab: max(env(safe-area-inset-bottom, 0px), 26px);
+    }
+    -webkit-tap-highlight-color: transparent;
+    .voice {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
+    @media (hover: none) {
+        /* toque: segurar abre o nosso menu, não a seleção do iOS (no computador a seleção continua) */
+        .msg,
+        .bub,
+        .bare {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
     }
     display: flex;
     flex-direction: column;

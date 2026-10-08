@@ -89,6 +89,18 @@ export const useAppMenu = (onNavigate: () => void = () => {}) => {
             icon: <SettingOutlined />,
             onClick: go(() => router.push('/settings')),
         },
+        // Comunidade Imerso (/comunidade): só para quem o Worker reconhece como membro (fase 1: o dono)
+        ...(comunidade.member
+            ? [
+                  {
+                      key: 'community',
+                      label: 'Comunidade',
+                      icon: <TeamOutlined />,
+                      ...(comunidade.unread > 0 ? { badge: comunidade.unread } : {}),
+                      onClick: go(() => router.push(COMUNIDADE_PATH)),
+                  },
+              ]
+            : []),
         // O chat não tem balão flutuante (hideMessageBubble no layout); abre por aqui. Na plataforma nova, a página
         // Mettle Chat (/suporte) no lugar do widget, com o número de respostas não vistas (badge).
         {
@@ -102,18 +114,6 @@ export const useAppMenu = (onNavigate: () => void = () => {}) => {
                 else router.push('/settings?tab=help');
             }),
         },
-        // Comunidade Imerso (/comunidade): só para quem o Worker reconhece como membro (fase 1: o dono)
-        ...(comunidade.member
-            ? [
-                  {
-                      key: 'community',
-                      label: 'Comunidade',
-                      icon: <TeamOutlined />,
-                      ...(comunidade.unread > 0 ? { badge: comunidade.unread } : {}),
-                      onClick: go(() => router.push(COMUNIDADE_PATH)),
-                  },
-              ]
-            : []),
         { key: 'logout', label: 'Sair', icon: <LogoutOutlined />, onClick: go(() => handleLogout()) },
     ];
 

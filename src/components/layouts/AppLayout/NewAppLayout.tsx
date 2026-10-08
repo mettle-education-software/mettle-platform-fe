@@ -914,7 +914,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
             return () => window.removeEventListener(MENU_OPEN_EVENT, onOpen);
         }, []);
         const active = activeMenuKeys(pathname);
-        // Na casca nova: Início, IMERSO, Suporte, Comunidade, Configurações, Sair (o menu atual mantém a ordem de sempre)
+        // Na casca nova: Início, IMERSO, Comunidade, Suporte, Configurações, Sair (o menu atual mantém a ordem de sempre)
         const navItems = useMemo(() => {
             const items = [...(menu.items as MenuItem[])];
             const settings = items.findIndex((item) => item.key === 'settings');

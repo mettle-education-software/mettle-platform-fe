@@ -1747,6 +1747,12 @@ const Wrap = styled.div`
     }
 
     /* ---------- uma página (celular, tablet em pé) ---------- */
+    /* celular: texto alinhado à esquerda (justificado abre buracos entre as palavras numa coluna estreita) */
+    @media (max-width: 599px) {
+        .flow {
+            text-align: left;
+        }
+    }
     &.single .tb {
         display: flex;
         justify-content: space-between;

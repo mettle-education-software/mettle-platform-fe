@@ -10,6 +10,11 @@ export const LEVEL_NAME: Record<Level, string> = { EASY: 'Flow', MEDIUM: 'Boost'
 
 export type Params = { wO: number; wG: number; wC: number; fatigue: number; tenure: number; level: number };
 
+/** Pausa e reset (fixos, vêm no retrato): × pauseRate por semana pausada pelo aluno (mín. pauseFloor); × resetRate por
+ * reset feito depois que o reset passou a arquivar (08-Out-2026). Retrato antigo, sem o campo: estes valores. */
+export type Penalties = { pauseRate: number; pauseFloor: number; resetRate: number };
+export const DEFAULT_PENALTIES: Penalties = { pauseRate: 0.99, pauseFloor: 0.85, resetRate: 0.95 };
+
 export type LbStudent = {
     id: string;
     name: string;
@@ -29,6 +34,13 @@ export type LbStudent = {
     pausedWeeks?: number | null;
     pausesUsed?: number | null;
     resetsUsed?: number | null;
+    /** dias com a LAMP pausada pelo aluno, na vida (o multiplicador); intervalos do sistema ficam em systemPausedDays */
+    pausedDays?: number;
+    systemPausedDays?: number;
+    /** resets que arquivaram o histórico (o multiplicador) */
+    resetsArchived?: number;
+    /** semana de vida desde a 1ª segunda de DEDA (tempo de casa); ausente = `week` */
+    tenureWeek?: number;
     score?: number;
     rank?: number;
 };
@@ -36,6 +48,7 @@ export type LbStudent = {
 export type LbSnapshot = {
     generatedAt?: string;
     defaults: Params;
+    penalties?: Penalties;
     goals: Record<Level, number[]>;
     goalRef: number;
     refDays: number;
@@ -46,8 +59,9 @@ export type LbSnapshot = {
     empty?: boolean;
 };
 
-type Model = Pick<LbSnapshot, 'goals' | 'goalRef' | 'refDays' | 'refLevel' | 'fullWeek'>;
-export type Components = { O: number; G: number | null; C: number; S: number; T: number };
+type Model = Pick<LbSnapshot, 'goals' | 'goalRef' | 'refDays' | 'refLevel' | 'fullWeek' | 'penalties'>;
+/** F = pausa × reset (1 sem nenhum) */
+export type Components = { O: number; G: number | null; C: number; S: number; T: number; F: number };
 
 export const weekOf = (n: number) => Math.floor((n - 1) / 7) + 1;
 const goal = (m: Model, level: Level, week: number) => {
@@ -76,6 +90,16 @@ export const sRef = (m: Model, p: Params) => {
 export const tenure = (week: number, p: Params, fullWeek: number) =>
     1 + (p.tenure * Math.log(Math.max(week, 1))) / Math.log(fullWeek);
 
+/** Semanas pausadas pelo aluno (dias ÷ 7). */
+export const pausedWeeksOf = (st: LbStudent) => (st.pausedDays ?? 0) / 7;
+
+/** Multiplicador de pausa × reset (model.penalty). */
+export const penalty = (st: LbStudent, k: Penalties = DEFAULT_PENALTIES) =>
+    Math.max(k.pauseFloor, k.pauseRate ** pausedWeeksOf(st)) * k.resetRate ** (st.resetsArchived ?? 0);
+
+/** Semana do tempo de casa: a de vida (desde a 1ª segunda de DEDA); retrato antigo, a da LAMP. */
+export const tenureWeekOf = (st: LbStudent) => st.tenureWeek || st.week;
+
 export const components = (m: Model, st: LbStudent, p: Params, sref = sRef(m, p), w?: number[]): Components => {
     const ws = w ?? weights(m, st.level, Math.max(st.overall.length, st.runTo ?? 0), p);
     let sw = 0;
@@ -97,7 +121,14 @@ export const components = (m: Model, st: LbStudent, p: Params, sref = sRef(m, p)
     }
     let S = 0;
     if (st.runFrom && st.runTo) for (let n = st.runFrom; n <= st.runTo; n++) S += ws[n];
-    return { O: sw ? so / sw : 0, G, C: Math.log(1 + S) / Math.log(1 + sref), S, T: tenure(st.week, p, m.fullWeek) };
+    return {
+        O: sw ? so / sw : 0,
+        G,
+        C: Math.log(1 + S) / Math.log(1 + sref),
+        S,
+        T: tenure(tenureWeekOf(st), p, m.fullWeek),
+        F: penalty(st, m.penalties ?? DEFAULT_PENALTIES),
+    };
 };
 
 /** Peso efetivo de cada ingrediente (sem gravador, Ō e Ĉ são renormalizados) e os pontos que ele dá ao Score. */
@@ -108,9 +139,12 @@ export const breakdown = (c: Components, p: Params, fullWeek: number) => {
         { key: 'C' as const, label: 'DEDA Run', w: p.wC, v: c.C },
     ];
     const tw = parts.reduce((t, x) => t + (x.v === null ? 0 : x.w), 0);
-    const factor = c.T / tenure(fullWeek, p, fullWeek);
+    // tempo de casa e pausa × reset já entram nos pontos de cada ingrediente (a soma dá o Score)
+    const factor = (c.T / tenure(fullWeek, p, fullWeek)) * c.F;
     return {
         factor,
+        tenureFactor: c.T / tenure(fullWeek, p, fullWeek),
+        penalty: c.F,
         parts: parts.map((x) => {
             const eff = x.v === null || !tw ? 0 : x.w / tw;
             return { ...x, eff, points: x.v === null ? null : 1000 * eff * x.v * factor };
@@ -127,7 +161,7 @@ export const scoreOf = (c: Components, p: Params, fullWeek: number) => {
     if (c.G !== null) parts.push([p.wG, c.G]);
     const tw = parts.reduce((t, [a]) => t + a, 0);
     const base = tw ? parts.reduce((t, [a, b]) => t + a * b, 0) / tw : 0;
-    return Math.floor((1000 * base * c.T) / tenure(fullWeek, p, fullWeek) + 0.5);
+    return Math.floor(((1000 * base * c.T) / tenure(fullWeek, p, fullWeek)) * c.F + 0.5);
 };
 
 export type Ranked = { st: LbStudent; c: Components; score: number; rank: number };

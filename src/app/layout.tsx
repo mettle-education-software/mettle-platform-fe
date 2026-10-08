@@ -8,7 +8,7 @@ import { PersistentShell, PWABanner } from 'components';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { useTheme } from 'hooks/useTheme';
 import { installImageFallback } from 'libs/contentImage';
-import { chatwootScheme, THEME_BOOT_SCRIPT } from 'libs/theme';
+import { chatwootScheme, STANDALONE_SCRIPT, THEME_BOOT_SCRIPT } from 'libs/theme';
 import Script from 'next/script';
 import { AccessCtaModal, AccessProvider, AppProvider, NotificationsProvider, useAppContext } from 'providers';
 import { MelpProvider } from 'providers/MelpProvider';
@@ -112,6 +112,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <meta name="mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-status-bar-style" content="black" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+                {/* app instalado na plataforma nova: até o alto da tela, barra de status sobre um bloco sólido (libs/theme) */}
+                <script dangerouslySetInnerHTML={{ __html: STANDALONE_SCRIPT }} />
                 <link rel="icon" href="/favicon.ico" />
                 <meta name="description" content="Mettle Backoffice Admin" />
                 <meta property="og:title" content="Mettle" />

@@ -1236,7 +1236,7 @@ const Wrap = styled.div`
         ${NIGHT}
     }
     position: relative;
-    height: 100dvh;
+    height: calc(100dvh - env(safe-area-inset-top, 0px)); /* app instalado: sem a faixa da barra de status */
     overflow: hidden;
     background: var(--r-bg);
     color: var(--r-text);
@@ -1253,6 +1253,7 @@ const Wrap = styled.div`
         gap: 12px;
         height: 60px;
         padding: 0 16px;
+        background: var(--r-bg); /* sólido: nada translúcido perto da barra de status do iOS */
         transition: opacity 240ms ease;
     }
     &.calm .tb,

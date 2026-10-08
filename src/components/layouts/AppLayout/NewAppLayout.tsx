@@ -237,14 +237,23 @@ const Frame = styled.div`
     &.rail {
         grid-template-columns: var(--r-rail-w) minmax(0, 1fr);
     }
+    /* app instalado: a faixa da barra de status (env(safe-area-inset-top), 0 fora dele) é sólida e sem texto */
     &.m {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: var(--r-bar-h) minmax(0, 1fr);
+        grid-template-rows: calc(var(--r-bar-h) + env(safe-area-inset-top, 0px)) minmax(0, 1fr);
     }
     &.immersive {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: minmax(0, 1fr);
+        padding-top: env(safe-area-inset-top, 0px);
         transition: none;
+    }
+    /* leitor com tema próprio: a faixa de cima acompanha o papel */
+    &.immersive:has(.t-sepia) {
+        background: #f3e9d2;
+    }
+    &.immersive:has(.t-night) {
+        background: #000000;
     }
 
     .main {
@@ -477,7 +486,8 @@ const Frame = styled.div`
         display: flex;
         align-items: center;
         gap: 4px;
-        padding: 0 8px 0 4px;
+        padding: env(safe-area-inset-top, 0px) 8px 0 4px;
+        background: var(--r-bg2); /* sólido: nada translúcido sob a barra de status */
         border-bottom: 1px solid var(--r-line);
     }
     .bar .logo {

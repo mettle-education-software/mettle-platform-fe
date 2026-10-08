@@ -139,8 +139,13 @@ export const NewHome: React.FC = () => {
                         {!loading && ebook && (
                             <Link className="cc" href={EBOOK_PATH}>
                                 <span className="img">
-                                    {/* eslint-disable-next-line @next/next/no-img-element -- foto do livro em Londres (public/img), escolhida pelo André */}
-                                    <img src="/img/ebook-card-londres.webp" alt="" loading="lazy" style={{ objectPosition: '38% 50%' }} />
+                                    {/* eslint-disable-next-line @next/next/no-img-element -- o livro de pé na mesa (public/img), escolhido pelo André; o livro no centro do recorte */}
+                                    <img
+                                        src="/img/ebook-card-livro.webp"
+                                        alt=""
+                                        loading="lazy"
+                                        style={{ objectPosition: '52% 50%' }}
+                                    />
                                 </span>
                                 <span className="meta">
                                     <small>E-book</small>

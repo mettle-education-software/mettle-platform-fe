@@ -164,9 +164,8 @@ const Box = styled.div`
         color: var(--r-muted);
     }
     .prose .mc-card a {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
+        padding: 0; /* alinhado ao texto do cartão */
+        min-height: 32px;
         font-weight: 500;
         text-decoration: none;
     }

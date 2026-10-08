@@ -22,10 +22,10 @@ export const ACCESS_DENIED_EVENT = 'mettle:access-expired';
 
 // TODO(André): definir os links de renovação por produto (checkout HeroSpark). Até lá, página de venda atual.
 export const RENEWAL_URLS: Record<string, string> = {
-    [IMERSO_PRODUCT]: 'https://mettle.com.br/imerso?utm_medium=organic&utm_source=plataforma&utm_campaign=renovacao',
+    [IMERSO_PRODUCT]: 'https://mettle.com.br/programa-imerso/?utm_medium=organic&utm_source=plataforma&utm_campaign=renovacao',
 };
 export const IMERSO_SALES_URL =
-    'https://mettle.com.br/imerso?utm_medium=organic&utm_source=plataforma&utm_campaign=imerso';
+    'https://mettle.com.br/programa-imerso/?utm_medium=organic&utm_source=plataforma&utm_campaign=imerso';
 
 export const resolveAccess = (
     product: string,

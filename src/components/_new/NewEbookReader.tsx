@@ -1817,6 +1817,19 @@ const Wrap = styled.div`
         text-transform: uppercase;
         color: #d8b07f;
     }
+    /* Referências (ABNT): alinhadas à esquerda, recuo deslocado, sem marcador */
+    .prose ul.refs {
+        list-style: none;
+        padding-left: 0;
+    }
+    .prose ul.refs li {
+        padding-left: 1.3em;
+        text-indent: -1.3em;
+        text-align: left;
+        hyphens: manual;
+        -webkit-hyphens: manual;
+        overflow-wrap: anywhere;
+    }
     mark.hl {
         background: var(--hl);
         color: inherit;

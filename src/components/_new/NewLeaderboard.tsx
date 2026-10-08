@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
 import {
     breakdown,
+    isPaused,
     LbSnapshot,
     LEADERBOARD_URL,
     Level,
@@ -63,7 +64,7 @@ const styles = css`
         padding: 0 14px;
         font-size: 13.5px;
     }
-    .lb .lbbar .btn {
+    .lb .lbbar .btn.tog {
         margin-left: auto;
     }
     .lb .knobs {
@@ -149,7 +150,7 @@ const styles = css`
     }
     .lb .r {
         display: grid;
-        grid-template-columns: 2.5rem minmax(0, 1fr) 4rem 4.5rem 6rem 5rem 5.5rem 4.5rem;
+        grid-template-columns: 2.5rem minmax(0, 1fr) 3.5rem 4rem 5.5rem 4.5rem 5rem 6rem 3.5rem 3.5rem 4.5rem;
         align-items: center;
         gap: 0 12px;
         width: 100%;
@@ -196,6 +197,9 @@ const styles = css`
         font-weight: 500;
         text-align: right;
         font-variant-numeric: tabular-nums;
+    }
+    .lb .r.h span {
+        white-space: nowrap;
     }
     .lb .r.h .sc {
         font-size: inherit;
@@ -327,7 +331,7 @@ const styles = css`
         }
     }
     @media (max-width: 720px) {
-        .lb .lbbar .btn {
+        .lb .lbbar .btn.tog {
             margin-left: 0;
         }
         .lb .knobs ul {
@@ -475,7 +479,12 @@ const Ranking: React.FC<{ snap: LbSnapshot }> = ({ snap }) => {
     const [level, setLevel] = useState<'all' | Level>('all');
     const [open, setOpen] = useState<string | null>(null);
     const [knobs, setKnobs] = useState(false);
-    const rows = useMemo(() => rankAll(snap, p), [snap, p]);
+    const [paused, setPaused] = useState(false);
+    // pausados fora (padrão): a posição é recalculada só entre os que estão no programa; a fórmula não muda
+    const rows = useMemo(
+        () => rankAll(paused ? snap : { ...snap, students: snap.students.filter((s) => !isPaused(s)) }, p),
+        [snap, p, paused],
+    );
     const test = TENURE_BANDS.find((b) => b.key === band)?.test ?? (() => true);
     const shown = rows.filter((r) => test(r.st.week) && (level === 'all' || r.st.level === level));
     const tuned = !sameParams(p, snap.defaults);
@@ -509,6 +518,14 @@ const Ranking: React.FC<{ snap: LbSnapshot }> = ({ snap }) => {
                         </button>
                     ))}
                 </div>
+                <button
+                    type="button"
+                    className={`btn ${paused ? 'gold' : 'line'} tog`}
+                    aria-pressed={paused}
+                    onClick={() => setPaused((x) => !x)}
+                >
+                    Incluir pausados
+                </button>
                 <button
                     type="button"
                     className={`btn ${tuned ? 'gold' : 'line'}`}
@@ -566,6 +583,9 @@ const Ranking: React.FC<{ snap: LbSnapshot }> = ({ snap }) => {
                         <span>DEDA Run</span>
                         <span className="num">Overall</span>
                         <span className="num">Gravação</span>
+                        <span className="num">Pausado há</span>
+                        <span className="num">Pausas</span>
+                        <span className="num">Resets</span>
                     </span>
                     <span className="sc">Score</span>
                 </div>
@@ -602,6 +622,18 @@ const Ranking: React.FC<{ snap: LbSnapshot }> = ({ snap }) => {
                                     <span className="num">
                                         <i>Gravação</i>
                                         {pct(r.c.G)}
+                                    </span>
+                                    <span className="num">
+                                        <i>Pausado há</i>
+                                        {r.st.pausedWeeks == null ? '—' : `${r.st.pausedWeeks} sem.`}
+                                    </span>
+                                    <span className="num">
+                                        <i>Pausas</i>
+                                        {r.st.pausesUsed ?? '—'}
+                                    </span>
+                                    <span className="num">
+                                        <i>Resets</i>
+                                        {r.st.resetsUsed ?? '—'}
                                     </span>
                                 </span>
                                 <span className="sc">{r.score}</span>

@@ -11,11 +11,13 @@ import {
     Level,
     LEVEL_NAME,
     Params,
+    pausedWeeksOf,
     rankAll,
     Ranked,
     runDays,
     sameParams,
     TENURE_BANDS,
+    tenureWeekOf,
     weightedOverallByWeek,
 } from 'libs/leaderboard';
 import React, { useMemo, useState } from 'react';
@@ -447,8 +449,16 @@ const Why: React.FC<{ r: Ranked; snap: LbSnapshot; p: Params }> = ({ r, snap, p 
                         </li>
                     ))}
                     <li>
-                        <span>Tempo de casa · semana {r.st.week}</span>
-                        <span>× {dec(b.factor, 3)} (já nos pontos)</span>
+                        <span>Tempo de casa · semana {tenureWeekOf(r.st)} de vida</span>
+                        <span>× {dec(b.tenureFactor, 3)} (já nos pontos)</span>
+                        <b />
+                    </li>
+                    <li>
+                        <span>
+                            Pausas e resets · {dec(pausedWeeksOf(r.st), 1)} sem. pausadas · {r.st.resetsArchived ?? 0}{' '}
+                            reset{(r.st.resetsArchived ?? 0) === 1 ? '' : 's'}
+                        </span>
+                        <span>× {dec(b.penalty, 3)} (já nos pontos)</span>
                         <b />
                     </li>
                     <li className="tot">
@@ -486,7 +496,7 @@ const Ranking: React.FC<{ snap: LbSnapshot }> = ({ snap }) => {
         [snap, p, paused],
     );
     const test = TENURE_BANDS.find((b) => b.key === band)?.test ?? (() => true);
-    const shown = rows.filter((r) => test(r.st.week) && (level === 'all' || r.st.level === level));
+    const shown = rows.filter((r) => test(tenureWeekOf(r.st)) && (level === 'all' || r.st.level === level));
     const tuned = !sameParams(p, snap.defaults);
 
     return (

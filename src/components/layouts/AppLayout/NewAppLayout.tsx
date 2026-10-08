@@ -242,6 +242,11 @@ const Frame = styled.div`
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: var(--r-bar-h) minmax(0, 1fr);
     }
+    &.immersive {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
+        transition: none;
+    }
 
     .main {
         position: relative;
@@ -1040,6 +1045,17 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                 </div>
             </Drawer>
         );
+
+        // leitor do e-book: tela inteira, sem menu nem barra da casca (o leitor tem a sua, com a volta para /guia)
+        if (pathname === '/guia/ler')
+            return (
+                <Frame className="ui-new immersive" style={UI_FONT_VAR}>
+                    <Global styles={[platformTokens, drawerStyles]} />
+                    <div className="main" ref={ref}>
+                        {content}
+                    </div>
+                </Frame>
+            );
 
         return (
             <Frame

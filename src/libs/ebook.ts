@@ -38,6 +38,7 @@ export const linkFresh = (link: EbookLink | null | undefined, now = Date.now()) 
 export const EBOOK_READ_PATH = '/guia/ler';
 export const EBOOK_BOOK_URL = 'https://events.mettle.com.br/plataforma/guia/livro';
 export const EBOOK_POSITION_URL = 'https://events.mettle.com.br/plataforma/guia/posicao';
+export const EBOOK_MARKS_URL = 'https://events.mettle.com.br/plataforma/guia/marcas';
 
 export interface EbookChapter {
     slug: string;
@@ -54,9 +55,30 @@ export interface EbookPosition {
     at: string;
 }
 
+/** Marcador: página marcada pelo deslocamento (caracteres) do seu primeiro caractere no capítulo. */
+export interface EbookBookmark {
+    id: string;
+    c: string;
+    o: number;
+    x: string;
+}
+export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink';
+export const HIGHLIGHT_COLORS: readonly HighlightColor[] = ['yellow', 'green', 'blue', 'pink'];
+/** Destaque (com nota opcional): intervalo [s, e) de caracteres no texto do capítulo. */
+export interface EbookHighlight {
+    id: string;
+    c: string;
+    s: number;
+    e: number;
+    k: HighlightColor;
+    n: string;
+    x: string;
+}
+
 export interface EbookBook {
     chapters: EbookChapter[];
     position: EbookPosition | null;
+    marks?: { bookmarks: EbookBookmark[]; highlights: EbookHighlight[] };
     /** token curto para gravar a posição no Worker (sincroniza aparelhos) */
     save: string;
 }
@@ -206,3 +228,97 @@ export const sanitizeChapter = (html: string, parser: DOMParser): string => {
     clean(doc.body);
     return doc.body.innerHTML;
 };
+
+// ---------- leitor paginado (8-Out-2026, como o Apple Books) ----------
+
+/**
+ * Medidas da página para a janela: duas páginas lado a lado no computador (≥ 1024 px, paisagem), uma no celular e no
+ * tablet em pé. Proporções medidas no Apple Books: margem externa ≈ 9,4 % da largura, entre páginas ≈ 12,4 %, letra
+ * ≈ 1/24 da largura da página com a Literata, mais larga que a do Apple Books (16–21 px), linha de no máximo ~30 em (a margem cresce nas telas largas).
+ */
+export const pageLayout = (width: number, height: number, scale = 1) => {
+    const spread = width >= 1024 && width > height;
+    if (spread) {
+        let margin = Math.round(width * 0.094);
+        const gap = Math.round(width * 0.124);
+        let pageW = Math.floor((width - 2 * margin - gap) / 2);
+        const font = Math.round(Math.min(21, Math.max(16, pageW / 24)) * scale * 10) / 10;
+        const maxW = Math.round(font * 30);
+        if (pageW > maxW) {
+            pageW = maxW;
+            margin = Math.floor((width - 2 * pageW - gap) / 2);
+        }
+        const top = Math.max(72, Math.round(height * 0.15));
+        const bottom = Math.max(72, Math.round(height * 0.12));
+        return { spread, margin, gap, pageW, pageH: height - top - bottom, top, bottom, font };
+    }
+    const margin = width < 600 ? 20 : Math.round(width * 0.1);
+    const font = Math.round((width < 600 ? 18 : 19) * scale * 10) / 10;
+    const top = 64;
+    const bottom = 56;
+    return {
+        spread,
+        margin,
+        gap: 2 * margin,
+        pageW: width - 2 * margin,
+        pageH: height - top - bottom,
+        top,
+        bottom,
+        font,
+    };
+};
+
+/** Busca no texto dos capítulos (sem distinguir maiúsculas nem acentos): até `max` resultados com um trecho em volta. */
+export const searchBook = (texts: string[], query: string, max = 100) => {
+    const fold = (t: string) =>
+        t
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+    const q = fold(query.trim());
+    const out: { i: number; at: number; before: string; hit: string; after: string }[] = [];
+    if (q.length < 2) return out;
+    texts.forEach((text, i) => {
+        const folded = fold(text);
+        let from = 0;
+        while (out.length < max) {
+            const at = folded.indexOf(q, from);
+            if (at < 0) break;
+            // posição no texto original: conta as marcas removidas antes de `at`
+            const orig = originalIndex(text, at);
+            const end = originalIndex(text, at + q.length);
+            out.push({
+                i,
+                at: orig,
+                before: (orig > 40 ? '…' : '') + text.slice(Math.max(0, orig - 40), orig).trimStart(),
+                hit: text.slice(orig, end),
+                after: text.slice(end, end + 60).trimEnd() + (end + 60 < text.length ? '…' : ''),
+            });
+            from = at + q.length;
+        }
+    });
+    return out;
+};
+
+/** Índice no texto original correspondente ao índice `k` no texto sem acentos (NFD sem marcas). */
+const originalIndex = (text: string, k: number) => {
+    let seen = 0;
+    for (let i = 0; i < text.length; i++) {
+        if (seen === k) return i;
+        seen += text[i].normalize('NFD').replace(/[\u0300-\u036f]/g, '').length;
+    }
+    return text.length;
+};
+
+/** Id de marca gerado no aparelho (aceito pelo Worker: 8–40 caracteres [A-Za-z0-9_-]). */
+export const markId = () =>
+    `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`.replace(/[^\w-]/g, '').slice(0, 40);
+
+/** Aspas e apóstrofos tipográficos (um caractere por outro: os deslocamentos das marcas não mudam). */
+export const smartQuotes = (text: string) =>
+    text
+        .replace(/(^|[\s([{\u2014\u2013-])"/g, '$1\u201c')
+        .replace(/"/g, '\u201d')
+        .replace(/(\p{L})'(\p{L})/gu, '$1\u2019$2')
+        .replace(/(^|[\s([{\u2014\u2013-])'/g, '$1\u2018')
+        .replace(/'/g, '\u2019');

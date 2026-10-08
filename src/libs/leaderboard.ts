@@ -25,6 +25,10 @@ export type LbStudent = {
     runTo: number | null;
     /** nota do DEDA de hoje (a Run de hoje já contou?) */
     dedaToday?: number;
+    /** semanas desde a última pausa (só com o DEDA pausado); pausas e resets gastos (melp_program: 3 − restantes) */
+    pausedWeeks?: number | null;
+    pausesUsed?: number | null;
+    resetsUsed?: number | null;
     score?: number;
     rank?: number;
 };
@@ -168,6 +172,8 @@ export const weightedOverallByWeek = (m: Model, st: LbStudent, p: Params) => {
     });
     return out;
 };
+
+export const isPaused = (st: LbStudent) => st.status === 'DEDA_PAUSED';
 
 export const runDays = (st: LbStudent) => (st.runFrom && st.runTo ? st.runTo - st.runFrom + 1 : 0);
 

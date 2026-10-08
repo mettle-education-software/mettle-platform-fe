@@ -78,11 +78,12 @@ export const Dash = styled.div`
     }
 
     /* ---------- KPIs: a faixa inteira leva à LAMP ---------- */
+    /* uma linha de base para tudo: os rótulos (OVERALL, THIS WEEK, as frentes) e a Run assentam embaixo */
     .kpis {
         display: grid;
-        grid-template-columns: max-content max-content max-content minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 0 56px;
+        grid-template-columns: max-content max-content max-content minmax(424px, 1fr) auto;
+        align-items: end;
+        gap: 16px 48px;
         padding: 20px 0;
         border-top: 1px solid var(--r-line);
         border-bottom: 1px solid var(--r-line);
@@ -131,8 +132,8 @@ export const Dash = styled.div`
     /* as quatro frentes da LAMP: rótulo e valor numa linha, barra fina com a cor da LAMP embaixo */
     .cats {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px 28px;
+        grid-template-columns: repeat(4, minmax(88px, 1fr));
+        gap: 12px 24px;
         margin: 0;
         padding: 0;
         list-style: none;
@@ -142,13 +143,16 @@ export const Dash = styled.div`
     }
     .cats .row {
         display: flex;
+        align-items: baseline;
         justify-content: space-between;
-        gap: 8px;
+        gap: 10px;
+        white-space: nowrap;
         font-size: 13px;
         letter-spacing: 0.01em;
         color: var(--r-muted);
     }
     .cats .row b {
+        font-variant-numeric: tabular-nums;
         font-weight: 500;
         color: var(--r-text);
     }
@@ -165,6 +169,16 @@ export const Dash = styled.div`
         height: 100%;
         min-width: 2px;
         border-radius: inherit;
+    }
+    /* telas médias: Run, Overall, semana e o link numa linha; as quatro frentes embaixo, na largura toda */
+    @media (max-width: 1279px) and (min-width: 861px) {
+        .kpis {
+            grid-template-columns: max-content max-content max-content minmax(0, 1fr);
+        }
+        .kpis .cats {
+            grid-column: 1 / -1;
+            grid-row: 2;
+        }
     }
     .kpis .go {
         justify-self: end;
@@ -506,7 +520,7 @@ export const Kpis: React.FC = () => {
             </span>
             <span className="kpi wk">
                 <DailyGoal days={run.newestFirst} week={run.currentWeek} today={run.today} compact />
-                <span className="k">Daily goal</span>
+                <span className="k">This week</span>
             </span>
             <ul className="cats">
                 {cats.map(([name, value, color]) => (

@@ -120,8 +120,14 @@ export const NewEbook: React.FC = () => {
     return (
         <NewPage className="narrow">
             <Product>
-                {/* eslint-disable-next-line @next/next/no-img-element -- a imagem do livro feita pelo André, sem edição (public/img) */}
-                <img src="/img/ebook-livro-andre.webp" alt="" className="cover" width={300} style={{ height: "auto", maxWidth: "100%" }} />
+                {/* eslint-disable-next-line @next/next/no-img-element -- a capa do André (frente, sem a lombada), plana com sombra suave */}
+                <img
+                    src={EBOOK.cover}
+                    alt=""
+                    className="cover flat"
+                    width={300}
+                    style={{ height: 'auto', maxWidth: '100%' }}
+                />
                 <div className="info">
                     <p className="eyebrow">E-book · {EBOOK.pages} páginas</p>
                     <h1>{EBOOK.title}</h1>
@@ -160,6 +166,15 @@ const Product = styled.div`
     gap: 48px;
     align-items: center;
     padding-top: 24px;
+
+    /* a capa plana, com sombra suave (como um livro sobre a página) */
+    .cover.flat {
+        display: block;
+        border-radius: 3px;
+        box-shadow:
+            0 18px 40px rgba(20, 14, 8, 0.28),
+            0 4px 10px rgba(20, 14, 8, 0.18);
+    }
 
     .eyebrow {
         margin: 0 0 12px;

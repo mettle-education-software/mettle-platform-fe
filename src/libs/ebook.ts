@@ -15,7 +15,7 @@ export const EBOOK = {
     author: 'André Floriano',
     description:
         'As 21 mentiras que travam o adulto, o que a neurociência diz sobre aprender, as 12 regras e o método para organizar o seu estudo.',
-    pages: 123,
+    pages: 136, // PDF em forma de livro (content/livro/build_book.py, 8-Out-2026)
     /** Folha de rosto e página de créditos: os mesmos textos de content/livro/00-abertura.md (o PDF usa os mesmos). */
     tagline:
         'Tudo o que nunca te contaram sobre como desenvolver as quatro habilidades — ler, escrever, falar e compreender — enquanto treina corretamente o seu cérebro para alcançar a fluência no inglês.',
@@ -28,7 +28,7 @@ export const EBOOK = {
         ['mettle.com.br'],
     ],
     /** Capa (frente, sem a lombada) e logos do leitor. */
-    cover: '/img/ebook-capa.webp',
+    cover: '/img/ebook-capa-v2.webp',
     logoDark: '/img/ebook-logo-escuro.webp',
     logoLight: '/img/ebook-logo-claro.webp',
 } as const;

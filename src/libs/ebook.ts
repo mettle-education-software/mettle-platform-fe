@@ -16,6 +16,21 @@ export const EBOOK = {
     description:
         'As 21 mentiras que travam o adulto, o que a neurociência diz sobre aprender, as 12 regras e o método para organizar o seu estudo.',
     pages: 123,
+    /** Folha de rosto e página de créditos: os mesmos textos de content/livro/00-abertura.md (o PDF usa os mesmos). */
+    tagline:
+        'Tudo o que nunca te contaram sobre como desenvolver as quatro habilidades — ler, escrever, falar e compreender — enquanto treina corretamente o seu cérebro para alcançar a fluência no inglês.',
+    copyright: [
+        ['© Mettle Educação — Todos os direitos reservados.', 'CNPJ: 26.157.146/0001-39'],
+        [
+            'Edição revisada e ampliada — 2026.',
+            'Nenhuma parte desta obra pode ser reproduzida ou distribuída sem autorização prévia por escrito.',
+        ],
+        ['mettle.com.br'],
+    ],
+    /** Capa (frente, sem a lombada) e logos do leitor. */
+    cover: '/img/ebook-capa.webp',
+    logoDark: '/img/ebook-logo-escuro.webp',
+    logoLight: '/img/ebook-logo-claro.webp',
 } as const;
 
 export interface EbookLink {

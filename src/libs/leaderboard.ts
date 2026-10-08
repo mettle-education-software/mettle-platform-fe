@@ -43,6 +43,8 @@ export type LbStudent = {
     tenureWeek?: number;
     score?: number;
     rank?: number;
+    /** componentes do lote (arredondados a 6 casas); com F desde o retrato versão 2 */
+    comp?: Components;
 };
 
 export type LbSnapshot = {
@@ -169,8 +171,21 @@ export const scoreOf = (c: Components, p: Params, fullWeek: number) => {
 
 export type Ranked = { st: LbStudent; c: Components; score: number; rank: number };
 
-/** Ordem: Score; empate → Overall ponderado, Run (soma de pesos), semana; persistindo, mesma posição (1, 1, 3). */
+/** Pesos padrão e retrato com Score e componentes do lote: o ranking oficial é o do lote, idêntico por construção. */
+const officialRun = (snap: LbSnapshot, p: Params) =>
+    !!snap.defaults &&
+    sameParams(p, snap.defaults) &&
+    snap.students.every((s) => typeof s.score === 'number' && typeof s.comp?.F === 'number');
+
+/**
+ * Ordem: Score; empate → Overall ponderado, Run (soma de pesos), semana; persistindo, mesma posição (1, 1, 3).
+ * Com os pesos padrão, Score e componentes vêm do lote (o oficial). Com os controles mexidos, o navegador recalcula
+ * com as mesmas contas; ponytail: as somas daqui e do Python diferem em ~1e-12, então num valor exatamente no limite do
+ * arredondamento o recálculo pode dar 1 ponto de diferença — só na simulação, nunca no ranking padrão.
+ */
 export const rankAll = (snap: LbSnapshot, p: Params): Ranked[] => {
+    if (officialRun(snap, p))
+        return order(snap.students.map((st) => ({ st, c: st.comp as Components, score: st.score as number, rank: 0 })));
     const sref = sRef(snap, p);
     const max = Math.max(
         1,
@@ -179,11 +194,16 @@ export const rankAll = (snap: LbSnapshot, p: Params): Ranked[] => {
     const byLevel = Object.fromEntries(
         (Object.keys(snap.goals) as Level[]).map((l) => [l, weights(snap, l, max, p)]),
     ) as Record<Level, number[]>;
+    return order(
+        snap.students.map((st) => {
+            const c = components(snap, st, p, sref, byLevel[st.level]);
+            return { st, c, score: scoreOf(c, p, snap.fullWeek), rank: 0 };
+        }),
+    );
+};
+
+const order = (rows: Ranked[]): Ranked[] => {
     const r6 = (x: number) => Math.round(x * 1e6) / 1e6;
-    const rows = snap.students.map((st) => {
-        const c = components(snap, st, p, sref, byLevel[st.level]);
-        return { st, c, score: scoreOf(c, p, snap.fullWeek), rank: 0 };
-    });
     const key = (r: Ranked) => [r.score, r6(r.c.O), r6(r.c.S), r.st.week];
     const cmp = (a: Ranked, b: Ranked) => {
         const ka = key(a);

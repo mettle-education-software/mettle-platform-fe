@@ -90,3 +90,29 @@ test('os pontos de cada ingrediente somam o Score (tempo de casa e pausa × rese
         expect(b.factor).toBeCloseTo(b.tenureFactor * b.penalty, 12);
     }
 });
+
+test('pesos padrão: Score e posição do lote (oficial); controles mexidos: recálculo; retrato antigo: recálculo', () => {
+    const mk = (id: string, score: number, F?: number) => ({
+        ...cases[0].st,
+        id,
+        name: id,
+        runFrom: null,
+        runTo: null,
+        score,
+        comp: { O: 0.5, G: null, C: 0.1, S: 1, T: 1.1, ...(F === undefined ? {} : { F }) },
+    });
+    const snap = {
+        ...model,
+        defaults: DEFAULTS,
+        students: [mk('a', 10, 1), mk('b', 900, 0.9)],
+    } as unknown as LbSnapshot;
+    expect(rankAll(snap, DEFAULTS).map((r) => [r.st.id, r.score, r.rank])).toEqual([
+        ['b', 900, 1],
+        ['a', 10, 2],
+    ]);
+    const tuned = { ...DEFAULTS, wO: 0.6 };
+    const recalc = rankAll(snap, tuned);
+    expect(recalc.every((r) => r.score === scoreOf(components(model, r.st, tuned), tuned, 104))).toBe(true);
+    const old = { ...snap, students: [mk('a', 10), mk('b', 900)] } as unknown as LbSnapshot;
+    expect(rankAll(old, DEFAULTS).every((r) => r.score !== 10 && r.score !== 900)).toBe(true);
+});

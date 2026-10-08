@@ -875,6 +875,15 @@ const AdminItem: React.FC = () => {
                                 >
                                     Análise de leitura
                                 </Button>
+                                <Button
+                                    style={{ marginLeft: 8 }}
+                                    onClick={() => {
+                                        admin.handleClose();
+                                        router.push('/admin/leaderboard');
+                                    }}
+                                >
+                                    Leaderboard
+                                </Button>
                             </>
                         )}
                     </div>

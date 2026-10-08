@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewPage } from './NewPage';
 import { PageHead } from './PageHead';
+import { ProgramHistory } from './ProgramHistory';
 import { ThemeSwitch } from './ThemeSwitch';
 
 /* ---------- abas: mesmos campos, regras, textos e chamadas de app/settings/page.tsx ---------- */
@@ -138,6 +139,15 @@ const ImersoSettings: React.FC = () => {
     const { melpSummary } = useMelpContext();
     const [modal, modalHolder] = Modal.useModal();
 
+    // aba aberta direto (?tab=imerso-settings) antes de o resumo chegar: só o título, sem quebrar a página
+    if (!melpSummary)
+        return (
+            <div className="panel" role="tabpanel">
+                <h2>Programa IMERSO</h2>
+                <p className="hint">Configurações do programa IMERSO</p>
+            </div>
+        );
+
     return (
         <div className="panel" role="tabpanel">
             {modalHolder}
@@ -203,6 +213,7 @@ const ImersoSettings: React.FC = () => {
                     </div>
                 )}
             </div>
+            <ProgramHistory events={melpSummary.program_events} remainingResets={melpSummary.remaining_resets} />
         </div>
     );
 };

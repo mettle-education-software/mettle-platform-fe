@@ -12,6 +12,12 @@ export const ADMIN_TOOLS: readonly AdminTool[] = [
         href: '/admin/leitura',
     },
     { key: 'leaderboard', title: 'Leaderboard', line: 'O ranking dos alunos', href: '/admin/leaderboard' },
+    {
+        key: 'historico',
+        title: 'Histórico do programa',
+        line: 'Início, pausas e resets de cada aluno',
+        href: '/admin/historico',
+    },
 ];
 
 /** Abre o painel de administração da casca (o mesmo do botão do menu). */

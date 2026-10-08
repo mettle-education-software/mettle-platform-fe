@@ -6,7 +6,7 @@ import { useGeneralWeeklyDevelopment, useOverallProgress } from 'hooks';
 import { useDedaRun } from 'hooks/melp/lampDays';
 import { useTheme } from 'hooks/useTheme';
 import { statisticsColors } from 'libs';
-import { axisWords, DEDA_QUALITY_MIN, WEEK_TICKS, weekAxisSpan, weeklyQuality } from 'libs/newDesign';
+import { axisWords, DEDA_QUALITY_MIN, WEEK_TICKS, weekAxisSpan, weeklyQuality, weekPoints } from 'libs/newDesign';
 import dynamic from 'next/dynamic';
 import { useAppContext } from 'providers';
 import React from 'react';
@@ -159,14 +159,10 @@ const Trend: React.FC = () => {
     // a anotação do eixo Y quebra o ApexCharts com a série ainda vazia: só desenha com dados
     if (isLoading || !weeklyDevelopmentData || !weeklyDevelopment.series?.length)
         return <div className="skel" aria-busy />;
-    const labels = weeklyDevelopmentData[0] ?? [];
-    const current = Math.max(1, ...labels.map(weekNumber));
-    const series = [
-        {
-            name: 'Weekly Progress',
-            data: labels.map((l, i) => ({ x: weekNumber(l), y: Number(weeklyDevelopmentData[1]?.[i] ?? 0) })),
-        },
-    ];
+    // o x de cada ponto é a semana do próprio rótulo, em ordem: posição, eixo e balão vêm do mesmo número
+    const points = weekPoints(weeklyDevelopmentData[0] ?? [], weeklyDevelopmentData[1] ?? []);
+    const current = Math.max(1, ...points.map((p) => p.x));
+    const series = [{ name: 'Weekly Progress', data: points }];
     const base = soft(
         {
             ...weeklyDevelopment.options,
@@ -184,7 +180,7 @@ const Trend: React.FC = () => {
                 ],
             },
         } as ApexOptions,
-        (v, x) => [`${Math.round(v)}%`, `${weekTip(x)} · progress`],
+        (_v, _x, _s, i) => [`${Math.round(points[i]?.y ?? 0)}%`, `${weekTip(`W${points[i]?.x ?? ''}`)} · progress`],
     );
     const options = {
         ...base,
@@ -240,7 +236,7 @@ const Quality: React.FC<{ run: Run }> = ({ run }) => {
             },
             legend: { show: false },
         } as ApexOptions,
-        (v, x) => [`${Math.round(v ?? 0)}%`, `${weekTip(x)} · DEDA quality`],
+        (_v, _x, _s, i) => [`${Math.round(data[i]?.y ?? 0)}%`, `${weekTip(`W${data[i]?.x ?? ''}`)} · DEDA quality`],
     );
     return (
         <section aria-label="DEDA quality">

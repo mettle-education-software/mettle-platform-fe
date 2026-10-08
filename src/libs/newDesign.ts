@@ -696,3 +696,13 @@ export const weekTickLabels = (current: number) => {
 export const RUN_MILESTONES = [7, 30, 50, 100, 200, 365, 500, 730, 1000] as const;
 /** Maior marco já alcançado pela Run (0 = nenhum). */
 export const runMilestone = (current: number) => RUN_MILESTONES.filter((m) => current >= m).pop() ?? 0;
+
+/**
+ * Pontos semana → valor para os gráficos de semanas: o x é o número da semana lido do próprio rótulo ("W12", "Week 12",
+ * 12), em ordem crescente, seja qual for a ordem da resposta. Posição, rótulo do eixo e balão saem do mesmo número.
+ */
+export const weekPoints = (labels: (string | number)[], values: (string | number | null | undefined)[]) =>
+    labels
+        .map((l, i) => ({ x: Number(String(l).replace(/\D/g, '')) || 0, y: Number(values[i] ?? 0) || 0 }))
+        .filter((p) => p.x > 0)
+        .sort((a, b) => a.x - b.x);

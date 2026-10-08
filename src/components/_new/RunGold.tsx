@@ -235,6 +235,32 @@ const styles = css`
     .rg.rg-chip.lg .rg-n {
         font-size: 22px;
     }
+    /* qualquer valor cabe: o anel cresce com os dígitos e, com 4, a letra desce um passo */
+    .rg.rg-chip[data-d='3'] .rg-ring {
+        width: 40px;
+        height: 40px;
+    }
+    .rg.rg-chip[data-d='4'] .rg-ring {
+        width: 44px;
+        height: 44px;
+    }
+    .rg.rg-chip[data-d='4'] .rg-n {
+        font-size: 13px;
+    }
+    .rg.rg-chip.lg[data-d='3'] .rg-ring {
+        width: 58px;
+        height: 58px;
+    }
+    .rg.rg-chip.lg[data-d='4'] .rg-ring {
+        width: 62px;
+        height: 62px;
+    }
+    .rg.rg-chip.lg[data-d='4'] .rg-n {
+        font-size: 19px;
+    }
+    .rg.rg-chip.bare {
+        padding: 4px;
+    }
 
     @media (prefers-reduced-motion: reduce) {
         .rg .rg-n::after,
@@ -310,20 +336,29 @@ export const RunCard: React.FC<{ current: number; counted: boolean; ready: boole
     );
 };
 
-/** A mesma Run, compacta: faixa do IMERSO e rodapé do menu. */
+/** A mesma Run, compacta: faixa do IMERSO e rodapé do menu. Sem rótulo (menu recolhido), o nome vai no title. */
 export const RunChip: React.FC<{ current: number; counted: boolean; large?: boolean; label?: string }> = ({
     current,
     counted,
     large,
     label = 'DEDA Run',
-}) => (
-    <span className={`rg rg-chip${counted ? ' on' : ''}${large ? ' lg' : ''}`}>
-        <Global styles={styles} />
-        <Ring on={counted}>
-            <span className="rg-n" data-n={current}>
-                {current}
-            </span>
-        </Ring>
-        <span className="rg-l">{label}</span>
-    </span>
-);
+}) => {
+    const n = Math.max(0, Math.round(current));
+    const digits = Math.min(4, String(n).length);
+    return (
+        <span
+            className={`rg rg-chip${counted ? ' on' : ''}${large ? ' lg' : ''}${label ? '' : ' bare'}`}
+            data-d={digits}
+            title={label ? undefined : `DEDA Run: ${n}`}
+            aria-label={label ? undefined : `DEDA Run: ${n}`}
+        >
+            <Global styles={styles} />
+            <Ring on={counted}>
+                <span className="rg-n" data-n={n}>
+                    {n}
+                </span>
+            </Ring>
+            {label && <span className="rg-l">{label}</span>}
+        </span>
+    );
+};

@@ -384,6 +384,12 @@ const Frame = styled.div`
     &.rail .melp {
         display: none;
     }
+    /* recolhido: só o número da DEDA Run, no centro do trilho */
+    .rail-run {
+        display: flex;
+        justify-content: center;
+        margin: 4px 0 8px;
+    }
     &.rail .user {
         width: 44px;
         padding: 0 8px;
@@ -726,13 +732,14 @@ const Nav: React.FC<{
     </nav>
 );
 
-/** DEDA Run no rodapé do menu (o KPI principal do programa): "Run · 203". */
-const MelpRun: React.FC = () => {
+/** DEDA Run no rodapé do menu (o KPI principal do programa), em ouro; recolhido, só o número (title "DEDA Run"). */
+const MelpRun: React.FC<{ rail?: boolean }> = ({ rail }) => {
     const run = useDedaRun(2);
-    if (run.loading && !run.current) return null;
+    const { melpSummary } = useMelpContext();
+    if ((run.loading && !run.current) || (rail && melpSummary?.melp_status !== 'DEDA_STARTED')) return null;
     return (
-        <span className="melp-run">
-            <RunChip current={run.current} counted={run.todayCounted} label="Run" />
+        <span className={rail ? 'rail-run' : 'melp-run'}>
+            <RunChip current={run.current} counted={run.todayCounted} label={rail ? '' : undefined} />
         </span>
     );
 };
@@ -1008,6 +1015,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
         const foot = (
             <div className="foot">
                 <MelpMini />
+                {!isMobile && rail && <MelpRun rail />}
                 <AdminItem />
                 <div className="who">
                     <User />

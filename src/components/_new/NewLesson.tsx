@@ -12,6 +12,7 @@ import { useDeviceSize } from 'hooks/useDeviceSize';
 import { fileTypes, saveFile } from 'libs';
 import { readTextScale, saveTextScale } from 'libs/dedaReader';
 import { WATCHED_AT } from 'libs/hpecTrail';
+import { MASTERCLASS_LESSON } from 'libs/masterclass';
 import {
     CourseModule,
     fileSizeLabel,
@@ -47,6 +48,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ICON, UI_FONT_VAR, ui } from 'themes/newDesign';
+import { MasterclassSummary } from './MasterclassSummary';
 import { NewPage } from './NewPage';
 
 /* ---------- textos da interface (Imerso em inglês; cursos gerais em português, como hoje) ---------- */
@@ -1086,7 +1088,14 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                     </div>
                 )}
                 <div id="lesson-summary" role="tabpanel" hidden={active !== 'summary'}>
-                    {lesson?.lessonContent?.json ? (
+                    {lesson?.lessonContent?.json && lesson.lessonId === MASTERCLASS_LESSON ? (
+                        <MasterclassSummary
+                            doc={lesson.lessonContent.json}
+                            links={lesson.lessonContent.links}
+                            title={lesson.lessonTitle}
+                            active={active === 'summary'}
+                        />
+                    ) : lesson?.lessonContent?.json ? (
                         <ReaderProse
                             rawContent={lesson.lessonContent.json}
                             links={lesson.lessonContent.links}

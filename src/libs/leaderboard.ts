@@ -161,7 +161,10 @@ export const scoreOf = (c: Components, p: Params, fullWeek: number) => {
     if (c.G !== null) parts.push([p.wG, c.G]);
     const tw = parts.reduce((t, [a]) => t + a, 0);
     const base = tw ? parts.reduce((t, [a, b]) => t + a * b, 0) / tw : 0;
-    return Math.floor(((1000 * base * c.T) / tenure(fullWeek, p, fullWeek)) * c.F + 0.5);
+    // as somas daqui e do Python diferem em ~1e-12 (o sum() de lá compensa o arredondamento): quantiza em 1e-6 antes do
+    // arredondamento final, meio para cima nos dois passos — a mesma conta de model.score_of
+    const x = ((1000 * base * c.T) / tenure(fullWeek, p, fullWeek)) * c.F;
+    return Math.floor(Math.floor(x * 1e6 + 0.5) / 1e6 + 0.5);
 };
 
 export type Ranked = { st: LbStudent; c: Components; score: number; rank: number };

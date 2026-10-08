@@ -467,6 +467,19 @@
                 "F": 0.9857449564984779,
                 "score": 902
             }
+        },
+        {
+            "st": {
+                "level": "EASY",
+                "overall": [0.75, 0.75, 0.75, 0.75, 0.75],
+                "week": 1,
+                "runFrom": null,
+                "runTo": null,
+                "tenureWeek": 104,
+                "resetsArchived": 1
+            },
+            "def": { "O": 0.75, "G": null, "C": 0.0, "S": 0.0, "T": 1.4, "F": 0.95, "score": 523 },
+            "alt": { "O": 0.75, "G": null, "C": 0.0, "S": 0.0, "T": 1.25, "F": 0.95, "score": 407 }
         }
     ]
 }

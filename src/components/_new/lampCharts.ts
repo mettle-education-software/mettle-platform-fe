@@ -14,7 +14,14 @@ type Ctx = {
     series: number[][];
     seriesIndex: number;
     dataPointIndex: number;
-    w: { globals: { labels?: (string | number)[]; categoryLabels?: string[]; seriesNames: string[] } };
+    w: {
+        globals: {
+            labels?: (string | number)[];
+            categoryLabels?: string[];
+            seriesNames: string[];
+            seriesX?: (string | number)[][];
+        };
+    };
 };
 
 type Options = { chart?: object; grid?: object; tooltip?: object; xaxis?: object; markers?: object };
@@ -62,7 +69,12 @@ export const useSoftChart = () => {
                 followCursor: false,
                 marker: { show: false },
                 custom: ({ series, seriesIndex, dataPointIndex, w }: Ctx) => {
-                    const x = w.globals.categoryLabels?.[dataPointIndex] ?? w.globals.labels?.[dataPointIndex] ?? '';
+                    // eixo numérico (semanas): o x vem do próprio ponto
+                    const x =
+                        w.globals.categoryLabels?.[dataPointIndex] ??
+                        w.globals.labels?.[dataPointIndex] ??
+                        w.globals.seriesX?.[seriesIndex]?.[dataPointIndex] ??
+                        '';
                     const [value, label] = tip(
                         series[seriesIndex]?.[dataPointIndex] ?? 0,
                         String(x),

@@ -3,6 +3,7 @@
 import { css, Global, keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
 import { Button, ConfigProvider, Drawer, Flex, Modal, Select } from 'antd';
+import { RunChip } from 'components/_new/RunGold';
 import { ThemeCycle, ThemeSwitch } from 'components/_new/ThemeSwitch';
 import { popupStyles } from 'components/_new/ui';
 import { Logo } from 'components/atoms/Logo/Logo';
@@ -152,7 +153,7 @@ const chrome = css`
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    .melp span {
+    .melp > span {
         display: block;
         margin-top: 1px;
         font-size: 12.5px;
@@ -161,9 +162,7 @@ const chrome = css`
         white-space: nowrap;
     }
     .melp span.melp-run {
-        margin-top: 4px;
-        font-weight: 500;
-        color: var(--r-gold-hi);
+        margin-top: 8px;
     }
     .user {
         display: flex;
@@ -732,8 +731,8 @@ const MelpRun: React.FC = () => {
     const run = useDedaRun(2);
     if (run.loading && !run.current) return null;
     return (
-        <span className="melp-run" title="DEDA Run: days in a row with your DEDA at 80% or more">
-            Run · {run.current}
+        <span className="melp-run">
+            <RunChip current={run.current} counted={run.todayCounted} label="Run" />
         </span>
     );
 };

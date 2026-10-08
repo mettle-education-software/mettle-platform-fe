@@ -11,6 +11,10 @@ interface Props {
     rawContent?: Document;
     links?: LinkType;
     lang?: string;
+    /** Peças da página no meio do texto: nó embedded-entry-block com target.sys.id = chave (o texto em si não muda). */
+    blocks?: Record<string, ReactNode>;
+    /** Clique num link do texto: devolve true para tratar dentro da Plataforma (o link segue no href). */
+    onLink?: (uri: string) => boolean;
 }
 
 /** Ids das notas de contexto (entry-hyperlink) dentro de um bloco. */
@@ -47,7 +51,7 @@ const InlineNote = ({ note, onClose }: { note: ContextNoteData; onClose(): void 
  * Texto do passo como vem do conteúdo (nada é alterado nem reordenado), na tipografia do leitor. Termo com nota de
  * contexto abre a nota logo abaixo do parágrafo; o mesmo termo (ou o ×) fecha.
  */
-export const ReaderProse = ({ rawContent, links, lang = 'en' }: Props) => {
+export const ReaderProse = ({ rawContent, links, lang = 'en', blocks, onLink }: Props) => {
     const [openId, setOpenId] = useState<string | null>(null);
     if (!rawContent) return null;
 
@@ -94,6 +98,7 @@ export const ReaderProse = ({ rawContent, links, lang = 'en' }: Props) => {
                     />
                 ) : null;
             },
+            [BLOCKS.EMBEDDED_ENTRY]: (node) => blocks?.[node.data?.target?.sys?.id] ?? null,
             [INLINES.ENTRY_HYPERLINK]: (node, children) => {
                 const id = node.data?.target?.sys?.id;
                 if (!findContextNote(id, links)) return <>{children}</>;
@@ -120,7 +125,14 @@ export const ReaderProse = ({ rawContent, links, lang = 'en' }: Props) => {
             // Só http(s)/mailto viram link; qualquer outro esquema fica como texto.
             [INLINES.HYPERLINK]: (node, children) =>
                 /^(https?:|mailto:)/i.test(String(node.data?.uri ?? '')) ? (
-                    <a href={node.data.uri} target="_blank" rel="noopener noreferrer">
+                    <a
+                        href={node.data.uri}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                            if (onLink?.(node.data.uri)) e.preventDefault();
+                        }}
+                    >
                         {children}
                     </a>
                 ) : (

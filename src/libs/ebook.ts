@@ -188,6 +188,7 @@ const DROP_TAGS = new Set([
 ]);
 const ALLOWED_CLASSES = new Set([
     'mentira-open',
+    'refs', // lista das Referências (ABNT)
     'badge',
     'badge-red',
     'planos',

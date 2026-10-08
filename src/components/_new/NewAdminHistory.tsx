@@ -86,6 +86,16 @@ const styles = css`
     .ah .mut {
         color: var(--r-muted);
     }
+    .ah .retry {
+        min-height: 44px;
+        padding: 0 4px;
+        border: 0;
+        background: none;
+        color: var(--r-gold-hi);
+        font: inherit;
+        text-decoration: underline;
+        cursor: pointer;
+    }
     @media (max-width: 860px) {
         .ah {
             grid-template-columns: minmax(0, 1fr);
@@ -108,7 +118,17 @@ const Student: React.FC<{ who: Pick }> = ({ who }) => {
         <div className="one">
             <h2>{who.name}</h2>
             {q.isLoading && <p className="mut">Carregando…</p>}
-            {q.isError && <p className="mut">Sem programa Imerso.</p>}
+            {q.isError &&
+                ((q.error as { response?: { status?: number } } | null)?.response?.status === 404 ? (
+                    <p className="mut">Sem programa Imerso.</p>
+                ) : (
+                    <p className="mut">
+                        Não foi possível carregar o histórico.{' '}
+                        <button type="button" className="retry" onClick={() => q.refetch()}>
+                            Tentar de novo
+                        </button>
+                    </p>
+                ))}
             {s && (
                 <>
                     <p className="ctx">

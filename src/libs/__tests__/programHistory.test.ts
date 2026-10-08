@@ -145,6 +145,67 @@ test('reset com a LAMP pausada (passo 3): a pausa termina quando a LAMP recomeç
     ]);
 });
 
+test('pausa do sistema antes da segunda agendada cancela o agendamento: as duas terminam quando a LAMP volta', () => {
+    const rows = programHistory(
+        [
+            ev('pause', '2026-10-22T12:00:00.000Z'),
+            ev('resume', '2026-10-28T12:00:00.000Z', { effectiveAt: '2026-11-02T03:00:00.000Z' }),
+            ev('pause', '2026-10-30T12:00:00.000Z', { actor: 'system' }),
+            ev('resume', '2026-11-04T12:00:00.000Z', { actor: 'system', effectiveAt: '2026-11-09T03:00:00.000Z' }),
+            ev('lamp_reactivated', '2026-11-09T03:01:00.000Z', { actor: 'system', lampWeek: 3 }),
+        ],
+        3,
+    );
+    expect(lines(rows)).toEqual([
+        'Pausa | 22/10/2026 – 09/11/2026',
+        'LAMP pausada pelo sistema | 30/10/2026 – 09/11/2026',
+    ]);
+});
+
+test('segunda agendada que já passou sem evento de volta: o intervalo fechou nela', () => {
+    const rows = programHistory(
+        [
+            ev('pause', '2026-10-01T12:00:00.000Z'),
+            ev('resume', '2026-10-02T12:00:00.000Z', { effectiveAt: '2026-10-05T03:00:00.000Z' }),
+            ev('pause', '2026-10-15T12:00:00.000Z'),
+        ],
+        3,
+    );
+    expect(lines(rows)).toEqual(['Pausa | 01/10/2026 – 05/10/2026', 'Pausa | desde 15/10/2026']);
+});
+
+test('ids bigint: o desempate não perde precisão (pausa antes da volta no mesmo instante)', () => {
+    const at = '2026-11-09T12:30:00.000Z';
+    const rows = programHistory(
+        [
+            ev('lamp_reactivated', at, { id: '9007199254740993', actor: 'system' }),
+            ev('pause', at, { id: '9007199254740992' }),
+        ],
+        3,
+    );
+    expect(lines(rows)).toEqual(['Pausa | 09/11/2026 – 09/11/2026']);
+});
+
+test('datas inválidas: data efetiva inválida cai para a conhecida; evento sem data não entra nem na contagem', () => {
+    const rows = programHistory(
+        [
+            ev('start', '2026-10-07T13:00:00.000Z', { effectiveAt: 'inválida' }),
+            ev('pause', '2026-10-22T12:00:00.000Z'),
+            ev('resume', '2026-10-28T12:00:00.000Z', { effectiveAt: 'inválida' }),
+            { ...ev('reset', ''), at: null as unknown as string },
+            { ...ev('reset', ''), at: 0 as unknown as string },
+        ],
+        2,
+    );
+    expect(lines(rows)).toEqual(['Reset | data não registrada', 'Início | 07/10/2026', 'Pausa | desde 22/10/2026']);
+});
+
+test('estados de conta sem histórico: nada aparece (antes do início, resumo antigo sem program_events)', () => {
+    expect(programHistory([], 3)).toEqual([]);
+    expect(programHistory(undefined, 3)).toEqual([]);
+    expect(programHistory({} as unknown as ProgramEvent[], 3)).toEqual([]);
+});
+
 test('tolerante: ordem pela data (empate pelo id), tipo desconhecido e evento malformado ignorados', () => {
     const rows = programHistory(
         [

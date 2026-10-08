@@ -14,6 +14,7 @@ import { useSegmentCounts } from 'hooks/useAdmin';
 import { useLogoTheme, useNewAntdTheme } from 'hooks/useTheme';
 import { getWeekDay } from 'libs';
 import { ADMIN_SEGMENTS, SEGMENT_OWNERS } from 'libs/adminSegments';
+import { ADMIN_PANEL_EVENT } from 'libs/adminTools';
 import { isLeituraOwner } from 'libs/leitura';
 import { activeMenuKeys, firstName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
@@ -31,6 +32,7 @@ import {
     TriangleAlert,
     X,
 } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { forwardRef, useEffect, useMemo, useState } from 'react';
@@ -775,8 +777,10 @@ const MelpMini: React.FC<{ bar?: boolean }> = ({ bar }) => {
  * Painel de administração (impersonar alunos): as mesmas funções do AdminActions atual (useAdminImpersonation), na
  * linguagem nova — escuro, Manrope, campo e botão finos, sem moldura de card e sem "Cancelar" (X, Esc e fora fecham).
  */
-const AdminItem: React.FC = () => {
+/** `host`: só o painel, sem o item (no celular o menu é uma gaveta; o cartão de /admin abre o painel por aqui). */
+const AdminItem: React.FC<{ host?: boolean }> = ({ host }) => {
     const admin = useAdminImpersonation();
+    const onAdmin = (usePathname() ?? '').startsWith('/admin');
     const antdTheme = useNewAntdTheme();
     const { user } = useAppContext();
     const router = useRouter();
@@ -784,6 +788,19 @@ const AdminItem: React.FC = () => {
     const realUid = auth.currentUser?.uid;
     const segmentsOn = admin.isAdmin && !!realUid && SEGMENT_OWNERS.includes(realUid) && !admin.impersonating;
     const counts = useSegmentCounts(segmentsOn && admin.visible);
+    // o painel também abre pela página /admin (cartão "Painel de alunos"); um só painel responde
+    useEffect(() => {
+        const open = (e: Event) => {
+            const d = (e as CustomEvent<{ done: boolean }>).detail;
+            if (d?.done) return;
+            if (d) d.done = true;
+            admin.setVisible(true);
+        };
+        window.addEventListener(ADMIN_PANEL_EVENT, open);
+        return () => window.removeEventListener(ADMIN_PANEL_EVENT, open);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    const owner = isLeituraOwner(realUid);
     if (!admin.isAdmin) return null;
     const mercyUid = admin.impersonating ? user?.uid : admin.selectedUserToImpersonate;
     const mercyLabel = admin.impersonating
@@ -791,10 +808,18 @@ const AdminItem: React.FC = () => {
         : admin.options?.find((o) => o.value === admin.selectedUserToImpersonate)?.label.split(' - ')[0];
     return (
         <>
-            <button type="button" className="it" onClick={() => admin.setVisible(true)} title="Admin panel">
-                <ShieldCheck {...ICON} aria-hidden />
-                <span className="lbl">Admin panel</span>
-            </button>
+            {host ? null : owner ? (
+                // o dono: "Admin" leva às ferramentas internas (/admin); o painel de alunos abre de lá
+                <Link className="it" href="/admin" title="Admin" aria-current={onAdmin ? 'page' : undefined}>
+                    <ShieldCheck {...ICON} aria-hidden />
+                    <span className="lbl">Admin</span>
+                </Link>
+            ) : (
+                <button type="button" className="it" onClick={() => admin.setVisible(true)} title="Admin panel">
+                    <ShieldCheck {...ICON} aria-hidden />
+                    <span className="lbl">Admin panel</span>
+                </button>
+            )}
             <ConfigProvider theme={antdTheme}>
                 <Global styles={popupStyles} />
                 <Modal
@@ -1090,6 +1115,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                             {withMelpSummary && <MelpMini bar />}
                         </header>
                         {drawer}
+                        <AdminItem host />
                     </>
                 ) : (
                     <aside className={`sb ${UI_FONT_CLASS}`}>

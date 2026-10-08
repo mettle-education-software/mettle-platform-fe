@@ -32,7 +32,7 @@ import React, { ReactNode, useEffect, useRef, useState, useSyncExternalStore } f
 const HIGHLIGHT = 'deda-readalong';
 /** Palavra dita dentro do bloco (modos Phrase e Sentence): sublinhado fino, na cor do texto sobre o amarelo. */
 const HIGHLIGHT_WORD = 'deda-readalong-word';
-/** "My reading": palavras lidas com outra no lugar, tingidas de leve enquanto a faixa do aluno está à vista. */
+/** "My reading": palavras lidas com outra no lugar, com fundo vermelho suave enquanto a faixa do aluno está à vista. */
 const HIGHLIGHT_MISS = 'deda-readalong-miss';
 
 // ---------- "My reading": qual gravação do aluno está no player (publicada pelo TwoTrackPlayer) ----------
@@ -213,11 +213,15 @@ const highlightStyle = css`
     ::highlight(${HIGHLIGHT}) {
         color: var(--r-readalong-text, #1d1a17);
     }
+    /* vermelho suave atrás da palavra trocada (texto AA: ~7,5:1 no escuro, ~9,5:1 no claro) */
+    :root {
+        --ra-miss: rgba(229, 96, 76, 0.36);
+    }
+    html[data-theme='light'] {
+        --ra-miss: rgba(214, 69, 50, 0.26);
+    }
     ::highlight(${HIGHLIGHT_MISS}) {
-        text-decoration: underline wavy;
-        text-decoration-thickness: 1px;
-        text-underline-offset: 0.22em;
-        text-decoration-color: var(--r-danger, #e58f80);
+        background-color: var(--ra-miss);
     }
     ::highlight(${HIGHLIGHT_WORD}) {
         color: var(--r-readalong-text, #1d1a17);
@@ -472,6 +476,15 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
         const resize = new ResizeObserver(() => current.current >= 0 && place(current.current));
         if (box.current) resize.observe(box.current);
 
+        // Vermelho de "My reading": sempre à vista na faixa do aluno, menos no trecho que está tocando (o fundo do
+        // ::highlight fica por cima da marca amarela; ali o amarelo manda, para a palavra atual ficar clara).
+        const paintMiss = (b: number) => {
+            hlMiss.clear();
+            if (source !== 'mine' || !own) return;
+            const [s, e] = b >= 0 && blocks[b] ? blocks[b] : [-1, -2];
+            for (const k of own.miss) if ((k < s || k > e) && ranges.current[k]) hlMiss.add(ranges.current[k]);
+        };
+
         const tick = (now: number) => {
             raf = requestAnimationFrame(tick);
             const ready = sync(); // também liga o seletor de modo assim que o texto confere com os tempos
@@ -487,9 +500,7 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
                     line = next === 'mine' && ownLine ? ownLine : (align?.words ?? []);
                     word = -1;
                     current.current = -2; // força redesenhar a marca
-                    hlMiss.clear();
-                    if (next === 'mine' && own)
-                        own.miss.forEach((k) => ranges.current[k] && hlMiss.add(ranges.current[k]));
+                    paintMiss(-1);
                 }
             }
             const on = !!audio && !!source && audio.currentTime > 0 && ready;
@@ -506,6 +517,7 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
             const fade = !byWord && current.current >= 0 && b >= 0;
             current.current = b;
             hl.clear();
+            paintMiss(b);
             place(b, fade);
             if (b < 0) return;
             blockRanges(b).forEach((r) => hl.add(r));

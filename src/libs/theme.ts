@@ -71,3 +71,12 @@ export const rememberNewDesign = (on: boolean) => {
 
 /** Script inline do <head>: mesma regra de resolveTheme, antes da primeira pintura (sem piscar). */
 export const THEME_BOOT_SCRIPT = `(function(){var h=document.documentElement;try{var p=localStorage.getItem('${THEME_KEY}');var d=p==='dark'||(p!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);h.setAttribute('data-theme',d?'dark':'light');if(localStorage.getItem('${NEW_DESIGN_HINT_KEY}')==='1')h.classList.add('${NEW_DESIGN_BOOT_CLASS}')}catch(e){h.setAttribute('data-theme','dark')}})();`;
+
+/**
+ * App instalado (PWA) na plataforma nova: a página vai até o alto da tela (viewport-fit=cover) e a barra de status
+ * do iOS fica translúcida sobre um bloco sólido nosso, da cor do tema, com a altura de env(safe-area-inset-top).
+ * Nenhum texto fica nessa faixa, então o desfoque que o iOS 26 aplica ali não pega em nada. Só nos aparelhos da
+ * plataforma nova (marca NEW_DESIGN_HINT_KEY): nas demais contas o env() continua 0 e nada muda.
+ * Vai DEPOIS das metas de viewport e de status bar no <head> (o script as altera).
+ */
+export const STANDALONE_SCRIPT = `(function(){try{var s=window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches;if(!s||localStorage.getItem('${NEW_DESIGN_HINT_KEY}')!=='1')return;var v=document.querySelector('meta[name=viewport]');if(v&&v.content.indexOf('viewport-fit')<0)v.content+=', viewport-fit=cover';var b=document.querySelector('meta[name=apple-mobile-web-app-status-bar-style]');if(b)b.content='black-translucent';document.documentElement.classList.add('nd-pwa')}catch(e){}})();`;

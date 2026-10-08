@@ -45,7 +45,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CError, cfetch, cpost, cupload } from 'services/comunidadeService';
 import { ChatPicker } from './ChatPicker';
-import { Meta, MettleMark, QuoteBlock, Text, useRecorder, Voice, Wrap } from './NewChat';
+import { Meta, MettleMark, QuoteBlock, Text, useNoNativeSelection, useRecorder, Voice, Wrap } from './NewChat';
 import { NewPage } from './NewPage';
 
 const ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,application/pdf';
@@ -99,6 +99,7 @@ const pushSupported = () =>
     'Notification' in window;
 
 const NewComunidade: React.FC = () => {
+    useNoNativeSelection();
     // área segura de baixo (como no Mettle Chat): viewport-fit=cover só enquanto a página está aberta
     useEffect(() => {
         const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');

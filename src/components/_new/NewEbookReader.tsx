@@ -62,6 +62,8 @@ type Menu =
     | { kind: 'new'; x: number; y: number; ci: number; s: number; e: number; text: string }
     | { kind: 'mark'; x: number; y: number; id: string };
 type Op = Record<string, unknown> & { op: string; id: string };
+/** No sumário, "Sobre o autor" (o título do capítulo é o nome do André). */
+const tocTitle = (c: { slug: string; eyebrow: string; title: string }) => (c.slug === 'autor' ? c.eyebrow : c.title);
 
 /** Serifa de livro (padrão) para o texto; a interface continua em Manrope. */
 const bookSerif = Literata({ subsets: ['latin'], weight: ['400', '600'], style: ['normal', 'italic'] });
@@ -246,6 +248,7 @@ export const NewEbookReader: React.FC = () => {
     const [page, setPage] = useState(0);
     const [total, setTotal] = useState(1);
     const [starts, setStarts] = useState<number[]>([]);
+    const [backAt, setBackAt] = useState(0); // primeira página do fim (Mettle, contracapa): sem número
     const [shown, setShown] = useState(false);
     const [jump, setJump] = useState(true); // sem deslizar ao abrir, ao retomar e ao saltar
     const [chrome, setChrome] = useState(true);
@@ -258,6 +261,7 @@ export const NewEbookReader: React.FC = () => {
     const [bmPages, setBmPages] = useState<Record<string, number>>({});
 
     const wrap = useRef<HTMLDivElement>(null);
+    const pageRef = useRef(0);
     const flow = useRef<HTMLDivElement>(null);
     const anchor = useRef<Anchor | null>(null);
     const fraction = useRef<number | null>(null); // posição salva (fração do capítulo), convertida na primeira medida
@@ -300,8 +304,11 @@ export const NewEbookReader: React.FC = () => {
                 const resume = resumePosition(b.chapters, readLocalPosition(), b.position);
                 const asked = want ? b.chapters.findIndex((c) => c.slug === want) : -1;
                 const start = asked >= 0 && asked !== resume.index ? { index: asked, y: 0 } : resume;
-                anchor.current = { ci: start.index, o: 0 };
-                fraction.current = start.y;
+                // primeira vez (nada salvo, nem capítulo pedido): o livro abre na capa
+                if (asked >= 0 || readLocalPosition() || b.position) {
+                    anchor.current = { ci: start.index, o: 0 };
+                    fraction.current = start.y;
+                }
                 const marks = withPending(b.marks ?? { bookmarks: [], highlights: [] });
                 setBookmarks(marks.bookmarks);
                 setHighlights(marks.highlights);
@@ -326,6 +333,7 @@ export const NewEbookReader: React.FC = () => {
 
     const L = useMemo(() => pageLayout(size.w || 1, size.h || 1, scale / DEFAULT_TEXT_SCALE), [size, scale]);
     const step = L.pageW + L.gap;
+    const spread = L.spread;
     const per = L.spread ? 2 : 1;
 
     // o livro inteiro no DOM, uma vez (fora do React: os destaques mexem no texto), com os destaques pintados
@@ -334,12 +342,27 @@ export const NewEbookReader: React.FC = () => {
     useLayoutEffect(() => {
         const el = flow.current;
         if (!el || !chapters.length) return;
-        el.innerHTML = chapters
-            .map(
+        const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const logos = `<img class="logo-d" src="${EBOOK.logoDark}" alt="Mettle"><img class="logo-l" src="${EBOOK.logoLight}" alt="Mettle">`;
+        // livro inteiro: capa, folha de rosto, créditos, sumário, capítulos, página da Mettle e contracapa
+        el.innerHTML = [
+            spread ? '<section class="fm blank" aria-hidden="true"></section>' : '', // capa sozinha na página da direita
+            `<section class="fm cover"><img src="${EBOOK.cover}" alt="${esc(EBOOK.title)}"></section>`,
+            `<section class="fm title"><p class="brand">${logos}</p><h1 class="bt">${esc(EBOOK.title)}</h1><p class="bs">${esc(EBOOK.subtitle)}</p><p class="tg">${esc(EBOOK.tagline)}</p><p class="au">${esc(EBOOK.author)}</p></section>`,
+            `<section class="fm copy"><div>${EBOOK.copyright.map((ls) => `<p>${ls.map(esc).join('<br>')}</p>`).join('')}</div></section>`,
+            `<section class="fm toc"><h2>Sumário</h2><ol>${chapters
+                .map(
+                    (c, i) =>
+                        `<li data-toc="${i}"><span class="tt">${esc(tocTitle(c))}</span><span class="tp" data-tp="${i}"></span></li>`,
+                )
+                .join('')}</ol></section>`,
+            ...chapters.map(
                 (_, i) =>
                     `<section class="ch" data-i="${i}"><p class="eb"></p><h1></h1><div class="prose">${htmls[i]}</div></section>`,
-            )
-            .join('');
+            ),
+            `<section class="bm mettle"><p class="brand">${logos}</p><p class="site">mettle.com.br</p></section>`,
+            `<section class="bm back"><div><p class="bt">${esc(EBOOK.title)}</p><p class="bs">${esc(EBOOK.subtitle)}</p><p class="sy">${esc(EBOOK.description)}</p><p class="au">${esc(EBOOK.author)}</p></div></section>`,
+        ].join('');
         el.querySelectorAll<HTMLElement>('section.ch').forEach((s, i) => {
             (s.querySelector('.eb') as HTMLElement).textContent = chapters[i].eyebrow;
             (s.querySelector('h1') as HTMLElement).textContent = chapters[i].title;
@@ -348,7 +371,7 @@ export const NewEbookReader: React.FC = () => {
                 hlRef.current.filter((h) => h.c === chapters[i].slug),
             );
         });
-    }, [chapters, htmls]);
+    }, [chapters, htmls, spread]);
 
     const proseOf = (ci: number) =>
         flow.current?.querySelector<HTMLElement>(`section.ch[data-i="${ci}"] .prose`) ?? null;
@@ -414,11 +437,15 @@ export const NewEbookReader: React.FC = () => {
         const base = el.getBoundingClientRect().left;
         const n = Math.max(1, Math.round((el.scrollWidth + L.gap) / step));
         setTotal(n);
-        setStarts(
-            Array.from(el.querySelectorAll<HTMLElement>('section.ch')).map((s) =>
-                Math.max(0, Math.round((s.getBoundingClientRect().left - base) / step)),
-            ),
-        );
+        const at = (s: Element) => Math.max(0, Math.round((s.getBoundingClientRect().left - base) / step));
+        const st = Array.from(el.querySelectorAll('section.ch')).map(at);
+        const back = el.querySelector('section.bm');
+        setStarts(st);
+        setBackAt(back ? at(back) : n);
+        // sumário do livro: número impresso (a contagem começa no primeiro capítulo)
+        el.querySelectorAll<HTMLElement>('[data-tp]').forEach((t) => {
+            t.textContent = String((st[Number(t.dataset.tp)] ?? 0) - (st[0] ?? 0) + 1);
+        });
         const a = anchor.current;
         if (!a) return;
         if (fraction.current !== null) {
@@ -530,10 +557,14 @@ export const NewEbookReader: React.FC = () => {
                 e.preventDefault();
                 turn(-1);
             }
+            if (e.key === 'Home' || e.key === 'End') {
+                e.preventDefault();
+                go(e.key === 'Home' ? 0 : total - 1, false);
+            }
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [turn]);
+    }, [turn, go, total]);
 
     // a barra some durante a leitura e volta com o mouse ou um toque no centro
     const wake = useCallback(() => {
@@ -542,9 +573,11 @@ export const NewEbookReader: React.FC = () => {
         idle.current = setTimeout(() => setChrome(false), 2800);
     }, []);
     useEffect(() => {
-        if (shown) wake();
+        if (shown && pageRef.current > 0) wake();
+        else if (shown) setChrome(false); // capa: sem barra
         return () => clearTimeout(idle.current);
     }, [shown, wake]);
+    pageRef.current = page;
     const chromeOn = chrome || !!panel || !!menu || !!note;
 
     // seleção de texto: o menu de destaque aparece junto
@@ -679,6 +712,8 @@ export const NewEbookReader: React.FC = () => {
     };
     const onFlowClick = (e: React.MouseEvent) => {
         const t = e.target as HTMLElement;
+        const tocItem = t.closest('[data-toc]') as HTMLElement | null;
+        if (tocItem) return goAnchor({ ci: Number(tocItem.dataset.toc), o: 0 });
         const mark = t.closest('mark.hl') as HTMLElement | null;
         if (mark && window.getSelection()?.isCollapsed) {
             const rect = mark.getBoundingClientRect();
@@ -748,9 +783,13 @@ export const NewEbookReader: React.FC = () => {
     };
     const ciNow = chapterAt(page);
     const lastVisible = Math.min(total - 1, page + per - 1);
-    const chapterEnd = (starts[chapterAt(lastVisible) + 1] ?? total) - 1;
-    const left = Math.max(0, chapterEnd - lastVisible);
-    const pageLabel = (p: number) => (p < total ? `${p + 1} de ${total}` : '');
+    // numeração impressa: do primeiro capítulo até antes do fim (capa, rosto, sumário e o fim ficam sem número)
+    const first = starts[0] ?? 0;
+    const printed = (p: number) => p - first + 1;
+    const inBody = (p: number) => p >= first && p < backAt;
+    const chapterEnd = Math.min(starts[chapterAt(lastVisible) + 1] ?? backAt, backAt) - 1;
+    const left = inBody(lastVisible) ? Math.max(0, chapterEnd - lastVisible) : 0;
+    const pageLabel = (p: number) => (inBody(p) ? `${printed(p)} de ${backAt - first}` : '');
     const hlMenu = menu?.kind === 'mark' ? highlights.find((h) => h.id === menu.id) : null;
 
     return (
@@ -849,8 +888,8 @@ export const NewEbookReader: React.FC = () => {
                                         aria-current={i === ciNow || undefined}
                                         onClick={() => goAnchor({ ci: i, o: 0 })}
                                     >
-                                        <span className="t">{c.title}</span>
-                                        <span className="pg">{(starts[i] ?? 0) + 1}</span>
+                                        <span className="t">{tocTitle(c)}</span>
+                                        <span className="pg">{printed(starts[i] ?? 0)}</span>
                                     </button>
                                 </li>
                             ))}
@@ -872,7 +911,7 @@ export const NewEbookReader: React.FC = () => {
                                                         <small>{chapters[ci]?.title}</small>
                                                         <span className="x">{b.x}</span>
                                                     </span>
-                                                    <span className="pg">{(bmPages[b.id] ?? 0) + 1}</span>
+                                                    <span className="pg">{printed(bmPages[b.id] ?? 0)}</span>
                                                 </button>
                                             </li>
                                         );
@@ -1591,6 +1630,192 @@ const Wrap = styled.div`
     }
     .prose .plano-btn {
         color: var(--r-gold-hi);
+    }
+    /* ---------- capa, folha de rosto, créditos, sumário; página da Mettle e contracapa ---------- */
+    /* sem o respiro entre seções da página (ui): aqui cada seção começa no alto da página */
+    .flow > section {
+        margin: 0;
+    }
+    .flow section.fm,
+    .flow section.bm {
+        height: var(--ph);
+        overflow: hidden;
+        break-before: column;
+        -webkit-column-break-before: always;
+        break-inside: avoid;
+        text-align: center;
+        hyphens: manual;
+    }
+    .flow section.fm:first-child {
+        break-before: auto;
+        -webkit-column-break-before: auto;
+    }
+    .flow section.toc {
+        height: auto;
+        overflow: visible;
+        break-inside: auto;
+        text-align: left;
+    }
+    .flow .cover {
+        display: grid;
+        place-items: center;
+    }
+    /* a capa é a arte do André: nenhum tema mexe nela */
+    .flow .cover img {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        box-shadow: 0 10px 34px rgba(0, 0, 0, 0.28);
+    }
+    .flow .logo-l {
+        display: none;
+    }
+    &.t-dark .flow .logo-d,
+    &.t-night .flow .logo-d {
+        display: none;
+    }
+    &.t-dark .flow .logo-l,
+    &.t-night .flow .logo-l {
+        display: inline;
+    }
+    .flow .brand {
+        margin: 0;
+    }
+    .flow .brand img {
+        height: 1.5em;
+        width: auto;
+    }
+    .flow .title {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4%;
+    }
+    .flow .title h1.bt {
+        margin: 2.2em 0 0.6em;
+        font-size: 1.55em;
+        font-weight: 400;
+        line-height: 1.22;
+        text-align: center;
+    }
+    .flow .title .bs {
+        margin: 0;
+        font-style: italic;
+        color: var(--r-muted);
+    }
+    .flow .title .tg {
+        max-width: 24em;
+        margin: 2.4em auto 0;
+        font-size: 0.78em;
+        line-height: 1.55;
+        color: var(--r-muted);
+    }
+    .flow .title .au {
+        margin: 3em 0 0;
+        font-family: var(--r-ui-font), system-ui, sans-serif;
+        font-size: 0.68em;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+    .flow .copy {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        text-align: left;
+        font-size: 0.7em;
+        line-height: 1.6;
+        color: var(--r-muted);
+    }
+    .flow .copy p + p {
+        margin-top: 1.1em;
+        text-indent: 0;
+    }
+    .flow .toc h2 {
+        margin: 2.2em 0 1.4em;
+        font-size: 1.45em;
+        font-weight: 400;
+    }
+    .flow .toc ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .flow .toc li {
+        display: flex;
+        align-items: baseline;
+        gap: 1em;
+        padding: 0.35em 0;
+        line-height: 1.3;
+        cursor: pointer;
+        break-inside: avoid;
+    }
+    .flow .toc li:hover .tt {
+        color: var(--r-gold-hi);
+    }
+    .flow .toc .tt {
+        flex: 1;
+        font-size: 0.9em;
+    }
+    .flow .toc .tp {
+        font-size: 0.8em;
+        color: var(--r-muted);
+        font-variant-numeric: tabular-nums;
+    }
+    .flow .mettle {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.2em;
+    }
+    .flow .mettle .brand img {
+        height: 2.2em;
+    }
+    .flow .mettle .site {
+        margin: 0;
+        font-family: var(--r-ui-font), system-ui, sans-serif;
+        font-size: 0.75em;
+        letter-spacing: 0.14em;
+        color: var(--r-muted);
+    }
+    /* contracapa: cores próprias, como a de um livro impresso (não segue o tema) */
+    .flow .back {
+        display: flex;
+        align-items: center;
+        background: #24201c;
+        color: #efe9df;
+        border-radius: 4px;
+    }
+    .flow .back > div {
+        padding: 0 12%;
+        text-align: left;
+    }
+    .flow .back .bt {
+        margin: 0;
+        font-size: 1.2em;
+        line-height: 1.25;
+    }
+    .flow .back .bs {
+        margin: 0.4em 0 0;
+        font-style: italic;
+        color: #c9bfb1;
+    }
+    .flow .back .sy {
+        margin: 2em 0 0;
+        font-size: 0.85em;
+        line-height: 1.6;
+    }
+    .flow .back .au {
+        margin: 2.4em 0 0;
+        font-family: var(--r-ui-font), system-ui, sans-serif;
+        font-size: 0.68em;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #d8b07f;
     }
     mark.hl {
         background: var(--hl);

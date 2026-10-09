@@ -111,7 +111,9 @@ export const useDedasGrid = (type: DedasGridProps['type'], blockedDEDAs?: boolea
             unlockedDEDAs.length > 0 &&
             !['DEDA_FINISHED', 'MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN'].includes(
                 melpSummary?.melp_status as string,
-            ),
+            ) &&
+            // legado pausado: na volta o aluno entra onde a rotação estiver, não no DEDA seguinte ao dele (PF-18)
+            (calendarClock || melpSummary?.melp_status !== 'DEDA_PAUSED'),
     };
 };
 
@@ -125,6 +127,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
         allDedas: sortedAllDedasResult,
         weekOf,
         nextWeekOf,
+        showNext,
     } = useDedasGrid(type, blockedDEDAs);
     const weekText = (week?: number) => (week ? `Week ${week}` : undefined);
 
@@ -134,12 +137,11 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                 <strong>Most recent</strong> DEDAs
             </Title>
         ),
-        nextDedas:
-            unlockedDEDAs.length > 0 && melpSummary?.melp_status !== 'DEDA_FINISHED' ? (
-                <Title level={4}>
-                    <strong>Next</strong> DEDAs
-                </Title>
-            ) : null,
+        nextDedas: showNext ? (
+            <Title level={4}>
+                <strong>Next</strong> DEDAs
+            </Title>
+        ) : null,
         allDedas: (
             <Title level={4}>
                 <strong>All</strong> DEDAs
@@ -206,7 +208,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                             </Col>
                         ))}
                     {type === 'nextDedas' &&
-                        melpSummary?.melp_status !== 'DEDA_FINISHED' &&
+                        showNext &&
                         nextDedasItems?.map((deda, index) => (
                             <Col xs={12} md={6} key={deda.dedaSlug}>
                                 <DedaCard

@@ -47,3 +47,29 @@ const IMERSO_OPEN_ROUTES = [/^\/imerso\/?$/, /^\/imerso\/deda\/?$/, /^\/imerso\/
 
 export const isImersoRouteAllowedWhenExpired = (pathname: string) =>
     !pathname.startsWith('/imerso') || IMERSO_OPEN_ROUTES.some((route) => route.test(pathname));
+
+/**
+ * Faixa de vencimento do Imerso: carência (venceu, ainda abre) ou "vence em breve" (o servidor marca expiring).
+ * O motivo do vencimento não é conhecido (fim do plano ou cobrança recusada): o texto não supõe nenhum.
+ * Data de Brasília; sem data válida, sem data. null = sem faixa.
+ */
+export const renewalNotice = (access: ProductAccess, en: boolean): string | null => {
+    const date = access.expiresAt ? new Date(access.expiresAt) : null;
+    const when =
+        date && !Number.isNaN(date.getTime())
+            ? date.toLocaleDateString(en ? 'en-US' : 'pt-BR', {
+                  timeZone: 'America/Sao_Paulo',
+                  day: 'numeric',
+                  month: en ? 'short' : 'long',
+              })
+            : null;
+    if (access.state === 'grace')
+        return en
+            ? `Your IMERSO access expired${when ? ` on ${when}` : ''}.`
+            : `Seu acesso ao Imerso venceu${when ? ` em ${when}` : ''}.`;
+    if (access.state === 'active' && access.expiring)
+        return en
+            ? `Your IMERSO access expires ${when ? `on ${when}` : 'soon'}.`
+            : `Seu acesso ao Imerso vence ${when ? `em ${when}` : 'em breve'}.`;
+    return null;
+};

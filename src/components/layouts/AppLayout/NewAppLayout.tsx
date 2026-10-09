@@ -12,12 +12,18 @@ import { useDeviceSize } from 'hooks';
 import { useDedaRun } from 'hooks/melp/lampDays';
 import { useSegmentCounts } from 'hooks/useAdmin';
 import { useLogoTheme, useNewAntdTheme } from 'hooks/useTheme';
-import { SAO_PAULO_TZ, saoPauloWeekday } from 'libs';
+import { saoPauloWeekday } from 'libs';
 import { ADMIN_SEGMENTS, SEGMENT_OWNERS } from 'libs/adminSegments';
 import { ADMIN_PANEL_EVENT } from 'libs/adminTools';
 import { isLeituraOwner } from 'libs/leitura';
 import { activeMenuKeys, displayName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
-import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
+import {
+    IMERSO_PRODUCT,
+    IMERSO_SALES_URL,
+    isImersoRouteAllowedWhenExpired,
+    RENEWAL_URLS,
+    renewalNotice,
+} from 'libs/productAccess';
 import {
     GraduationCap,
     Headset,
@@ -1049,31 +1055,12 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                 </div>
             </ConfigProvider>
         );
-        // Carência (venceu, ainda abre) e "vence em breve": uma linha com a data e "Renovar". O motivo do vencimento não
-        // é conhecido (fim do plano ou cobrança recusada): o texto não supõe nenhum. Dentro do IMERSO em inglês.
-        const imersoAccess = access(IMERSO_PRODUCT);
+        // Carência e "vence em breve": uma linha com a data e "Renovar" (libs/productAccess.renewalNotice); dentro do
+        // IMERSO em inglês.
         const en = pathname.startsWith('/imerso');
-        const day = (iso?: string | null) =>
-            iso
-                ? new Date(iso).toLocaleDateString(en ? 'en-US' : 'pt-BR', {
-                      timeZone: SAO_PAULO_TZ,
-                      day: 'numeric',
-                      month: 'short',
-                  })
-                : null;
-        const when = day(imersoAccess.expiresAt);
-        const renewText =
-            imersoState === 'grace'
-                ? en
-                    ? `Your IMERSO access expired${when ? ` on ${when}` : ''}.`
-                    : `Seu acesso ao Imerso venceu${when ? ` em ${when}` : ''}.`
-                : imersoState === 'active' && imersoAccess.expiring && when
-                  ? en
-                      ? `Your IMERSO access expires on ${when}.`
-                      : `Seu acesso ao Imerso vence em ${when}.`
-                  : null;
+        const renewText = renewalNotice(access(IMERSO_PRODUCT), en);
         const graceBanner = renewText && (
-            <div className={`grace ${UI_FONT_CLASS}`} role="status">
+            <div className={`grace ${UI_FONT_CLASS}`} role="status" lang={en ? 'en' : 'pt-BR'}>
                 <TriangleAlert {...ICON} aria-hidden />
                 <span>{renewText}</span>
                 <a className="lnk gold" href={RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL}>

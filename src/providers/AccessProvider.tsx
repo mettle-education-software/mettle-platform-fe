@@ -59,23 +59,23 @@ const CtaContent: React.FC<{
     const week = target.product === IMERSO_PRODUCT && imerso?.week ? imerso.week : null;
     const newDesign = useNewDesign();
     // dentro do Imerso, na plataforma nova, tudo em inglês
-    const t =
-        newDesign && target.product === IMERSO_PRODUCT
-            ? {
-                  title: 'Your IMERSO access has expired',
-                  text: `${week ? `You stopped at week ${week}. ` : ''}Your progress is saved.`,
-                  later: 'Not now',
-                  renew: 'Renew access',
-              }
-            : {
-                  title: `Seu acesso ao ${name} expirou`,
-                  text: `${week ? `Você parou na semana ${week}. ` : ''}Seu progresso está guardado. Renove para continuar de onde parou.`,
-                  later: 'Agora não',
-                  renew: 'Renovar meu acesso',
-              };
+    const en = newDesign && target.product === IMERSO_PRODUCT;
+    const t = en
+        ? {
+              title: 'Your IMERSO access has expired',
+              text: `${week ? `You stopped at week ${week}. ` : ''}Your progress is saved.`,
+              later: 'Not now',
+              renew: 'Renew access',
+          }
+        : {
+              title: `Seu acesso ao ${name} expirou`,
+              text: `${week ? `Você parou na semana ${week}. ` : ''}Seu progresso está guardado. Renove para continuar de onde parou.`,
+              later: 'Agora não',
+              renew: 'Renovar meu acesso',
+          };
 
     return (
-        <Flex vertical gap="0.5rem">
+        <Flex vertical gap="0.5rem" lang={en ? 'en' : 'pt-BR'}>
             <Title level={4}>{t.title}</Title>
             <Paragraph>{t.text}</Paragraph>
             <Flex gap="0.5rem" justify={inline ? 'flex-start' : 'flex-end'} wrap>

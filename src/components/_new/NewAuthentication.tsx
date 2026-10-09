@@ -3,11 +3,11 @@
 import styled from '@emotion/styled';
 import { Form } from 'antd';
 import { Logo } from 'components/atoms/Logo/Logo';
-import { LOGIN_IMAGES } from 'libs/newDesign';
-import { ArrowLeft, ArrowRight, Check, Eye, EyeOff } from 'lucide-react';
+import { LOGIN_COPY } from 'libs/newDesign';
+import { ArrowLeft, ArrowRight, BookOpen, Check, Eye, EyeOff, Headphones, Route, Sun } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { DARK, ICON, LIGHT, tokenText, UI_FONT_CLASS, UI_FONT_VAR } from 'themes/newDesign';
 import { Page } from './ui';
 
@@ -38,60 +38,72 @@ const Screen = styled(Page)`
     }
 
     .auth-visual {
-        --auth-shade-rgb: ${DARK['--r-bg-rgb']};
+        --auth-card-top: #f1e9dc;
+        --auth-card-bottom: #d5bb94;
+        --auth-glass: rgba(255, 250, 241, 0.8);
+        --auth-glass-border: rgba(255, 255, 255, 0.65);
         position: relative;
         isolation: isolate;
-        width: 100%;
         min-width: 0;
-        height: 38vh;
-        height: 38svh;
+        height: 160px;
+        margin: 16px 16px 0;
         overflow: hidden;
-        background: rgb(var(--auth-shade-rgb));
+        border-radius: 24px;
+        background: linear-gradient(145deg, var(--auth-card-top) 10%, var(--auth-card-bottom));
+    }
+    .auth-mosaic {
+        position: absolute;
+        inset: -55% -12%;
+        transform: rotate(-9deg);
+        opacity: 0.8;
+        mask-image: linear-gradient(90deg, transparent 5%, #000 70%);
     }
     .auth-image {
         object-fit: cover;
-        opacity: 0;
-        transition: opacity 1200ms ease-in-out;
+        filter: brightness(0.72) saturate(0.75);
     }
-    .auth-image[data-active='true'] {
-        opacity: 1;
-    }
-    .auth-visual::after {
-        content: '';
-        position: absolute;
-        inset: 0;
+    .auth-visual-header {
+        position: relative;
         z-index: 1;
-        pointer-events: none;
-        background: linear-gradient(180deg, rgba(var(--auth-shade-rgb), 0.6), transparent 65%);
+        display: grid;
+        align-content: center;
+        height: 100%;
+        padding: 28px;
     }
-    .auth-brand {
-        position: absolute;
-        z-index: 2;
-        top: 28px;
-        left: 24px;
+    .auth-logo {
         width: 144px;
-        max-width: calc(100% - 48px);
+        max-width: 100%;
     }
-    .auth-brand svg {
+    .auth-logo svg {
         display: block;
+    }
+    .auth-logo-on-dark {
+        display: none;
+    }
+    .auth-visual-copy,
+    .auth-chips {
+        display: none;
+    }
+    .auth-form-brand {
+        margin: 0 auto 40px;
     }
     .auth-form-panel {
         display: grid;
         place-items: center;
         width: 100%;
         min-width: 0;
-        padding: 48px 24px;
+        padding: 32px 24px 40px;
     }
     .auth-content {
         width: 100%;
-        max-width: 368px;
+        max-width: 384px;
         min-width: 0;
     }
     h1 {
-        font-size: clamp(28px, 3vw, 34px);
-        font-weight: 300;
+        font-size: clamp(25px, 2.2vw, 30px);
+        font-weight: 400;
         letter-spacing: -0.035em;
-        margin-bottom: 40px;
+        margin: 0 0 32px;
     }
     .ant-form {
         font: inherit;
@@ -101,7 +113,7 @@ const Screen = styled(Page)`
         margin-bottom: 24px;
     }
     .ant-form-item-label {
-        padding-bottom: 10px;
+        padding-bottom: 8px;
     }
     .ant-form-item-label > label {
         font: inherit;
@@ -163,7 +175,7 @@ const Screen = styled(Page)`
     }
     .auth-links {
         display: flex;
-        justify-content: flex-end;
+        justify-content: flex-start;
         margin: -12px 0 24px;
     }
     .lnk {
@@ -173,8 +185,20 @@ const Screen = styled(Page)`
     .auth-submit {
         width: 100%;
         min-height: 52px;
-        justify-content: space-between;
+        justify-content: center;
         padding-inline: 22px;
+    }
+    .auth-signup {
+        margin: 28px 0 0;
+        text-align: center;
+        color: var(--r-muted);
+        font-size: 13px;
+        line-height: 1.8;
+    }
+    .auth-signup a {
+        color: var(--r-gold-hi);
+        text-decoration: underline;
+        text-underline-offset: 4px;
     }
     .auth-back {
         margin-top: 20px;
@@ -193,79 +217,169 @@ const Screen = styled(Page)`
 
     @media (min-width: 1024px) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 24px;
+        align-items: stretch;
         .auth-visual {
             position: sticky;
-            top: 0;
-            height: 100vh;
-            height: 100svh;
+            top: 24px;
+            height: calc(100vh - 48px);
+            height: calc(100svh - 48px);
+            min-height: 640px;
+            margin: 0;
+            border-radius: 32px;
         }
-        .auth-brand {
-            top: 48px;
-            left: 48px;
-            width: 176px;
+        .auth-visual-header {
+            height: auto;
+            justify-items: center;
+            padding: clamp(40px, 7vh, 80px) 40px 0;
+            text-align: center;
+        }
+        .auth-visual-copy {
+            display: block;
+            max-width: 440px;
+        }
+        .auth-visual-copy h2 {
+            margin: 28px 0 0;
+            font-size: clamp(32px, 3.2vw, 48px);
+            font-weight: 300;
+            line-height: 1.2;
+            letter-spacing: -0.045em;
+            overflow-wrap: anywhere;
+        }
+        .auth-visual-copy p {
+            margin: 16px 0 0;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--r-muted);
+        }
+        .auth-mosaic {
+            inset: 34% -12% -18%;
+            mask-image: linear-gradient(180deg, transparent, #000 25%, #000 75%, transparent);
+        }
+        .auth-chips {
+            display: block;
+            position: absolute;
+            inset: 38% 0 0;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .auth-chip {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 24px;
+            border: 1px solid var(--auth-glass-border);
+            border-radius: 999px;
+            background: var(--auth-glass);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            box-shadow: 0 12px 40px rgba(36, 27, 17, 0.12);
+            font-size: 15px;
+            font-weight: 400;
+            letter-spacing: 0.04em;
+        }
+        .auth-chip:nth-child(1) {
+            top: 10%;
+            left: 9%;
+        }
+        .auth-chip:nth-child(2) {
+            top: 28%;
+            right: 8%;
+        }
+        .auth-chip:nth-child(3) {
+            bottom: 27%;
+            left: 13%;
+        }
+        .auth-chip:nth-child(4) {
+            bottom: 10%;
+            right: 12%;
         }
         .auth-form-panel {
-            min-height: 100vh;
-            min-height: 100svh;
-            padding: 64px 48px;
+            min-height: calc(100vh - 48px);
+            min-height: calc(100svh - 48px);
+            padding: 56px 48px;
+        }
+        .auth-form-brand {
+            width: 168px;
+            margin-bottom: 48px;
         }
     }
     @media (prefers-color-scheme: dark) {
         ${tokenText(DARK)}
         color-scheme: dark;
+        .auth-visual {
+            --auth-card-top: #302a24;
+            --auth-card-bottom: #796043;
+            --auth-glass: rgba(47, 39, 30, 0.78);
+            --auth-glass-border: rgba(231, 207, 176, 0.28);
+        }
+        .auth-logo-on-light {
+            display: none;
+        }
+        .auth-logo-on-dark {
+            display: block;
+        }
     }
     @media (prefers-reduced-motion: reduce) {
-        .auth-image[data-active] {
+        *,
+        *::before,
+        *::after {
+            animation: none;
             transition: none;
-            opacity: 0;
-        }
-        .auth-image:first-of-type {
-            opacity: 1;
         }
     }
 `;
 
+function LoginBrand({ className = '' }: { className?: string }) {
+    return (
+        <div className={`auth-logo ${className}`} role="img" aria-label="Mettle">
+            <div className="auth-logo-on-light" aria-hidden="true">
+                <Logo theme="dark" />
+            </div>
+            <div className="auth-logo-on-dark" aria-hidden="true">
+                <Logo theme="light" />
+            </div>
+        </div>
+    );
+}
+
+const PROGRAM_CHIPS = [
+    { label: 'DEDA', Icon: BookOpen },
+    { label: 'LAMP', Icon: Sun },
+    { label: 'HPEC', Icon: Headphones },
+    { label: 'DEDA Run', Icon: Route },
+];
+
 function LoginVisual() {
-    const [active, setActive] = useState(0);
-    const [reducedMotion, setReducedMotion] = useState(true);
-
-    useEffect(() => {
-        const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-        const syncPreference = () => {
-            setReducedMotion(preference.matches);
-            setActive(0);
-        };
-        syncPreference();
-        preference.addEventListener('change', syncPreference);
-        return () => preference.removeEventListener('change', syncPreference);
-    }, []);
-
-    useEffect(() => {
-        if (reducedMotion || LOGIN_IMAGES.length < 2) return;
-        const timer = window.setInterval(() => setActive((index) => (index + 1) % LOGIN_IMAGES.length), 7000);
-        return () => window.clearInterval(timer);
-    }, [reducedMotion]);
-
     return (
         <div className="auth-visual">
-            {(reducedMotion ? LOGIN_IMAGES.slice(0, 1) : LOGIN_IMAGES).map((src, index) => (
+            <div className="auth-mosaic" aria-hidden="true">
                 <Image
-                    key={src}
                     className="auth-image"
-                    data-active={index === active}
-                    src={src}
+                    src="/img/deda-grid-bg.webp"
                     alt=""
                     fill
-                    sizes="(min-width: 1024px) 50vw, 100vw"
-                    priority={index === 0}
-                    loading={index === 0 ? undefined : 'lazy'}
+                    sizes="(min-width: 1024px) 62vw, 124vw"
+                    priority
                 />
-            ))}
-            <div className="auth-brand" role="img" aria-label="Mettle">
-                <div aria-hidden="true">
-                    <Logo theme="light" />
+            </div>
+            <div className="auth-visual-header">
+                <LoginBrand />
+                <div className="auth-visual-copy">
+                    <h2>{LOGIN_COPY.title}</h2>
+                    {LOGIN_COPY.subtitle && <p>{LOGIN_COPY.subtitle}</p>}
                 </div>
             </div>
+            <ul className="auth-chips" aria-label="Programa Imerso">
+                {PROGRAM_CHIPS.map(({ label, Icon }) => (
+                    <li className="auth-chip" key={label}>
+                        <Icon size={22} strokeWidth={1.25} aria-hidden="true" />
+                        <span>{label}</span>
+                    </li>
+                ))}
+            </ul>
         </div>
     );
 }
@@ -276,6 +390,7 @@ export default function NewAuthentication({ children }: { children: React.ReactN
             <LoginVisual />
             <div className="auth-form-panel">
                 <section className="auth-content" aria-labelledby="auth-title">
+                    <LoginBrand className="auth-form-brand" />
                     {children}
                 </section>
             </div>
@@ -332,7 +447,7 @@ export function NewLoginForm({
 }) {
     return (
         <>
-            <h1 id="auth-title">Entrar</h1>
+            <h1 id="auth-title">Acesse sua conta</h1>
             <Form
                 name="new-login"
                 initialValues={{ email: '', password: '' }}
@@ -348,12 +463,11 @@ export function NewLoginForm({
                 </Form.Item>
                 <div className="auth-links">
                     <Link className="lnk" href={preview ? '/senha-esquecida?preview=novo' : '/senha-esquecida'}>
-                        Esqueceu a senha?
+                        Esqueci minha senha
                     </Link>
                 </div>
                 <button className="btn gold auth-submit" type="submit" disabled={loading}>
                     <span>{loading ? 'Entrando…' : 'Entrar'}</span>
-                    <ArrowRight {...ICON} aria-hidden="true" />
                 </button>
                 {error && (
                     <p className="auth-error" role="alert">
@@ -361,6 +475,16 @@ export function NewLoginForm({
                     </p>
                 )}
             </Form>
+            <p className="auth-signup">
+                Ainda não é aluno?{' '}
+                <a
+                    href="https://mettle.com.br/programa-imerso/?utm_source=plataforma&utm_medium=login&utm_campaign=imerso"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    Conheça o Imerso
+                </a>
+            </p>
         </>
     );
 }

@@ -6,13 +6,11 @@ import { DEDA_READER_FORCED_OFF, DEDA_READER_UIDS, isDedaReaderAccount } from '.
 /** Login público: manter desligado até o lançamento. Preview apenas na URL desta visita. */
 export const NEW_LOGIN = false;
 
-/** Curadoria do login novo, na ordem de exibição. Usar somente arquivos locais de public/img. */
-export const LOGIN_IMAGES: readonly `/img/${string}`[] = [
-    '/img/ebook-card-londres.webp',
-    '/img/imerso_thumb.webp',
-    '/img/hpec-bg.webp',
-    '/img/woman_bg.jpeg',
-];
+/** Texto do cartão da prévia; subtítulo opcional, sem copy de marketing por padrão. */
+export const LOGIN_COPY = {
+    title: 'Programa Imerso',
+    subtitle: '',
+};
 
 export const isNewLogin = (preview?: string | null, enabled: boolean = NEW_LOGIN) => enabled || preview === 'novo';
 

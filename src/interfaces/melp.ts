@@ -36,7 +36,23 @@ export interface MelpSummaryResponse {
         remaining_resets: number;
         /** Histórico do programa (melp_event), em ordem; ausente em respostas antigas. */
         program_events?: ProgramEvent[];
+        // Relógio novo (vault "LAMP × Rotação — Desenho", §2.3): só vêm para uids ligados no servidor.
+        deda_clock?: 'calendar';
+        program_health?: 'ok' | 'inconsistent';
+        deda_first_monday?: string | null;
+        deda_calendar_day?: number;
+        deda_calendar_week?: number;
+        deda_today?: string | null;
+        lamp_active_from?: string | null;
+        deda_weeks?: DedaWeek[];
     };
+}
+
+/** Uma semana de calendário desde a primeira segunda: o DEDA publicado nela e a semana da LAMP que a ocupou. */
+export interface DedaWeek {
+    monday: string;
+    deda_id: string | null;
+    lamp_week: number | null;
 }
 
 /** Um evento do programa (GET /melp/v2/:uid/summary → program_events). `kind` desconhecido é ignorado na tela. */

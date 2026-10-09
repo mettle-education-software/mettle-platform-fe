@@ -30,9 +30,11 @@ const nextDedasQuery = gql`
     }
 `;
 
+// O círculo cresce (104 → 156+): pede o máximo que o espelho e a Content API aceitam numa página.
+// ponytail: teto de 1000 DEDAs (~19 anos de semanas); paginar com `skip` se um dia passar disso.
 const allDedasQuery = gql`
     query AllDedas {
-        dedaContentCollection(order: [dedaId_ASC], limit: 200) {
+        dedaContentCollection(order: [dedaId_ASC], limit: 1000) {
             ${items}
         }
     }

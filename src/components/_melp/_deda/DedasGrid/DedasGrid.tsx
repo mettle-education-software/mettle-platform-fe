@@ -7,6 +7,7 @@ import { useMelpSummary } from 'hooks';
 import { useAllDedasList, useLastDedas, useNextDedas } from 'hooks/queries/dedasLists';
 import { DedaItem } from 'interfaces';
 import { MAX_CONTENT_WIDTH } from 'libs';
+import { dedaLampWeek, isCalendarClock, lampRunning, recentDedaIds, todaysDedaId } from 'libs/dedaClock';
 import { useAppContext } from 'providers';
 import React from 'react';
 
@@ -35,12 +36,21 @@ export const useDedasGrid = (type: DedasGridProps['type'], blockedDEDAs?: boolea
 
     const unlockedDEDAs = !!melpSummary?.unlocked_dedas && !blockedDEDAs ? melpSummary?.unlocked_dedas : [];
 
-    const currentDeda = unlockedDEDAs[unlockedDEDAs.length - 1];
+    // DEDA de hoje e recentes pelo relógio (libs/dedaClock): no relógio novo, deda_today e as exibições datadas; no
+    // legado, o fim de unlocked_dedas, como antes
+    const currentDeda = blockedDEDAs ? undefined : (todaysDedaId(melpSummary) ?? undefined);
 
-    const lastDedas =
-        unlockedDEDAs.length < 4
-            ? unlockedDEDAs.slice(0).reverse()
-            : unlockedDEDAs.slice(unlockedDEDAs.length - 4, unlockedDEDAs.length).reverse();
+    /** Todos os DEDAs já exibidos, do mais recente para trás, sem repetir. */
+    const recentIds = blockedDEDAs ? [] : recentDedaIds(melpSummary, Infinity);
+    const lastDedas = recentIds.slice(0, 4);
+
+    const calendarClock = isCalendarClock(melpSummary);
+    /** Semana do DEDA na LAMP para "Week n" (`index`: posição a partir do mais recente, só no legado); sem semana = sem rótulo. */
+    const weekOf = (dedaId: string, index: number) =>
+        calendarClock ? (dedaLampWeek(melpSummary, dedaId) ?? undefined) : (currentWeek as number) - index;
+    /** Semana dos próximos DEDAs: no relógio novo só com a LAMP contando (DEDA exibido em pausa não tem semana na LAMP). */
+    const nextWeekOf = (index: number) =>
+        !calendarClock || lampRunning(melpSummary) ? (currentWeek as number) + index + 1 : undefined;
 
     let nextDedas: string[] = [];
 
@@ -90,6 +100,9 @@ export const useDedasGrid = (type: DedasGridProps['type'], blockedDEDAs?: boolea
         lastDedas: sortedLastDedasResult,
         nextDedas: nextDedasItems,
         allDedas: sortedAllDedasResult,
+        recentIds,
+        weekOf,
+        nextWeekOf,
         /**
          * "Next DEDAs" só com DEDAs liberados e programa em curso. Antes do início não: a rotação é litúrgica (o aluno
          * entra onde o círculo estiver na segunda), e a ordem do catálogo mostraria DEDAs que ele não vai fazer.
@@ -106,12 +119,14 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
     const {
         melpSummary,
         showSkeleton,
-        currentWeek,
         unlockedDEDAs,
         lastDedas: sortedLastDedasResult,
         nextDedas: nextDedasItems,
         allDedas: sortedAllDedasResult,
+        weekOf,
+        nextWeekOf,
     } = useDedasGrid(type, blockedDEDAs);
+    const weekText = (week?: number) => (week ? `Week ${week}` : undefined);
 
     const titles: { [key in DedasGridProps['type']]: React.ReactNode } = {
         lastDedas: unlockedDEDAs.length > 0 && (
@@ -181,7 +196,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                                     dedaId={deda.dedaId}
                                     imgUrl={deda.dedaFeaturedImage.url}
                                     title={deda.dedaTitle}
-                                    week={`Week ${(currentWeek as number) - index}`}
+                                    week={weekText(weekOf(deda.dedaId, index))}
                                     onClick={() => {
                                         onSelectedDeda(deda.dedaSlug);
                                     }}
@@ -198,7 +213,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                                     dedaId={deda.dedaId}
                                     imgUrl={deda.dedaFeaturedImage.url}
                                     title={deda.dedaTitle}
-                                    week={`Week ${(currentWeek as number) + index + 1}`}
+                                    week={weekText(nextWeekOf(index))}
                                     onClick={() => {
                                         onSelectedDeda(deda.dedaSlug);
                                     }}

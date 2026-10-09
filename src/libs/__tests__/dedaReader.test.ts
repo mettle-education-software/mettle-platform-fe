@@ -1,3 +1,4 @@
+import { MelpSummaryResponse } from '../../interfaces/melp';
 import {
     canJumpTo,
     DEDA_READER_UIDS,
@@ -194,8 +195,9 @@ describe('tempos do Summary', () => {
     });
 });
 
-describe('aba Review (hasReviews)', () => {
-    const unlocked = ['d0', 'd1', 'd2', 'd3', 'd4', 'd5'];
+describe('aba Review (hasReviews, legado)', () => {
+    const summary = (unlocked_dedas: string[]) => ({ unlocked_dedas }) as MelpSummaryResponse['data'];
+    const unlocked = summary(['d0', 'd1', 'd2', 'd3', 'd4', 'd5']);
 
     it('só a partir do quinto DEDA liberado (a mesma regra de "No reviews available")', () => {
         expect(hasReviews(unlocked, 'd0')).toBe(false);
@@ -206,7 +208,7 @@ describe('aba Review (hasReviews)', () => {
 
     it('DEDA fora da lista não tem revisão; sem resumo ainda = indefinido (não pisca)', () => {
         expect(hasReviews(unlocked, 'outro')).toBe(false);
-        expect(hasReviews([], 'd0')).toBe(false);
+        expect(hasReviews(summary([]), 'd0')).toBe(false);
         expect(hasReviews(undefined, 'd0')).toBeUndefined();
     });
 });

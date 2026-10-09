@@ -2,8 +2,8 @@
 
 import { CourseCardData, useCourseCards } from 'components/molecules/MettleCoursesList/MettleCoursesList';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
-import { saoPauloWeekday } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
+import { isCalendarClock, lampToday, todaysDedaId, weekDayLabel } from 'libs/dedaClock';
 import { contentfulImage } from 'libs/dedaHeader';
 import { EBOOK, EBOOK_PATH, EBOOK_PRODUCT, ebookOpen } from 'libs/ebook';
 import { firstName } from 'libs/newDesign';
@@ -20,9 +20,13 @@ import { NewPage } from './NewPage';
 const TodayDeda: React.FC = () => {
     const router = useRouter();
     const { melpSummary, isTodaysDedaCompleted } = useMelpContext();
-    const unlocked = melpSummary?.unlocked_dedas ?? [];
-    const currentId = unlocked[unlocked.length - 1];
-    const featured = useFeaturedDedaData(melpSummary?.melp_status === 'DEDA_STARTED' ? currentId : undefined);
+    // relógio novo: o DEDA não para (pausa, espera da segunda) — aparece com o de hoje publicado; legado: só em andamento
+    const currentId = todaysDedaId(melpSummary);
+    const shown = isCalendarClock(melpSummary)
+        ? !!melpSummary?.deda_calendar_day
+        : melpSummary?.melp_status === 'DEDA_STARTED';
+    const featured = useFeaturedDedaData(shown && currentId ? currentId : undefined);
+    const lampDay = lampToday(melpSummary);
     const deda = featured.data?.dedaContentCollection.items[0];
     if (!deda) return null;
     const thumb = contentfulImage(deda.dedaFeaturedImage?.url, { w: 320, h: 200, fit: 'fill', fm: 'webp', q: 70 });
@@ -37,9 +41,7 @@ const TodayDeda: React.FC = () => {
                     {thumb && <img src={thumb} alt="" />}
                 </span>
                 <span className="meta">
-                    <small>
-                        Week {melpSummary.current_deda_week} · Day {saoPauloWeekday()}
-                    </small>
+                    {lampDay && <small>{weekDayLabel(lampDay.week, lampDay.day)}</small>}
                     {isTodaysDedaCompleted && <em>Done today</em>}
                 </span>
                 <b>{deda.dedaTitle}</b>

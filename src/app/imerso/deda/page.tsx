@@ -9,6 +9,7 @@ import { useDedaHeaderImage, useDedaHomeHeaderImage, useFeaturedDedaData } from 
 import { useNewDesign } from 'hooks/useNewDesign';
 import { padding, SMALL_VIEWPORT, withAuthentication } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
+import { recentDedaIds, todaysDedaId } from 'libs/dedaClock';
 import { HEADER_GRADIENT, HOME_ART_OBJECT_POSITION, HOME_MOBILE_CROPS } from 'libs/dedaHeader';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
@@ -70,13 +71,12 @@ function DedaPage() {
 
     const [selectedDeda, setSelectedDeda] = useState<string>();
 
-    const unlockedDEDAs = useMemo(() => melpSummary?.unlocked_dedas ?? [], [melpSummary]);
-
     useEffect(() => {
         if (!selectedDeda) {
-            setSelectedDeda(unlockedDEDAs[unlockedDEDAs.length - 1]);
+            // relógio novo: o de hoje (deda_today) ou, sem ele publicado, o último publicado; legado: o último liberado
+            setSelectedDeda(todaysDedaId(melpSummary) ?? recentDedaIds(melpSummary, 1)[0]);
         }
-    }, [melpSummary, unlockedDEDAs, setSelectedDeda, selectedDeda]);
+    }, [melpSummary, setSelectedDeda, selectedDeda]);
 
     const featuredDedaDataResult = useFeaturedDedaData(selectedDeda);
     // Cabeçalho: imagem própria (dedaHeaderImage) ou, sem ela, a do card como antes.

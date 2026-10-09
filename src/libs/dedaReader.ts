@@ -1,5 +1,7 @@
 // Página nova do DEDA ("Direção A — Leitor focado"): chave por conta e regras puras (testadas em
 // libs/__tests__/dedaReader.test.ts). Ponto único: quem vê a página nova é decidido só aqui.
+import type { MelpSummaryResponse } from 'interfaces/melp';
+import { dedaLampWeek } from './dedaClock';
 import { saoPauloWeekday } from './helpers';
 
 /**
@@ -99,13 +101,15 @@ export const openWriteDay = (requested: number | null | undefined, today: number
 // ---------- aba Review: só quando há revisão liberada ----------
 
 /**
- * A mesma regra de DedaReview/ReaderReview ("No reviews available at this stage"): as revisões começam no quinto DEDA
- * liberado (week4 — o servidor só cria review1 a partir dele). Antes disso a aba não aparece; a regra não muda, só a
- * exibição. `undefined` = resumo ainda não chegou (decidir depois, sem piscar).
+ * A mesma regra de DedaReview/ReaderReview ("No reviews available at this stage"): as revisões começam na semana 4 da
+ * LAMP (o servidor só cria review1 a partir dela). A semana do DEDA vem de `dedaLampWeek` (relógio novo: a exibição mais
+ * recente com semana na LAMP; legado: a posição em unlocked_dedas). `undefined` = resumo ainda não chegou (sem piscar).
  */
-export const REVIEW_FROM_INDEX = 4;
-export const hasReviews = (unlockedDedas: readonly string[] | undefined, dedaId: string): boolean | undefined =>
-    unlockedDedas ? unlockedDedas.indexOf(dedaId) >= REVIEW_FROM_INDEX : undefined;
+export const REVIEW_FROM_WEEK = 4;
+export const hasReviews = (
+    summary: MelpSummaryResponse['data'] | null | undefined,
+    dedaId: string,
+): boolean | undefined => (summary ? (dedaLampWeek(summary, dedaId) ?? 0) >= REVIEW_FROM_WEEK : undefined);
 
 // ---------- tamanho do texto de leitura ("Aa" na barra do topo): preferência por aparelho ----------
 

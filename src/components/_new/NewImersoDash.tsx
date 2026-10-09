@@ -405,7 +405,8 @@ export const SuspendedNotice: React.FC = () => (
 export const NowDeda: React.FC = () => {
     const { isTodaysDedaCompleted } = useMelpContext();
     const grid = useDedasGrid('lastDedas');
-    const deda = grid.lastDedas[0];
+    // o de hoje (libs/dedaClock): no relógio novo, antes de a rotação da semana sair não há "de hoje" — nada aparece
+    const deda = grid.lastDedas.find((item) => item?.dedaId === grid.currentDeda);
     if (!deda) return grid.showSkeleton ? <Skel /> : null;
     const thumb = contentfulImage(deda.dedaFeaturedImage?.url, { w: 448, h: 252, fit: 'fill', fm: 'webp', q: 70 });
     return (
@@ -622,14 +623,11 @@ export const RecentDedas: React.FC<{ title?: string; aside?: React.ReactNode; sk
     // os DEDAs vêm da lista completa (a mesma consulta de "Explore all DEDAs", em cache entre as páginas); a ordem é a
     // de liberação (melp summary), do mais recente para trás
     const grid = useDedasGrid('allDedas');
-    const week = grid.currentWeek as number;
     const byId = new Map((grid.allDedas ?? []).map((deda) => [deda.dedaId, deda]));
-    const items = grid.unlockedDEDAs
-        .slice()
-        .reverse()
-        .map((id, index) => ({ deda: byId.get(id), week: week - index }))
-        .slice(skipCurrent ? 1 : 0)
-        .filter((x): x is { deda: NonNullable<typeof x.deda>; week: number } => !!x.deda)
+    const items = grid.recentIds
+        .map((id, index) => ({ deda: byId.get(id), week: grid.weekOf(id, index) }))
+        .filter((x, index) => !(skipCurrent && index === 0 && x.deda?.dedaId === grid.currentDeda))
+        .filter((x): x is { deda: NonNullable<typeof x.deda>; week: number | undefined } => !!x.deda)
         .slice(0, 5);
     if (!items.length && !grid.showSkeleton) return aside ? <div className="sh">{aside}</div> : null;
     return (
@@ -655,7 +653,7 @@ export const RecentDedas: React.FC<{ title?: string; aside?: React.ReactNode; sk
                                     {src && <img src={src} alt="" loading="lazy" />}
                                 </span>
                                 <span>
-                                    <small>Week {w}</small>
+                                    {!!w && <small>Week {w}</small>}
                                     <b>{deda.dedaTitle}</b>
                                 </span>
                             </Link>

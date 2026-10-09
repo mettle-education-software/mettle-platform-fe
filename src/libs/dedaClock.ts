@@ -101,6 +101,7 @@ export const lampSaveProblem = (error: unknown): { text: string; retry: boolean 
         case 'PROGRAM_INCONSISTENT':
             return { text: 'LAMP under maintenance. The team has been notified.', retry: false };
         case 'LAMP_DAY_REPLACED':
+        case 'EXPECTED_ROW_ID_REQUIRED':
             return { text: 'This LAMP day was updated. Please try again.', retry: true };
         default:
             return { text: 'We couldn’t save. Check your connection and try again.', retry: true };

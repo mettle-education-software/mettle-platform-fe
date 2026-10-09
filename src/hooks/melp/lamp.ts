@@ -10,11 +10,11 @@ import {
     WeeklyPerformanceResponse,
     WeeklyStatisticsResponse,
 } from 'interfaces';
-import { DedaDifficulty } from 'interfaces/melp';
+import { DedaDifficulty, MelpSummaryResponse } from 'interfaces/melp';
 import { statisticsColors } from 'libs';
 import { isCalendarClock, lampSaveError, lampSaveProblem, lampToday, todaysDedaId } from 'libs/dedaClock';
 import { useAppContext, useMelpContext } from 'providers';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { lampService } from 'services';
 import { font } from 'themes';
 
@@ -124,6 +124,7 @@ export const useSaveDedaInput = () => {
  */
 export const useDedaCompletion = (dedaId: string) => {
     const { user } = useAppContext();
+    const queryClient = useQueryClient();
     const { melpSummary, isTodaysDedaCompleted } = useMelpContext();
     const isTodaysDeda = todaysDedaId(melpSummary) === dedaId;
     const lampDay = isTodaysDeda ? lampToday(melpSummary) : null;
@@ -132,32 +133,57 @@ export const useDedaCompletion = (dedaId: string) => {
     const week = lampDay ? `week${lampDay.week}` : '';
     const day = lampDay ? `day${lampDay.day}` : '';
     const row = useGetInputData(calendar && completable ? week : '', day);
-    const rowId = row.data?.dedaInput?.rowId;
+    // a identidade recusada pelo servidor (409 LAMP_DAY_REPLACED) não volta a ser enviada, nem se a releitura falhar
+    const [rejectedRowId, setRejectedRowId] = useState<string>();
+    const rowId = row.data?.dedaInput?.rowId !== rejectedRowId ? row.data?.dedaInput?.rowId : undefined;
     const save = useSaveDedaInput();
+    const [checking, setChecking] = useState(false);
+    const [notice, setNotice] = useState<{ text: string; retry: boolean }>();
 
-    const complete = (inputData: SaveDedaInputMutationDedaData, onDone: () => void) => {
-        if (!lampDay || !user?.uid || save.isPending) return;
+    const complete = async (inputData: SaveDedaInputMutationDedaData, onDone: () => void) => {
+        if (!lampDay || !user?.uid || save.isPending || checking) return;
+        setNotice(undefined);
+        save.reset();
+        // sem a linha do dia (a leitura falhou ou foi recusada): tenta lê-la de novo, sem gravar
         if (calendar && !rowId) return void row.refetch();
+        // o resumo pode ter ficado para trás (aba aberta na virada do dia em Brasília): confere antes de gravar
+        setChecking(true);
+        const fresh = await queryClient
+            .refetchQueries({ queryKey: ['imerso-summary', user.uid], exact: true }, { throwOnError: true })
+            .then(() => queryClient.getQueryData<MelpSummaryResponse['data']>(['imerso-summary', user.uid]))
+            .catch(() => undefined);
+        setChecking(false);
+        const freshDay = fresh && todaysDedaId(fresh) === dedaId ? lampToday(fresh) : null;
+        if (!fresh) return setNotice(lampSaveProblem(undefined));
+        if (!freshDay) return setNotice({ text: 'This DEDA can no longer be completed today.', retry: false });
+        if (freshDay.week !== lampDay.week || freshDay.day !== lampDay.day || isCalendarClock(fresh) !== calendar)
+            return setNotice({ text: 'A new LAMP day has started. Please try again.', retry: true });
         save.mutate(
             { userUid: user.uid, week, day, inputData, expectedRowId: calendar ? rowId : undefined },
             {
                 onSuccess: onDone,
-                // a linha do dia foi trocada (pausa e volta na mesma segunda): relê para o próximo "Try again"
-                onError: (error) => void (lampSaveError(error) === 'LAMP_DAY_REPLACED' && row.refetch()),
+                onError: (error) => {
+                    // a linha do dia foi trocada (pausa e volta na mesma segunda): relê para o próximo "Try again"
+                    if (lampSaveError(error) === 'LAMP_DAY_REPLACED') {
+                        setRejectedRowId(rowId);
+                        row.refetch();
+                    }
+                },
             },
         );
     };
 
-    const failure = save.isError ? save.error : calendar && completable && row.isError ? row.error : undefined;
+    const failure = save.error ?? (calendar && completable && row.isError ? row.error : undefined);
+    const problem = useMemo(() => notice ?? (failure ? lampSaveProblem(failure) : undefined), [notice, failure]);
     return {
         isTodaysDeda,
         lampDay,
         /** pode concluir hoje (o passo Summary aparece) */
         completable,
-        /** relógio novo: a linha do dia já foi lida (sem ela não há como salvar) */
-        ready: !calendar || (!!rowId && !row.isFetching),
-        saving: save.isPending,
-        problem: failure ? lampSaveProblem(failure) : undefined,
+        /** o botão pode ser usado: relógio novo com a linha do dia lida (ou com a leitura falha, para tentar de novo) */
+        ready: !checking && (!calendar || (!row.isFetching && (!!rowId || row.isError || !!rejectedRowId))),
+        saving: save.isPending || checking,
+        problem,
         complete,
     };
 };

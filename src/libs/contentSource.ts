@@ -1,5 +1,6 @@
 // Fonte do conteúdo: espelho mettle-content-mirror primeiro, Contentful (GRAPHQL_FALLBACK_URI) se o espelho falhar.
-// Sem GRAPHQL_FALLBACK_URI (CONTENT_MIRROR = false no next.config) é um fetch comum, como antes do espelho.
+// Sem GRAPHQL_FALLBACK_URI (hoje: CONTENTFUL_FALLBACK = false no next.config) só a fonte configurada é chamada, com o
+// mesmo tempo-limite e UMA segunda tentativa; se falhar de novo, o erro segue para a tela (que oferece tentar de novo).
 // Falha do espelho = rede, tempo esgotado, HTTP não-2xx ou corpo que não é JSON GraphQL; essas contam para o
 // disjuntor. Erro GraphQL com 200 só cai no Contentful se for "o espelho não sabe responder" (ver mirrorCannotAnswer);
 // esse não conta para o disjuntor (o espelho está de pé). Se o Contentful também falhar, a resposta/erro dele segue
@@ -71,8 +72,35 @@ export const makeContentFetch = ({
         return res;
     };
 
+    // Uma ida à fonte com tempo-limite (o aborto de quem chamou também vale).
+    const timed = async (url: string, init: RequestInit | undefined) => {
+        const caller = init?.signal;
+        const ctrl = new AbortController();
+        const abort = () => ctrl.abort();
+        caller?.addEventListener('abort', abort);
+        const timer = setTimeout(abort, MIRROR_TIMEOUT_MS);
+        try {
+            return await fetchImpl(url, { ...init, signal: ctrl.signal });
+        } finally {
+            clearTimeout(timer);
+            caller?.removeEventListener('abort', abort);
+        }
+    };
+
+    // Só a fonte (sem fallback): rede, tempo esgotado ou 5xx tentam mais uma vez; o resto segue como veio.
+    const sourceOnly = async (url: string, init: RequestInit | undefined) => {
+        try {
+            const res = await timed(url, init);
+            if (res.status < 500) return res;
+        } catch (e) {
+            if (init?.signal?.aborted) throw e;
+        }
+        return timed(url, init);
+    };
+
     return async (input, init) => {
-        if (!fallback || !mirror || String(input) !== mirror) return fetchImpl(input, init);
+        if (!mirror || String(input) !== mirror) return fetchImpl(input, init);
+        if (!fallback) return sourceOnly(mirror, init);
         // Aberto, mas o Contentful também falhou (ex.: 402 da cota): fecha já, a próxima consulta volta ao espelho.
         if (now() < openUntil)
             return viaFallback(init, (ok) => {

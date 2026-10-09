@@ -313,12 +313,13 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
     );
 }
 
-const DedaContentWithRoles = withRoles(DedaContent, {
+// Sem o IMERSO: "sem acesso" (/403) ANTES de esperar o resumo, que nunca é pedido para essa conta (carregava para sempre).
+const DedaContentWithRoles = withRoles(withDedaUnlocked(DedaContent), {
     roles: ['METTLE_STUDENT', 'METTLE_ADMIN'],
     fallback: {
         type: 'redirect',
-        to: '/',
+        to: '/403',
     },
 });
 
-export default withAuthentication(withDedaSlug(withDedaUnlocked(DedaContentWithRoles)));
+export default withAuthentication(withDedaSlug(DedaContentWithRoles));

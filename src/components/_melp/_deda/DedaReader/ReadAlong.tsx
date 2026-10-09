@@ -3,6 +3,7 @@
 import { css, Global } from '@emotion/react';
 import styled from '@emotion/styled';
 import { auth } from 'config/firebase';
+import { useDedaRecordings } from 'hooks/melp/dedaRecording';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { DedaListenQueryResponse } from 'interfaces';
@@ -317,6 +318,7 @@ const findOriginal = (audioUrl: string): HTMLAudioElement | null => {
  */
 export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: ReactNode }) => {
     const allowed = useNewDesign();
+    const ownAllowed = useDedaRecordings(dedaId).active;
     const { data } = useDeda<DedaListenQueryResponse>('deda-listen', dedaId);
     const audioUrl = data?.dedaContentCollection?.items[0]?.dedaListenAudioMedia?.url ?? '';
     const url = allowed ? alignUrlFor(audioUrl, dedaId) : null;
@@ -348,9 +350,10 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
     }, [url]);
 
     // "My reading": tempos da própria gravação (Worker; só o dono e a equipe). Sem tempos ainda: toca sem destaque.
+    // Só com o gravador liberado para a conta (servidor), nunca só pela chave da plataforma nova.
     useEffect(() => {
         setOwn(null);
-        if (!allowed || !mine || !highlights()) return;
+        if (!ownAllowed || !mine || !highlights()) return;
         const ctrl = new AbortController();
         auth.currentUser
             ?.getIdToken()
@@ -365,7 +368,7 @@ export const ReadAlong = ({ dedaId, children }: { dedaId: string; children: Reac
             .then((json) => json && !json.noReading && setOwn(json))
             .catch(() => undefined);
         return () => ctrl.abort();
-    }, [allowed, mine]);
+    }, [ownAllowed, mine]);
 
     useEffect(() => {
         const registry = highlights();

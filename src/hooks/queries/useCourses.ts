@@ -39,6 +39,9 @@ export const useGetCourses = () => {
     return useQuery<CourseCollectionResponse>(coursesQuery);
 };
 
+// Leitura reativa do catálogo existente, sem requisição ao abrir Configurações.
+export const useCachedCourses = () => useQuery<CourseCollectionResponse>(coursesQuery, { fetchPolicy: 'cache-only' });
+
 const courseQuery = gql`
     query GetSingleCourse($courseSlug: String!) {
         courseCollection(where: { courseSlug: $courseSlug }, limit: 1) {

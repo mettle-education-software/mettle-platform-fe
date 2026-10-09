@@ -667,7 +667,7 @@ export const Page = styled.div`
         animation: ${pulse} 1.4s ease-in-out infinite;
     }
 
-    /* ---------- abas (Configurações) ---------- */
+    /* ---------- abas e formulários ---------- */
     /* abas da página: controle segmentado (o mesmo da LAMP), claramente clicável; a aba aberta em dourado */
     .seg {
         display: inline-flex;
@@ -706,6 +706,21 @@ export const Page = styled.div`
         background: var(--r-gold);
         color: var(--r-on-gold);
         font-weight: 500;
+    }
+    /* Configurações: dados legíveis, sem campos editáveis nem truncamento de nome/e-mail. */
+    &.settings > section + section {
+        margin-top: 28px;
+    }
+    &.settings .sh {
+        min-height: 32px;
+        margin-bottom: 8px;
+    }
+    .settings-data,
+    .settings-data dd {
+        margin: 0;
+    }
+    .settings-data .field {
+        overflow-wrap: anywhere;
     }
     .panel h2 {
         font-size: 20px;

@@ -59,7 +59,7 @@ export const useCourseCards = () => {
                 const href = isLocked
                     ? course.courseSlug === MASTERCLASS_COURSE
                         ? MASTERCLASS_SALES_URL
-                        : (course.paymentCheckout ?? '')
+                        : course.paymentCheckout
                     : `/course/${course.courseSlug}/${
                           course.courseModulesCollection?.items?.[0]?.lessonsCollection?.items?.[0]?.lessonId ?? ''
                       }`;

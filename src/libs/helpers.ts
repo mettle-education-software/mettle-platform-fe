@@ -11,10 +11,23 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export const saoPauloWeekday = (date: Date = new Date()) =>
     WEEKDAYS.indexOf(new Intl.DateTimeFormat('en-US', { timeZone: SAO_PAULO_TZ, weekday: 'short' }).format(date)) + 1;
 
-/** Meio-dia de Brasília do dia de hoje lá, `plusDays` dias depois: a data certa em qualquer fuso próximo. */
+/**
+ * O dia de hoje em Brasília, `plusDays` dias depois, às 12h UTC (9h em Brasília): o mesmo dia do calendário em qualquer
+ * fuso de UTC−11 a UTC+11, para quem ainda formata sem timeZone (avisos da tela atual).
+ */
 const saoPauloNoon = (date: Date, plusDays = 0) => {
-    const [y, m, d] = new Intl.DateTimeFormat('en-CA', { timeZone: SAO_PAULO_TZ }).format(date).split('-').map(Number);
-    return new Date(Date.UTC(y, m - 1, d + plusDays, 15)); // 15h UTC = 12h em Brasília (sem horário de verão desde 2019)
+    const part = (type: string) =>
+        Number(
+            new Intl.DateTimeFormat('en-US', {
+                timeZone: SAO_PAULO_TZ,
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+            })
+                .formatToParts(date)
+                .find((p) => p.type === type)?.value,
+        );
+    return new Date(Date.UTC(part('year'), part('month') - 1, part('day') + plusDays, 12));
 };
 
 export const getWeekDay = () => String(saoPauloWeekday()).padStart(2, '0');

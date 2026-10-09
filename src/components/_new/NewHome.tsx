@@ -1,6 +1,6 @@
 'use client';
 
-import { useCourseCards } from 'components/molecules/MettleCoursesList/MettleCoursesList';
+import { CourseCardData, useCourseCards } from 'components/molecules/MettleCoursesList/MettleCoursesList';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { saoPauloWeekday } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
@@ -58,12 +58,51 @@ const TodayDeda: React.FC = () => {
 export const NewHome: React.FC = () => {
     const { user } = useAppContext();
     const { access } = useProductAccess();
-    const { cards: all, loading, error, openCta } = useCourseCards();
-    // os produtos do aluno primeiro; os trancados (convite) depois, na ordem de sempre
-    const cards = [...all.filter((card) => !card.isLocked), ...all.filter((card) => card.isLocked)];
+    const { cards, loading, error, openCta } = useCourseCards();
     const imersoState = access(IMERSO_PRODUCT).state;
     const imersoOpen = imersoState === 'active' || imersoState === 'grace';
     const ebook = ebookOpen(access(EBOOK_PRODUCT).state);
+
+    const renderCard = (card: CourseCardData) => {
+        const body = (
+            <>
+                <span className="img">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- capa do curso */}
+                    <img src={card.imgUrl} alt="" loading="lazy" />
+                    {card.isLocked && <Lock {...ICON} size={16} className="lock" aria-hidden />}
+                </span>
+                <span className="meta">
+                    <small>{card.isExpired ? 'Acesso expirado' : card.type}</small>
+                </span>
+                <b>{card.title}</b>
+                {(card.isExpired || card.href) && (
+                    <span className="act">
+                        {card.isExpired ? 'Renovar acesso' : card.isLocked ? 'Desbloquear' : 'Acessar'}
+                        <ArrowRight {...ICON} size={16} aria-hidden />
+                    </span>
+                )}
+            </>
+        );
+        const className = `cc${card.isLocked ? ' locked' : ''}`;
+        if (card.isExpired)
+            return (
+                <button key={card.key} type="button" className={className} onClick={() => openCta(card.cta)}>
+                    {body}
+                </button>
+            );
+        // curso trancado sem página de venda: só o card, sem ação
+        if (!card.href)
+            return (
+                <div key={card.key} className={`${className} still`}>
+                    {body}
+                </div>
+            );
+        return (
+            <Link key={card.key} className={className} href={card.href}>
+                {body}
+            </Link>
+        );
+    };
 
     return (
         <NewPage className="home">
@@ -85,81 +124,39 @@ export const NewHome: React.FC = () => {
                     <p className="hint">Não foi possível carregar os cursos.</p>
                 ) : (
                     <div className="cards">
-                        {loading
-                            ? [0, 1, 2].map((i) => (
-                                  <div key={i} className="dc skel" aria-hidden>
-                                      <span className="img" style={{ aspectRatio: '16 / 10' }} />
-                                      <b />
-                                  </div>
-                              ))
-                            : cards.map((card) => {
-                                  const body = (
-                                      <>
-                                          <span className="img">
-                                              {/* eslint-disable-next-line @next/next/no-img-element -- capa do curso */}
-                                              <img src={card.imgUrl} alt="" loading="lazy" />
-                                              {card.isLocked && (
-                                                  <Lock {...ICON} size={16} className="lock" aria-hidden />
-                                              )}
-                                          </span>
-                                          <span className="meta">
-                                              <small>{card.isExpired ? 'Acesso expirado' : card.type}</small>
-                                          </span>
-                                          <b>{card.title}</b>
-                                          {(card.isExpired || card.href) && (
-                                              <span className="act">
-                                                  {card.isExpired
-                                                      ? 'Renovar acesso'
-                                                      : card.isLocked
-                                                        ? 'Desbloquear'
-                                                        : 'Acessar'}
-                                                  <ArrowRight {...ICON} size={16} aria-hidden />
-                                              </span>
-                                          )}
-                                      </>
-                                  );
-                                  const className = `cc${card.isLocked ? ' locked' : ''}`;
-                                  // curso trancado sem página de venda: só o card, sem ação
-                                  if (!card.isExpired && !card.href)
-                                      return (
-                                          <div key={card.key} className={`${className} still`}>
-                                              {body}
-                                          </div>
-                                      );
-                                  return card.isExpired ? (
-                                      <button
-                                          key={card.key}
-                                          type="button"
-                                          className={className}
-                                          onClick={() => openCta(card.cta)}
-                                      >
-                                          {body}
-                                      </button>
-                                  ) : (
-                                      <Link key={card.key} className={className} href={card.href}>
-                                          {body}
-                                      </Link>
-                                  );
-                              })}
-                        {!loading && ebook && (
-                            <Link className="cc" href={EBOOK_PATH}>
-                                <span className="img">
-                                    {/* eslint-disable-next-line @next/next/no-img-element -- o livro de pé na mesa (public/img), escolhido pelo André; o livro no centro do recorte */}
-                                    <img
-                                        src="/img/ebook-card-livro.webp"
-                                        alt=""
-                                        loading="lazy"
-                                        style={{ objectPosition: '52% 50%' }}
-                                    />
-                                </span>
-                                <span className="meta">
-                                    <small>E-book</small>
-                                </span>
-                                <b>{EBOOK.title}</b>
-                                <span className="act">
-                                    Ler <ArrowRight {...ICON} size={16} aria-hidden />
-                                </span>
-                            </Link>
+                        {loading ? (
+                            [0, 1, 2].map((i) => (
+                                <div key={i} className="dc skel" aria-hidden>
+                                    <span className="img" style={{ aspectRatio: '16 / 10' }} />
+                                    <b />
+                                </div>
+                            ))
+                        ) : (
+                            <>
+                                {/* os produtos do aluno primeiro (e-book incluído); os trancados (convite) depois */}
+                                {cards.filter((card) => !card.isLocked).map(renderCard)}
+                                {ebook && (
+                                    <Link className="cc" href={EBOOK_PATH}>
+                                        <span className="img">
+                                            {/* eslint-disable-next-line @next/next/no-img-element -- o livro de pé na mesa (public/img), escolhido pelo André; o livro no centro do recorte */}
+                                            <img
+                                                src="/img/ebook-card-livro.webp"
+                                                alt=""
+                                                loading="lazy"
+                                                style={{ objectPosition: '52% 50%' }}
+                                            />
+                                        </span>
+                                        <span className="meta">
+                                            <small>E-book</small>
+                                        </span>
+                                        <b>{EBOOK.title}</b>
+                                        <span className="act">
+                                            Ler <ArrowRight {...ICON} size={16} aria-hidden />
+                                        </span>
+                                    </Link>
+                                )}
+                                {cards.filter((card) => card.isLocked).map(renderCard)}
+                            </>
                         )}
                     </div>
                 )}

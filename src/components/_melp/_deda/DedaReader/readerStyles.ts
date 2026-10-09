@@ -1080,6 +1080,13 @@ export const Shell = styled.div`
     }
 
     /* Summary: os cinco quesitos, de 1 a 5 */
+    /* recusa ao concluir o DEDA (rede, LAMP encerrada ou em manutenção): uma linha, acima do Summary */
+    .col.form .err {
+        margin: 0 0 18px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--r-danger);
+    }
     .summary h2 {
         margin: 0 0 6px;
         font-size: 22px;

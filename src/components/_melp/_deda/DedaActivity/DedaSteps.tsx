@@ -5,11 +5,12 @@ import styled from '@emotion/styled';
 import { ChevronLeft, ChevronRight, Timer, TimerOff } from '@mui/icons-material';
 import { Breadcrumb, Button, Col, Flex, Row, Tooltip, Typography } from 'antd';
 import { DedaNavButton } from 'components';
-import { SaveDedaInputMutationDedaData, useConfetti, useDeviceSize, useSaveDedaInput } from 'hooks';
+import { SaveDedaInputMutationDedaData, useConfetti, useDeviceSize } from 'hooks';
 import { useDedaRecordings, useFlushRecordingQueue } from 'hooks/melp/dedaRecording';
-import { getDayToday, padNumber } from 'libs';
+import { useDedaCompletion } from 'hooks/melp/lamp';
+import { padNumber } from 'libs';
 import { useRouter } from 'next/navigation';
-import { useAppContext, useMelpContext } from 'providers';
+import { useMelpContext } from 'providers';
 import React, { useCallback, useEffect, useState } from 'react';
 import { DedaActivitySummary, DedaStepsCompleted, Listen, ListenRead, ReadRecord, Watch, Write } from './steps';
 
@@ -205,8 +206,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     const router = useRouter();
     const device = useDeviceSize();
     const isDesktop = device === 'desktop';
-    const { melpSummary, isTodaysDedaCompleted } = useMelpContext();
-    const { user } = useAppContext();
+    const { isTodaysDedaCompleted } = useMelpContext();
 
     const [stepsProgress, setStepsProgress] = useState({
         listen: false,
@@ -221,28 +221,25 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
     const [dedaTime, setDedaTime] = useState(0);
     const [inputData, setInputData] = useState<SaveDedaInputMutationDedaData>({} as SaveDedaInputMutationDedaData);
 
-    const saveInput = useSaveDedaInput();
-
     const { shootStars } = useConfetti();
 
-    const handleFinishSave = () => {
-        const week = `week${melpSummary.unlocked_dedas.indexOf(dedaId)}`;
-        const day = getDayToday();
-        const userUid = user?.uid as string;
+    // Só o DEDA de hoje e só com a LAMP contando; semana/dia do resumo, nunca a posição do DEDA (hooks/melp/lamp).
+    const completion = useDedaCompletion(dedaId);
+    const handleFinishSave = () =>
+        completion.complete(inputData, () => {
+            setCurrentStep('completed');
+            shootStars();
+        });
 
-        saveInput.mutate(
-            { userUid, week, day, inputData },
-            {
-                onSuccess: () => {
-                    setCurrentStep('completed');
-                    shootStars();
-                },
-            },
-        );
-    };
-
-    const isTodaysDeda = melpSummary?.unlocked_dedas[melpSummary?.unlocked_dedas.length - 1] === dedaId;
-    const isTodaysDedaAndNotCompleted = isTodaysDeda && !isTodaysDedaCompleted;
+    const isTodaysDeda = completion.isTodaysDeda;
+    const isTodaysDedaAndNotCompleted = completion.completable;
+    const completeLabel = completion.problem?.retry ? 'Try again' : 'Complete DEDA';
+    const completeDisabled = !completion.ready || completion.problem?.retry === false;
+    const problem = completion.problem && (
+        <Text type="danger" role="alert">
+            {completion.problem.text}
+        </Text>
+    );
 
     // Gravador do passo 2 (chave de liberação desligada por padrão; ver hooks/melp/dedaRecording).
     const recordings = useDedaRecordings(dedaId);
@@ -262,7 +259,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
         const newStep = steps[newIndex];
 
         if (newStep === 'finish' && !isTodaysDedaAndNotCompleted) {
-            handleFinishSave();
+            return; // sem conclusão possível (DEDA passado, LAMP parada, já concluído)
         } else if (newStep === 'completed') {
             router.push('/imerso/deda');
         } else {
@@ -272,7 +269,9 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
 
     const indexOfCurrentStep = steps.indexOf(currentStep);
     const blockedByRecorder = recorderOn && currentStep === 'readRecord' && !readRecordDone;
-    const isNotWeekZero = !['CAN_START_DEDA', 'WEEK_ZERO'].includes(melpSummary.melp_status);
+    // Semana zero, pausa, fim e espera da segunda (LAMP parada): sem cronômetro e sem gravar (o servidor nunca manda
+    // 'WEEK_ZERO'; antes MELP_BEGIN e DEDA_STARTED_NOT_BEGUN passavam e o DEDA0 ia para a week0).
+    const isNotWeekZero = !!completion.lampDay;
     const showStopwatch =
         isTodaysDedaAndNotCompleted &&
         !['finish', 'completed'].includes(currentStep) &&
@@ -308,7 +307,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                 onInputs={setInputData}
                 key="finish"
                 isDedaCompleted={!isTodaysDedaAndNotCompleted}
-                loading={saveInput.isPending}
+                loading={completion.saving}
             />
         ),
         completed: <DedaStepsCompleted key="completed" dedaId={dedaId} />,
@@ -417,13 +416,15 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                         )}
                         {currentStep === 'finish' && (
                             <Col span={24}>
-                                <Flex justify="center">
+                                <Flex vertical align="center" gap="0.5rem">
+                                    {problem}
                                     <CompleteButton
-                                        loading={saveInput.isPending}
+                                        loading={completion.saving}
+                                        disabled={completeDisabled}
                                         type="primary"
                                         onClick={handleFinishSave}
                                     >
-                                        Complete DEDA
+                                        {completeLabel}
                                     </CompleteButton>
                                 </Flex>
                             </Col>
@@ -496,7 +497,7 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                         Go back
                     </CompleteButton>
                 ) : (
-                    !saveInput.isPending && (
+                    !completion.saving && (
                         <Flex gap="0.5rem">
                             <NavButton disabled={currentStep === 'listen'} onClick={() => handleStepChange('previous')}>
                                 <ChevronLeft />
@@ -538,9 +539,17 @@ export const DedaSteps: React.FC<{ dedaId: string }> = ({ dedaId }) => {
                     </CompleteButton>
                 )}
                 {currentStep === 'finish' && (
-                    <CompleteButton loading={saveInput.isPending} type="primary" onClick={handleFinishSave}>
-                        Complete DEDA
-                    </CompleteButton>
+                    <>
+                        {problem}
+                        <CompleteButton
+                            loading={completion.saving}
+                            disabled={completeDisabled}
+                            type="primary"
+                            onClick={handleFinishSave}
+                        >
+                            {completeLabel}
+                        </CompleteButton>
+                    </>
                 )}
             </Flex>
         </ActivityCard>

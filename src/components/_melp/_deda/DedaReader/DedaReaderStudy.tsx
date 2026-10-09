@@ -5,8 +5,9 @@ import { Drawer } from 'antd';
 import { AudioPlayer } from 'components';
 import { DedaRecorder } from 'components/_melp/_deda/DedaRecorder/DedaRecorder';
 import { TwoTrackPlayer } from 'components/_melp/_deda/DedaRecorder/TwoTrackPlayer';
-import { SaveDedaInputMutationDedaData, useConfetti, useDeviceSize, useSaveDedaInput } from 'hooks';
+import { SaveDedaInputMutationDedaData, useConfetti, useDeviceSize } from 'hooks';
 import { useDedaRecordings, useFlushRecordingQueue, useQueuedRecording } from 'hooks/melp/dedaRecording';
+import { useDedaCompletion } from 'hooks/melp/lamp';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import {
     DedaListenQueryResponse,
@@ -15,7 +16,8 @@ import {
     DedaWatchQueryResponse,
     DedaWriteQueryResponse,
 } from 'interfaces';
-import { getDayToday, padNumber } from 'libs';
+import { padNumber } from 'libs';
+import { weekDayLabel } from 'libs/dedaClock';
 import { contentfulImage } from 'libs/dedaHeader';
 import {
     canJumpTo,
@@ -33,10 +35,8 @@ import { brasiliaDate, pickMyReading } from 'libs/dedaRecording';
 import { Check, ChevronRight, ChevronUp, Clock, Lock, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAppContext, useMelpContext } from 'providers';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { DedaStepsCompleted } from '../DedaActivity/steps';
 import { ReadAlong, ReadAlongModes } from './ReadAlong';
 import { InfoTip } from './ReaderInfo';
 import { ReaderProse } from './ReaderProse';
@@ -329,8 +329,6 @@ const ListenPlayer = ({ dedaId, onPlay }: { dedaId: string; onPlay?(): void }) =
 export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
     const router = useRouter();
     const isMobile = useDeviceSize() === 'mobile';
-    const { melpSummary, isTodaysDedaCompleted } = useMelpContext();
-    const { user } = useAppContext();
 
     // ---- estado e regras: as mesmas de DedaActivity/DedaSteps.tsx ----
     const [stepsProgress, setStepsProgress] = useState<Record<ReaderStep, boolean | null>>({
@@ -345,26 +343,18 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
     const [currentStep, setCurrentStep] = useState<ReaderStep>('listen');
     const [dedaTime, setDedaTime] = useState(0);
     const [inputData, setInputData] = useState<SaveDedaInputMutationDedaData>({} as SaveDedaInputMutationDedaData);
-    const saveInput = useSaveDedaInput();
     const { shootStars } = useConfetti();
 
-    const handleFinishSave = () => {
-        const week = `week${melpSummary.unlocked_dedas.indexOf(dedaId)}`;
-        const day = getDayToday();
-        const userUid = user?.uid as string;
-        saveInput.mutate(
-            { userUid, week, day, inputData },
-            {
-                onSuccess: () => {
-                    setCurrentStep('completed');
-                    shootStars();
-                },
-            },
-        );
-    };
+    // Concluir só o DEDA de hoje e só com a LAMP contando; semana/dia do resumo (hooks/melp/lamp.useDedaCompletion).
+    const completion = useDedaCompletion(dedaId);
+    const handleFinishSave = () =>
+        completion.complete(inputData, () => {
+            setCurrentStep('completed');
+            shootStars();
+        });
 
-    const isTodaysDeda = melpSummary?.unlocked_dedas[melpSummary?.unlocked_dedas.length - 1] === dedaId;
-    const isTodaysDedaAndNotCompleted = isTodaysDeda && !isTodaysDedaCompleted;
+    const isTodaysDeda = completion.isTodaysDeda;
+    const isTodaysDedaAndNotCompleted = completion.completable;
 
     const recordings = useDedaRecordings(dedaId);
     useFlushRecordingQueue(recordings.active, recordings.uid);
@@ -388,7 +378,7 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
         const currentIndex = READER_STEPS.indexOf(currentStep);
         const newStep = READER_STEPS[direction === 'next' ? currentIndex + 1 : currentIndex - 1];
         if (newStep === 'finish' && !isTodaysDedaAndNotCompleted) {
-            handleFinishSave();
+            return; // sem conclusão possível (DEDA passado, LAMP parada, já concluído): o Summary não existe
         } else if (newStep === 'completed') {
             router.push('/imerso/deda');
         } else {
@@ -397,11 +387,8 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
     };
 
     const blockedByRecorder = recorderOn && currentStep === 'readRecord' && !readRecordDone;
-    // Semana zero (DEDA0, treino): o servidor nunca manda 'WEEK_ZERO' (é só da tela); antes do início vêm MELP_BEGIN,
-    // CAN_START_DEDA ou DEDA_STARTED_NOT_BEGUN, na semana 0. Sem cronômetro e sem gravar na LAMP (não há week0).
-    const isNotWeekZero =
-        !['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN'].includes(melpSummary.melp_status) &&
-        melpSummary.current_deda_week !== 0;
+    // Semana zero, pausa, fim e espera da segunda (LAMP parada): sem cronômetro e sem gravar na LAMP, passos abertos.
+    const isNotWeekZero = !!completion.lampDay;
     const showStopwatch =
         isTodaysDedaAndNotCompleted &&
         !['finish', 'completed'].includes(currentStep) &&
@@ -419,9 +406,9 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
         setStepsProgress((prev) => ({ ...prev, [currentStep]: true }));
         handleStepChange('next');
     };
-    const canNext = inSession && !saveInput.isPending && !nextBlocked(currentStep, rules);
+    const canNext = inSession && !completion.saving && !nextBlocked(currentStep, rules);
     const goTo = (step: ReaderStep) => {
-        if (!saveInput.isPending && canJumpTo(currentStep, step, rules)) setCurrentStep(step);
+        if (!completion.saving && canJumpTo(currentStep, step, rules)) setCurrentStep(step);
         setStepsOpen(false);
     };
 
@@ -442,11 +429,16 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
     useEffect(() => {
         if (currentStep !== 'write') setWriteDay(defaultWriteDay);
     }, [currentStep, defaultWriteDay]);
+    // falhou ao concluir: o aviso fica no topo do Summary, à vista
+    useEffect(() => {
+        if (completion.problem) scrollRef.current?.scrollTo({ top: 0 });
+    }, [completion.problem]);
 
     const stepsShown = READER_STEPS.filter(
         (step) => step !== 'completed' && (step !== 'finish' || isTodaysDedaAndNotCompleted),
     );
-    const stepLabel = currentStep === 'finish' ? '' : `Step ${stepNumber(currentStep)} of 5`;
+    const stepLabel =
+        currentStep === 'finish' ? '' : currentStep === 'completed' ? 'Done' : `Step ${stepNumber(currentStep)} of 5`;
     // Instrução do passo, guardada no ⓘ (antes de começar o DEDA de hoje, o aviso do cronômetro).
     const infoText =
         currentStep === 'listen' && isTodaysDedaAndNotCompleted && !hasPlayStarted
@@ -492,10 +484,10 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                     type="button"
                     className="btn gold"
                     onClick={handleFinishSave}
-                    disabled={saveInput.isPending}
-                    aria-busy={saveInput.isPending}
+                    disabled={completion.saving || !completion.ready || completion.problem?.retry === false}
+                    aria-busy={completion.saving}
                 >
-                    {saveInput.isPending ? 'Saving…' : 'Complete DEDA'}
+                    {completion.saving ? 'Saving…' : completion.problem?.retry ? 'Try again' : 'Complete DEDA'}
                 </button>
             )
         ) : showComplete ? (
@@ -527,7 +519,7 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                         type="button"
                         className={stepsProgress[step] ? 'done' : undefined}
                         aria-current={currentStep === step ? 'step' : undefined}
-                        disabled={!canJumpTo(currentStep, step, rules) || saveInput.isPending}
+                        disabled={!canJumpTo(currentStep, step, rules) || completion.saving}
                         onClick={() => goTo(step)}
                     >
                         <i>{stepsProgress[step] ? <Check {...ICON} size={14} /> : step === 'finish' ? 'S' : n}</i>
@@ -605,20 +597,31 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                 return (
                     <div className="col form">
                         {eyebrow}
+                        {completion.problem && (
+                            <p className="err" role="alert">
+                                {completion.problem.text}
+                            </p>
+                        )}
                         {isTodaysDedaAndNotCompleted && (
                             <ReaderSummary
                                 stopwatchSeconds={dedaTime}
                                 recordingMs={readingMs}
                                 onInputs={setInputData}
-                                saving={saveInput.isPending}
+                                saving={completion.saving}
                             />
                         )}
                     </div>
                 );
             default:
+                // concluído: fica no leitor, sem recarregar a página (PF-05); o resto do app se atualiza pelas consultas
                 return (
-                    <div className="col wide">
-                        <DedaStepsCompleted dedaId={dedaId} />
+                    <div className="col form">
+                        <div className="summary" role="status">
+                            <h2>DEDA completed</h2>
+                            {completion.lampDay && (
+                                <p className="hint">{weekDayLabel(completion.lampDay.week, completion.lampDay.day)}</p>
+                            )}
+                        </div>
                     </div>
                 );
         }
@@ -687,7 +690,7 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                                                 ? 'Summary'
                                                 : `${stepNumber(step)}. ${STEP_INFO[step].name}`
                                         }
-                                        disabled={cur || saveInput.isPending || !canJumpTo(currentStep, step, rules)}
+                                        disabled={cur || completion.saving || !canJumpTo(currentStep, step, rules)}
                                         onClick={() => goTo(step)}
                                     >
                                         <i>
@@ -704,7 +707,7 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
                             })}
                         </div>
                         <div className="stl">
-                            <small>{currentStep === 'completed' ? 'Done' : stepLabel}</small>
+                            <small>{stepLabel}</small>
                             {STEP_INFO[currentStep].name}
                         </div>
                         <div className="mid">{media}</div>

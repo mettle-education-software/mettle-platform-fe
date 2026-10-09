@@ -1,21 +1,26 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { CurrentDedaResponse, DedaActivityStatusResponse, FireUser } from 'interfaces';
 import { MelpSummaryResponse } from 'interfaces/melp';
-import { getDayToday } from 'libs';
+import { lampToday } from 'libs/dedaClock';
 import { useAppContext } from 'providers';
 import { melpService } from 'services';
 
+/**
+ * DEDA de hoje já concluído? Só existe com a LAMP contando (libs/dedaClock.lampToday): em pausa, fim ou espera não há
+ * dia de hoje na LAMP (antes lia o dia de uma semana congelada). Semana e dia vêm dos contadores do resumo.
+ */
 export const useCurrentDayDedaActivityStatus = (melpSummary?: MelpSummaryResponse['data'], user?: FireUser) => {
-    const currentWeek = `week${melpSummary?.current_deda_week}`;
-    const currentDay = getDayToday();
+    const lampDay = lampToday(melpSummary);
+    const currentWeek = `week${lampDay?.week}`;
+    const currentDay = `day${lampDay?.day}`;
 
     return useQuery({
-        queryKey: ['get-deda-status', currentWeek, currentDay],
+        queryKey: ['get-deda-status', user?.uid, currentWeek, currentDay],
         queryFn: () =>
             melpService
                 .get<DedaActivityStatusResponse>(`/deda/status/${user?.uid}/${currentWeek}/${currentDay}`)
                 .then(({ data }) => data),
-        enabled: !!melpSummary && !!user && melpSummary?.current_deda_week > 0,
+        enabled: !!user && !!lampDay,
     });
 };
 

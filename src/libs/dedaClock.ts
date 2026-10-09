@@ -84,3 +84,25 @@ export const lampWeekOptions = (s: Summary | null | undefined, titles: Record<st
 
 /** "Week 4 · Day 4": o único formato de semana e dia (inglês, sem zero à esquerda). */
 export const weekDayLabel = (week: number, day: number) => `Week ${week} · Day ${day}`;
+
+/**
+ * Recusas da gravação da LAMP (corpo `{ code, message }`): 409 `LAMP_DAY_REPLACED` (a linha do dia foi substituída:
+ * recarregar e tentar de novo), 409 `PROGRAM_INCONSISTENT` (LAMP em manutenção, sem saída para o aluno), 409
+ * `LAMP_FINISHED` (be #148, legado) e 400 `EXPECTED_ROW_ID_REQUIRED`. Qualquer outro erro (rede, 5xx): tentar de novo.
+ */
+export const lampSaveError = (error: unknown): string | undefined =>
+    (error as { response?: { data?: { code?: unknown } } } | null)?.response?.data?.code as string | undefined;
+
+/** A frase do erro e se "Try again" faz sentido (inglês: tudo no Imerso é em inglês). */
+export const lampSaveProblem = (error: unknown): { text: string; retry: boolean } => {
+    switch (lampSaveError(error)) {
+        case 'LAMP_FINISHED':
+            return { text: 'Your LAMP has ended, so this can’t be saved.', retry: false };
+        case 'PROGRAM_INCONSISTENT':
+            return { text: 'LAMP under maintenance. The team has been notified.', retry: false };
+        case 'LAMP_DAY_REPLACED':
+            return { text: 'This LAMP day was updated. Please try again.', retry: true };
+        default:
+            return { text: 'We couldn’t save. Check your connection and try again.', retry: true };
+    }
+};

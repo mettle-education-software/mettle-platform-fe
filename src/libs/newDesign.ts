@@ -437,8 +437,9 @@ export type LampDay = {
     /** minutos registrados no dia (soma das atividades) */
     activeMin?: number;
     passiveMin?: number;
-    /** data do dia no calendário (só quando o programa nunca foi pausado: aí semana/dia batem com o calendário) */
-    date?: Date;
+    /** relógio novo: a data (Brasília) e o DEDA da linha, vindos do servidor */
+    iso?: string;
+    dedaId?: string | null;
 };
 
 /** Um dia na DEDA Run: contou (≥ 80%), quebrou (abaixo ou sem DEDA), hoje em andamento, ou ainda por vir. */
@@ -594,21 +595,27 @@ export const weeklyQuality = (days: LampDay[]) => {
 
 // ---------- calendário da LAMP ----------
 
-const isoPlus = (iso: string, n: number) => {
+export const isoPlus = (iso: string, n: number) => {
     const t = new Date(`${iso}T12:00:00Z`);
     t.setUTCDate(t.getUTCDate() + n);
     return t.toISOString().slice(0, 10);
 };
 
 /**
- * Dias do programa no calendário: do mais recente (hoje) para trás, um dia do programa por dia de calendário, pulando
- * os dias em pausa (a pausa congela o programa). Devolve a data de cada dia, os dias pausados e o primeiro dia.
+ * Dias do programa no calendário (legado, sem a data das linhas): do último dia da LAMP (hoje, com ela contando; o
+ * último dia ativo, se parada) para trás, um dia do programa por dia de calendário, pulando os dias em pausa (a pausa
+ * congela o programa). Devolve a data de cada dia, os dias pausados (até hoje) e o primeiro dia.
  */
-export const calendarDays = (newestFirst: LampDay[], today: string, paused: { from: string; to?: string }[] = []) => {
+export const calendarDays = (
+    newestFirst: LampDay[],
+    last: string,
+    paused: { from: string; to?: string }[] = [],
+    today = last,
+) => {
     const isPaused = (iso: string) => paused.some((p) => iso >= p.from && (!p.to || iso < p.to));
     const byDate = new Map<string, LampDay>();
     const pausedDays = new Set<string>();
-    let d = today;
+    let d = last;
     for (const day of newestFirst) {
         while (isPaused(d)) {
             pausedDays.add(d);

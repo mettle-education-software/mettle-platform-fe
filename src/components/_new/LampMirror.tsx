@@ -130,7 +130,12 @@ const Hero: React.FC<{ run: Run }> = ({ run }) => {
 /** Calendário da DEDA Run e da meta do dia. */
 const ConstancyMap: React.FC<{ run: Run }> = ({ run }) => (
     <section className="cmap">
-        <LampCalendar newestFirst={run.newestFirst} title="Imerso Calendar" />
+        <LampCalendar
+            newestFirst={run.newestFirst}
+            title="Imerso Calendar"
+            failed={run.historyFailed}
+            onRetry={run.retryHistory}
+        />
     </section>
 );
 

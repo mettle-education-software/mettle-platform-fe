@@ -458,6 +458,17 @@ describe('calendário da LAMP', () => {
         expect([...pausedDays].sort()).toEqual(['2026-10-03', '2026-10-04']);
         expect(start).toBe('2026-10-02');
     });
+    it('LAMP parada: ancora no último dia dela, não em hoje; pausa em aberto vai até hoje', () => {
+        // pausado: dias 1–7 de 21 a 27/set (o domingo 27 é o último dia ativo); hoje 9/out
+        const nf = [7, 6, 5, 4, 3, 2, 1].map((d) => day(1, d));
+        const { byDate, pausedDays, start } = calendarDays(nf, '2026-09-27', [{ from: '2026-09-28' }], '2026-10-09');
+        expect([...byDate.keys()][0]).toBe('2026-09-27');
+        expect(start).toBe('2026-09-21');
+        expect(pausedDays.has('2026-09-27')).toBe(false);
+        expect(pausedDays.has('2026-09-28')).toBe(true);
+        expect(pausedDays.has('2026-10-09')).toBe(true);
+        expect(pausedDays.has('2026-10-10')).toBe(false);
+    });
     it('monta o mês de segunda a domingo', () => {
         const g = monthGrid(2026, 9); // outubro de 2026 começa numa quinta
         expect(g[0]).toEqual([null, null, null, '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04']);

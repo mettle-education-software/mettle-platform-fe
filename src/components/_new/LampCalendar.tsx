@@ -3,6 +3,7 @@
 import { css, Global } from '@emotion/react';
 import { useDedasGrid } from 'components/_melp/_deda/DedasGrid/DedasGrid';
 import { useGetGoalByLevel } from 'hooks';
+import { isCalendarClock, lampRunning, legacyLampLastDate } from 'libs/dedaClock';
 import { brasiliaDate, pausedIntervals } from 'libs/dedaRecording';
 import {
     calendarDays,
@@ -11,6 +12,7 @@ import {
     GoalDayStatus,
     goalDayStatus,
     goalDays,
+    isoPlus,
     LampDay,
     monthGrid,
 } from 'libs/newDesign';
@@ -425,19 +427,33 @@ const prettyDay = (iso: string) =>
         timeZone: 'UTC',
     });
 
-export const LampCalendar: React.FC<{ newestFirst: LampDay[]; title: string }> = ({ newestFirst, title }) => {
+export const LampCalendar: React.FC<{
+    newestFirst: LampDay[];
+    title: string;
+    /** a leitura do histórico falhou: "Try again" no lugar de um calendário incompleto */
+    failed?: boolean;
+    onRetry?: () => void;
+}> = ({ newestFirst, title, failed, onRetry }) => {
     const { melpSummary } = useMelpContext();
     const goals = goalDays(useGetGoalByLevel(melpSummary?.deda_difficulty).data);
     const today = brasiliaDate(new Date());
-    const { byDate, pausedDays, start } = useMemo(
-        () =>
-            calendarDays(
-                newestFirst,
-                today,
-                pausedIntervals(melpSummary?.deda_pause_dates, melpSummary?.deda_start_dates),
-            ),
-        [newestFirst, today, melpSummary?.deda_pause_dates, melpSummary?.deda_start_dates],
-    );
+    const calendar = isCalendarClock(melpSummary);
+    const running = lampRunning(melpSummary);
+    const { byDate, pausedDays, start, last } = useMemo(() => {
+        if (calendar) {
+            // relógio novo: a data de cada dia vem do servidor; do primeiro dia até hoje, data sem linha = LAMP parada
+            const byDate = new Map(newestFirst.flatMap((d) => (d.iso ? [[d.iso, d] as const] : [])));
+            const dates = [...byDate.keys()].sort();
+            const start = dates[0] ?? today;
+            const pausedDays = new Set<string>();
+            for (let x = start; x <= today; x = isoPlus(x, 1)) if (!byDate.has(x)) pausedDays.add(x);
+            return { byDate, pausedDays, start, last: dates[dates.length - 1] ?? today };
+        }
+        // legado: as datas saem dos trechos ativos, a partir do último dia da LAMP (com ela parada, não é hoje)
+        const last = legacyLampLastDate(melpSummary) ?? today;
+        const paused = pausedIntervals(melpSummary?.deda_pause_dates, melpSummary?.deda_start_dates);
+        return { ...calendarDays(newestFirst, last, paused, today), last };
+    }, [calendar, newestFirst, today, melpSummary]);
     const [ty, tm] = [Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1];
     const [sy, sm] = [Number(start.slice(0, 4)), Number(start.slice(5, 7)) - 1];
     const [mode, setMode] = useState<'month' | 'year'>('month');
@@ -447,9 +463,11 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[]; title: string }> =
     const [hover, setHover] = useState<string>();
     const blockedDEDAs = melpSummary?.melp_status === 'MELP_SUSPENDED' || melpSummary?.days_since_melp_start < 2;
     const dg = useDedasGrid('allDedas', blockedDEDAs);
-    const dedaName = (week: number) => {
+    const dedaName = (day: LampDay) => {
         const ids = dg.unlockedDEDAs;
-        const id = ids[ids.length - 1 - ((dg.currentWeek as number) - week)];
+        const id = calendar
+            ? (day.dedaId ?? melpSummary?.deda_weeks?.find((w) => w.lamp_week === day.week)?.deda_id)
+            : ids[ids.length - 1 - ((dg.currentWeek as number) - day.week)];
         return dg.allDedas?.find((d) => d.dedaId === id)?.dedaTitle;
     };
 
@@ -457,9 +475,13 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[]; title: string }> =
         if (iso < start) return { iso, st: 'pre', run: false };
         if (iso > today) return { iso, st: 'future', run: false };
         if (pausedDays.has(iso)) return { iso, st: 'paused', run: false };
+        // depois do último dia da LAMP (concluída): sem marca nenhuma
+        if (iso > last) return { iso, st: 'future', run: false };
         const day = byDate.get(iso);
         const goal = day ? goals[Math.min(day.week, goals.length) - 1] : undefined;
-        return { iso, st: goalDayStatus(day, iso === today, false, goal), day, run: !!day && countsForRun(day.deda) };
+        // "hoje, pendente" só com a LAMP contando
+        const st = goalDayStatus(day, running && iso === today, false, goal);
+        return { iso, st, day, run: !!day && countsForRun(day.deda) };
     };
 
     const canPrev = mode === 'month' ? cur.y * 12 + cur.m > sy * 12 + sm : cur.y > sy;
@@ -476,7 +498,7 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[]; title: string }> =
     const selCell = shown ? cell(shown) : undefined;
     const detail = (c: Cell) => {
         if (c.st === 'paused') return `${prettyDay(c.iso)} · Paused`;
-        const name = c.day && dedaName(c.day.week);
+        const name = c.day && dedaName(c.day);
         return [
             prettyDay(c.iso),
             c.day && `W${c.day.week}`,
@@ -537,7 +559,14 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[]; title: string }> =
                 </div>
             </div>
 
-            {mode === 'month' ? (
+            {failed ? (
+                <p className="hint">
+                    We couldn’t load your LAMP history.{' '}
+                    <button type="button" className="lnk gold" onClick={onRetry}>
+                        Try again
+                    </button>
+                </p>
+            ) : mode === 'month' ? (
                 <>
                     <div
                         className="mgrid"
@@ -618,7 +647,7 @@ export const LampCalendar: React.FC<{ newestFirst: LampDay[]; title: string }> =
                     })}
                 </div>
             )}
-            <div className="cal-foot">
+            <div className="cal-foot" hidden={failed}>
                 {mode === 'month' && (
                     <p className="detail" aria-live="polite">
                         {selCell && selCell.st !== 'pre' && selCell.st !== 'future' && detail(selCell)}

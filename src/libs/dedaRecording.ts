@@ -380,14 +380,17 @@ export const pickMyReading = (recordings: DedaRecording[], today: string, isCurr
 /** Primeiro dia em que o gravador existiu para alguém (o piso da contagem): nada antes disso é "dia de gravar". */
 export const RECORDER_SINCE = '2026-10-05';
 
-/** Intervalos de pausa [início, fim) em AAAA-MM-DD, a partir das datas de pausa e de (re)início do programa. */
+/**
+ * Intervalos de pausa [início, fim) em AAAA-MM-DD, a partir das datas de pausa e de (re)início do programa. A data de
+ * pausa é o ÚLTIMO dia ativo (o domingo que fecha o trecho, inclusive — desenho §3.2): a pausa começa no dia seguinte.
+ */
 export const pausedIntervals = (pauses: string[] = [], starts: string[] = []) => {
     const d = (x: string) => brasiliaDate(new Date(x));
     const ss = starts.map(d).sort();
     return pauses
         .map(d)
         .sort()
-        .map((p) => ({ from: p, to: ss.find((s) => s > p) }));
+        .map((p) => ({ from: nextDay(p), to: ss.find((s) => s > p) }));
 };
 
 const nextDay = (iso: string) => {

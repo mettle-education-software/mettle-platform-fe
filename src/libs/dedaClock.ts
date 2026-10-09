@@ -98,6 +98,35 @@ export const lampWeekOptions = (s: Summary | null | undefined, titles: Record<st
     }));
 };
 
+const DAY_MS = 86_400_000;
+const brasiliaDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' });
+const isoPlus = (iso: string, n: number) =>
+    new Date(Date.parse(`${iso}T12:00:00Z`) + n * DAY_MS).toISOString().slice(0, 10);
+const isoDiff = (from: string, to: string) =>
+    Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / DAY_MS);
+/** segunda(d): a própria, se é segunda; senão a próxima (o início de um trecho da LAMP). */
+const mondayOnOrAfter = (iso: string) => isoPlus(iso, (8 - (new Date(`${iso}T12:00:00Z`).getUTCDay() || 7)) % 7);
+
+/**
+ * Legado: a data (Brasília) do último dia da LAMP, o `current_deda_day`-ésimo dia ativo pelos trechos
+ * [segunda(início_i), pausa_i] (ambos inclusos; o último aberto) — a mesma conta de calculateDays (§3.2). Ancora o
+ * calendário da LAMP quando ela está parada (pausa, fim): o último dia não é hoje.
+ */
+export const legacyLampLastDate = (s?: Summary | null): string | null => {
+    const n = s?.current_deda_day;
+    if (!s || !Number.isInteger(n) || (n as number) < 1) return null;
+    const day = (value: string) => brasiliaDay.format(new Date(value));
+    const starts = (s.deda_start_dates ?? []).map((value) => mondayOnOrAfter(day(value)));
+    const pauses = (s.deda_pause_dates ?? []).map(day);
+    let left = n as number;
+    for (let i = 0; i < starts.length; i++) {
+        const len = pauses[i] ? Math.max(0, isoDiff(starts[i], pauses[i]) + 1) : Infinity;
+        if (left <= len) return isoPlus(starts[i], left - 1);
+        left -= len;
+    }
+    return null;
+};
+
 /** "Week 4 · Day 4": o único formato de semana e dia (inglês, sem zero à esquerda). */
 export const weekDayLabel = (week: number, day: number) => `Week ${week} · Day ${day}`;
 

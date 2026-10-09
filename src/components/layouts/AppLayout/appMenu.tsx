@@ -75,7 +75,13 @@ export const useAppMenu = (onNavigate: () => void = () => {}) => {
                           {
                               key: 'melpLamp',
                               label: 'LAMP',
-                              disabled: !lampOpen(melpSummary),
+                              // relógio novo na plataforma nova: aberta em todo estado depois do start (§4.3); a tela
+                              // atual mantém a regra de sempre (em andamento, pausada, concluída)
+                              disabled: newDesign
+                                  ? !lampOpen(melpSummary)
+                                  : !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(
+                                        melpSummary?.melp_status,
+                                    ),
                               onClick: go(() => router.push('/imerso/lamp')),
                           },
                       ],

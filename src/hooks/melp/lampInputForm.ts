@@ -1,9 +1,10 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { QueryClient, useQueryClient } from '@tanstack/react-query';
 import { InputDataDTO, InputDataResponse } from 'interfaces';
 import { lampLastDay, lampRunning, lampSaveError, lampSaveProblem } from 'libs/dedaClock';
 import { useAppContext, useMelpContext, useNotificationsContext } from 'providers';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { useGetInputData, useSaveInput } from './lamp';
+import { useEffect, useMemo, useReducer, useState } from 'react';
+import { lampService } from 'services';
+import { useGetInputData } from './lamp';
 
 /**
  * Estado e gravação da aba Input da LAMP (plataforma nova): os mesmos campos de components/_melp/_lamp/InputTab (menos
@@ -125,114 +126,161 @@ export type LampSaveStatus =
     | { kind: 'saving' }
     | { kind: 'error'; text: string; retry: boolean };
 
-/**
- * Um dia com alteração local. Os valores ficam aqui até o servidor confirmar (voltar ao dia mostra o rascunho, não a
- * leitura em cache) e o pedido usa sempre a leitura que originou o rascunho (`snapshot`: identidade da linha e tempos
- * do Summary) — uma releitura com outra linha nunca empresta a identidade nova a valores velhos.
- */
+// ---------- rascunhos por conta e dia, fora do componente ----------
+// Sobrevivem a trocar de aba e a sair e voltar à LAMP: um pedido por dia de cada vez, sempre com os valores mais
+// recentes, e a falha continua à vista.
+
 interface DayDraft {
+    uid: string;
     week: string;
     day: string;
     values: LampInputEdit;
+    /** a leitura do dia que originou o rascunho: identidade da linha e tempos do Summary vêm sempre dela */
     snapshot: Day;
     /** alteração ainda não enviada */
     dirty: boolean;
-    /** um pedido por dia de cada vez: o seguinte espera e leva os valores mais recentes */
     inflight: boolean;
+    /** confirmado pelo servidor; o rascunho só some quando chega uma leitura mais nova do dia */
+    ackedAt?: number;
     error?: { text: string; retry: boolean };
 }
 
+const drafts = new Map<string, DayDraft>();
+/** dias cuja linha o servidor trocou (409 LAMP_DAY_REPLACED): a leitura com o rowId recusado não aceita edição */
+const replaced = new Map<string, string>();
+const savedAt = new Map<string, Date>();
+const listeners = new Set<() => void>();
+const emit = () => listeners.forEach((listener) => listener());
+const keyOf = (uid: string, week: string, day: string) => `${uid}:${week}:${day}`;
+let timer: ReturnType<typeof setTimeout> | null = null;
+/** o que só a tela sabe: o cliente de consultas, se a LAMP conta agora, se a LAMP está aberta e como avisar */
+const env: {
+    queryClient?: QueryClient;
+    writable: boolean;
+    mounted: boolean;
+    notify?: (text: string) => void;
+} = { writable: false, mounted: false };
+
+const refresh = (d: DayDraft) => {
+    const qc = env.queryClient;
+    if (!qc) return;
+    qc.invalidateQueries({ queryKey: ['get-input-data', d.uid, d.week, d.day] });
+    for (const queryKey of [
+        ['get-weekly-performance'],
+        ['get-general-weekly-development'],
+        ['get-overall-progress'],
+        ['lamp-days', d.uid],
+    ])
+        qc.invalidateQueries({ queryKey });
+};
+
+const send = (k: string) => {
+    const d = drafts.get(k);
+    if (!d || d.inflight || !d.dirty || d.error) return;
+    // a LAMP parou de contar (pausa em outra aba, fim, manutenção) entre a alteração e o envio: não grava
+    if (!env.writable) {
+        d.dirty = false;
+        d.error = { text: 'Your LAMP is not counting now, so this change was not saved.', retry: false };
+        return emit();
+    }
+    d.inflight = true;
+    d.dirty = false;
+    emit();
+    lampService.patch(`/input/v2/${d.uid}/${d.week}/${d.day}`, { ...toDTO(d.values, d.snapshot) }).then(
+        () => {
+            d.inflight = false;
+            if (drafts.get(k) !== d) return;
+            if (d.dirty) return send(k); // chegou alteração durante o pedido: vai a mais recente
+            d.ackedAt = Date.now();
+            savedAt.set(d.uid, new Date());
+            refresh(d);
+            emit();
+        },
+        (error) => {
+            d.inflight = false;
+            const problem = lampSaveProblem(error);
+            if (lampSaveError(error) === 'LAMP_DAY_REPLACED') {
+                // a linha do dia foi trocada (pausa e volta na mesma segunda): o rascunho não vale mais
+                drafts.delete(k);
+                replaced.set(k, d.snapshot.dedaInput?.rowId ?? '');
+                refresh(d);
+            } else if (drafts.get(k) === d) {
+                d.error = problem; // os valores ficam; "Try again" manda os mais recentes deste dia
+                d.dirty = problem.retry;
+            }
+            // fora da LAMP: a falha não pode sumir em silêncio
+            if (!env.mounted) env.notify?.(problem.text);
+            emit();
+        },
+    );
+};
+
+/** Envia o pendente de todos os dias (troca de dia ou aba, saída da página, aba escondida, fim dos 3,5 s). */
+const flushAll = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    for (const k of drafts.keys()) send(k);
+};
+
 export const useLampInputForm = () => {
     const { user } = useAppContext();
+    const uid = user?.uid;
     const { melpSummary } = useMelpContext();
     const { showNotification } = useNotificationsContext();
     const queryClient = useQueryClient();
     const last = lampLastDay(melpSummary);
     const readOnly = !lampRunning(melpSummary);
     const currentWeek = melpSummary?.current_deda_week;
+    env.queryClient = queryClient;
+    env.writable = !readOnly;
+    env.notify = (text) => showNotification('error', 'LAMP', text);
 
     // sem dia na LAMP ainda (semana 0: aguardando a segunda) não há o que pedir
     const weekOf = (week?: number) => (week ? `week${week}` : '');
     const [selectedWeek, setSelectedWeek] = useState(weekOf(currentWeek));
     const [selectedDay, setSelectedDay] = useState(`day${last?.day ?? 1}`);
-    const { data: inputData, isLoading } = useGetInputData(selectedWeek, selectedDay);
-    // só funções estáveis entram nas dependências (o objeto de useMutation muda a cada render)
-    const { mutateAsync: saveDay } = useSaveInput();
+    const { data: inputData, isLoading, dataUpdatedAt, refetch } = useGetInputData(selectedWeek, selectedDay);
 
-    const drafts = useRef(new Map<string, DayDraft>());
     const [, render] = useReducer((n: number) => n + 1, 0);
-    const [lastSavedAt, setLastSavedAt] = useState<Date>();
-    const [notice, setNotice] = useState<string>();
-    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const mounted = useRef(true);
-    const notify = useRef(showNotification);
-    notify.current = showNotification;
-
-    const send = useCallback(
-        (k: string) => {
-            const d = drafts.current.get(k);
-            if (!d || d.inflight || !d.dirty) return;
-            d.inflight = true;
-            d.dirty = false;
-            d.error = undefined;
-            render();
-            saveDay({ week: d.week, day: d.day, inputDTO: toDTO(d.values, d.snapshot) }).then(
-                () => {
-                    d.inflight = false;
-                    if (drafts.current.get(k) !== d) return;
-                    if (d.dirty) return send(k); // chegou alteração durante o pedido: vai a mais recente
-                    drafts.current.delete(k); // gravado: o dia volta a seguir o servidor
-                    setLastSavedAt(new Date());
-                    render();
-                },
-                (error) => {
-                    d.inflight = false;
-                    const problem = lampSaveProblem(error);
-                    if (lampSaveError(error) === 'LAMP_DAY_REPLACED') {
-                        // a linha do dia foi trocada (pausa e volta na mesma segunda): o rascunho não vale mais
-                        drafts.current.delete(k);
-                        setNotice('This LAMP day was updated. Please enter it again.');
-                        queryClient.invalidateQueries({ queryKey: ['get-input-data', user?.uid, d.week, d.day] });
-                    } else if (drafts.current.get(k) === d) {
-                        d.error = problem; // os valores ficam; "Try again" manda os mais recentes deste dia
-                        d.dirty = problem.retry;
-                    }
-                    // fora da tela (saiu da LAMP): a falha não pode sumir em silêncio
-                    if (!mounted.current) notify.current('error', 'LAMP', problem.text);
-                    render();
-                },
-            );
-        },
-        [saveDay, queryClient, user?.uid],
-    );
-
-    /** Grava já o que está pendente em qualquer dia (troca de dia, de aba, saída da página, aba escondida). */
-    const flush = useCallback(() => {
-        if (timer.current) clearTimeout(timer.current);
-        timer.current = null;
-        for (const [k, d] of drafts.current) if (!d.error) send(k);
-    }, [send]);
-
     useEffect(() => {
-        mounted.current = true;
-        const hide = () => document.visibilityState === 'hidden' && flush();
+        listeners.add(render);
+        env.mounted = true;
+        const hide = () => document.visibilityState === 'hidden' && flushAll();
         document.addEventListener('visibilitychange', hide);
         return () => {
+            listeners.delete(render);
             document.removeEventListener('visibilitychange', hide);
-            flush();
-            mounted.current = false;
+            env.mounted = false;
+            flushAll();
         };
-    }, [flush]);
+    }, []);
 
     // a semana inicial segue o resumo só quando a LAMP muda de semana (não a cada releitura do resumo)
     useEffect(() => {
         if (currentWeek === undefined) return;
-        flush();
+        flushAll();
         setSelectedWeek(weekOf(currentWeek));
-    }, [currentWeek, flush]);
+    }, [currentWeek]);
 
-    const key = `${selectedWeek}:${selectedDay}`;
-    const draft = drafts.current.get(key);
+    const k = uid ? keyOf(uid, selectedWeek, selectedDay) : '';
+    const draft = drafts.get(k);
+    const rejected = replaced.get(k);
+    const stale = !!rejected && inputData?.dedaInput?.rowId === rejected;
+    useEffect(() => {
+        const d = drafts.get(k);
+        // confirmado e relido do servidor: o dia volta a seguir o servidor
+        if (d?.ackedAt && !d.dirty && !d.inflight && !d.error && dataUpdatedAt > d.ackedAt) {
+            drafts.delete(k);
+            render();
+        }
+        // chegou a linha nova do dia trocado: a edição volta a valer
+        const r = replaced.get(k);
+        if (r !== undefined && inputData && inputData.dedaInput?.rowId !== r) {
+            replaced.delete(k);
+            render();
+        }
+    }, [k, dataUpdatedAt, inputData]);
+
     const edit = useMemo(
         () => draft?.values ?? (inputData ? fromInput(inputData) : ({} as LampInputEdit)),
         [draft?.values, inputData],
@@ -240,8 +288,9 @@ export const useLampInputForm = () => {
 
     /** Altera um campo deste dia e agenda a gravação (3,5 s depois da última alteração). */
     const change = <K extends keyof LampInputEdit>(field: K, value: LampInputEdit[K]) => {
-        if (readOnly || !inputData?.dedaInput) return;
-        const d = drafts.current.get(key) ?? {
+        if (readOnly || stale || !uid || !inputData?.dedaInput) return;
+        const d = drafts.get(k) ?? {
+            uid,
             week: selectedWeek,
             day: selectedDay,
             values: fromInput(inputData),
@@ -251,54 +300,55 @@ export const useLampInputForm = () => {
         };
         d.values = { ...d.values, [field]: value };
         d.dirty = true;
+        d.ackedAt = undefined;
         d.error = undefined;
-        drafts.current.set(key, d);
-        setNotice(undefined);
-        render();
-        if (timer.current) clearTimeout(timer.current);
-        timer.current = setTimeout(flush, SAVE_DELAY_MS);
+        drafts.set(k, d);
+        emit();
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(flushAll, SAVE_DELAY_MS);
     };
 
-    const all = [...drafts.current.values()];
-    const failed = all.filter((d) => d.error);
+    const mine = [...drafts.values()].filter((d) => d.uid === uid);
+    const failed = mine.filter((d) => d.error);
     const status: LampSaveStatus = failed.length
         ? {
               kind: 'error',
               text: failed[failed.length - 1].error?.text ?? '',
               retry: failed.some((d) => d.error?.retry),
           }
-        : notice
-          ? { kind: 'error', text: notice, retry: false }
-          : all.length
+        : stale
+          ? { kind: 'error', text: 'This LAMP day was updated. Please enter it again.', retry: true }
+          : mine.some((d) => d.dirty || d.inflight)
             ? { kind: 'saving' }
-            : { kind: 'saved', at: lastSavedAt };
+            : { kind: 'saved', at: uid ? savedAt.get(uid) : undefined };
 
     return {
         selectedWeek,
         setSelectedWeek: (week: string) => {
-            flush();
+            flushAll();
             setSelectedWeek(week);
         },
         selectedDay,
         setSelectedDay: (day: string) => {
-            flush();
+            flushAll();
             setSelectedDay(day);
         },
         inputData,
         isLoading,
         edit,
         change,
-        readOnly,
+        readOnly: readOnly || stale,
         /** dia de hoje na LAMP (com ela contando) ou o último dia dela (semana congelada) */
         lastDay: last,
         status,
-        /** repete os dias que falharam, cada um com os seus valores mais recentes */
+        /** repete os dias que falharam (cada um com os seus valores mais recentes) ou relê o dia trocado */
         retry: () => {
-            for (const [k, d] of drafts.current)
-                if (d.error?.retry) {
+            if (stale) return void refetch();
+            for (const [key, d] of drafts)
+                if (d.uid === uid && d.error?.retry) {
                     d.error = undefined;
                     d.dirty = true;
-                    send(k);
+                    send(key);
                 }
         },
     };

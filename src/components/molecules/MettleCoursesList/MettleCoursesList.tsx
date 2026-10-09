@@ -2,7 +2,8 @@
 
 import { Row, Col, Skeleton } from 'antd';
 import { useGetCourses } from 'hooks';
-import { IMERSO_PRODUCT, IMERSO_SALES_URL } from 'libs/productAccess';
+import { MASTERCLASS_COURSE, MASTERCLASS_SALES_URL } from 'libs/masterclass';
+import { IMERSO_PRODUCT, imersoSalesUrl } from 'libs/productAccess';
 import { CtaTarget, useProductAccess } from 'providers';
 import React from 'react';
 import { CourseCard } from '../../atoms';
@@ -37,7 +38,7 @@ export const useCourseCards = () => {
             imgUrl: '/img/imerso_thumb.webp',
             title: 'IMERSO',
             type: 'Programa',
-            href: isImersoLocked ? IMERSO_SALES_URL : '/imerso',
+            href: isImersoLocked ? imersoSalesUrl('home') : '/imerso',
             isLocked: isImersoLocked,
             isExpired: imersoState === 'expired',
             cta: { product: IMERSO_PRODUCT },
@@ -53,9 +54,12 @@ export const useCourseCards = () => {
                 const state = access(course?.coursePurchaseId).state;
                 const isLocked = state === 'none';
 
-                // curso sem módulo/aula publicada (acontece nos produtos de teste): o card aponta para o curso, sem quebrar a home
+                // curso sem módulo/aula publicada (acontece nos produtos de teste): o card aponta para o curso, sem quebrar a home.
+                // Trancado: a venda do próprio curso (o paymentCheckout da Masterclass leva ao Imerso); sem página, sem link.
                 const href = isLocked
-                    ? course.paymentCheckout
+                    ? course.courseSlug === MASTERCLASS_COURSE
+                        ? MASTERCLASS_SALES_URL
+                        : (course.paymentCheckout ?? '')
                     : `/course/${course.courseSlug}/${
                           course.courseModulesCollection?.items?.[0]?.lessonsCollection?.items?.[0]?.lessonId ?? ''
                       }`;

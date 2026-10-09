@@ -432,6 +432,16 @@ export const Page = styled.div`
     .cc.locked b {
         color: var(--r-muted);
     }
+    /* card trancado (convite): cadeado pequeno no canto, nunca sobre o logotipo da capa */
+    .cc .lock {
+        inset: 10px 10px auto auto;
+        margin: 0;
+        color: var(--r-text);
+        opacity: 0.75;
+    }
+    .cc.still {
+        cursor: default;
+    }
     .cc .ctx {
         display: block;
         margin-top: 2px;
@@ -829,6 +839,23 @@ export const Page = styled.div`
         .cc.today {
             grid-template-columns: 128px minmax(0, 1fr);
             gap: 0 14px;
+        }
+        /* o convite é secundário: card trancado em linha (miniatura + nome), nunca a primeira tela inteira */
+        .cards .cc.locked {
+            display: grid;
+            grid-template-columns: 128px minmax(0, 1fr);
+            align-content: center;
+            gap: 0 14px;
+        }
+        .cards .cc.locked .img {
+            grid-row: 1 / span 3;
+            align-self: center;
+        }
+        .cards .cc.locked .meta {
+            margin-top: 0;
+        }
+        .cards .cc.locked .act {
+            min-height: 0;
         }
         .dc .cats {
             font-size: 12px;

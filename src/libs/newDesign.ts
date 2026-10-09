@@ -75,8 +75,21 @@ export const saveMenuCollapsed = (collapsed: boolean) => {
 
 // ---------- textos curtos ----------
 
+// Palavras que não são nome: tratamento/abreviação com ponto ("Pe.", "Dr.", "Jr."), resto de junção ("undefined") e
+// partículas no fim ("Maria de").
+const PARTICLES = new Set(['da', 'das', 'de', 'do', 'dos', 'e', 'di', 'du', 'del', 'van', 'von']);
+const nameWords = (name?: string | null) =>
+    (name ?? '').split(/\s+/).filter((w) => w && !w.endsWith('.') && !/^(undefined|null)$/i.test(w));
+
 /** Primeiro nome, como o cumprimento atual ("Olá, {nome}"). */
-export const firstName = (name?: string | null) => (name ?? '').trim().split(/\s+/)[0] ?? '';
+export const firstName = (name?: string | null) => nameWords(name)[0] ?? '';
+
+/** Nome curto para o menu: primeiro nome + último sobrenome ("Maria da Silva Souza" → "Maria Souza"). */
+export const displayName = (name?: string | null) => {
+    const words = nameWords(name);
+    const last = [...words.slice(1)].reverse().find((w) => !PARTICLES.has(w.toLowerCase()));
+    return [words[0], last].filter(Boolean).join(' ');
+};
 
 /** Páginas com cabeçalho próprio (leitor do DEDA) abrem o MESMO menu da casca (gaveta no celular): um menu só. */
 export const MENU_OPEN_EVENT = 'mettle-open-menu';

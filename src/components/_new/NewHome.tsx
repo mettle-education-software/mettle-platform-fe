@@ -2,7 +2,7 @@
 
 import { useCourseCards } from 'components/molecules/MettleCoursesList/MettleCoursesList';
 import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
-import { getWeekDay } from 'libs';
+import { saoPauloWeekday } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { contentfulImage } from 'libs/dedaHeader';
 import { EBOOK, EBOOK_PATH, EBOOK_PRODUCT, ebookOpen } from 'libs/ebook';
@@ -27,9 +27,9 @@ const TodayDeda: React.FC = () => {
     if (!deda) return null;
     const thumb = contentfulImage(deda.dedaFeaturedImage?.url, { w: 320, h: 200, fit: 'fill', fm: 'webp', q: 70 });
     return (
-        <section aria-label="DEDA de hoje">
+        <section aria-label="Today’s DEDA">
             <div className="sh">
-                <h2>DEDA de hoje</h2>
+                <h2>Today’s DEDA</h2>
             </div>
             <button type="button" className="cc today" onClick={() => router.push(dedaPath(deda.dedaSlug))}>
                 <span className="img">
@@ -38,13 +38,13 @@ const TodayDeda: React.FC = () => {
                 </span>
                 <span className="meta">
                     <small>
-                        Semana {melpSummary.current_deda_week} · Dia {getWeekDay()}
+                        Week {melpSummary.current_deda_week} · Day {saoPauloWeekday()}
                     </small>
-                    {isTodaysDedaCompleted && <em>Concluído hoje</em>}
+                    {isTodaysDedaCompleted && <em>Done today</em>}
                 </span>
                 <b>{deda.dedaTitle}</b>
                 <span className="act">
-                    Abrir DEDA <ArrowRight {...ICON} size={16} aria-hidden />
+                    Open DEDA <ArrowRight {...ICON} size={16} aria-hidden />
                 </span>
             </button>
         </section>
@@ -58,7 +58,9 @@ const TodayDeda: React.FC = () => {
 export const NewHome: React.FC = () => {
     const { user } = useAppContext();
     const { access } = useProductAccess();
-    const { cards, loading, error, openCta } = useCourseCards();
+    const { cards: all, loading, error, openCta } = useCourseCards();
+    // os produtos do aluno primeiro; os trancados (convite) depois, na ordem de sempre
+    const cards = [...all.filter((card) => !card.isLocked), ...all.filter((card) => card.isLocked)];
     const imersoState = access(IMERSO_PRODUCT).state;
     const imersoOpen = imersoState === 'active' || imersoState === 'grace';
     const ebook = ebookOpen(access(EBOOK_PRODUCT).state);
@@ -97,30 +99,33 @@ export const NewHome: React.FC = () => {
                                               {/* eslint-disable-next-line @next/next/no-img-element -- capa do curso */}
                                               <img src={card.imgUrl} alt="" loading="lazy" />
                                               {card.isLocked && (
-                                                  <Lock
-                                                      {...ICON}
-                                                      size={28}
-                                                      strokeWidth={1.25}
-                                                      className="lock"
-                                                      aria-hidden
-                                                  />
+                                                  <Lock {...ICON} size={16} className="lock" aria-hidden />
                                               )}
                                           </span>
                                           <span className="meta">
                                               <small>{card.isExpired ? 'Acesso expirado' : card.type}</small>
                                           </span>
                                           <b>{card.title}</b>
-                                          <span className="act">
-                                              {card.isExpired
-                                                  ? 'Renovar acesso'
-                                                  : card.isLocked
-                                                    ? 'Desbloquear'
-                                                    : 'Acessar'}
-                                              <ArrowRight {...ICON} size={16} aria-hidden />
-                                          </span>
+                                          {(card.isExpired || card.href) && (
+                                              <span className="act">
+                                                  {card.isExpired
+                                                      ? 'Renovar acesso'
+                                                      : card.isLocked
+                                                        ? 'Desbloquear'
+                                                        : 'Acessar'}
+                                                  <ArrowRight {...ICON} size={16} aria-hidden />
+                                              </span>
+                                          )}
                                       </>
                                   );
                                   const className = `cc${card.isLocked ? ' locked' : ''}`;
+                                  // curso trancado sem página de venda: só o card, sem ação
+                                  if (!card.isExpired && !card.href)
+                                      return (
+                                          <div key={card.key} className={`${className} still`}>
+                                              {body}
+                                          </div>
+                                      );
                                   return card.isExpired ? (
                                       <button
                                           key={card.key}

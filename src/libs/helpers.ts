@@ -2,21 +2,24 @@ export const padNumber = (num: number) => {
     return num < 10 ? '0' + num : num?.toString();
 };
 
-export const getWeekDay = () => {
-    const date = new Date();
-    const day = date.getDay();
-    return day === 0 ? '07' : day.toString().padStart(2, '0');
+// O "dia" da Plataforma é o de Brasília (o mesmo do servidor), nunca o relógio do aparelho: aluno no exterior ou
+// navegador em UTC depois das 21h não pode ver nem gravar no dia seguinte.
+export const SAO_PAULO_TZ = 'America/Sao_Paulo';
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/** Dia da semana em Brasília: 1 = segunda … 7 = domingo. */
+export const saoPauloWeekday = (date: Date = new Date()) =>
+    WEEKDAYS.indexOf(new Intl.DateTimeFormat('en-US', { timeZone: SAO_PAULO_TZ, weekday: 'short' }).format(date)) + 1;
+
+/** Meio-dia de Brasília do dia de hoje lá, `plusDays` dias depois: a data certa em qualquer fuso próximo. */
+const saoPauloNoon = (date: Date, plusDays = 0) => {
+    const [y, m, d] = new Intl.DateTimeFormat('en-CA', { timeZone: SAO_PAULO_TZ }).format(date).split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d + plusDays, 15)); // 15h UTC = 12h em Brasília (sem horário de verão desde 2019)
 };
 
-export const getDayToday = () => {
-    const today = new Date();
-    const brazilTime = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Sao_Paulo',
-        weekday: 'short',
-    }).format(today);
-    const dayNumber = brazilTime === 'Sun' ? 7 : today.getDay() === 0 ? 7 : today.getDay();
-    return `day${dayNumber}`;
-};
+export const getWeekDay = () => String(saoPauloWeekday()).padStart(2, '0');
+
+export const getDayToday = () => `day${saoPauloWeekday()}`;
 
 export function extractYouTubeID(url: string) {
     const queryStart = url.indexOf('?v=') + 3; // Find the start index of "?v=" and adjust for its length
@@ -45,22 +48,15 @@ export const getClosestTimeListValue: (timeValue: number) => number = (timeValue
     return 0;
 };
 
-export const nextMondayDate = () => {
-    const isTodayMonday = new Date().getDay() === 1;
-
-    if (isTodayMonday) return new Date();
-
-    const date = new Date();
-    const day = date.getDay();
-    const diff = 8 - day;
-    date.setDate(date.getDate() + diff);
-    return date;
+/** Segunda em que o DEDA começa (regra do servidor, toScheduledSaoPauloDedaStart): hoje se for segunda; senão a próxima. */
+export const nextMondayDate = (now: Date = new Date()) => {
+    const day = saoPauloWeekday(now);
+    return saoPauloNoon(now, day === 1 ? 0 : 8 - day);
 };
 
-export const getUnlockedDate = (currentDay: number, drippingDay: number) => {
-    const today = new Date();
-    const differenceInNumberOfDays = drippingDay - currentDay;
-    today.setDate(today.getDate() + differenceInNumberOfDays);
+/** "Monday, Oct 12": data de Brasília, em inglês (avisos do IMERSO). */
+export const formatImersoDate = (date: Date) =>
+    date.toLocaleDateString('en-US', { timeZone: SAO_PAULO_TZ, weekday: 'long', month: 'short', day: 'numeric' });
 
-    return `Available on: ${today.toLocaleDateString('en-US')}`;
-};
+export const getUnlockedDate = (currentDay: number, drippingDay: number, now: Date = new Date()) =>
+    `Available on: ${saoPauloNoon(now, drippingDay - currentDay).toLocaleDateString('en-US', { timeZone: SAO_PAULO_TZ })}`;

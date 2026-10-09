@@ -3,13 +3,14 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import SettingsIcon from '@mui/icons-material/Settings';
+import { useIsMutating } from '@tanstack/react-query';
 import { Button, Card, Col, Flex, Form, Input, Modal, Row, Tabs as AntTabs, Tooltip, Typography } from 'antd';
 import { AppLayout, MaxWidthContainer } from 'components';
-import { usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
+import { useMelpSummary, usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { passwordRules, withAuthentication } from 'libs';
 import dynamic from 'next/dynamic';
-import { useAppContext, useMelpContext } from 'providers';
+import { useAppContext } from 'providers';
 import React, { useEffect } from 'react';
 
 // Configurações da plataforma nova (libs/newDesign), só para as contas da lista: fora do bundle dos alunos.
@@ -238,16 +239,34 @@ const PersonalInformation = () => {
 const ImersoSettings = () => {
     const programReset = useResetMelp();
     const pauseDeda = usePauseDeda();
+    const { user } = useAppContext();
+    // a mesma consulta (e o mesmo cache) do MelpProvider, com o estado completo
+    const summary = useMelpSummary(user?.uid);
+    const melpSummary = summary.data;
+    const mutating = useIsMutating() > 0; // sobrevive a trocar de aba e voltar
+    const status = (summary.error as { response?: { status?: number } } | null)?.response?.status;
+    const retry = (
+        <Button type="link" size="small" onClick={() => summary.refetch()}>
+            Tentar de novo
+        </Button>
+    );
 
-    const handleProgramReset = () => {
-        programReset.mutate();
-    };
+    // uma ação por vez: reiniciar e pausar se excluem enquanto uma está em curso; a confirmação espera a resposta
+    const handleProgramReset = () => programReset.mutateAsync().catch(() => undefined);
+    const handleDedaPause = () => pauseDeda.mutateAsync().catch(() => undefined);
 
-    const handleDedaPause = () => {
-        pauseDeda.mutate();
-    };
+    // sem resumo: carregando (nada); sem programa ou sem acesso (404/403, consulta desligada): uma linha; outra falha
+    // (rede, 500) ou consulta parada sem conexão: mensagem com nova tentativa — nunca quebra
+    if (!melpSummary)
+        return summary.isLoading ? null : (summary.isError && status !== 404 && status !== 403) || summary.isPaused ? (
+            <Text className="color-secondary">Não foi possível carregar o programa IMERSO. {retry}</Text>
+        ) : (
+            <Text className="color-secondary">Programa IMERSO indisponível nesta conta.</Text>
+        );
 
-    const { melpSummary } = useMelpContext();
+    // atualização que falhou depois de uma ação: as ações esperam uma nova tentativa (nunca sobre resumo velho)
+    const stale = summary.isError;
+    const busy = mutating || programReset.isPending || pauseDeda.isPending || stale;
 
     return (
         <>
@@ -255,6 +274,7 @@ const ImersoSettings = () => {
                 title="Programa IMERSO"
                 description={<Text className="color-secondary">Configurações do programa IMERSO</Text>}
             />
+            {stale && <Text className="color-secondary">Não foi possível atualizar o programa IMERSO. {retry}</Text>}
             <div style={{ marginTop: '2rem' }}>
                 <Row>
                     <Col span={24}>
@@ -263,7 +283,7 @@ const ImersoSettings = () => {
                                 <Flex vertical>
                                     <Flex gap="0.5rem" align="center">
                                         <Text>Reiniciar o programa</Text>
-                                        <Tooltip title="Você pode reinicar a sua conta e recomeçar o programa IMERSO do início. Seu progresso até agora será inteiramente removido.">
+                                        <Tooltip title="Você pode reiniciar a sua conta e recomeçar o programa IMERSO do início. Seu progresso até agora será inteiramente removido.">
                                             <InfoCircleOutlined />
                                         </Tooltip>
                                     </Flex>
@@ -276,14 +296,13 @@ const ImersoSettings = () => {
                             <Col xs={24} md={18}>
                                 <Button
                                     loading={programReset.isPending}
+                                    disabled={busy}
                                     onClick={() => {
                                         Modal.confirm({
                                             title: 'Atenção!',
                                             content:
                                                 'Tem certeza que deseja reiniciar? Você perderá todo o seu progresso atual e essa ação não poderá ser revertida.',
-                                            onOk: () => {
-                                                handleProgramReset();
-                                            },
+                                            onOk: handleProgramReset,
                                         });
                                     }}
                                     type="primary"
@@ -312,14 +331,14 @@ const ImersoSettings = () => {
                                 </Col>
                                 <Col xs={24} md={18}>
                                     <Button
+                                        loading={pauseDeda.isPending}
+                                        disabled={busy}
                                         onClick={() => {
                                             Modal.confirm({
                                                 title: 'Atenção!',
                                                 content:
-                                                    'Tem certeza que deseja pausar? Você não poderá despausar até a próxima semana o progresso desta semana será perdido.',
-                                                onOk: () => {
-                                                    handleDedaPause();
-                                                },
+                                                    'Tem certeza que deseja pausar? Você não poderá despausar até a próxima semana, e o progresso desta semana será perdido.',
+                                                onOk: handleDedaPause,
                                             });
                                         }}
                                         type="primary"
@@ -409,7 +428,8 @@ const Help = () => {
 const Settings = () => {
     const { user } = useAppContext();
 
-    const isUserImerso = !!user && user.roles.includes('METTLE_STUDENT');
+    // contas sem a claim `roles` existem (PF-06): sem papel, sem a aba IMERSO — nunca quebra
+    const isUserImerso = !!user?.roles?.includes('METTLE_STUDENT');
 
     const newDesign = useNewDesign();
     if (newDesign)

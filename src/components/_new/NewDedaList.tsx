@@ -1,14 +1,14 @@
 'use client';
 
 import { useDedaHeaderImage, useDedaHomeHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
-import { saoPauloWeekday } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
+import { lampToday, recentDedaIds, todaysDedaId, weekDayLabel } from 'libs/dedaClock';
 import { contentfulImage, pickHeaderImage } from 'libs/dedaHeader';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewDedasGrid } from './NewDedasGrid';
 import { SummaryError, SuspendedNotice } from './NewImersoDash';
@@ -27,11 +27,11 @@ export const NewDedaList: React.FC = () => {
         useMemo(() => ['MELP_SUSPENDED'].includes(melpSummary?.melp_status), [melpSummary]) ||
         melpSummary?.days_since_melp_start < 2;
 
-    const [selectedDeda, setSelectedDeda] = useState<string>();
-    const unlockedDEDAs = useMemo(() => melpSummary?.unlocked_dedas ?? [], [melpSummary]);
-    useEffect(() => {
-        if (!selectedDeda) setSelectedDeda(unlockedDEDAs[unlockedDEDAs.length - 1]);
-    }, [melpSummary, unlockedDEDAs, selectedDeda]);
+    // DEDA em destaque: o de hoje (libs/dedaClock), lido do resumo a cada vez (a aba aberta de domingo vira na segunda);
+    // relógio novo com a semana ainda sem DEDA publicado: o último publicado
+    const todays = todaysDedaId(melpSummary);
+    const selectedDeda = todays ?? recentDedaIds(melpSummary, 1)[0];
+    const lampDay = lampToday(melpSummary);
 
     const featured = useFeaturedDedaData(selectedDeda).data?.dedaContentCollection.items[0];
     const headerImage = useDedaHeaderImage(selectedDeda);
@@ -62,9 +62,17 @@ export const NewDedaList: React.FC = () => {
                     <div className="over">
                         <div>
                             <p className="eyebrow">
-                                <span className="wd">Current DEDA · </span>Week {melpSummary?.current_deda_week} · Day{' '}
-                                {saoPauloWeekday()}
-                                {isTodaysDedaCompleted && <em> · Completed today</em>}
+                                {!todays ? (
+                                    'New DEDA on the way'
+                                ) : lampDay ? (
+                                    <>
+                                        <span className="wd">Current DEDA · </span>
+                                        {weekDayLabel(lampDay.week, lampDay.day)}
+                                        {isTodaysDedaCompleted && <em> · Completed today</em>}
+                                    </>
+                                ) : (
+                                    'Current DEDA'
+                                )}
                             </p>
                             <h1>{featured.dedaTitle}</h1>
                         </div>
@@ -77,7 +85,7 @@ export const NewDedaList: React.FC = () => {
             <NewDedasGrid
                 blockedDEDAs={blockedDEDAs}
                 type="lastDedas"
-                skipCurrent={!blockedDEDAs && !!featured && featured.dedaId === unlockedDEDAs[unlockedDEDAs.length - 1]}
+                skipCurrent={!blockedDEDAs && !!featured && featured.dedaId === todays}
                 onSelectedDeda={handleSelectedDeda}
             />
             <NewDedasGrid blockedDEDAs={blockedDEDAs} type="nextDedas" onSelectedDeda={handleSelectedDeda} />

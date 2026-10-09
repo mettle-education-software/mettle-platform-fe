@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MettleRoles } from 'interfaces';
 import { DedaDifficulty, MelpSummaryResponse } from 'interfaces/melp';
+import { lampWeekOptions } from 'libs/dedaClock';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { useAppContext, useMelpContext, useNotificationsContext, useProductAccess } from 'providers';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { melpService } from 'services';
 
 export const useMelpSummary = (userUid?: string) => {
@@ -85,9 +86,8 @@ export const useResetMelp = () => {
     });
 };
 
+/** Semanas da LAMP para os seletores ("W4 · título"): relógio novo por `deda_weeks`, legado pela posição (libs/dedaClock). */
 export const useGetDedasList = () => {
-    const [dedasList, setDedasList] = useState<{ value: string; label: string }[]>([]);
-
     const { melpSummary } = useMelpContext();
 
     const { data: dedasListData, isLoading } = useQuery({
@@ -96,18 +96,10 @@ export const useGetDedasList = () => {
         enabled: !!melpSummary,
     });
 
-    useEffect(() => {
-        if (dedasListData && melpSummary) {
-            const dedasListContent = melpSummary.unlocked_dedas.slice(1).map((dedaId, index) => {
-                return {
-                    value: `week${index + 1}`,
-                    label: `W${index + 1} | ${dedasListData[dedaId]}`,
-                };
-            });
-
-            setDedasList(dedasListContent);
-        }
-    }, [dedasListData, melpSummary]);
+    const dedasList = useMemo(
+        () => (dedasListData && melpSummary ? lampWeekOptions(melpSummary, dedasListData) : []),
+        [dedasListData, melpSummary],
+    );
 
     return {
         dedasList,

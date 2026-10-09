@@ -57,7 +57,12 @@ describe('linknowledge', () => {
         });
 
         it('programa concluído: dia do calendário de Brasília, só no DEDA da semana na rotação', () => {
-            const done = { ...base, melp_status: 'DEDA_FINISHED' as const, current_deda_day: 729, current_deda_week: 105 };
+            const done = {
+                ...base,
+                melp_status: 'DEDA_FINISHED' as const,
+                current_deda_day: 729,
+                current_deda_week: 105,
+            };
             const sunday = new Date('2026-10-04T15:00:00Z'); // domingo em Brasília
             const mondayUtc = new Date('2026-10-05T01:00:00Z'); // ainda domingo 22h em Brasília
             expect(todayCardDay(done, 'DEDA34', 'DEDA34', sunday)).toBe(7);
@@ -87,6 +92,21 @@ describe('linknowledge', () => {
             expect(todayCardDay({ ...base, current_deda_day: 0 }, 'DEDA7')).toBeNull();
             expect(todayCardDay({ ...base, current_deda_week: 2 }, 'DEDA7')).toBeNull();
             expect(todayCardDay({ ...base, unlocked_dedas: undefined as unknown as string[] }, 'DEDA7')).toBeNull();
+        });
+
+        it('relógio novo: o DEDA de hoje (deda_today) pelo dia do calendário, também em pausa', () => {
+            const wednesday = new Date('2026-10-07T15:00:00Z');
+            const calendar = {
+                ...base,
+                melp_status: 'DEDA_PAUSED' as const,
+                deda_clock: 'calendar' as const,
+                deda_today: 'DEDA5', // volta do círculo: o de hoje não é o último liberado
+                deda_calendar_day: 120,
+            };
+            expect(todayCardDay(calendar, 'DEDA5', undefined, wednesday)).toBe(3);
+            expect(todayCardDay(calendar, 'DEDA7', undefined, wednesday)).toBeNull();
+            expect(todayCardDay({ ...calendar, deda_today: null }, 'DEDA5', undefined, wednesday)).toBeNull();
+            expect(todayCardDay({ ...calendar, deda_calendar_day: 0 }, 'DEDA5', undefined, wednesday)).toBeNull();
         });
     });
 });

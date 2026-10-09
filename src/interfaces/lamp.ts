@@ -1,6 +1,8 @@
 import { ApexOptions } from 'apexcharts';
 
 export interface InputDataDTO {
+    /** Relógio novo: o `rowId` da linha do dia que o formulário carregou (o servidor exige e confere; 409 se mudou). */
+    expectedRowId?: string;
     inputData: {
         dedaInputData: {
             dedaFocus: number;
@@ -45,14 +47,18 @@ export interface InputDataDTO {
 
 export interface ReviewContent {
     status: boolean;
-    name: string;
-    dedaId: string;
+    /** Relógio novo: `null` quando a semana revisada ficou sem DEDA publicado ("DEDA not published"). */
+    name: string | null;
+    dedaId: string | null;
     weekNumber: string;
 }
 
 export interface InputDataResponse {
     data: {
         dedaInput: {
+            /** Relógio novo: identidade da linha do dia e a data dela (AAAA-MM-DD, Brasília). */
+            rowId?: string;
+            date?: string;
             created_at: string;
             updated_at: string;
             deda_average: number;

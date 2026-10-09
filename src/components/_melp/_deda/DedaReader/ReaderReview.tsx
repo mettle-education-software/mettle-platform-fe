@@ -3,7 +3,6 @@
 import { useDedaReviews } from 'components/_melp/_deda/DedaReview/DedaReview';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaWatchQueryResponse } from 'interfaces';
-import { padNumber } from 'libs';
 import { Check } from 'lucide-react';
 import React from 'react';
 import { InfoTip } from './ReaderInfo';
@@ -12,8 +11,8 @@ import { ICON } from './readerStyles';
 const WHEN = ['1 day after', '1 week after', '1 month after'] as const;
 type ReviewKey = 'review1' | 'review2' | 'review3';
 
-const ReviewVideo = ({ dedaId, title }: { dedaId: string; title: string }) => {
-    const { data } = useDeda<DedaWatchQueryResponse>('deda-watch', dedaId);
+const ReviewVideo = ({ dedaId, title }: { dedaId: string | null; title: string }) => {
+    const { data } = useDeda<DedaWatchQueryResponse>('deda-watch', dedaId ?? undefined);
     const link = data?.dedaContentCollection?.items[0]?.dedaWatchVideoLink;
     return (
         <div className="video">
@@ -34,7 +33,7 @@ const ReviewVideo = ({ dedaId, title }: { dedaId: string; title: string }) => {
  * página atual (useDedaReviews); muda só a apresentação.
  */
 export const ReaderReview = ({ dedaId }: { dedaId: string }) => {
-    const { unlockedDEDAs, inputData, isInputLoading, editReview, setEditReview, setSaveKey, saveInput } =
+    const { hasReview, inputData, isInputLoading, editReview, setEditReview, setSaveKey, saveInput } =
         useDedaReviews(dedaId);
 
     const head = (
@@ -52,7 +51,7 @@ export const ReaderReview = ({ dedaId }: { dedaId: string }) => {
             </div>
         );
 
-    if (unlockedDEDAs.indexOf(dedaId) < 4)
+    if (!hasReview)
         return (
             <div className="review">
                 {head}
@@ -74,6 +73,8 @@ export const ReaderReview = ({ dedaId }: { dedaId: string }) => {
                 {(['review1', 'review2', 'review3'] as const).map((key, i) => {
                     const review = inputData.reviewInput?.[key];
                     const done = !!editReview[key];
+                    // relógio novo: semana revisada sem DEDA publicado (nome nulo)
+                    const name = review?.name ?? 'DEDA not published';
                     return (
                         <li key={key} className={review ? (done ? 'done' : undefined) : 'none'}>
                             <p className="when">
@@ -82,11 +83,11 @@ export const ReaderReview = ({ dedaId }: { dedaId: string }) => {
                             </p>
                             {review ? (
                                 <>
-                                    <ReviewVideo dedaId={review.dedaId} title={`Review ${i + 1}: ${review.name}`} />
+                                    <ReviewVideo dedaId={review.dedaId} title={`Review ${i + 1}: ${name}`} />
                                     <div className="meta">
                                         <span className="name">
-                                            <b title={review.name}>{review.name}</b>
-                                            <small>Week {padNumber(Number(review.weekNumber.split('week')[1]))}</small>
+                                            <b title={name}>{name}</b>
+                                            <small>Week {Number(review.weekNumber.split('week')[1])}</small>
                                         </span>
                                         <button
                                             type="button"

@@ -10,8 +10,9 @@ import { useDeda } from 'hooks/queries/dedaQueries';
 import { useLogoTheme } from 'hooks/useTheme';
 import { DedaNotesQueryResponse } from 'interfaces';
 import { ContextNoteData } from 'libs/contextNotes';
+import { lampToday, todaysDedaId, weekDayLabel } from 'libs/dedaClock';
 import { contentfulImage } from 'libs/dedaHeader';
-import { DEFAULT_TEXT_SCALE, hasReviews, readTextScale, saveTextScale, writeDayToday } from 'libs/dedaReader';
+import { DEFAULT_TEXT_SCALE, hasReviews, readTextScale, saveTextScale } from 'libs/dedaReader';
 import { openShellMenu } from 'libs/newDesign';
 import {
     BookOpen,
@@ -154,7 +155,7 @@ export const DedaReaderPage: React.FC<Props> = ({
     const { melpSummary } = useMelpContext();
     // Aba Review só com revisão liberada (libs/dedaReader.hasReviews). Até o resumo chegar, a barra de abas fica
     // invisível (mesmo espaço), para não piscar.
-    const reviews = hasReviews(melpSummary?.unlocked_dedas, dedaId);
+    const reviews = hasReviews(melpSummary, dedaId);
     const tabs = allTabs.filter((tab) => tab.key !== 'dedaReview' || reviews);
     useEffect(() => {
         if (reviews === false && activeTab === 'dedaReview') onTab(allTabs[0].key);
@@ -200,8 +201,9 @@ export const DedaReaderPage: React.FC<Props> = ({
     const notes = useDeda<DedaNotesQueryResponse>('deda-notes', dedaId);
     const glossary = notes.data?.dedaContentCollection?.items[0]?.dedaNotesGlossaryContent;
 
-    const isTodaysDeda = melpSummary?.unlocked_dedas[melpSummary?.unlocked_dedas.length - 1] === dedaId;
-    const weekDay = isTodaysDeda ? `Week ${melpSummary?.current_deda_week} · Day ${writeDayToday()}` : '';
+    // "Week n · Day n" só no DEDA de hoje e com a LAMP contando (pausa, fim e espera não têm "hoje" na LAMP)
+    const lampDay = todaysDedaId(melpSummary) === dedaId ? lampToday(melpSummary) : null;
+    const weekDay = lampDay ? weekDayLabel(lampDay.week, lampDay.day) : '';
     const thumb = contentfulImage(coverUrl, { w: 96, h: 96, fit: 'fill', fm: 'webp' });
     const stripImage = headerImages.find((image) => image?.url)?.url;
     const stripBg = contentfulImage(stripImage, { w: 1600, fm: 'webp', q: 60 });

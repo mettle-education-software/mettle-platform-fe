@@ -6,7 +6,7 @@ import { useGetDedasList, useGetGoalByLevel } from 'hooks';
 import { LampInputEdit, useLampInputForm } from 'hooks/melp/lampInputForm';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaWatchQueryResponse } from 'interfaces';
-import { getDayToday, padNumber } from 'libs';
+import { getDayToday } from 'libs';
 import {
     addMinutes,
     clampWeekDay,
@@ -346,31 +346,33 @@ const REVIEWS: Record<number, string> = {
 
 const Review: React.FC<{
     number: number;
-    dedaId: string;
-    title: string;
+    /** `null`: a semana revisada ficou sem DEDA publicado (relógio novo). */
+    dedaId: string | null;
+    title: string | null;
     week: string;
     status: boolean;
     onToggle(status: boolean): void;
 }> = ({ number, dedaId, title, week, status, onToggle }) => {
-    const { data } = useDeda<DedaWatchQueryResponse>('deda-watch', dedaId);
+    const { data } = useDeda<DedaWatchQueryResponse>('deda-watch', dedaId ?? undefined);
     const url = data?.dedaContentCollection.items[0]?.dedaWatchVideoLink;
+    const name = title ?? 'DEDA not published';
     return (
         <div className="rev">
             <p className="eyebrow">{REVIEWS[number]}</p>
             {url ? (
                 <iframe
                     src={url}
-                    title={title}
+                    title={name}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                     allowFullScreen
                 />
             ) : (
-                <span className="vskel" aria-hidden />
+                dedaId && <span className="vskel" aria-hidden />
             )}
             <div className="rfoot">
                 <span>
-                    <b>{title}</b>
-                    <small>Week {padNumber(Number(week.replace('week', '')))}</small>
+                    <b>{name}</b>
+                    <small>Week {Number(week.replace('week', ''))}</small>
                 </span>
                 <button
                     type="button"

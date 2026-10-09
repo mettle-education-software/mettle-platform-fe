@@ -7,6 +7,8 @@ import { ReviewThumbnail } from 'components/_melp/ReviewThumbnail/ReviewThumbnai
 import { useGetInputData, useSaveInput } from 'hooks';
 import { InputDataDTO } from 'interfaces';
 import { getDayToday, SMALL_VIEWPORT } from 'libs';
+import { dedaLampWeek } from 'libs/dedaClock';
+import { hasReviews } from 'libs/dedaReader';
 import { useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 
@@ -49,9 +51,9 @@ interface EditReviews {
 export const useDedaReviews = (dedaId: string) => {
     const { melpSummary } = useMelpContext();
 
-    const unlockedDEDAs = melpSummary?.unlocked_dedas ?? [];
-
-    const selectedWeek = `week${unlockedDEDAs.indexOf(dedaId)}`;
+    // semana da LAMP em que o aluno fez o DEDA (libs/dedaClock): relógio novo pela exibição datada, legado pela posição
+    const hasReview = !!hasReviews(melpSummary, dedaId);
+    const selectedWeek = `week${dedaLampWeek(melpSummary, dedaId) ?? 0}`;
     const selectedDay = getDayToday();
 
     const { data: inputData, isLoading: isInputLoading } = useGetInputData(selectedWeek, selectedDay);
@@ -85,6 +87,8 @@ export const useDedaReviews = (dedaId: string) => {
         if (!inputData) return;
 
         const inputDTO: InputDataDTO = {
+            // relógio novo: a linha do dia que o formulário carregou (o servidor recusa se ela foi substituída)
+            expectedRowId: inputData.dedaInput?.rowId,
             inputData: {
                 dedaInputData: {
                     dedaTime: inputData.dedaInput.deda_time,
@@ -160,11 +164,11 @@ export const useDedaReviews = (dedaId: string) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [saveKey]);
 
-    return { unlockedDEDAs, inputData, isInputLoading, editReview, setEditReview, setSaveKey, saveInput };
+    return { hasReview, inputData, isInputLoading, editReview, setEditReview, setSaveKey, saveInput };
 };
 
 export const DedaReview = ({ dedaId }: { dedaId: string }) => {
-    const { unlockedDEDAs, inputData, isInputLoading, editReview, setEditReview, setSaveKey, saveInput } =
+    const { hasReview, inputData, isInputLoading, editReview, setEditReview, setSaveKey, saveInput } =
         useDedaReviews(dedaId);
 
     if (!inputData || isInputLoading)
@@ -176,7 +180,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
             </ReviewContainer>
         );
 
-    if (unlockedDEDAs.indexOf(dedaId) < 4)
+    if (!hasReview)
         return (
             <ReviewContainer>
                 <MaxWidthContainer>

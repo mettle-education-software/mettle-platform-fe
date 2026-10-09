@@ -48,13 +48,25 @@ export const calendarDedaDay = (now: Date = new Date()): number | null => {
 
 export const todayCardDay = (
     summary:
-        | Pick<MelpSummaryResponse['data'], 'melp_status' | 'current_deda_day' | 'current_deda_week' | 'unlocked_dedas'>
+        | Pick<
+              MelpSummaryResponse['data'],
+              | 'melp_status'
+              | 'current_deda_day'
+              | 'current_deda_week'
+              | 'unlocked_dedas'
+              | 'deda_clock'
+              | 'deda_today'
+              | 'deda_calendar_day'
+          >
         | null
         | undefined,
     dedaId: string,
     rotationDedaId?: string | null,
     now?: Date,
 ): number | null => {
+    // relógio novo: o DEDA segue o calendário em todo estado pós-start (pausa e espera da segunda incluídas)
+    if (summary?.deda_clock === 'calendar')
+        return dedaId && dedaId === summary.deda_today && summary.deda_calendar_day ? calendarDedaDay(now) : null;
     if (summary?.melp_status === 'DEDA_FINISHED')
         return dedaId && dedaId === rotationDedaId ? calendarDedaDay(now) : null;
     if (!summary || summary.melp_status !== 'DEDA_STARTED') return null;

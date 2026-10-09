@@ -19,6 +19,7 @@ interface Props {
 }
 
 const TITLES: Record<Props['type'], string> = { lastDedas: 'Most recent', nextDedas: 'Next', allDedas: 'All' };
+const weekText = (week?: number) => (week ? `Week ${week}` : undefined);
 
 /**
  * Grade de DEDAs da plataforma nova: os mesmos DEDAs, na mesma ordem e com os mesmos bloqueios da grade atual
@@ -35,7 +36,7 @@ export const NewDedasGrid: React.FC<Props> = ({
     // passar o mouse/focar num card adianta a rota do DEDA (produção): o clique abre sem esperar o servidor
     const router = useRouter();
     const grid = useDedasGrid(type, blockedDEDAs);
-    const { unlockedDEDAs, currentDeda, currentWeek } = grid;
+    const { unlockedDEDAs, currentDeda } = grid;
 
     // Mesmas condições de título da grade atual.
     const visible =
@@ -58,13 +59,13 @@ export const NewDedasGrid: React.FC<Props> = ({
     const items: { deda: DedaItem; week?: string }[] =
         type === 'lastDedas'
             ? grid.lastDedas
-                  .map((deda, index) => ({ deda, week: `Week ${(currentWeek as number) - index}` }))
+                  .map((deda, index) => ({ deda, week: weekText(grid.weekOf(deda.dedaId, index)) }))
                   .filter(({ deda }) => !(skipCurrent && deda?.dedaId === currentDeda))
             : type === 'nextDedas'
               ? grid.showNext
                   ? (grid.nextDedas ?? []).map((deda, index) => ({
                         deda,
-                        week: `Week ${(currentWeek as number) + index + 1}`,
+                        week: weekText(grid.nextWeekOf(index)),
                     }))
                   : []
               : (grid.allDedas ?? []).map((deda) => ({ deda }));

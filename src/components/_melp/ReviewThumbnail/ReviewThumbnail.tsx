@@ -89,8 +89,9 @@ const ReviewStatusChip = styled.button`
 `;
 
 interface ReviewThumbnailProps {
-    dedaId: string;
-    title: string;
+    /** `null`: a semana revisada ficou sem DEDA publicado (relógio novo). */
+    dedaId: string | null;
+    title: string | null;
     number: number;
     week: string;
     status: boolean;
@@ -108,11 +109,11 @@ export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
     loading = false,
 }) => {
     const device = useDeviceSize();
-    const { data, loading: isWatchLoading } = useDeda<DedaWatchQueryResponse>('deda-watch', dedaId);
+    const { data, loading: isWatchLoading } = useDeda<DedaWatchQueryResponse>('deda-watch', dedaId ?? undefined);
 
-    if (!data || isWatchLoading) return <Skeleton.Image active />;
+    if (dedaId && (!data || isWatchLoading)) return <Skeleton.Image active />;
 
-    const dedaUrl = data?.dedaContentCollection.items[0].dedaWatchVideoLink;
+    const dedaUrl = data?.dedaContentCollection.items[0]?.dedaWatchVideoLink;
 
     const reviewProperties: {
         [key: typeof number]: {
@@ -144,14 +145,16 @@ export const ReviewThumbnail: React.FC<ReviewThumbnailProps> = ({
                     <span style={{ fontWeight: 400 }}>{reviewProperties[number].complement})</span>
                 </Title>
             </Flex>
-            <VideoFrame
-                src={dedaUrl}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                allowFullScreen
-            />
+            {dedaUrl && (
+                <VideoFrame
+                    src={dedaUrl}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                    allowFullScreen
+                />
+            )}
             <Flex style={{ width: '100%' }} justify="space-between" align="center">
                 <Flex align="center" gap="1rem">
-                    <Text style={{ color: '#FFF' }}>{title}</Text>
+                    <Text style={{ color: '#FFF' }}>{title ?? 'DEDA not published'}</Text>
                     <WeekChip>
                         <Text strong={device === 'desktop'}>{device === 'mobile' ? 'W' : 'Week'}</Text>
                         <Text className="word-no-break">{padNumber(Number(week.split('week')[1]))}</Text>

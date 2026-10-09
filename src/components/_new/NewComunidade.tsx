@@ -2,7 +2,7 @@
 
 // Comunidade Imerso (libs/comunidade): grupo estilo WhatsApp sobre o Worker mettle-comunidade. Mesmos balões, campo,
 // notas de voz, figurinhas e papel de parede do Mettle Chat (exportados de NewChat); aqui só o que é de grupo: nome e
-// avatar de quem fala, menções, reações de várias pessoas, mensagens fixadas, dados do grupo, regras e moderação.
+// avatar de quem fala, menções, reações de várias pessoas, mensagens fixadas, dados do grupo e moderação.
 import styled from '@emotion/styled';
 import { useQueryClient } from '@tanstack/react-query';
 import { COMUNIDADE_UNREAD_KEY } from 'hooks/useComunidade';
@@ -23,7 +23,6 @@ import {
     mentionParts,
     mentionQuery,
     mergeC,
-    RULES,
     toChat,
 } from 'libs/comunidade';
 import { pushRecentEmoji } from 'libs/emoji';
@@ -55,7 +54,6 @@ const SWIPE_REPLY_PX = 56;
 const ERRORS: Record<string, string> = {
     muted: 'Você está silenciado.',
     rate: 'Muitas mensagens seguidas. Aguarde um pouco.',
-    rules: 'Aceite as regras para participar.',
     long: 'Mensagem longa demais.',
 };
 
@@ -132,7 +130,7 @@ const NewComunidade: React.FC = () => {
     const [menuBelow, setMenuBelow] = useState(false);
     const [moreOpen, setMoreOpen] = useState(false);
     const [picker, setPicker] = useState<'emoji' | 'sticker' | null>(null);
-    const [sheet, setSheet] = useState<'info' | 'rules' | null>(null);
+    const [sheet, setSheet] = useState<'info' | null>(null);
     const [memberMenu, setMemberMenu] = useState<string | null>(null);
     const [pushOn, setPushOn] = useState<boolean | null>(null);
     const [unreadAt, setUnreadAt] = useState<{ id: number; n: number } | null>(null);
@@ -175,7 +173,6 @@ const NewComunidade: React.FC = () => {
                     setMore(s.more);
                     const at = s.messages.find((m) => m.id > s.lastRead && m.uid !== s.me.uid && !m.deleted);
                     if (at && s.unread > 0) setUnreadAt({ id: at.id, n: s.unread });
-                    if (!s.me.rules) setSheet('rules');
                     setState('ready');
                 }
             } catch (e) {
@@ -482,14 +479,6 @@ const NewComunidade: React.FC = () => {
         const r = await act(cpost<{ members: CMember[] }>('/member', { uid, ...body }));
         if (r) setMembers(r.members);
     };
-    const acceptRules = async () => {
-        if (!st || st.me.rules) return setSheet(null);
-        if (await act(cpost('/rules', {}))) {
-            setSt({ ...st, me: { ...st.me, rules: true } });
-            setSheet(null);
-        }
-    };
-
     // dados do grupo: membros (e denúncias, para a moderação) frescos a cada abertura
     useEffect(() => {
         if (sheet !== 'info') return;
@@ -589,7 +578,7 @@ const NewComunidade: React.FC = () => {
             if (e.key !== 'Escape') return;
             setMenuFor(null);
             setPicker(null);
-            setSheet((s) => (s === 'rules' && !st?.me.rules ? s : null));
+            setSheet(null);
         };
         document.addEventListener('pointerdown', close);
         document.addEventListener('keydown', esc);
@@ -597,7 +586,7 @@ const NewComunidade: React.FC = () => {
             document.removeEventListener('pointerdown', close);
             document.removeEventListener('keydown', esc);
         };
-    }, [st?.me.rules]);
+    }, []);
 
     // celular: arrastar para a direita responde; segurar abre reações e ações
     const touch = useRef<{
@@ -781,7 +770,7 @@ const NewComunidade: React.FC = () => {
                         <MettleMark />
                         <span className="ht">
                             <h1>Comunidade Imerso</h1>
-                            {count > 0 && (
+                            {me?.admin && count > 0 && (
                                 <small>
                                     {count} {count === 1 ? 'membro' : 'membros'}
                                 </small>
@@ -1205,9 +1194,7 @@ const NewComunidade: React.FC = () => {
                             <div className="gid">
                                 <MettleMark size={84} />
                                 <h3>Comunidade Imerso</h3>
-                                <p>
-                                    Grupo · {count} {count === 1 ? 'membro' : 'membros'}
-                                </p>
+                                <p>Grupo{me?.admin && ` · ${count} ${count === 1 ? 'membro' : 'membros'}`}</p>
                             </div>
                             <div className="sgroup">
                                 {pushSupported() && st.vapid && pushOn != null && (
@@ -1222,9 +1209,6 @@ const NewComunidade: React.FC = () => {
                                         <i className={`sw${pushOn ? ' on' : ''}`} aria-hidden />
                                     </button>
                                 )}
-                                <button type="button" className="row" onClick={() => setSheet('rules')}>
-                                    <span>Regras do grupo</span>
-                                </button>
                             </div>
                             {me?.admin && reports.length > 0 && (
                                 <div className="sgroup">
@@ -1254,7 +1238,7 @@ const NewComunidade: React.FC = () => {
                             )}
                             <div className="sgroup">
                                 <h4>
-                                    {count} {count === 1 ? 'membro' : 'membros'}
+                                    {me?.admin ? `${count} ${count === 1 ? 'membro' : 'membros'}` : 'Membros'}
                                 </h4>
                                 {members.map((m) => (
                                     <div key={m.uid} className={`mem${m.removed ? ' out' : ''}`}>
@@ -1315,22 +1299,6 @@ const NewComunidade: React.FC = () => {
                             </div>
                         </div>
                     </aside>
-                )}
-
-                {sheet === 'rules' && st && (
-                    <div className="scrim" role="dialog" aria-modal="true" aria-labelledby="rules-h">
-                        <div className="rules">
-                            <h2 id="rules-h">Regras do grupo</h2>
-                            <ol>
-                                {RULES.map((r) => (
-                                    <li key={r}>{r}</li>
-                                ))}
-                            </ol>
-                            <button type="button" className="ok" onClick={acceptRules}>
-                                {st.me.rules ? 'Fechar' : 'Aceitar'}
-                            </button>
-                        </div>
-                    </div>
                 )}
             </Root>
         </NewPage>
@@ -1744,54 +1712,6 @@ const Root = styled(Wrap)`
         gap: 4px;
         width: 100%;
         padding-left: 52px;
-    }
-
-    /* regras: aceite único na primeira entrada */
-    .scrim {
-        position: absolute;
-        inset: 0;
-        z-index: 30;
-        display: grid;
-        place-items: center;
-        padding: 16px;
-        background: rgba(0, 0, 0, 0.45);
-    }
-    .rules {
-        width: min(440px, 100%);
-        max-height: 100%;
-        overflow-y: auto;
-        padding: 24px 24px 20px;
-        border-radius: 16px;
-        background: var(--c-head);
-        color: var(--r-text);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-    }
-    .rules h2 {
-        margin: 0 0 12px;
-        font-size: 18px;
-        font-weight: 500;
-    }
-    .rules ol {
-        margin: 0 0 20px;
-        padding-left: 20px;
-        font-size: 15px;
-        line-height: 1.45;
-    }
-    .rules li + li {
-        margin-top: 8px;
-    }
-    .ok {
-        display: block;
-        width: 100%;
-        height: 42px;
-        border: 0;
-        border-radius: 21px;
-        background: var(--c-accent);
-        color: var(--c-on-accent);
-        font: inherit;
-        font-size: 15px;
-        font-weight: 500;
-        cursor: pointer;
     }
 
     @media (max-width: 600px) {

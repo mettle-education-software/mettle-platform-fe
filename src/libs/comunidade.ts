@@ -91,13 +91,3 @@ export function mentionQuery(text: string, caret: number): { start: number; q: s
     const m = /(^|\s)@([^\s@]{0,30})$/.exec(text.slice(0, caret));
     return m ? { start: caret - m[2].length - 1, q: m[2] } : null;
 }
-
-/** Regras do grupo (aceite único; mudou o texto → subir RULES_V no Worker). */
-export const RULES = [
-    'Respeito sempre. Nada de ofensa, discriminação ou assédio.',
-    'Fale de inglês e do Imerso. Outros assuntos, em outro lugar.',
-    'Sem spam, propaganda ou divulgação própria.',
-    'O conteúdo do curso fica aqui: não compartilhe fora.',
-    'Privacidade: não publique dados pessoais de ninguém.',
-    'A moderação pode apagar mensagens e remover participantes.',
-];

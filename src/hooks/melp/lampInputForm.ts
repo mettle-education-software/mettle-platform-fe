@@ -143,7 +143,8 @@ interface DayDraft {
     inflight: boolean;
     /** confirmado pelo servidor; o rascunho só some quando chega uma leitura mais nova do dia */
     ackedAt?: number;
-    error?: { text: string; retry: boolean };
+    /** `at`: quando a recusa veio (uma recusa definitiva só cai com um resumo relido depois dela) */
+    error?: { text: string; retry: boolean; at: number };
 }
 
 const drafts = new Map<string, DayDraft>();
@@ -190,7 +191,12 @@ const send = (k: string) => {
     // a LAMP parou de contar (pausa em outra aba, fim, manutenção) entre a alteração e o envio: não grava
     if (!writable(d.uid)) {
         d.dirty = false;
-        d.error = { text: 'Your LAMP is not counting now, so this change was not saved.', retry: false };
+        d.error = {
+            text: 'Your LAMP is not counting now, so this change was not saved.',
+            retry: false,
+            at: Date.now(),
+        };
+        if (!env.mounted) env.notify?.(`${dayText(d)}: ${d.error.text}`);
         return emit();
     }
     d.inflight = true;
@@ -215,18 +221,16 @@ const send = (k: string) => {
                 drafts.delete(k);
                 replaced.set(k, d.snapshot.dedaInput?.rowId ?? '');
                 void refresh(d);
-                // outro dia que não o da tela: o aviso diz qual
-                if (env.mounted && env.currentKey !== k)
-                    env.notify?.(`${dayText(d)} was updated. Please enter it again.`);
+                // o aviso diz qual dia (a tela pode estar noutra aba ou noutro dia)
+                env.notify?.(`${dayText(d)} was updated. Please enter it again.`);
             } else if (drafts.get(k) === d) {
-                d.error = problem; // os valores ficam; "Try again" manda os mais recentes deste dia
+                d.error = { ...problem, at: Date.now() }; // os valores ficam; "Try again" manda os mais recentes
                 d.dirty = problem.retry;
             }
             // recusa definitiva (manutenção, LAMP encerrada): o resumo relido deixa a LAMP só leitura
             if (!problem.retry) env.queryClient?.invalidateQueries({ queryKey: ['imerso-summary', d.uid] });
-            // fora da LAMP: a falha não pode sumir em silêncio
-            if (!env.mounted)
-                env.notify?.(code === 'LAMP_DAY_REPLACED' ? `${dayText(d)}: ${problem.text}` : problem.text);
+            // fora da LAMP: a falha não pode sumir em silêncio (a troca de linha já avisou acima)
+            if (!env.mounted && code !== 'LAMP_DAY_REPLACED') env.notify?.(`${dayText(d)}: ${problem.text}`);
             emit();
         },
     );
@@ -298,6 +302,21 @@ export const useLampInputForm = () => {
         }
     }, [k, dataUpdatedAt, inputData]);
 
+    // recusa definitiva (pausa, manutenção) e depois um resumo mais novo com a LAMP contando de novo: o rascunho
+    // recusado sai (não é reenviado) e o dia volta a seguir o servidor
+    const summaryAt = queryClient.getQueryState(['imerso-summary', uid])?.dataUpdatedAt ?? 0;
+    useEffect(() => {
+        if (readOnly || !uid) return;
+        let changed = false;
+        for (const [key, d] of drafts)
+            if (d.uid === uid && d.error && !d.error.retry && summaryAt > d.error.at) {
+                drafts.delete(key);
+                changed = true;
+            }
+        if (changed) render();
+    }, [readOnly, uid, summaryAt]);
+    const blocked = draft?.error?.retry === false;
+
     const edit = useMemo(
         () => draft?.values ?? (inputData ? fromInput(inputData) : ({} as LampInputEdit)),
         [draft?.values, inputData],
@@ -305,9 +324,8 @@ export const useLampInputForm = () => {
 
     /** Altera um campo deste dia e agenda a gravação (3,5 s depois da última alteração). */
     const change = <K extends keyof LampInputEdit>(field: K, value: LampInputEdit[K]) => {
-        if (readOnly || stale || !uid || !inputData?.dedaInput) return;
-        // recusa definitiva neste dia (manutenção, LAMP encerrada): nada mais é enviado até o resumo se refazer
-        if (drafts.get(k)?.error?.retry === false) return;
+        // recusa definitiva neste dia (pausa, manutenção, LAMP encerrada): nada mais é enviado até o resumo se refazer
+        if (readOnly || stale || blocked || !uid || !inputData?.dedaInput) return;
         const d = drafts.get(k) ?? {
             uid,
             week: selectedWeek,
@@ -356,7 +374,7 @@ export const useLampInputForm = () => {
         isLoading,
         edit,
         change,
-        readOnly: readOnly || stale,
+        readOnly: readOnly || stale || blocked,
         /** dia de hoje na LAMP (com ela contando) ou o último dia dela (semana congelada) */
         lastDay: last,
         status,

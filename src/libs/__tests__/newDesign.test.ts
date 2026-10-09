@@ -453,6 +453,8 @@ describe('dedaStreak com a LAMP parada', () => {
         expect(dedaStreak(days).current).toBe(3);
         expect(dedaStreak(days, false).current).toBe(0);
         expect(dedaStreak([d(100), d(100)], false)).toEqual({ current: 2, toEdge: true });
+        // só "hoje" pendente na janela: a Run anterior é desconhecida (chegou ao fim sem achar a quebra)
+        expect(dedaStreak([d(0)])).toEqual({ current: 0, toEdge: true });
     });
 });
 

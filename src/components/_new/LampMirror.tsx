@@ -217,10 +217,15 @@ const Quality: React.FC<{ run: Run }> = ({ run }) => {
     const cats = useGeneralWeeklyDevelopment(user?.uid).weeklyDevelopmentData?.[0] ?? [];
     const weeks = weeklyQuality(run.newestFirst);
     if ((run.loading && !weeks.length) || !cats.length) return <div className="skel" aria-busy />;
-    // semana sem DEDA avaliado conta 0% (a linha desce a zero; nunca fica buraco)
+    // semana sem DEDA avaliado conta 0% (a linha desce a zero); semana que não foi lida (histórico com teto ou em
+    // falha) fica em branco — nunca um 0% inventado
     const current = Math.max(1, ...cats.map(weekNumber));
     const byWeek = new Map(weeks.map((w) => [w.week, Math.round(w.score)]));
-    const data = Array.from({ length: current }, (_, i) => ({ x: i + 1, y: byWeek.get(i + 1) ?? 0 }));
+    const loaded = new Set(run.newestFirst.map((d) => d.week));
+    const data = Array.from({ length: current }, (_, i) => ({
+        x: i + 1,
+        y: byWeek.get(i + 1) ?? (loaded.has(i + 1) ? 0 : null),
+    }));
     const options = soft(
         {
             chart: { type: 'line', toolbar: { show: false }, zoom: { enabled: false } },

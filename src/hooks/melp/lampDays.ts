@@ -170,6 +170,8 @@ export const useLampDays = (minWeeks: number) => {
     });
 
     const streak = dedaStreak(newestFirst, running);
+    // um pedido de dia falhou: aquele dia não é "nada feito" nem "pausa" — fica desconhecido (Try again)
+    const dailyFailed = results.some((r) => r.isError && !r.data);
     // a janela lida não chega à semana 1 (reserva com teto, ou histórico em falha): a Run pode ser maior que a vista
     const truncated = (perDay || historyFailed) && currentWeek > weeks;
     return {
@@ -180,11 +182,16 @@ export const useLampDays = (minWeeks: number) => {
         today,
         /** a LAMP conta hoje (sem isso não há "hoje" na semana nem no calendário) */
         running,
-        /** a leitura do programa falhou (não 404): o histórico não está aqui */
-        historyFailed,
+        /** a leitura do programa falhou (não 404) ou um dia não veio: o calendário pede "Try again" */
+        historyFailed: historyFailed || dailyFailed,
+        /** um dia da janela não veio (desconhecido, não "nada feito") */
+        dailyFailed,
         /** os dias lidos não chegam ao começo do programa */
         truncated,
-        retryHistory: () => void program.refetch(),
+        retryHistory: () => {
+            if (program.isError) void program.refetch();
+            for (const r of results) if (r.isError) void r.refetch();
+        },
     };
 };
 
@@ -195,9 +202,9 @@ export const useLampDays = (minWeeks: number) => {
 export const useDedaRun = (minWeeks = 2) => {
     const days = useLampDays(minWeeks);
     const today = days.newestFirst[0];
-    // a Run chega ao fim do que foi lido e o lido não chega ao começo do programa: o número sairia menor que o real —
-    // fica "carregando" ("—") até o histórico voltar
-    const partial = days.truncated && days.streak.toEdge;
+    // a Run chega ao fim do que foi lido e o lido não chega ao começo do programa, ou um dia não veio: o número
+    // sairia menor que o real — fica "carregando" ("—") até o histórico voltar
+    const partial = (days.truncated && days.streak.toEdge) || days.dailyFailed;
     return {
         ...days,
         loading: days.loading || partial,

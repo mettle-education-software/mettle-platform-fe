@@ -513,7 +513,8 @@ export const dedaStreak = (newestFirst: LampDay[], todayPending = true) => {
     let i = qualifies(newestFirst[0]) || !todayPending ? 0 : 1;
     let n = 0;
     for (; i < newestFirst.length && qualifies(newestFirst[i]); i++) n++;
-    return { current: n, toEdge: n > 0 && i >= newestFirst.length };
+    // chegou ao fim do que foi lido sem achar a quebra (mesmo só com "hoje" pendente): pode ser maior
+    return { current: n, toEdge: i >= newestFirst.length };
 };
 
 /** Maior sequência dentro dos dias carregados. */

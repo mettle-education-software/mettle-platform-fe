@@ -97,10 +97,6 @@ export const openShellMenu = () => {
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(MENU_OPEN_EVENT));
 };
 
-/** Aba inicial de /settings pelo `?tab=` (o item "Suporte" cai em `/settings?tab=help` sem o chat). */
-export const settingsTabFromQuery = (tab: string | null | undefined, keys: readonly string[]) =>
-    tab && keys.includes(tab) ? tab : keys[0];
-
 // ---------- modal de intensidade (início do DEDA): idioma dos textos, por aparelho ----------
 
 export type IntensityLang = 'en' | 'pt';

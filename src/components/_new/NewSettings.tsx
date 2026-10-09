@@ -3,55 +3,85 @@
 import { useIsMutating } from '@tanstack/react-query';
 import { Button, Form, Input, Modal, Tooltip } from 'antd';
 import { useMelpSummary, usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
+import { useCachedCourses } from 'hooks/queries/useCourses';
 import { passwordRules } from 'libs';
-import { settingsTabFromQuery } from 'libs/newDesign';
-import { ExternalLink, Info, Mail } from 'lucide-react';
-import { useAppContext } from 'providers';
-import React, { useEffect, useRef, useState } from 'react';
+import { EBOOK_PRODUCT } from 'libs/ebook';
+import { MASTERCLASS_COURSE } from 'libs/masterclass';
+import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { Info } from 'lucide-react';
+import { useAppContext, useProductAccess } from 'providers';
+import React, { useEffect } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewPage } from './NewPage';
 import { PageHead } from './PageHead';
 import { ProgramHistory } from './ProgramHistory';
 import { ThemeSwitch } from './ThemeSwitch';
 
-/* ---------- abas: mesmos campos, regras, textos e chamadas de app/settings/page.tsx ---------- */
+/* Mesmos dados e fluxos da página atual; só a apresentação é nova. */
 
 const PersonalInformation: React.FC = () => {
     const { user } = useAppContext();
     return (
         <div className="panel">
-            <div className="rows">
+            <dl className="rows settings-data">
                 <div className="row">
-                    <label htmlFor="s-name">Nome completo</label>
-                    <div className="field">
-                        <Tooltip
-                            placement="topLeft"
-                            title="Para alterar o nome completo, por favor entre em contato com o suporte"
-                        >
-                            <Input id="s-name" placeholder={user?.name} disabled />
-                        </Tooltip>
-                    </div>
+                    <dt className="lab">Nome completo</dt>
+                    <dd className="field">{user?.name || 'Não informado'}</dd>
                 </div>
                 <div className="row">
-                    <label htmlFor="s-email">E-mail</label>
-                    <div className="field">
-                        <Tooltip
-                            placement="topLeft"
-                            title="Para alterar o email, por favor entre em contato com o suporte"
-                        >
-                            <Input id="s-email" type="email" placeholder={user?.email} disabled />
-                        </Tooltip>
-                    </div>
+                    <dt className="lab">E-mail</dt>
+                    <dd className="field">{user?.email || 'Não informado'}</dd>
                 </div>
                 <div className="row">
-                    <span className="lab" id="s-theme">
-                        Tema
-                    </span>
-                    <div className="field" aria-labelledby="s-theme">
-                        <ThemeSwitch labels />
-                    </div>
+                    <dt className="lab">Telefone</dt>
+                    {/* O contexto atual não fornece telefone. Nenhuma consulta extra para preenchê-lo. */}
+                    <dd className="field">Não informado</dd>
+                </div>
+            </dl>
+            <div className="row">
+                <span className="lab" id="s-theme">
+                    Tema
+                </span>
+                <div className="field" aria-labelledby="s-theme">
+                    <ThemeSwitch labels />
                 </div>
             </div>
+        </div>
+    );
+};
+
+const AccountSettings: React.FC = () => {
+    const { access, accessLoading } = useProductAccess();
+    // Só observa o catálogo que a home já carregou: abrir Configurações não inicia outra chamada.
+    const { data } = useCachedCourses();
+    const masterclass = data?.courseCollection?.items?.find((course) => course.courseSlug === MASTERCLASS_COURSE);
+    const products = [
+        { id: IMERSO_PRODUCT, name: 'Imerso' },
+        ...(masterclass ? [{ id: masterclass.coursePurchaseId, name: 'Masterclass' }] : []),
+        { id: EBOOK_PRODUCT, name: 'E-book' },
+    ]
+        .map((product) => ({ ...product, state: access(product.id).state }))
+        .filter((product) => product.state !== 'none');
+    const labels = { active: 'Ativo', grace: 'Em carência', expired: 'Expirado', none: '' };
+
+    return (
+        <div className="panel" aria-busy={accessLoading}>
+            {accessLoading ? (
+                <p className="hint" role="status">
+                    Carregando…
+                </p>
+            ) : products.length ? (
+                <dl className="rows settings-data">
+                    {products.map((product) => (
+                        <div className="row" key={product.id}>
+                            <dt className="lab">{product.name}</dt>
+                            <dd className="field">{labels[product.state]}</dd>
+                        </div>
+                    ))}
+                </dl>
+            ) : (
+                <p className="hint">Nenhum produto disponível.</p>
+            )}
         </div>
     );
 };
@@ -137,7 +167,7 @@ const ImersoSettings: React.FC = () => {
     // a mesma consulta (e o mesmo cache) do MelpProvider, com o estado completo: dados, carregando, erro, nova tentativa
     const summary = useMelpSummary(user?.uid);
     const melpSummary = summary.data;
-    // mutações em curso no app inteiro (sobrevive a trocar de aba e voltar, que desmonta este painel)
+    // Mutações em curso no app inteiro, inclusive ao sair da página e voltar.
     const mutating = useIsMutating() > 0;
     const [modal, modalHolder] = Modal.useModal();
     const status = (summary.error as { response?: { status?: number } } | null)?.response?.status;
@@ -152,8 +182,11 @@ const ImersoSettings: React.FC = () => {
     if (!melpSummary)
         return (
             <div className="panel">
-                {summary.isLoading ? null : (summary.isError && status !== 404 && status !== 403) ||
-                  summary.isPaused ? (
+                {summary.isLoading ? (
+                    <p className="hint" role="status">
+                        Carregando…
+                    </p>
+                ) : (summary.isError && status !== 404 && status !== 403) || summary.isPaused ? (
                     <p className="hint">Não foi possível carregar o programa IMERSO. {retry}</p>
                 ) : (
                     <p className="hint">Programa IMERSO indisponível nesta conta.</p>
@@ -180,7 +213,7 @@ const ImersoSettings: React.FC = () => {
                             </Tooltip>
                         </b>
                         <span>
-                            Você tem <strong>{melpSummary.remaining_resets}</strong> chances de reiniciar o programa
+                            Reinícios restantes: <strong>{melpSummary.remaining_resets}</strong>
                         </span>
                     </div>
                     <div className="field">
@@ -210,7 +243,7 @@ const ImersoSettings: React.FC = () => {
                                 </Tooltip>
                             </b>
                             <span>
-                                Você tem <strong>{melpSummary.remaining_pauses}</strong> chances de pausar o programa
+                                Pausas restantes: <strong>{melpSummary.remaining_pauses}</strong>
                             </span>
                         </div>
                         <div className="field">
@@ -237,94 +270,41 @@ const ImersoSettings: React.FC = () => {
     );
 };
 
-const Help: React.FC = () => (
-    <div className="panel">
-        <div className="links">
-            <a href="mailto:hello@mettle.com.br">
-                <Mail {...ICON} size={18} aria-hidden /> hello@mettle.com.br
-            </a>
-            <a href="https://mettle.com.br/politica-de-privacidade/" target="_blank" rel="noopener noreferrer">
-                <ExternalLink {...ICON} size={18} aria-hidden /> Política de privacidade
-            </a>
-            <a href="https://mettle.com.br/termos-de-uso/" target="_blank" rel="noopener noreferrer">
-                <ExternalLink {...ICON} size={18} aria-hidden /> Termos de uso
-            </a>
-        </div>
-    </div>
-);
-
-/**
- * Configurações (/settings) na plataforma nova: as mesmas quatro abas (IMERSO só para alunos), formulários limpos.
- * `?tab=help` abre direto em Ajuda (destino do item "Suporte" quando o chat não está disponível).
- */
+/** Configurações novas em uma página; a versão clássica continua em app/settings/page.tsx. */
 export const NewSettings: React.FC = () => {
     const { user } = useAppContext();
-    // contas sem a claim `roles` existem (PF-06): sem papel, sem a aba IMERSO — nunca quebra
+    // Preserva a elegibilidade atual, inclusive contas sem a claim roles (PR #181).
     const isUserImerso = !!user?.roles?.includes('METTLE_STUDENT');
-    const tabs = [
-        { key: 'personal-information', label: 'Dados pessoais', panel: <PersonalInformation /> },
-        { key: 'security-settings', label: 'Segurança', panel: <SecuritySettings /> },
-        ...(isUserImerso ? [{ key: 'imerso-settings', label: 'IMERSO', panel: <ImersoSettings /> }] : []),
-        { key: 'help', label: 'Ajuda', panel: <Help /> },
-    ];
-    // carregado só no navegador (next/dynamic sem SSR): a query vem direto do endereço
-    const [tab, setTab] = useState(() =>
-        settingsTabFromQuery(
-            typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('tab'),
-            tabs.map((t) => t.key),
-        ),
-    );
-    const current = tabs.find((t) => t.key === tab) ?? tabs[0];
-    const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-    const onTabKey = (e: React.KeyboardEvent) => {
-        const keys = tabs.map((t) => t.key);
-        const i = keys.indexOf(current.key);
-        const next = {
-            ArrowRight: keys[(i + 1) % keys.length],
-            ArrowLeft: keys[(i - 1 + keys.length) % keys.length],
-            Home: keys[0],
-            End: keys[keys.length - 1],
-        }[e.key];
-        if (!next) return;
-        e.preventDefault();
-        setTab(next);
-        tabRefs.current[next]?.focus();
-    };
 
     return (
-        <NewPage className="narrow">
-            <PageHead
-                title="Configurações"
-                tabs={
-                    <div className="seg" role="tablist" aria-label="Configurações" onKeyDown={onTabKey}>
-                        {tabs.map((t) => (
-                            <button
-                                key={t.key}
-                                ref={(el) => {
-                                    tabRefs.current[t.key] = el;
-                                }}
-                                id={`settings-tab-${t.key}`}
-                                type="button"
-                                role="tab"
-                                aria-selected={t.key === current.key}
-                                aria-controls={t.key === current.key ? `settings-panel-${t.key}` : undefined}
-                                tabIndex={t.key === current.key ? 0 : -1}
-                                onClick={() => setTab(t.key)}
-                            >
-                                {t.label}
-                            </button>
-                        ))}
+        <NewPage className="narrow settings">
+            <PageHead title="Configurações" />
+            <section aria-labelledby="settings-profile">
+                <div className="sh">
+                    <h2 id="settings-profile">Perfil</h2>
+                </div>
+                <PersonalInformation />
+            </section>
+            <section aria-labelledby="settings-account">
+                <div className="sh">
+                    <h2 id="settings-account">Conta</h2>
+                </div>
+                <AccountSettings />
+            </section>
+            <section aria-labelledby="settings-password">
+                <div className="sh">
+                    <h2 id="settings-password">Senha</h2>
+                </div>
+                <SecuritySettings />
+            </section>
+            {isUserImerso && (
+                <section aria-labelledby="settings-imerso">
+                    <div className="sh">
+                        <h2 id="settings-imerso">IMERSO</h2>
                     </div>
-                }
-            />
-            <div
-                role="tabpanel"
-                id={`settings-panel-${current.key}`}
-                aria-labelledby={`settings-tab-${current.key}`}
-                tabIndex={0}
-            >
-                {current.panel}
-            </div>
+                    <ImersoSettings />
+                </section>
+            )}
         </NewPage>
     );
 };

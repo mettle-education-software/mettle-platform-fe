@@ -51,7 +51,6 @@ import {
     reportMinutes,
     readMenuCollapsed,
     saveMenuCollapsed,
-    settingsTabFromQuery,
     vimeoIdOf,
     softChart,
     weekDayOptions,
@@ -126,13 +125,6 @@ describe('textos', () => {
         expect(displayName('Maria de')).toBe('Maria');
         expect(displayName('  Cher  ')).toBe('Cher');
         expect(displayName(null)).toBe('');
-    });
-
-    it('aba de /settings pelo ?tab=', () => {
-        const keys = ['personal-information', 'help'] as const;
-        expect(settingsTabFromQuery('help', keys)).toBe('help');
-        expect(settingsTabFromQuery('nope', keys)).toBe('personal-information');
-        expect(settingsTabFromQuery(null, keys)).toBe('personal-information');
     });
 });
 

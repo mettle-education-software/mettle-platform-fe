@@ -13,11 +13,27 @@ export const lampRunning = (s?: Summary | null) =>
     s?.melp_status === 'DEDA_STARTED' && s.current_deda_week > 0 && s.program_health !== 'inconsistent';
 
 /**
+ * A LAMP abre (rota e menu). Legado: em andamento, pausada ou concluída. Relógio novo: em todo estado depois do start,
+ * menos suspenso — histórico, calendário e gravações sempre visíveis; lançar só com ela contando (§4.3).
+ */
+export const lampOpen = (s?: Summary | null) =>
+    !!s &&
+    (isCalendarClock(s)
+        ? !!s.deda_first_monday && s.melp_status !== 'MELP_SUSPENDED'
+        : ['DEDA_STARTED', 'DEDA_PAUSED', 'DEDA_FINISHED'].includes(s.melp_status));
+
+/**
  * Semana e dia de hoje na LAMP, pelos contadores do próprio resumo (nunca pelo relógio do aparelho nem pela posição do
  * DEDA na lista): `null` com a LAMP parada (pausa, fim, aguardando a segunda, semana zero).
  */
-export const lampToday = (s?: Summary | null) => {
-    if (!s || !lampRunning(s)) return null;
+export const lampToday = (s?: Summary | null) => (lampRunning(s) ? lampLastDay(s) : null);
+
+/**
+ * O último dia que a LAMP tem: hoje, com a LAMP contando; em pausa, fim ou espera, o último dia ativo (a semana
+ * congelada). `null` antes do primeiro dia. Abre a aba Input e limita os dias navegáveis da semana atual.
+ */
+export const lampLastDay = (s?: Summary | null) => {
+    if (!s) return null;
     const { current_deda_day: day, current_deda_week: week } = s;
     if (!Number.isInteger(day) || day < 1 || week !== Math.ceil(day / 7)) return null;
     return { week, day: ((day - 1) % 7) + 1 };

@@ -19,6 +19,7 @@ import { useDeviceSize } from 'hooks';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
 import { withAuthentication } from 'libs';
+import { lampOpen } from 'libs/dedaClock';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
@@ -195,16 +196,19 @@ const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: strin
 
     if (isMelpSummaryLoading) return <LoadingLayout />;
 
-    // TODO - move this logic to server side rendering
-    if (!!melpSummary && !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(melpSummary?.melp_status))
-        router.push('/404');
-
+    // plataforma nova: a própria LAMP mostra o estado calmo (antes do início, aguardando, suspenso, resumo fora do ar)
     if (newDesign)
         return (
             <AppLayout withMelpSummary>
                 <NewLamp initialTab={searchParams?.lampTab} />
             </AppLayout>
         );
+
+    // tela atual: sem LAMP neste estado, volta ao IMERSO (nunca a página 404) — PF-15
+    if (!!melpSummary && !lampOpen(melpSummary)) {
+        router.replace('/imerso');
+        return <LoadingLayout />;
+    }
 
     const tabBarExtra = new Map([
         ['performance', undefined],

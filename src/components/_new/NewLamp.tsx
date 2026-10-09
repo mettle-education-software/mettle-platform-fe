@@ -5,8 +5,11 @@ import { Select } from 'antd';
 import { useGeneralWeeklyDevelopment, useGetDedasList, useGetWeeklyPerformance, useOverallProgress } from 'hooks';
 import { RECORDER_FLAG_ON } from 'hooks/melp/dedaRecording';
 import { statisticsColors } from 'libs';
+import { lampOpen } from 'libs/dedaClock';
+import { formatImersoDate, nextMondayDate } from 'libs/helpers';
 import { axisWords, minutesText } from 'libs/newDesign';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
@@ -14,6 +17,7 @@ import { LampGoals } from './LampGoals';
 import { LampMirror } from './LampMirror';
 import { LampOverallStats, LampStatsSort } from './LampOverallStats';
 import { LampRecordings } from './LampRecordings';
+import { SummaryError, SuspendedNotice } from './NewImersoDash';
 import { NewLampInput } from './NewLampInput';
 import { NewPage } from './NewPage';
 import { PageHead } from './PageHead';
@@ -430,8 +434,12 @@ const lampStyles = css`
             gap: 32px;
         }
         .ui-new-page.lamp .pick .ant-select {
-            flex: 1 1 140px;
+            flex: 0 1 auto;
             min-width: 0;
+        }
+        /* a semana leva o espaço da linha ("W12 · Meatless Monday" inteiro a 360 px); o dia só o que precisa (PF-50) */
+        .ui-new-page.lamp .pick .ant-select.wk {
+            flex: 1 1 200px;
         }
         .ui-new-page.lamp .sh .ant-select {
             min-width: 0;
@@ -606,6 +614,25 @@ const TABS = [
 ] as const;
 type TabKey = (typeof TABS)[number]['key'];
 
+/** LAMP sem conteúdo neste estado (antes do início, aguardando a segunda, suspenso): uma linha e a saída, nunca 404. */
+const LampClosed: React.FC<{ status?: string }> = ({ status }) =>
+    status === 'MELP_SUSPENDED' ? (
+        <SuspendedNotice />
+    ) : (
+        <div className="notice" role="status">
+            <div>
+                <b>
+                    {status === 'DEDA_STARTED_NOT_BEGUN'
+                        ? `Your LAMP starts on ${formatImersoDate(nextMondayDate())}`
+                        : 'Your LAMP starts with your first DEDA week'}
+                </b>
+            </div>
+            <Link className="btn line" href="/imerso">
+                Back to IMERSO
+            </Link>
+        </div>
+    );
+
 /**
  * LAMP na plataforma nova: as mesmas três abas (Performance, Input, Goals), os mesmos hooks e as mesmas chamadas
  * da página atual; textos de instrução viram ⓘ; tabela larga rola no próprio container.
@@ -618,14 +645,35 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
     const { user } = useAppContext();
     const tabs = TABS.filter((t) => t.key !== 'recordings' || (RECORDER_FLAG_ON && !!user && !user.impersonating));
     const [tab, setTab] = useState<TabKey>(tabs.some((t) => t.key === asked) ? (asked as TabKey) : 'performance');
+    const { melpSummary, isMelpSummaryError, retryMelpSummary } = useMelpContext();
+
+    // resumo fora do ar ou LAMP fechada neste estado: título e uma linha (PF-21, PF-15)
+    if (isMelpSummaryError || (melpSummary && !lampOpen(melpSummary)))
+        return (
+            <NewPage className="lamp">
+                <Global styles={lampStyles} />
+                <PageHead eyebrow="IMERSO" title="LAMP" />
+                {isMelpSummaryError ? (
+                    <SummaryError onRetry={retryMelpSummary} />
+                ) : (
+                    <LampClosed status={melpSummary?.melp_status} />
+                )}
+            </NewPage>
+        );
 
     return (
         <NewPage className="lamp">
             <Global styles={lampStyles} />
+            {melpSummary?.program_health === 'inconsistent' && (
+                <div className="notice" role="status">
+                    <div>
+                        <b>LAMP under maintenance. The team has been notified.</b>
+                    </div>
+                </div>
+            )}
             <PageHead
                 eyebrow="IMERSO"
                 title="LAMP"
-                subtitle="Language Acquisition Management Platform"
                 tabs={
                     <div className="seg" role="tablist" aria-label="LAMP">
                         {tabs.map((t) => (

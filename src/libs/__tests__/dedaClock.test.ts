@@ -3,6 +3,8 @@ import {
     dedaLampWeek,
     isCalendarClock,
     lampRunning,
+    lampLastDay,
+    lampOpen,
     lampSaveProblem,
     lampToday,
     lampWeekOptions,
@@ -104,9 +106,40 @@ describe('lampRunning / lampToday (dia da LAMP pelo resumo, nunca pelo aparelho)
         expect(lampToday(legacy({ current_deda_week: 0, current_deda_day: 0 }))).toBeNull();
     });
 
+    it('lampLastDay: com a LAMP parada, o último dia ativo (semana congelada); antes do 1º dia, nada', () => {
+        expect(lampLastDay(legacy({ melp_status: 'DEDA_PAUSED', current_deda_day: 7, current_deda_week: 1 }))).toEqual({
+            week: 1,
+            day: 7,
+        });
+        expect(
+            lampLastDay(legacy({ melp_status: 'DEDA_FINISHED', current_deda_day: 729, current_deda_week: 105 })),
+        ).toEqual({ week: 105, day: 1 });
+        expect(lampLastDay(legacy({ current_deda_day: 23, current_deda_week: 4 }))).toEqual({ week: 4, day: 2 });
+        expect(lampLastDay(legacy({ current_deda_day: 0, current_deda_week: 0 }))).toBeNull();
+        expect(lampLastDay(undefined)).toBeNull();
+    });
+
     it('programa inconsistente (relógio novo) para a LAMP; contadores desencontrados não inventam dia', () => {
         expect(lampRunning({ ...secondLap, program_health: 'inconsistent' })).toBe(false);
         expect(lampToday(legacy({ current_deda_day: 30, current_deda_week: 4 }))).toBeNull();
+    });
+});
+
+describe('lampOpen (rota e menu da LAMP)', () => {
+    it('legado: em andamento, pausada ou concluída; antes do início, aguardando e suspenso não', () => {
+        for (const melp_status of ['DEDA_STARTED', 'DEDA_PAUSED', 'DEDA_FINISHED'] as const)
+            expect(lampOpen(legacy({ melp_status }))).toBe(true);
+        for (const melp_status of ['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN', 'MELP_SUSPENDED'] as const)
+            expect(lampOpen(legacy({ melp_status }))).toBe(false);
+        expect(lampOpen(undefined)).toBe(false);
+    });
+
+    it('relógio novo: todo estado depois do start (inclusive aguardando a segunda, ponte do teto), menos suspenso', () => {
+        expect(lampOpen({ ...secondLap, melp_status: 'DEDA_STARTED_NOT_BEGUN' })).toBe(true);
+        expect(lampOpen({ ...secondLap, melp_status: 'DEDA_PAUSED' })).toBe(true);
+        expect(lampOpen({ ...secondLap, melp_status: 'MELP_SUSPENDED' })).toBe(false);
+        const preStart = calendar({ deda_weeks: [], melp_status: 'CAN_START_DEDA', deda_first_monday: null });
+        expect(lampOpen(preStart)).toBe(false);
     });
 });
 

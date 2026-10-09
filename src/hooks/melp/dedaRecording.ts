@@ -79,7 +79,11 @@ export const useRecordingStats = () => {
     const all = calendar ? (since.data?.recordings ?? []) : results.flatMap((r) => r.data?.recordings ?? []);
     const paused = calendar ? [] : pausedIntervals(melpSummary?.deda_pause_dates, melpSummary?.deda_start_dates);
     const stats = recordingStats(all, brasiliaDate(new Date()), paused);
-    return { allowed: allowed && enabled, loading, stats };
+    // DEDAs com gravação na janela, da mais recente para trás (a aba lista também estes: DEDA0, DEDA antigo refeito)
+    const recordedIds = [
+        ...new Set([...all].sort((a, b) => b.recordedOn.localeCompare(a.recordedOn)).map((r) => r.dedaId)),
+    ];
+    return { allowed: allowed && enabled, loading, stats, recordedIds };
 };
 
 /** Lista as gravações do aluno no DEDA, o consentimento e se o recurso está ligado para ele. */

@@ -1,5 +1,6 @@
 'use client';
 
+import { useIsMutating } from '@tanstack/react-query';
 import { Button, Form, Input, Modal, Tooltip } from 'antd';
 import { useMelpSummary, usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { passwordRules } from 'libs';
@@ -136,6 +137,8 @@ const ImersoSettings: React.FC = () => {
     // a mesma consulta (e o mesmo cache) do MelpProvider, com o estado completo: dados, carregando, erro, nova tentativa
     const summary = useMelpSummary(user?.uid);
     const melpSummary = summary.data;
+    // mutações em curso no app inteiro (sobrevive a trocar de aba e voltar, que desmonta este painel)
+    const mutating = useIsMutating() > 0;
     const [modal, modalHolder] = Modal.useModal();
     const status = (summary.error as { response?: { status?: number } } | null)?.response?.status;
     const retry = (
@@ -145,11 +148,12 @@ const ImersoSettings: React.FC = () => {
     );
 
     // sem resumo: carregando (nada ainda); conta sem programa ou sem acesso (404/403, consulta desligada): uma linha;
-    // outra falha (rede, 500): mensagem com nova tentativa. Nunca quebra a página.
+    // outra falha (rede, 500) ou consulta parada sem conexão: mensagem com nova tentativa. Nunca quebra a página.
     if (!melpSummary)
         return (
             <div className="panel">
-                {summary.isLoading ? null : summary.isError && status !== 404 && status !== 403 ? (
+                {summary.isLoading ? null : (summary.isError && status !== 404 && status !== 403) ||
+                  summary.isPaused ? (
                     <p className="hint">Não foi possível carregar o programa IMERSO. {retry}</p>
                 ) : (
                     <p className="hint">Programa IMERSO indisponível nesta conta.</p>
@@ -160,7 +164,7 @@ const ImersoSettings: React.FC = () => {
     // uma ação por vez (reiniciar e pausar se excluem enquanto uma está em curso) e nunca sobre um resumo velho: se a
     // atualização depois de uma ação falhou, as ações esperam uma nova tentativa
     const stale = summary.isError;
-    const busy = programReset.isPending || pauseDeda.isPending || stale;
+    const busy = mutating || programReset.isPending || pauseDeda.isPending || stale;
 
     return (
         <div className="panel">

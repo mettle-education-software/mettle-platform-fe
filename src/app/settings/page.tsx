@@ -3,13 +3,14 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import SettingsIcon from '@mui/icons-material/Settings';
+import { useIsMutating } from '@tanstack/react-query';
 import { Button, Card, Col, Flex, Form, Input, Modal, Row, Tabs as AntTabs, Tooltip, Typography } from 'antd';
 import { AppLayout, MaxWidthContainer } from 'components';
-import { usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
+import { useMelpSummary, usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { passwordRules, withAuthentication } from 'libs';
 import dynamic from 'next/dynamic';
-import { useAppContext, useMelpContext } from 'providers';
+import { useAppContext } from 'providers';
 import React, { useEffect } from 'react';
 
 // Configurações da plataforma nova (libs/newDesign), só para as contas da lista: fora do bundle dos alunos.
@@ -238,19 +239,34 @@ const PersonalInformation = () => {
 const ImersoSettings = () => {
     const programReset = useResetMelp();
     const pauseDeda = usePauseDeda();
+    const { user } = useAppContext();
+    // a mesma consulta (e o mesmo cache) do MelpProvider, com o estado completo
+    const summary = useMelpSummary(user?.uid);
+    const melpSummary = summary.data;
+    const mutating = useIsMutating() > 0; // sobrevive a trocar de aba e voltar
+    const status = (summary.error as { response?: { status?: number } } | null)?.response?.status;
+    const retry = (
+        <Button type="link" size="small" onClick={() => summary.refetch()}>
+            Tentar de novo
+        </Button>
+    );
 
     // uma ação por vez: reiniciar e pausar se excluem enquanto uma está em curso; a confirmação espera a resposta
-    const busy = programReset.isPending || pauseDeda.isPending;
     const handleProgramReset = () => programReset.mutateAsync().catch(() => undefined);
     const handleDedaPause = () => pauseDeda.mutateAsync().catch(() => undefined);
 
-    const { melpSummary, isMelpSummaryLoading } = useMelpContext();
-
-    // sem resumo (carregando, conta sem programa ou sem acesso): sem as linhas que leem o resumo — nunca quebra
+    // sem resumo: carregando (nada); sem programa ou sem acesso (404/403, consulta desligada): uma linha; outra falha
+    // (rede, 500) ou consulta parada sem conexão: mensagem com nova tentativa — nunca quebra
     if (!melpSummary)
-        return isMelpSummaryLoading ? null : (
+        return summary.isLoading ? null : (summary.isError && status !== 404 && status !== 403) || summary.isPaused ? (
+            <Text className="color-secondary">Não foi possível carregar o programa IMERSO. {retry}</Text>
+        ) : (
             <Text className="color-secondary">Programa IMERSO indisponível nesta conta.</Text>
         );
+
+    // atualização que falhou depois de uma ação: as ações esperam uma nova tentativa (nunca sobre resumo velho)
+    const stale = summary.isError;
+    const busy = mutating || programReset.isPending || pauseDeda.isPending || stale;
 
     return (
         <>
@@ -258,6 +274,7 @@ const ImersoSettings = () => {
                 title="Programa IMERSO"
                 description={<Text className="color-secondary">Configurações do programa IMERSO</Text>}
             />
+            {stale && <Text className="color-secondary">Não foi possível atualizar o programa IMERSO. {retry}</Text>}
             <div style={{ marginTop: '2rem' }}>
                 <Row>
                     <Col span={24}>

@@ -29,18 +29,11 @@ class ApiClient implements HTTPClient {
         }
     }
 
+    // Espera a sessão do Firebase uma vez e lê o token da conta atual (antes, cada pedido deixava um
+    // onAuthStateChanged novo, nunca removido).
     async getAuthToken() {
-        return new Promise((resolve) => {
-            auth.onAuthStateChanged((user) => {
-                if (user) {
-                    user.getIdToken().then((token) => {
-                        resolve(token);
-                    });
-                } else {
-                    resolve(null);
-                }
-            });
-        });
+        await auth.authStateReady();
+        return auth.currentUser ? auth.currentUser.getIdToken() : null;
     }
 
     setAuthInterceptor() {

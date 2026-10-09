@@ -74,7 +74,12 @@ export const NewDedaList: React.FC = () => {
                     </div>
                 </section>
             )}
-            <NewDedasGrid blockedDEDAs={blockedDEDAs} type="lastDedas" onSelectedDeda={handleSelectedDeda} />
+            <NewDedasGrid
+                blockedDEDAs={blockedDEDAs}
+                type="lastDedas"
+                skipCurrent={!blockedDEDAs}
+                onSelectedDeda={handleSelectedDeda}
+            />
             <NewDedasGrid blockedDEDAs={blockedDEDAs} type="nextDedas" onSelectedDeda={handleSelectedDeda} />
             <NewDedasGrid blockedDEDAs={blockedDEDAs} type="allDedas" onSelectedDeda={handleSelectedDeda} />
         </NewPage>

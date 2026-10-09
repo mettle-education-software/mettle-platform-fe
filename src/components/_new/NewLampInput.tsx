@@ -690,7 +690,7 @@ export const NewLampInput: React.FC<{ form: LampInputForm }> = ({ form }) => {
                         Back to today
                     </button>
                 )}
-                {!form.readOnly && (
+                {(!form.readOnly || form.status.kind === 'error') && (
                     <span className={`save${form.status.kind === 'error' ? ' err' : ''}`} role="status">
                         {form.status.kind === 'saving' ? (
                             <>

@@ -380,6 +380,10 @@ export const pickMyReading = (recordings: DedaRecording[], today: string, isCurr
 /** Primeiro dia em que o gravador existiu para alguém (o piso da contagem): nada antes disso é "dia de gravar". */
 export const RECORDER_SINCE = '2026-10-05';
 
+/** Semanas desde o gravador (+2 de folga para pausas): o teto das semanas que a LAMP pede (frente 4b, item 5). */
+export const weeksSinceRecorder = (now = Date.now()) =>
+    Math.ceil((now - Date.parse(`${RECORDER_SINCE}T00:00:00-03:00`)) / (7 * 864e5)) + 2;
+
 /**
  * Intervalos de pausa [início, fim) em AAAA-MM-DD, a partir das datas de pausa e de (re)início do programa. A data de
  * pausa é o ÚLTIMO dia ativo (o domingo que fecha o trecho, inclusive — desenho §3.2): a pausa começa no dia seguinte.

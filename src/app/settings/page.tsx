@@ -247,7 +247,13 @@ const ImersoSettings = () => {
         pauseDeda.mutate();
     };
 
-    const { melpSummary } = useMelpContext();
+    const { melpSummary, isMelpSummaryLoading } = useMelpContext();
+
+    // sem resumo (carregando, conta sem programa ou sem acesso): sem as linhas que leem o resumo — nunca quebra
+    if (!melpSummary)
+        return isMelpSummaryLoading ? null : (
+            <Text className="color-secondary">Programa IMERSO indisponível nesta conta.</Text>
+        );
 
     return (
         <>
@@ -409,7 +415,8 @@ const Help = () => {
 const Settings = () => {
     const { user } = useAppContext();
 
-    const isUserImerso = !!user && user.roles.includes('METTLE_STUDENT');
+    // contas sem a claim `roles` existem (PF-06): sem papel, sem a aba IMERSO — nunca quebra
+    const isUserImerso = !!user?.roles?.includes('METTLE_STUDENT');
 
     const newDesign = useNewDesign();
     if (newDesign)

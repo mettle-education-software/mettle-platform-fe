@@ -18,9 +18,7 @@ import { ThemeSwitch } from './ThemeSwitch';
 const PersonalInformation: React.FC = () => {
     const { user } = useAppContext();
     return (
-        <div className="panel" role="tabpanel">
-            <h2>Informações pessoais</h2>
-            <p className="hint">Atualize suas informações aqui</p>
+        <div className="panel" role="tabpanel" aria-label="Dados pessoais">
             <div className="rows">
                 <div className="row">
                     <label htmlFor="s-name">Nome completo</label>
@@ -67,9 +65,7 @@ const SecuritySettings: React.FC = () => {
     const updatePassword = useUpdatePassword();
 
     return (
-        <div className="panel" role="tabpanel">
-            <h2>Segurança</h2>
-            <p className="hint">Atualize suas informações de segurança</p>
+        <div className="panel" role="tabpanel" aria-label="Segurança">
             <Form
                 form={form}
                 colon={false}
@@ -136,23 +132,20 @@ const SecuritySettings: React.FC = () => {
 const ImersoSettings: React.FC = () => {
     const programReset = useResetMelp();
     const pauseDeda = usePauseDeda();
-    const { melpSummary } = useMelpContext();
+    const { melpSummary, isMelpSummaryLoading } = useMelpContext();
     const [modal, modalHolder] = Modal.useModal();
 
-    // aba aberta direto (?tab=imerso-settings) antes de o resumo chegar: só o título, sem quebrar a página
+    // sem resumo: carregando (nada ainda) ou conta sem programa / sem acesso (uma linha); nunca quebra a página
     if (!melpSummary)
         return (
-            <div className="panel" role="tabpanel">
-                <h2>Programa IMERSO</h2>
-                <p className="hint">Configurações do programa IMERSO</p>
+            <div className="panel" role="tabpanel" aria-label="IMERSO">
+                {!isMelpSummaryLoading && <p className="hint">Programa IMERSO indisponível nesta conta.</p>}
             </div>
         );
 
     return (
-        <div className="panel" role="tabpanel">
+        <div className="panel" role="tabpanel" aria-label="IMERSO">
             {modalHolder}
-            <h2>Programa IMERSO</h2>
-            <p className="hint">Configurações do programa IMERSO</p>
             <div className="rows">
                 <div className="row">
                     <div className="lab">
@@ -219,9 +212,7 @@ const ImersoSettings: React.FC = () => {
 };
 
 const Help: React.FC = () => (
-    <div className="panel" role="tabpanel">
-        <h2>Ajuda</h2>
-        <p className="hint">Precisa de ajuda? Entre em contato</p>
+    <div className="panel" role="tabpanel" aria-label="Ajuda">
         <div className="links">
             <a href="mailto:hello@mettle.com.br">
                 <Mail {...ICON} size={18} aria-hidden /> hello@mettle.com.br
@@ -242,7 +233,8 @@ const Help: React.FC = () => (
  */
 export const NewSettings: React.FC = () => {
     const { user } = useAppContext();
-    const isUserImerso = !!user && user.roles.includes('METTLE_STUDENT');
+    // contas sem a claim `roles` existem (PF-06): sem papel, sem a aba IMERSO — nunca quebra
+    const isUserImerso = !!user?.roles?.includes('METTLE_STUDENT');
     const tabs = [
         { key: 'personal-information', label: 'Dados pessoais', panel: <PersonalInformation /> },
         { key: 'security-settings', label: 'Segurança', panel: <SecuritySettings /> },

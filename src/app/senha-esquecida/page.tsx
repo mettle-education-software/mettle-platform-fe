@@ -3,10 +3,14 @@
 import { UserOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Button, Col, Form, Input, Result, Row, Typography } from 'antd';
+import { useLoginDesign } from 'components/layouts/AuthenticationLayout/AuthenticationDesign';
 import { useRecoverUnauthenticatedPassword } from 'hooks';
 import { SMALL_VIEWPORT, withoutAuthentication } from 'libs';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import React, { useState } from 'react';
+
+const NewRecoveryForm = dynamic(() => import('components/_new/NewAuthentication').then((m) => m.NewRecoveryForm));
 
 const { Text } = Typography;
 
@@ -85,6 +89,7 @@ const ErrorMessage = styled.span`
 `;
 
 export default function ForgottenPassword() {
+    const { enabled } = useLoginDesign();
     const [loginError, setLoginError] = useState<null | string>(null);
     const [emailSent, setEmailSent] = useState(false);
 
@@ -100,6 +105,17 @@ export default function ForgottenPassword() {
             },
         });
     };
+
+    if (enabled) {
+        return (
+            <NewRecoveryForm
+                loading={isPending}
+                error={loginError}
+                emailSent={emailSent}
+                onFinish={handleRecoverPassword}
+            />
+        );
+    }
 
     return (
         <LoginContainer>

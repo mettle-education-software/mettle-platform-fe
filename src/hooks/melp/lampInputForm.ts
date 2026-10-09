@@ -1,4 +1,4 @@
-import { QueryClient, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import { InputDataDTO, InputDataResponse } from 'interfaces';
 import { MelpSummaryResponse } from 'interfaces/melp';
 import { lampLastDay, lampRunning, lampSaveError, lampSaveProblem } from 'libs/dedaClock';
@@ -145,11 +145,18 @@ interface DayDraft {
     ackedAt?: number;
     /** `at`: quando a recusa veio (uma recusa definitiva só cai com um resumo relido depois dela) */
     error?: { text: string; retry: boolean; at: number };
+    /** recusa desfeita: o rascunho recusado só sai (sem reenviar) com uma leitura do dia feita depois deste instante */
+    recovering?: number;
 }
 
 const drafts = new Map<string, DayDraft>();
-/** dias cuja linha o servidor trocou (409 LAMP_DAY_REPLACED): a leitura com o rowId recusado não aceita edição */
+/**
+ * Dias cuja linha o servidor recusou (409 LAMP_DAY_REPLACED; 400 EXPECTED_ROW_ID_REQUIRED quando a conta passou ao
+ * relógio novo com um rascunho antigo): a leitura com essa identidade não aceita edição até chegar a nova.
+ */
 const replaced = new Map<string, string>();
+const NO_ROW = '-';
+const rowOf = (day?: Day) => day?.dedaInput?.rowId ?? NO_ROW;
 const savedAt = new Map<string, Date>();
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((listener) => listener());
@@ -205,22 +212,25 @@ const send = (k: string) => {
     lampService.patch(`/input/v2/${d.uid}/${d.week}/${d.day}`, { ...toDTO(d.values, d.snapshot) }).then(
         () => {
             d.inflight = false;
-            if (drafts.get(k) !== d) return;
-            if (d.dirty) return send(k); // chegou alteração durante o pedido: vai a mais recente
-            d.ackedAt = Date.now();
             savedAt.set(d.uid, new Date());
+            const current = drafts.get(k) === d;
+            if (current && !d.dirty) d.ackedAt = Date.now();
+            // toda gravação confirmada relê o dia (o cache acompanha o servidor, mesmo com outra alteração a caminho)
             void refresh(d);
+            if (current && d.dirty) return send(k); // chegou alteração durante o pedido: vai a mais recente
             emit();
         },
         (error) => {
             d.inflight = false;
             const problem = lampSaveProblem(error);
             const code = lampSaveError(error);
-            if (code === 'LAMP_DAY_REPLACED') {
-                // a linha do dia foi trocada (pausa e volta na mesma segunda): o rascunho não vale mais
+            if (code === 'LAMP_DAY_REPLACED' || code === 'EXPECTED_ROW_ID_REQUIRED') {
+                // a linha do dia foi trocada (pausa e volta na mesma segunda) ou a conta passou ao relógio novo com um
+                // rascunho antigo: o rascunho não vale mais; relê o dia (e o resumo) e o aluno lança de novo
                 drafts.delete(k);
-                replaced.set(k, d.snapshot.dedaInput?.rowId ?? '');
+                replaced.set(k, rowOf(d.snapshot));
                 void refresh(d);
+                env.queryClient?.invalidateQueries({ queryKey: ['imerso-summary', d.uid] });
                 // o aviso diz qual dia (a tela pode estar noutra aba ou noutro dia)
                 env.notify?.(`${dayText(d)} was updated. Please enter it again.`);
             } else if (drafts.get(k) === d) {
@@ -230,7 +240,7 @@ const send = (k: string) => {
             // recusa definitiva (manutenção, LAMP encerrada): o resumo relido deixa a LAMP só leitura
             if (!problem.retry) env.queryClient?.invalidateQueries({ queryKey: ['imerso-summary', d.uid] });
             // fora da LAMP: a falha não pode sumir em silêncio (a troca de linha já avisou acima)
-            if (!env.mounted && code !== 'LAMP_DAY_REPLACED') env.notify?.(`${dayText(d)}: ${problem.text}`);
+            if (!env.mounted && !replaced.has(k)) env.notify?.(`${dayText(d)}: ${problem.text}`);
             emit();
         },
     );
@@ -286,36 +296,39 @@ export const useLampInputForm = () => {
     env.currentKey = k;
     const draft = drafts.get(k);
     const rejected = replaced.get(k);
-    const stale = !!rejected && inputData?.dedaInput?.rowId === rejected;
+    const stale = rejected !== undefined && !!inputData && rowOf(inputData) === rejected;
     useEffect(() => {
         const d = drafts.get(k);
-        // confirmado e relido do servidor: o dia volta a seguir o servidor
-        if (d?.ackedAt && !d.dirty && !d.inflight && !d.error && dataUpdatedAt > d.ackedAt) {
+        // confirmado (ou recusa desfeita) e relido do servidor depois disso: o dia volta a seguir o servidor
+        const since = d && !d.dirty && !d.inflight && !d.error ? (d.ackedAt ?? d.recovering) : undefined;
+        if (since && dataUpdatedAt > since) {
             drafts.delete(k);
             render();
         }
-        // chegou a linha nova do dia trocado: a edição volta a valer
+        // chegou a linha nova do dia recusado: a edição volta a valer
         const r = replaced.get(k);
-        if (r !== undefined && inputData && inputData.dedaInput?.rowId !== r) {
+        if (r !== undefined && inputData && rowOf(inputData) !== r) {
             replaced.delete(k);
             render();
         }
     }, [k, dataUpdatedAt, inputData]);
 
-    // recusa definitiva (pausa, manutenção) e depois um resumo mais novo com a LAMP contando de novo: o rascunho
-    // recusado sai (não é reenviado) e o dia volta a seguir o servidor
-    const summaryAt = queryClient.getQueryState(['imerso-summary', uid])?.dataUpdatedAt ?? 0;
+    // recusa definitiva (pausa, manutenção) e depois um resumo lido depois dela com a LAMP contando de novo: o
+    // rascunho recusado não é reenviado — sai assim que o dia for relido
+    const { dataUpdatedAt: summaryAt } = useQuery({ queryKey: ['imerso-summary', uid], enabled: false });
     useEffect(() => {
         if (readOnly || !uid) return;
         let changed = false;
-        for (const [key, d] of drafts)
+        for (const d of drafts.values())
             if (d.uid === uid && d.error && !d.error.retry && summaryAt > d.error.at) {
-                drafts.delete(key);
+                d.error = undefined;
+                d.recovering = Date.now();
+                void refresh(d);
                 changed = true;
             }
         if (changed) render();
     }, [readOnly, uid, summaryAt]);
-    const blocked = draft?.error?.retry === false;
+    const blocked = draft?.error?.retry === false || !!draft?.recovering;
 
     const edit = useMemo(
         () => draft?.values ?? (inputData ? fromInput(inputData) : ({} as LampInputEdit)),

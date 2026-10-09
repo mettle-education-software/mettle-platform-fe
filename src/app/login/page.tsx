@@ -3,10 +3,14 @@
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Button, Col, Flex, Form, Input, Row, Spin, Typography } from 'antd';
+import { useLoginDesign } from 'components/layouts/AuthenticationLayout/AuthenticationDesign';
 // import { Google, Microsoft } from 'components';
 import { handleGoogleLogin, handleLogin, handleMicrosoftLogin, SMALL_VIEWPORT } from 'libs';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import React from 'react';
+
+const NewLoginForm = dynamic(() => import('components/_new/NewAuthentication').then((m) => m.NewLoginForm));
 
 const { Text } = Typography;
 
@@ -93,6 +97,27 @@ const LineDivider = styled.div`
 export default function Login() {
     const [loginError, setLoginError] = React.useState<null | string>(null);
     const [isSignInLoading, setIsSignInLoading] = React.useState<boolean>(false);
+
+    const { enabled, preview } = useLoginDesign();
+
+    if (enabled) {
+        return (
+            <NewLoginForm
+                loading={isSignInLoading}
+                error={loginError}
+                preview={preview}
+                onFinish={(values) => {
+                    setIsSignInLoading(true);
+                    handleLogin({
+                        email: values.email,
+                        password: values.password,
+                        setLoginErrorMessage: setLoginError,
+                        setIsSignInLoading,
+                    });
+                }}
+            />
+        );
+    }
 
     return (
         <LoginContainer>

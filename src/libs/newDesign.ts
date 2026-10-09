@@ -3,6 +3,19 @@
 // Chave desligada = nenhum pixel muda para os alunos (componentes novos vêm por next/dynamic; os atuais ficam intactos).
 import { DEDA_READER_FORCED_OFF, DEDA_READER_UIDS, isDedaReaderAccount } from './dedaReader';
 
+/** Login público: manter desligado até o lançamento. Preview apenas na URL desta visita. */
+export const NEW_LOGIN = false;
+
+/** Curadoria do login novo, na ordem de exibição. Usar somente arquivos locais de public/img. */
+export const LOGIN_IMAGES: readonly `/img/${string}`[] = [
+    '/img/ebook-card-londres.webp',
+    '/img/imerso_thumb.webp',
+    '/img/hpec-bg.webp',
+    '/img/woman_bg.jpeg',
+];
+
+export const isNewLogin = (preview?: string | null, enabled: boolean = NEW_LOGIN) => enabled || preview === 'novo';
+
 /** Contas com a plataforma nova: a mesma lista da página do DEDA (só a do dono, em produção, como ambiente de teste). */
 export const NEW_DESIGN_UIDS = DEDA_READER_UIDS;
 

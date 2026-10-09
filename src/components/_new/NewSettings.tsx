@@ -1,12 +1,12 @@
 'use client';
 
 import { Button, Form, Input, Modal, Tooltip } from 'antd';
-import { usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
+import { useMelpSummary, usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { passwordRules } from 'libs';
 import { settingsTabFromQuery } from 'libs/newDesign';
 import { ExternalLink, Info, Mail } from 'lucide-react';
-import { useAppContext, useMelpContext } from 'providers';
-import React, { useEffect, useState } from 'react';
+import { useAppContext } from 'providers';
+import React, { useEffect, useRef, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewPage } from './NewPage';
 import { PageHead } from './PageHead';
@@ -18,7 +18,7 @@ import { ThemeSwitch } from './ThemeSwitch';
 const PersonalInformation: React.FC = () => {
     const { user } = useAppContext();
     return (
-        <div className="panel" role="tabpanel" aria-label="Dados pessoais">
+        <div className="panel">
             <div className="rows">
                 <div className="row">
                     <label htmlFor="s-name">Nome completo</label>
@@ -65,7 +65,7 @@ const SecuritySettings: React.FC = () => {
     const updatePassword = useUpdatePassword();
 
     return (
-        <div className="panel" role="tabpanel" aria-label="Segurança">
+        <div className="panel">
             <Form
                 form={form}
                 colon={false}
@@ -132,26 +132,46 @@ const SecuritySettings: React.FC = () => {
 const ImersoSettings: React.FC = () => {
     const programReset = useResetMelp();
     const pauseDeda = usePauseDeda();
-    const { melpSummary, isMelpSummaryLoading } = useMelpContext();
+    const { user } = useAppContext();
+    // a mesma consulta (e o mesmo cache) do MelpProvider, com o estado completo: dados, carregando, erro, nova tentativa
+    const summary = useMelpSummary(user?.uid);
+    const melpSummary = summary.data;
     const [modal, modalHolder] = Modal.useModal();
+    const status = (summary.error as { response?: { status?: number } } | null)?.response?.status;
+    const retry = (
+        <Button type="link" size="small" onClick={() => summary.refetch()}>
+            Tentar de novo
+        </Button>
+    );
 
-    // sem resumo: carregando (nada ainda) ou conta sem programa / sem acesso (uma linha); nunca quebra a página
+    // sem resumo: carregando (nada ainda); conta sem programa ou sem acesso (404/403, consulta desligada): uma linha;
+    // outra falha (rede, 500): mensagem com nova tentativa. Nunca quebra a página.
     if (!melpSummary)
         return (
-            <div className="panel" role="tabpanel" aria-label="IMERSO">
-                {!isMelpSummaryLoading && <p className="hint">Programa IMERSO indisponível nesta conta.</p>}
+            <div className="panel">
+                {summary.isLoading ? null : summary.isError && status !== 404 && status !== 403 ? (
+                    <p className="hint">Não foi possível carregar o programa IMERSO. {retry}</p>
+                ) : (
+                    <p className="hint">Programa IMERSO indisponível nesta conta.</p>
+                )}
             </div>
         );
 
+    // uma ação por vez (reiniciar e pausar se excluem enquanto uma está em curso) e nunca sobre um resumo velho: se a
+    // atualização depois de uma ação falhou, as ações esperam uma nova tentativa
+    const stale = summary.isError;
+    const busy = programReset.isPending || pauseDeda.isPending || stale;
+
     return (
-        <div className="panel" role="tabpanel" aria-label="IMERSO">
+        <div className="panel">
             {modalHolder}
+            {stale && <p className="hint">Não foi possível atualizar o programa IMERSO. {retry}</p>}
             <div className="rows">
                 <div className="row">
                     <div className="lab">
                         <b>
                             Reiniciar o programa
-                            <Tooltip title="Você pode reinicar a sua conta e recomeçar o programa IMERSO do início. Seu progresso até agora será inteiramente removido.">
+                            <Tooltip title="Você pode reiniciar a sua conta e recomeçar o programa IMERSO do início. Seu progresso até agora será inteiramente removido.">
                                 <Info {...ICON} size={16} aria-label="Sobre reiniciar" />
                             </Tooltip>
                         </b>
@@ -162,12 +182,13 @@ const ImersoSettings: React.FC = () => {
                     <div className="field">
                         <Button
                             loading={programReset.isPending}
+                            disabled={busy}
                             onClick={() =>
                                 modal.confirm({
                                     title: 'Atenção!',
                                     content:
                                         'Tem certeza que deseja reiniciar? Você perderá todo o seu progresso atual e essa ação não poderá ser revertida.',
-                                    onOk: () => programReset.mutate(),
+                                    onOk: () => programReset.mutateAsync().catch(() => undefined),
                                 })
                             }
                         >
@@ -191,12 +212,13 @@ const ImersoSettings: React.FC = () => {
                         <div className="field">
                             <Button
                                 loading={pauseDeda.isPending}
+                                disabled={busy}
                                 onClick={() =>
                                     modal.confirm({
                                         title: 'Atenção!',
                                         content:
-                                            'Tem certeza que deseja pausar? Você não poderá despausar até a próxima semana o progresso desta semana será perdido.',
-                                        onOk: () => pauseDeda.mutate(),
+                                            'Tem certeza que deseja pausar? Você não poderá despausar até a próxima semana, e o progresso desta semana será perdido.',
+                                        onOk: () => pauseDeda.mutateAsync().catch(() => undefined),
                                     })
                                 }
                             >
@@ -212,7 +234,7 @@ const ImersoSettings: React.FC = () => {
 };
 
 const Help: React.FC = () => (
-    <div className="panel" role="tabpanel" aria-label="Ajuda">
+    <div className="panel">
         <div className="links">
             <a href="mailto:hello@mettle.com.br">
                 <Mail {...ICON} size={18} aria-hidden /> hello@mettle.com.br
@@ -249,19 +271,40 @@ export const NewSettings: React.FC = () => {
         ),
     );
     const current = tabs.find((t) => t.key === tab) ?? tabs[0];
+    const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+    const onTabKey = (e: React.KeyboardEvent) => {
+        const keys = tabs.map((t) => t.key);
+        const i = keys.indexOf(current.key);
+        const next = {
+            ArrowRight: keys[(i + 1) % keys.length],
+            ArrowLeft: keys[(i - 1 + keys.length) % keys.length],
+            Home: keys[0],
+            End: keys[keys.length - 1],
+        }[e.key];
+        if (!next) return;
+        e.preventDefault();
+        setTab(next);
+        tabRefs.current[next]?.focus();
+    };
 
     return (
         <NewPage className="narrow">
             <PageHead
                 title="Configurações"
                 tabs={
-                    <div className="seg" role="tablist" aria-label="Configurações">
+                    <div className="seg" role="tablist" aria-label="Configurações" onKeyDown={onTabKey}>
                         {tabs.map((t) => (
                             <button
                                 key={t.key}
+                                ref={(el) => {
+                                    tabRefs.current[t.key] = el;
+                                }}
+                                id={`settings-tab-${t.key}`}
                                 type="button"
                                 role="tab"
                                 aria-selected={t.key === current.key}
+                                aria-controls={t.key === current.key ? `settings-panel-${t.key}` : undefined}
+                                tabIndex={t.key === current.key ? 0 : -1}
                                 onClick={() => setTab(t.key)}
                             >
                                 {t.label}
@@ -270,7 +313,14 @@ export const NewSettings: React.FC = () => {
                     </div>
                 }
             />
-            {current.panel}
+            <div
+                role="tabpanel"
+                id={`settings-panel-${current.key}`}
+                aria-labelledby={`settings-tab-${current.key}`}
+                tabIndex={0}
+            >
+                {current.panel}
+            </div>
         </NewPage>
     );
 };

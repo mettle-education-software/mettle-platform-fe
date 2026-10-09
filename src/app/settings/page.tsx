@@ -239,13 +239,10 @@ const ImersoSettings = () => {
     const programReset = useResetMelp();
     const pauseDeda = usePauseDeda();
 
-    const handleProgramReset = () => {
-        programReset.mutate();
-    };
-
-    const handleDedaPause = () => {
-        pauseDeda.mutate();
-    };
+    // uma ação por vez: reiniciar e pausar se excluem enquanto uma está em curso; a confirmação espera a resposta
+    const busy = programReset.isPending || pauseDeda.isPending;
+    const handleProgramReset = () => programReset.mutateAsync().catch(() => undefined);
+    const handleDedaPause = () => pauseDeda.mutateAsync().catch(() => undefined);
 
     const { melpSummary, isMelpSummaryLoading } = useMelpContext();
 
@@ -269,7 +266,7 @@ const ImersoSettings = () => {
                                 <Flex vertical>
                                     <Flex gap="0.5rem" align="center">
                                         <Text>Reiniciar o programa</Text>
-                                        <Tooltip title="Você pode reinicar a sua conta e recomeçar o programa IMERSO do início. Seu progresso até agora será inteiramente removido.">
+                                        <Tooltip title="Você pode reiniciar a sua conta e recomeçar o programa IMERSO do início. Seu progresso até agora será inteiramente removido.">
                                             <InfoCircleOutlined />
                                         </Tooltip>
                                     </Flex>
@@ -282,14 +279,13 @@ const ImersoSettings = () => {
                             <Col xs={24} md={18}>
                                 <Button
                                     loading={programReset.isPending}
+                                    disabled={busy}
                                     onClick={() => {
                                         Modal.confirm({
                                             title: 'Atenção!',
                                             content:
                                                 'Tem certeza que deseja reiniciar? Você perderá todo o seu progresso atual e essa ação não poderá ser revertida.',
-                                            onOk: () => {
-                                                handleProgramReset();
-                                            },
+                                            onOk: handleProgramReset,
                                         });
                                     }}
                                     type="primary"
@@ -318,14 +314,14 @@ const ImersoSettings = () => {
                                 </Col>
                                 <Col xs={24} md={18}>
                                     <Button
+                                        loading={pauseDeda.isPending}
+                                        disabled={busy}
                                         onClick={() => {
                                             Modal.confirm({
                                                 title: 'Atenção!',
                                                 content:
-                                                    'Tem certeza que deseja pausar? Você não poderá despausar até a próxima semana o progresso desta semana será perdido.',
-                                                onOk: () => {
-                                                    handleDedaPause();
-                                                },
+                                                    'Tem certeza que deseja pausar? Você não poderá despausar até a próxima semana, e o progresso desta semana será perdido.',
+                                                onOk: handleDedaPause,
                                             });
                                         }}
                                         type="primary"

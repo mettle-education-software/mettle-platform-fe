@@ -1,15 +1,16 @@
 'use client';
 
 import styled from '@emotion/styled';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Col, Flex, Row, Skeleton, Typography } from 'antd';
 import { InputsWrapper, MaxWidthContainer } from 'components';
 import { ReviewThumbnail } from 'components/_melp/ReviewThumbnail/ReviewThumbnail';
-import { useGetInputData, useSaveInput } from 'hooks';
-import { InputDataDTO } from 'interfaces';
+import { useGetInputData } from 'hooks';
+import { LampInputEdit, saveReviewStatuses } from 'hooks/melp/lampInputForm';
 import { getDayToday, SMALL_VIEWPORT } from 'libs';
 import { dedaLampWeek } from 'libs/dedaClock';
 import { hasReviews } from 'libs/dedaReader';
-import { useMelpContext } from 'providers';
+import { useAppContext, useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 
 const { Title, Text } = Typography;
@@ -80,66 +81,32 @@ export const useDedaReviews = (dedaId: string) => {
     }, [inputData?.reviewInput]);
 
     const [saveKey, setSaveKey] = useState<string>();
-    const saveInput = useSaveInput();
+    const { user } = useAppContext();
+    const queryClient = useQueryClient();
+    // na fila do dia (a mesma da aba Input e da conclusão do DEDA): lê o dia na hora e manda só as revisões
+    const saveInput = useMutation({
+        mutationFn: (statuses: Pick<LampInputEdit, 'reviewStatus1' | 'reviewStatus2' | 'reviewStatus3'>) =>
+            saveReviewStatuses(user?.uid as string, selectedWeek, selectedDay, statuses),
+        onSuccess: () =>
+            Promise.all(
+                [
+                    ['get-input-data', user?.uid, selectedWeek, selectedDay],
+                    ['get-weekly-performance'],
+                    ['get-general-weekly-development'],
+                    ['get-overall-progress'],
+                ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+            ),
+    });
 
     const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
     const saveReviewCall = () => {
-        if (!inputData) return;
-
-        const inputDTO: InputDataDTO = {
-            // relógio novo: a linha do dia que o formulário carregou (o servidor recusa se ela foi substituída)
-            expectedRowId: inputData.dedaInput?.rowId,
-            inputData: {
-                dedaInputData: {
-                    dedaTime: inputData.dedaInput.deda_time,
-                    readingTime: inputData.dedaInput.reading_time,
-                    dedaPredPlace: inputData.dedaInput.deda_pred_place,
-                    dedaSteps: inputData.dedaInput.deda_steps,
-                    dedaStateMind: inputData.dedaInput.deda_state_mind,
-                    dedaStateBeing: inputData.dedaInput.deda_state_being,
-                    dedaFocus: inputData.dedaInput.deda_focus,
-                },
-                activeInputData: {
-                    book: inputData.activeInput.book,
-                    dedaNotes: inputData.activeInput.deda_notes,
-                    mooc: inputData.activeInput.mooc,
-                    others: inputData.activeInput.others,
-                    review: inputData.activeInput.review,
-                },
-                passiveInputData: {
-                    audiobook: inputData.passiveInput.audiobook,
-                    conversation: inputData.passiveInput.conversation,
-                    movieDoc: inputData.passiveInput.movie_doc,
-                    newsShows: inputData.passiveInput.news_shows,
-                    others: inputData.passiveInput.others,
-                    podcast: inputData.passiveInput.podcast,
-                    series: inputData.passiveInput.series,
-                    ted: inputData.passiveInput.ted,
-                    youtube: inputData.passiveInput.youtube,
-                },
-                reviewInputData: {
-                    review1: {
-                        status: editReview.review1,
-                    },
-                },
-            },
-        };
-
-        if (inputData?.reviewInput?.review2 && inputDTO.inputData.reviewInputData)
-            inputDTO.inputData.reviewInputData.review2 = {
-                status: editReview.review2 === undefined ? false : editReview.review2,
-            };
-        if (inputData?.reviewInput?.review3 && inputDTO.inputData.reviewInputData)
-            inputDTO.inputData.reviewInputData.review3 = {
-                status: editReview.review3 === undefined ? false : editReview.review3,
-            };
-
+        if (!inputData || !user?.uid) return;
         saveInput.mutate(
             {
-                week: selectedWeek,
-                day: selectedDay,
-                inputDTO,
+                reviewStatus1: editReview.review1,
+                reviewStatus2: editReview.review2 ?? false,
+                reviewStatus3: editReview.review3 ?? false,
             },
             {
                 onSuccess: () => {

@@ -215,6 +215,22 @@ const save = (d: DayDraft) =>
         return sent;
     });
 
+/**
+ * Marcar revisões (aba Review do DEDA), na vez do dia (withDayLock, a mesma fila da aba Input e da conclusão): lê o dia
+ * agora e manda só os estados das revisões sobre o que o servidor tem — nunca reenvia valores velhos da LAMP.
+ */
+export const saveReviewStatuses = (
+    uid: string,
+    week: string,
+    day: string,
+    statuses: Pick<LampInputEdit, 'reviewStatus1' | 'reviewStatus2' | 'reviewStatus3'>,
+) =>
+    withDayLock(`${uid}:${week}:${day}`, async () => {
+        const path = `/input/v2/${uid}/${week}/${day}`;
+        const fresh = await lampService.get<InputDataResponse>(path).then(({ data }) => data.data);
+        await lampService.patch(path, { ...toDTO({ ...fromInput(fresh), ...statuses }, fresh) });
+    });
+
 const send = (k: string) => {
     const d = drafts.get(k);
     if (!d || d.inflight || !d.dirty || d.error) return;

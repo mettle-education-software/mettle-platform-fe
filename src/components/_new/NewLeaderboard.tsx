@@ -4,21 +4,19 @@ import { css, Global } from '@emotion/react';
 import { useQuery } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
 import {
-    breakdown,
+    isCurrentSnapshot,
     isPaused,
     LbSnapshot,
     LEADERBOARD_URL,
     Level,
     LEVEL_NAME,
-    Params,
-    pausedWeeksOf,
-    rankAll,
+    order,
+    overallAvg,
     Ranked,
-    runDays,
-    sameParams,
+    recAvg,
     TENURE_BANDS,
     tenureWeekOf,
-    weightedOverallByWeek,
+    weeklyOverall,
 } from 'libs/leaderboard';
 import React, { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -27,8 +25,9 @@ import { PageHead } from './PageHead';
 import { RunChip } from './RunGold';
 
 /*
- * Leaderboard do Imerso (só o dono). Ranking da noite + "por quê" de cada aluno + controles que recalculam tudo no
- * navegador a partir dos dias de cada aluno (nada é salvo) + o Livro de Regras. Somente leitura.
+ * Leaderboard do Imerso (só o dono). Ranking da noite + "por quê" de cada aluno + o Livro de Regras. Somente leitura:
+ * Score, posição e componentes vêm prontos do lote; as regras moram no código e no Livro (André, 09-Out-2026), nunca
+ * em controles da página.
  */
 
 const get = async (): Promise<LbSnapshot> => {
@@ -40,15 +39,6 @@ const get = async (): Promise<LbSnapshot> => {
 
 const pct = (x: number | null, d = 0) => (x === null ? '—' : `${(x * 100).toFixed(d).replace('.', ',')}%`);
 const dec = (x: number, d = 2) => x.toFixed(d).replace('.', ',');
-
-const KNOBS: { key: keyof Params; label: string; hint: string; max: number }[] = [
-    { key: 'wO', label: 'Overall ponderado', hint: 'peso de Ō', max: 1 },
-    { key: 'wG', label: 'Gravação', hint: 'peso de Ḡ', max: 1 },
-    { key: 'wC', label: 'DEDA Run', hint: 'peso de Ĉ', max: 1 },
-    { key: 'fatigue', label: 'Desgaste', hint: '× ln(1 + dias ÷ 28)', max: 1 },
-    { key: 'tenure', label: 'Tempo de casa', hint: '× ln(semana) ÷ ln(104)', max: 1 },
-    { key: 'level', label: 'Expoente do nível', hint: '0,5 = raiz quadrada', max: 1.5 },
-];
 
 const styles = css`
     .lb .lbbar {
@@ -68,82 +58,6 @@ const styles = css`
     }
     .lb .lbbar .btn.tog {
         margin-left: auto;
-    }
-    .lb .knobs {
-        margin: 0 0 24px;
-        padding: 20px 22px 8px;
-        border: 1px solid var(--r-line);
-        border-radius: var(--r-radius);
-    }
-    .lb .knobs ul {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 4px 28px;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-    }
-    .lb .knobs li label {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 8px;
-        font-size: 13.5px;
-        color: var(--r-muted);
-    }
-    .lb .knobs li label b {
-        font-weight: 500;
-        font-variant-numeric: tabular-nums;
-        color: var(--r-text);
-    }
-    .lb .knobs li small {
-        margin-left: 6px;
-        font-size: 12px;
-        color: var(--r-faint);
-    }
-    .lb .knobs .foot {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px 16px;
-        margin: 8px 0 0;
-        font-size: 13px;
-        color: var(--r-muted);
-    }
-    .lb input[type='range'] {
-        width: 100%;
-        height: 36px;
-        margin: 0;
-        background: transparent;
-        accent-color: var(--r-gold);
-        cursor: pointer;
-        -webkit-appearance: none;
-        appearance: none;
-    }
-    .lb input[type='range']::-webkit-slider-runnable-track {
-        height: 2px;
-        background: var(--r-track, var(--r-line-strong));
-    }
-    .lb input[type='range']::-moz-range-track {
-        height: 2px;
-        background: var(--r-track, var(--r-line-strong));
-    }
-    .lb input[type='range']::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        width: 18px;
-        height: 18px;
-        margin-top: -8px;
-        border: 0;
-        border-radius: 50%;
-        background: var(--r-gold);
-    }
-    .lb input[type='range']::-moz-range-thumb {
-        width: 18px;
-        height: 18px;
-        border: 0;
-        border-radius: 50%;
-        background: var(--r-gold);
     }
 
     /* ---------- tabela ---------- */
@@ -327,17 +241,9 @@ const styles = css`
         border-top: 1px solid var(--r-line);
     }
 
-    @media (max-width: 900px) {
-        .lb .knobs ul {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-    }
     @media (max-width: 720px) {
         .lb .lbbar .btn.tog {
             margin-left: 0;
-        }
-        .lb .knobs ul {
-            grid-template-columns: minmax(0, 1fr);
         }
         .lb .r.h {
             display: none;
@@ -418,7 +324,7 @@ const Spark: React.FC<{ pts: number[] }> = ({ pts }) => {
         .map((v, i) => `${((i / (pts.length - 1)) * 100).toFixed(2)},${(52 - ((v - lo) / span) * 48).toFixed(2)}`)
         .join(' ');
     return (
-        <svg viewBox="0 0 100 56" preserveAspectRatio="none" role="img" aria-label="Overall ponderado por semana">
+        <svg viewBox="0 0 100 56" preserveAspectRatio="none" role="img" aria-label="Overall médio por semana">
             <polyline
                 points={d}
                 fill="none"
@@ -430,52 +336,57 @@ const Spark: React.FC<{ pts: number[] }> = ({ pts }) => {
     );
 };
 
-const Why: React.FC<{ r: Ranked; snap: LbSnapshot; p: Params }> = ({ r, snap, p }) => {
-    const b = breakdown(r.c, p, snap.fullWeek);
-    const pts = useMemo(() => weightedOverallByWeek(snap, r.st, p), [snap, r.st, p]);
-    const value = (k: string, v: number | null) =>
-        v === null ? 'sem gravador' : k === 'C' ? `${dec(v, 3)} · ${runDays(r.st)} dias` : pct(v, 1);
+const Why: React.FC<{ r: Ranked; snap: LbSnapshot }> = ({ r, snap }) => {
+    const c = r.st.comp;
+    const pts = useMemo(() => weeklyOverall(r.st), [r.st]);
+    const H = snap.H ?? 1092;
+    const rec = recAvg(r.st);
     return (
         <div className="why">
             <div>
                 <ul>
-                    {b.parts.map((x) => (
-                        <li key={x.key}>
-                            <span>
-                                {x.label} · {value(x.key, x.v)}
-                            </span>
-                            <span>{x.v === null ? 'peso redistribuído' : `peso ${pct(x.eff)}`}</span>
-                            <b>{x.points === null ? '—' : dec(x.points, 0)}</b>
-                        </li>
-                    ))}
                     <li>
-                        <span>Tempo de casa · semana {tenureWeekOf(r.st)} de vida</span>
-                        <span>× {dec(b.tenureFactor, 3)} (já nos pontos)</span>
-                        <b />
+                        <span>
+                            Overall · {dec(c.O, 1)} de {c.window} dias ({pct(overallAvg(r.st))})
+                        </span>
+                        <span />
+                        <b>{dec(c.pO, 0)}</b>
                     </li>
                     <li>
                         <span>
-                            Pausas e resets · {dec(pausedWeeksOf(r.st), 1)} sem. pausadas · {r.st.resetsArchived ?? 0}{' '}
-                            reset{(r.st.resetsArchived ?? 0) === 1 ? '' : 's'}
+                            Gravação ·{' '}
+                            {c.pR === null ? 'sem gravador' : `${dec(c.R ?? 0, 1)} de ${c.recDays} dias (${pct(rec)})`}
                         </span>
-                        <span>× {dec(b.penalty, 3)} (já nos pontos)</span>
+                        <span>{c.pR === null ? 'peso redistribuído' : ''}</span>
+                        <b>{c.pR === null ? '—' : dec(c.pR, 0)}</b>
+                    </li>
+                    <li>
+                        <span>DEDA Run · {c.Run} dias</span>
+                        <span />
+                        <b>{dec(c.pRun, 0)}</b>
+                    </li>
+                    <li>
+                        <span>
+                            Pausas e resets · {dec((r.st.pausedDays ?? 0) / 7, 1)} sem. pausadas ·{' '}
+                            {r.st.resetsArchived ?? 0} reset{(r.st.resetsArchived ?? 0) === 1 ? '' : 's'}
+                        </span>
+                        <span>× {dec(c.F, 3)}</span>
                         <b />
                     </li>
                     <li className="tot">
                         <span>Score</span>
                         <span />
-                        <b>{r.score}</b>
+                        <b>{r.st.score}</b>
                     </li>
                 </ul>
                 <p className="note">
-                    {LEVEL_NAME[r.st.level]} · {r.st.overall.length} dias no programa
-                    {r.c.G === null ? ' · gravador ainda não liberado para este aluno' : ''}
+                    {LEVEL_NAME[r.st.level]} · {c.daysDone} dias feitos de {H}
                     {r.st.status === 'DEDA_PAUSED' ? ' · DEDA pausado' : ''}
                 </p>
             </div>
             <figure style={{ margin: 0 }}>
                 <figcaption>
-                    Overall ponderado ao longo do programa · hoje <b>{pct(r.c.O, 1)}</b>
+                    Overall médio por semana · janela <b>{pct(overallAvg(r.st))}</b>
                 </figcaption>
                 <Spark pts={pts} />
             </figure>
@@ -484,25 +395,22 @@ const Why: React.FC<{ r: Ranked; snap: LbSnapshot; p: Params }> = ({ r, snap, p 
 };
 
 const Ranking: React.FC<{ snap: LbSnapshot }> = ({ snap }) => {
-    const [p, setP] = useState<Params>(snap.defaults);
     const [band, setBand] = useState<string>('all');
     const [level, setLevel] = useState<'all' | Level>('all');
     const [open, setOpen] = useState<string | null>(null);
-    const [knobs, setKnobs] = useState(false);
     const [paused, setPaused] = useState(false);
-    // pausados fora (padrão): a posição é recalculada só entre os que estão no programa; a fórmula não muda
+    // pausados fora (padrão): a posição é a ordem do lote só entre os que estão no programa; o Score não muda
     const rows = useMemo(
-        () => rankAll(paused ? snap : { ...snap, students: snap.students.filter((s) => !isPaused(s)) }, p),
-        [snap, p, paused],
+        () => order(paused ? snap.students : snap.students.filter((s) => !isPaused(s))),
+        [snap, paused],
     );
     const test = TENURE_BANDS.find((b) => b.key === band)?.test ?? (() => true);
     const shown = rows.filter((r) => test(tenureWeekOf(r.st)) && (level === 'all' || r.st.level === level));
-    const tuned = !sameParams(p, snap.defaults);
 
     return (
         <>
             <div className="lbbar">
-                <div className="seg sm" role="tablist" aria-label="Tempo de casa">
+                <div className="seg sm" role="tablist" aria-label="Tempo de programa">
                     {TENURE_BANDS.map((b) => (
                         <button
                             key={b.key}
@@ -536,52 +444,7 @@ const Ranking: React.FC<{ snap: LbSnapshot }> = ({ snap }) => {
                 >
                     Incluir pausados
                 </button>
-                <button
-                    type="button"
-                    className={`btn ${tuned ? 'gold' : 'line'}`}
-                    aria-expanded={knobs}
-                    onClick={() => setKnobs((k) => !k)}
-                >
-                    {tuned ? 'Pesos ajustados' : 'Ajustar pesos'}
-                </button>
             </div>
-
-            {knobs && (
-                <div className="knobs">
-                    <ul>
-                        {KNOBS.map((k) => (
-                            <li key={k.key}>
-                                <label htmlFor={`k-${k.key}`}>
-                                    <span>
-                                        {k.label} <small>{k.hint}</small>
-                                    </span>
-                                    <b>{dec(p[k.key])}</b>
-                                </label>
-                                <input
-                                    id={`k-${k.key}`}
-                                    type="range"
-                                    min={0}
-                                    max={k.max}
-                                    step={0.05}
-                                    value={p[k.key]}
-                                    onChange={(e) => setP({ ...p, [k.key]: Number(e.target.value) })}
-                                />
-                            </li>
-                        ))}
-                    </ul>
-                    <p className="foot">
-                        <span>O ranking recalcula aqui, na hora. Nada é salvo.</span>
-                        <button
-                            type="button"
-                            className="btn ghost"
-                            disabled={!tuned}
-                            onClick={() => setP(snap.defaults)}
-                        >
-                            Restaurar padrão
-                        </button>
-                    </p>
-                </div>
-            )}
 
             <div className="tbl" role="table" aria-label="Leaderboard">
                 <div className="r h" role="row">
@@ -620,18 +483,18 @@ const Ranking: React.FC<{ snap: LbSnapshot }> = ({ snap }) => {
                                     <span className="lv">{LEVEL_NAME[r.st.level]}</span>
                                     <span>
                                         <RunChip
-                                            current={runDays(r.st)}
+                                            current={r.st.comp.Run}
                                             counted={(r.st.dedaToday ?? 0) >= 80 - 1e-9}
                                             label=""
                                         />
                                     </span>
                                     <span className="num">
                                         <i>Overall</i>
-                                        {pct(r.c.O)}
+                                        {pct(overallAvg(r.st))}
                                     </span>
                                     <span className="num">
                                         <i>Gravação</i>
-                                        {pct(r.c.G)}
+                                        {pct(recAvg(r.st))}
                                     </span>
                                     <span className="num">
                                         <i>Pausado há</i>
@@ -646,9 +509,9 @@ const Ranking: React.FC<{ snap: LbSnapshot }> = ({ snap }) => {
                                         {r.st.resetsUsed ?? '—'}
                                     </span>
                                 </span>
-                                <span className="sc">{r.score}</span>
+                                <span className="sc">{r.st.score}</span>
                             </button>
-                            {isOpen && <Why r={r} snap={snap} p={p} />}
+                            {isOpen && <Why r={r} snap={snap} />}
                         </React.Fragment>
                     );
                 })}
@@ -669,6 +532,7 @@ const NewLeaderboard: React.FC = () => {
               timeStyle: 'short',
           })
         : null;
+    const current = !!snap && !snap.empty && isCurrentSnapshot(snap);
     return (
         <NewPage className="lb">
             <Global styles={styles} />
@@ -695,7 +559,10 @@ const NewLeaderboard: React.FC = () => {
             {q.isLoading && <p className="mut">Carregando…</p>}
             {q.isError && <p className="mut">Não foi possível carregar o Leaderboard.</p>}
             {snap?.empty && <p className="mut">O primeiro retrato sai na próxima noite.</p>}
-            {snap && !snap.empty && tab === 'rank' && <Ranking snap={snap} />}
+            {snap && !snap.empty && !current && tab === 'rank' && (
+                <p className="mut">O retrato com as regras atuais sai na próxima noite.</p>
+            )}
+            {current && tab === 'rank' && <Ranking snap={snap} />}
             {snap && tab === 'rules' && (
                 <article className="rules">
                     <ReactMarkdown>{snap.rulebook ?? ''}</ReactMarkdown>

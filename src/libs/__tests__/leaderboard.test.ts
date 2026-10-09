@@ -1,118 +1,48 @@
-// Python soma com compensação (sum() desde 3.12); o navegador soma em laço: diferença ~1e-12, Score idêntico.
-import {
-    breakdown,
-    components,
-    DEFAULT_PENALTIES,
-    LbSnapshot,
-    LbStudent,
-    Params,
-    penalty,
-    rankAll,
-    scoreOf,
-    weightedOverallByWeek,
-} from '../leaderboard';
-import fixture from './leaderboard.fixture.json';
+// A página só mostra o retrato do lote (regras de André, 09-Out-2026): estes testes cobrem o que ela ainda faz —
+// a ordem quando um filtro tira alunos (Score, depois dias feitos; empate = mesma posição) e as médias exibidas.
+import { isCurrentSnapshot, LbStudent, order, overallAvg, recAvg, tenureWeekOf, weeklyOverall } from '../leaderboard';
 
-// Paridade com mibe/tools/leaderboard/model.py: os casos e os números esperados foram gerados lá (padrão e outros pesos).
-const DEFAULTS: Params = { wO: 0.55, wG: 0.25, wC: 0.2, fatigue: 0.3, tenure: 0.4, level: 0.5 };
-const model = {
-    goals: fixture.goals,
-    goalRef: 240,
-    refDays: 365,
-    refLevel: 'MEDIUM',
-    fullWeek: 104,
-    penalties: fixture.penalties,
-} as unknown as LbSnapshot;
-const cases = fixture.cases as unknown as {
-    st: LbStudent;
-    def: Record<string, number | null>;
-    alt: Record<string, number | null>;
-}[];
-
-test.each([
-    ['padrão', DEFAULTS, 'def'],
-    ['outros pesos', fixture.alt as Params, 'alt'],
-] as const)('mesmos componentes e Score do lote (%s)', (_n, p, k) => {
-    for (const cs of cases) {
-        const st = { ...cs.st, runFrom: cs.st.runFrom ?? null, runTo: cs.st.runTo ?? null };
-        const c = components(model, st, p);
-        const want = cs[k];
-        for (const key of ['O', 'C', 'S', 'T', 'F'] as const) expect(c[key]).toBeCloseTo(want[key] as number, 9);
-        if (want.G === null) expect(c.G).toBeNull();
-        else expect(c.G).toBeCloseTo(want.G as number, 9);
-        expect(scoreOf(c, p, 104)).toBe(want.score);
-    }
+const st = (id: string, score: number, daysDone: number, extra: Partial<LbStudent> = {}): LbStudent => ({
+    id,
+    name: id,
+    level: 'MEDIUM',
+    week: 10,
+    overall: [1, 1, 1, 1, 1, 1, 1, 0.5, 0.5],
+    score,
+    rank: 0,
+    comp: { O: 8, R: null, Run: 5, window: 9, recDays: 0, daysDone, F: 1, pO: 1, pR: null, pRun: 1 },
+    ...extra,
 });
 
-test('ranking: Score, depois Overall; empate exato divide a posição', () => {
-    const base = cases[0].st;
-    const snap = {
-        ...model,
-        students: [
-            { ...base, id: 'a', name: 'A', runFrom: base.runFrom ?? null, runTo: base.runTo ?? null },
-            { ...base, id: 'b', name: 'B', runFrom: base.runFrom ?? null, runTo: base.runTo ?? null },
-            { ...base, id: 'c', name: 'C', overall: base.overall.map(() => 0.2), runFrom: null, runTo: null },
-        ],
-    } as LbSnapshot;
-    const r = rankAll(snap, DEFAULTS);
+test('ordem do lote: Score; empate → mais dias feitos; persistindo, mesma posição (1, 1, 3)', () => {
+    const r = order([st('a', 100, 20), st('b', 100, 40), st('c', 300, 1), st('d', 100, 40), st('e', 5, 3)]);
     expect(r.map((x) => [x.st.id, x.rank])).toEqual([
-        ['a', 1],
-        ['b', 1],
-        ['c', 3],
+        ['c', 1],
+        ['b', 2],
+        ['d', 2],
+        ['a', 4],
+        ['e', 5],
     ]);
 });
 
-test('minigráfico: um ponto por semana, o último é o Overall ponderado', () => {
-    const st = cases[1].st;
-    const pts = weightedOverallByWeek(model, st, DEFAULTS);
-    expect(pts).toHaveLength(Math.ceil(st.overall.length / 7));
-    expect(pts[pts.length - 1]).toBeCloseTo(cases[1].def.O as number, 12);
-});
-
-test('pausa × reset: 1% por semana pausada pelo aluno, mínimo 0,85; 5% por reset; retrato antigo sem o campo', () => {
-    const st = { ...cases[0].st, runFrom: null, runTo: null } as LbStudent;
-    expect(penalty(st)).toBe(1);
-    expect(penalty({ ...st, pausedDays: 28 })).toBeCloseTo(0.99 ** 4, 12);
-    expect(penalty({ ...st, pausedDays: 16 * 7 })).toBeGreaterThan(0.85);
-    expect(penalty({ ...st, pausedDays: 17 * 7 })).toBe(0.85);
-    expect(penalty({ ...st, pausedDays: 400 * 7, resetsArchived: 2 })).toBeCloseTo(0.85 * 0.95 ** 2, 12);
-    expect(penalty({ ...st, systemPausedDays: 700 })).toBe(1); // intervalo do sistema não conta
-    expect(DEFAULT_PENALTIES).toEqual(fixture.penalties);
-});
-
-test('os pontos de cada ingrediente somam o Score (tempo de casa e pausa × reset já dentro)', () => {
-    for (const cs of cases) {
-        const st = { ...cs.st, runFrom: cs.st.runFrom ?? null, runTo: cs.st.runTo ?? null };
-        const c = components(model, st, DEFAULTS);
-        const b = breakdown(c, DEFAULTS, 104);
-        const sum = b.parts.reduce((t, x) => t + (x.points ?? 0), 0);
-        expect(Math.abs(sum - scoreOf(c, DEFAULTS, 104))).toBeLessThanOrEqual(0.5 + 1e-9);
-        expect(b.factor).toBeCloseTo(b.tenureFactor * b.penalty, 12);
-    }
-});
-
-test('pesos padrão: Score e posição do lote (oficial); controles mexidos: recálculo; retrato antigo: recálculo', () => {
-    const mk = (id: string, score: number, F?: number) => ({
-        ...cases[0].st,
-        id,
-        name: id,
-        runFrom: null,
-        runTo: null,
-        score,
-        comp: { O: 0.5, G: null, C: 0.1, S: 1, T: 1.1, ...(F === undefined ? {} : { F }) },
-    });
-    const snap = {
-        ...model,
-        defaults: DEFAULTS,
-        students: [mk('a', 10, 1), mk('b', 900, 0.9)],
-    } as unknown as LbSnapshot;
-    expect(rankAll(snap, DEFAULTS).map((r) => [r.st.id, r.score, r.rank])).toEqual([
-        ['b', 900, 1],
-        ['a', 10, 2],
+test('filtro tira alunos: a posição é a ordem entre os que ficam; o Score não muda', () => {
+    const all = [st('a', 900, 10), st('p', 950, 10, { status: 'DEDA_PAUSED' }), st('b', 800, 10)];
+    const shown = order(all.filter((s) => s.status !== 'DEDA_PAUSED'));
+    expect(shown.map((x) => [x.st.id, x.rank, x.st.score])).toEqual([
+        ['a', 1, 900],
+        ['b', 2, 800],
     ]);
-    const tuned = { ...DEFAULTS, wO: 0.6 };
-    const recalc = rankAll(snap, tuned);
-    expect(recalc.every((r) => r.score === scoreOf(components(model, r.st, tuned), tuned, 104))).toBe(true);
-    const old = { ...snap, students: [mk('a', 10), mk('b', 900)] } as unknown as LbSnapshot;
-    expect(rankAll(old, DEFAULTS).every((r) => r.score !== 10 && r.score !== 900)).toBe(true);
+});
+
+test('médias exibidas e minigráfico; retrato antigo é reconhecido', () => {
+    const s = st('a', 1, 1);
+    expect(overallAvg(s)).toBeCloseTo(8 / 9, 12);
+    expect(recAvg(s)).toBeNull();
+    expect(recAvg({ ...s, comp: { ...s.comp, R: 3, recDays: 4 } })).toBeCloseTo(0.75, 12);
+    expect(weeklyOverall(s)).toEqual([1, 0.5]);
+    expect(tenureWeekOf({ ...s, tenureWeek: 30 })).toBe(30);
+    expect(tenureWeekOf(s)).toBe(10);
+    expect(isCurrentSnapshot({ students: [], version: 3 })).toBe(true);
+    expect(isCurrentSnapshot({ students: [], version: 2 })).toBe(false);
+    expect(isCurrentSnapshot({ students: [] })).toBe(false);
 });

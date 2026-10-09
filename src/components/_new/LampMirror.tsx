@@ -221,7 +221,7 @@ const Quality: React.FC<{ run: Run }> = ({ run }) => {
     // falha) fica em branco — nunca um 0% inventado
     const current = Math.max(1, ...cats.map(weekNumber));
     const byWeek = new Map(weeks.map((w) => [w.week, Math.round(w.score)]));
-    const loaded = new Set(run.newestFirst.map((d) => d.week));
+    const loaded = new Set(run.newestFirst.filter((d) => !d.unknown).map((d) => d.week));
     const data = Array.from({ length: current }, (_, i) => ({
         x: i + 1,
         y: byWeek.get(i + 1) ?? (loaded.has(i + 1) ? 0 : null),

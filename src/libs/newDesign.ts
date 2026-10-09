@@ -440,6 +440,8 @@ export type LampDay = {
     /** relógio novo: a data (Brasília) e o DEDA da linha, vindos do servidor */
     iso?: string;
     dedaId?: string | null;
+    /** o pedido do dia falhou e não há linha do programa: desconhecido (nunca "nada feito") */
+    unknown?: boolean;
 };
 
 /** Um dia na DEDA Run: contou (≥ 80%), quebrou (abaixo ou sem DEDA), hoje em andamento, ou ainda por vir. */

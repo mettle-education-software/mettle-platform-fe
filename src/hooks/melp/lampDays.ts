@@ -165,8 +165,10 @@ export const useLampDays = (minWeeks: number) => {
         const row = program.data?.get(`${week}:${day}`);
         const fromRow = { ...(row ?? EMPTY), week, day, iso: row?.date ?? undefined, dedaId: row?.dedaId };
         // semana atual dia a dia (mesmos índices de `keys`); sem a resposta do dia, vale a linha do programa
-        const daily = (perDay || week === currentWeek) && results[i]?.data;
-        return daily ? { ...fromRow, ...fromInput(daily), iso: daily.dedaInput?.date ?? fromRow.iso } : fromRow;
+        const asked = perDay || week === currentWeek;
+        const daily = asked && results[i]?.data;
+        if (daily) return { ...fromRow, ...fromInput(daily), iso: daily.dedaInput?.date ?? fromRow.iso };
+        return asked && results[i]?.isError && !row ? { ...fromRow, unknown: true } : fromRow;
     });
 
     const streak = dedaStreak(newestFirst, running);

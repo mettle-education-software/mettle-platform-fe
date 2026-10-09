@@ -3,7 +3,7 @@
 import { css, Global } from '@emotion/react';
 import { Rate, Select, Tooltip } from 'antd';
 import { useGetDedasList, useGetGoalByLevel } from 'hooks';
-import { LampInputEdit, useLampInputForm } from 'hooks/melp/lampInputForm';
+import { LampInputEdit, LampInputForm } from 'hooks/melp/lampInputForm';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaWatchQueryResponse } from 'interfaces';
 import {
@@ -461,10 +461,9 @@ const FROZEN: Record<string, string> = {
 };
 
 /** Aba Input: o dia contra a meta, com o mesmo estado e a mesma gravação de hoje (hooks/melp/lampInputForm). */
-export const NewLampInput: React.FC = () => {
+export const NewLampInput: React.FC<{ form: LampInputForm }> = ({ form }) => {
     const { melpSummary } = useMelpContext();
     const { dedasList } = useGetDedasList();
-    const form = useLampInputForm();
     const { edit, change, inputData, isLoading, selectedWeek, selectedDay } = form;
     const goals = goalDays(useGetGoalByLevel(melpSummary?.deda_difficulty).data);
 

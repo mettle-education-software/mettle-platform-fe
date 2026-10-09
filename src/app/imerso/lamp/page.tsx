@@ -19,7 +19,6 @@ import { useDeviceSize } from 'hooks';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { DedaDifficulties, DedaDifficulty } from 'interfaces/melp';
 import { withAuthentication } from 'libs';
-import { lampOpen } from 'libs/dedaClock';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useMelpContext } from 'providers';
@@ -204,8 +203,8 @@ const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: strin
             </AppLayout>
         );
 
-    // tela atual: sem LAMP neste estado, volta ao IMERSO (nunca a página 404) — PF-15
-    if (!!melpSummary && !lampOpen(melpSummary)) {
+    // tela atual (regra de sempre: em andamento, pausada ou concluída): sem LAMP, volta ao IMERSO, nunca 404 — PF-15
+    if (!!melpSummary && !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(melpSummary.melp_status)) {
         router.replace('/imerso');
         return <LoadingLayout />;
     }

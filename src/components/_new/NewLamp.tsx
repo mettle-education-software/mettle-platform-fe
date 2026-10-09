@@ -4,6 +4,7 @@ import { css, Global } from '@emotion/react';
 import { Select } from 'antd';
 import { useGeneralWeeklyDevelopment, useGetDedasList, useGetWeeklyPerformance, useOverallProgress } from 'hooks';
 import { RECORDER_FLAG_ON } from 'hooks/melp/dedaRecording';
+import { useLampInputForm } from 'hooks/melp/lampInputForm';
 import { statisticsColors } from 'libs';
 import { lampOpen } from 'libs/dedaClock';
 import { formatImersoDate, nextMondayDate } from 'libs/helpers';
@@ -646,6 +647,8 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
     const tabs = TABS.filter((t) => t.key !== 'recordings' || (RECORDER_FLAG_ON && !!user && !user.impersonating));
     const [tab, setTab] = useState<TabKey>(tabs.some((t) => t.key === asked) ? (asked as TabKey) : 'performance');
     const { melpSummary, isMelpSummaryError, retryMelpSummary } = useMelpContext();
+    // o formulário da aba Input vive na página: trocar de aba não descarta rascunho nem falha de gravação
+    const inputForm = useLampInputForm();
 
     // resumo fora do ar ou LAMP fechada neste estado: título e uma linha (PF-21, PF-15)
     if (isMelpSummaryError || (melpSummary && !lampOpen(melpSummary)))
@@ -695,7 +698,7 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
                 }
             />
             {tab === 'performance' && <Performance />}
-            {tab === 'input' && <NewLampInput />}
+            {tab === 'input' && <NewLampInput form={inputForm} />}
             {tab === 'goal' && <LampGoals help={GOALS_HELP} />}
             {tab === 'recordings' && tabs.some((t) => t.key === 'recordings') && <LampRecordings />}
         </NewPage>

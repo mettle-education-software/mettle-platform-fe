@@ -90,6 +90,9 @@ export const Dash = styled.div`
         color: var(--r-text);
         text-decoration: none;
     }
+    .kpis.nowk {
+        grid-template-columns: max-content max-content minmax(424px, 1fr) auto;
+    }
     .kpi {
         min-width: 0;
     }
@@ -174,6 +177,9 @@ export const Dash = styled.div`
     @media (max-width: 1279px) and (min-width: 861px) {
         .kpis {
             grid-template-columns: max-content max-content max-content minmax(0, 1fr);
+        }
+        .kpis.nowk {
+            grid-template-columns: max-content max-content minmax(0, 1fr);
         }
         .kpis .cats {
             grid-column: 1 / -1;
@@ -300,7 +306,8 @@ export const Dash = styled.div`
         .now .cc.today b {
             font-size: 15.5px;
         }
-        .kpis {
+        .kpis,
+        .kpis.nowk {
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px;
             padding: 18px 0 12px;
@@ -534,9 +541,16 @@ export const Kpis: React.FC = () => {
     // DEDA Run (o KPI principal), sempre ao lado do Overall: mesma leitura da aba Input, 2 semanas e cresce se precisar
     const run = useDedaRun(2);
     return (
-        <Link href="/imerso/lamp" className="kpis" aria-label="DEDA Run and overall progress — open LAMP">
+        <Link
+            href="/imerso/lamp"
+            className={run.running ? 'kpis' : 'kpis nowk'}
+            aria-label="DEDA Run and overall progress — open LAMP"
+        >
             <span className="kpi run">
-                <RunChip current={run.current} counted={run.todayCounted} large />
+                {/* Run ainda carregando (ou com o histórico incompleto): nada de número menor que o real */}
+                {(!run.loading || run.current > 0) && (
+                    <RunChip current={run.current} counted={run.todayCounted} large />
+                )}
             </span>
             <span className="kpi">
                 <span className="v">
@@ -545,10 +559,13 @@ export const Kpis: React.FC = () => {
                 </span>
                 <span className="k">Overall</span>
             </span>
-            <span className="kpi wk">
-                <DailyGoal days={run.newestFirst} week={run.currentWeek} today={run.today} compact />
-                <span className="k">This week</span>
-            </span>
+            {/* "This week" só com a LAMP contando: pausada ou concluída não tem semana em curso (PF-07) */}
+            {run.running && (
+                <span className="kpi wk">
+                    <DailyGoal days={run.newestFirst} week={run.currentWeek} today={run.today} compact />
+                    <span className="k">This week</span>
+                </span>
+            )}
             <ul className="cats">
                 {cats.map(([name, value, color]) => (
                     <li key={name}>

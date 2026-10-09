@@ -446,6 +446,18 @@ describe('LAMP como espelho', () => {
     });
 });
 
+describe('dedaStreak com a LAMP parada', () => {
+    const d = (deda: number) => ({ week: 1, day: 1, deda, active: 0, passive: 0, ratings: [] });
+    it('o último dia de uma LAMP parada já acabou: sem DEDA, quebra a Run (sem o perdão do "hoje")', () => {
+        const days = [d(0), d(100), d(100), d(100)];
+        expect(dedaStreak(days).current).toBe(3);
+        expect(dedaStreak(days, false).current).toBe(0);
+        expect(dedaStreak([d(100), d(100)], false)).toEqual({ current: 2, toEdge: true });
+        // só "hoje" pendente na janela: a Run anterior é desconhecida (chegou ao fim sem achar a quebra)
+        expect(dedaStreak([d(0)])).toEqual({ current: 0, toEdge: true });
+    });
+});
+
 describe('calendário da LAMP', () => {
     const day = (week: number, n: number) => ({ week, day: n, deda: 80, active: 100, passive: 100, ratings: [] });
     it('põe os dias do programa nas datas, pulando a pausa', () => {
@@ -457,6 +469,17 @@ describe('calendário da LAMP', () => {
         expect([...byDate.keys()]).toEqual(['2026-10-07', '2026-10-06', '2026-10-05', '2026-10-02']);
         expect([...pausedDays].sort()).toEqual(['2026-10-03', '2026-10-04']);
         expect(start).toBe('2026-10-02');
+    });
+    it('LAMP parada: ancora no último dia dela, não em hoje; pausa em aberto vai até hoje', () => {
+        // pausado: dias 1–7 de 21 a 27/set (o domingo 27 é o último dia ativo); hoje 9/out
+        const nf = [7, 6, 5, 4, 3, 2, 1].map((d) => day(1, d));
+        const { byDate, pausedDays, start } = calendarDays(nf, '2026-09-27', [{ from: '2026-09-28' }], '2026-10-09');
+        expect([...byDate.keys()][0]).toBe('2026-09-27');
+        expect(start).toBe('2026-09-21');
+        expect(pausedDays.has('2026-09-27')).toBe(false);
+        expect(pausedDays.has('2026-09-28')).toBe(true);
+        expect(pausedDays.has('2026-10-09')).toBe(true);
+        expect(pausedDays.has('2026-10-10')).toBe(false);
     });
     it('monta o mês de segunda a domingo', () => {
         const g = monthGrid(2026, 9); // outubro de 2026 começa numa quinta

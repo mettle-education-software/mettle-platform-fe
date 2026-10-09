@@ -437,8 +437,11 @@ export type LampDay = {
     /** minutos registrados no dia (soma das atividades) */
     activeMin?: number;
     passiveMin?: number;
-    /** data do dia no calendário (só quando o programa nunca foi pausado: aí semana/dia batem com o calendário) */
-    date?: Date;
+    /** relógio novo: a data (Brasília) e o DEDA da linha, vindos do servidor */
+    iso?: string;
+    dedaId?: string | null;
+    /** o pedido do dia falhou e não há linha do programa: desconhecido (nunca "nada feito") */
+    unknown?: boolean;
 };
 
 /** Um dia na DEDA Run: contou (≥ 80%), quebrou (abaixo ou sem DEDA), hoje em andamento, ou ainda por vir. */
@@ -505,13 +508,15 @@ const qualifies = (d?: LampDay) => !!d && countsForRun(d.deda);
 
 /**
  * Sequência atual de DEDA bem feito, do dia mais recente para trás (`newestFirst`, o primeiro é hoje). Hoje ainda
- * sem DEDA não quebra a sequência. `toEdge`: a sequência chegou ao dia mais antigo carregado (pode ser maior).
+ * sem DEDA não quebra a sequência — só com a LAMP contando (`todayPending`): parada, o último dia já acabou.
+ * `toEdge`: a sequência chegou ao dia mais antigo carregado (pode ser maior).
  */
-export const dedaStreak = (newestFirst: LampDay[]) => {
-    let i = qualifies(newestFirst[0]) ? 0 : 1;
+export const dedaStreak = (newestFirst: LampDay[], todayPending = true) => {
+    let i = qualifies(newestFirst[0]) || !todayPending ? 0 : 1;
     let n = 0;
     for (; i < newestFirst.length && qualifies(newestFirst[i]); i++) n++;
-    return { current: n, toEdge: n > 0 && i >= newestFirst.length };
+    // chegou ao fim do que foi lido sem achar a quebra (mesmo só com "hoje" pendente): pode ser maior
+    return { current: n, toEdge: i >= newestFirst.length };
 };
 
 /** Maior sequência dentro dos dias carregados. */
@@ -594,21 +599,27 @@ export const weeklyQuality = (days: LampDay[]) => {
 
 // ---------- calendário da LAMP ----------
 
-const isoPlus = (iso: string, n: number) => {
+export const isoPlus = (iso: string, n: number) => {
     const t = new Date(`${iso}T12:00:00Z`);
     t.setUTCDate(t.getUTCDate() + n);
     return t.toISOString().slice(0, 10);
 };
 
 /**
- * Dias do programa no calendário: do mais recente (hoje) para trás, um dia do programa por dia de calendário, pulando
- * os dias em pausa (a pausa congela o programa). Devolve a data de cada dia, os dias pausados e o primeiro dia.
+ * Dias do programa no calendário (legado, sem a data das linhas): do último dia da LAMP (hoje, com ela contando; o
+ * último dia ativo, se parada) para trás, um dia do programa por dia de calendário, pulando os dias em pausa (a pausa
+ * congela o programa). Devolve a data de cada dia, os dias pausados (até hoje) e o primeiro dia.
  */
-export const calendarDays = (newestFirst: LampDay[], today: string, paused: { from: string; to?: string }[] = []) => {
+export const calendarDays = (
+    newestFirst: LampDay[],
+    last: string,
+    paused: { from: string; to?: string }[] = [],
+    today = last,
+) => {
     const isPaused = (iso: string) => paused.some((p) => iso >= p.from && (!p.to || iso < p.to));
     const byDate = new Map<string, LampDay>();
     const pausedDays = new Set<string>();
-    let d = today;
+    let d = last;
     for (const day of newestFirst) {
         while (isPaused(d)) {
             pausedDays.add(d);

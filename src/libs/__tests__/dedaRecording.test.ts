@@ -22,6 +22,7 @@ import {
     RecorderAction,
     recordingsOrDisabled,
     spokenDuration,
+    pausedIntervals,
 } from '../dedaRecording';
 import { flushQueue, QueuedRecording, QueueStore, queueKey } from '../recordingQueue';
 
@@ -415,5 +416,17 @@ describe('tentativas de hoje (3 por dia)', () => {
         ]);
         expect(attemptsLabel(-1)).toBe('No attempts left today');
         expect(attemptsLabel(50)).toBe('50 attempts left today');
+    });
+});
+
+describe('pausedIntervals', () => {
+    it('a data de pausa é o último dia ativo (domingo inclusive): a pausa começa no dia seguinte', () => {
+        expect(pausedIntervals(['2026-09-27T03:00:00.000Z'], ['2026-09-21T03:00:00.000Z'])).toEqual([
+            { from: '2026-09-28', to: undefined },
+        ]);
+        // pausa antiga (hora do clique num domingo) e volta na segunda: [segunda seguinte ao domingo, volta)
+        expect(
+            pausedIntervals(['2025-02-02T21:22:12.054Z'], ['2024-11-11T03:00:00.000Z', '2025-03-10T03:00:00.000Z']),
+        ).toEqual([{ from: '2025-02-03', to: '2025-03-10' }]);
     });
 });

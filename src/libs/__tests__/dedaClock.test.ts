@@ -1,6 +1,7 @@
 import { DedaWeek, MelpSummaryResponse } from '../../interfaces/melp';
 import {
     dedaLampWeek,
+    legacyLampLastDate,
     isCalendarClock,
     lampRunning,
     lampLastDay,
@@ -319,5 +320,47 @@ describe('lampSaveProblem (recusas da gravação da LAMP)', () => {
         expect(lampSaveProblem(http(500)).retry).toBe(true);
         expect(lampSaveProblem(new Error('Network Error')).retry).toBe(true);
         expect(lampSaveProblem(undefined).retry).toBe(true);
+    });
+});
+
+describe('legacyLampLastDate (data do último dia da LAMP no legado)', () => {
+    const z = (iso: string) => `${iso}T03:00:00.000Z`; // segunda/domingo 00h em Brasília, como o servidor grava
+
+    it('pausado: o domingo que fechou o trecho é o dia 7 (pausa ≠ primeiro dia parado)', () => {
+        const s = legacy({
+            melp_status: 'DEDA_PAUSED',
+            current_deda_day: 7,
+            current_deda_week: 1,
+            deda_start_dates: [z('2026-09-21')],
+            deda_pause_dates: [z('2026-09-27')],
+        });
+        expect(legacyLampLastDate(s)).toBe('2026-09-27');
+    });
+
+    it('voltou da pausa: conta o trecho fechado e continua na segunda da volta', () => {
+        const s = legacy({
+            current_deda_day: 23,
+            current_deda_week: 4,
+            deda_start_dates: [z('2026-08-03'), z('2026-09-07')],
+            deda_pause_dates: ['2026-08-16T21:22:12.054Z'], // pausa antiga: hora do clique num domingo
+        });
+        expect(legacyLampLastDate(s)).toBe('2026-09-15'); // 14 dias até 16/ago, dia 15 = 7/set (segunda), dia 23 = 15/set
+    });
+
+    it('formado (729 dias, sem pausa): o dia 729, não hoje', () => {
+        const s = legacy({
+            melp_status: 'DEDA_FINISHED',
+            current_deda_day: 729,
+            current_deda_week: 105,
+            deda_start_dates: [z('2024-08-05')],
+            deda_pause_dates: [],
+        });
+        expect(legacyLampLastDate(s)).toBe('2026-08-03');
+    });
+
+    it('sem dia ainda ou sem start: nada', () => {
+        expect(legacyLampLastDate(legacy({ current_deda_day: 0, current_deda_week: 0 }))).toBeNull();
+        expect(legacyLampLastDate(legacy({ deda_start_dates: [], deda_pause_dates: [] }))).toBeNull();
+        expect(legacyLampLastDate(undefined)).toBeNull();
     });
 });

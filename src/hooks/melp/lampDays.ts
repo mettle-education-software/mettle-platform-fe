@@ -1,14 +1,14 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { InputDataResponse } from 'interfaces';
-import { getDayToday } from 'libs';
+import { lampLastDay, lampRunning } from 'libs/dedaClock';
 import { bestStreak, countsForRun, dedaStreak, LampDay, runBeforeToday } from 'libs/newDesign';
 import { useAppContext, useMelpContext } from 'providers';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { lampService } from 'services';
 
 type Day = InputDataResponse['data'];
 
-/** Uma linha de `GET /performance/<uid>/weekly/days`: o programa inteiro numa leitura, dias vazios omitidos. */
+/** Uma linha de `GET /performance/<uid>/weekly/days`: o programa inteiro numa leitura. */
 export interface ProgramDay {
     week: number;
     day: number;
@@ -19,6 +19,9 @@ export interface ProgramDay {
     passiveMin: number;
     /** pred_place, steps, state_mind, state_being, focus */
     ratings: number[];
+    /** relógio novo: a data (Brasília) e o DEDA da linha; o servidor manda também os dias em branco */
+    date?: string | null;
+    dedaId?: string | null;
 }
 
 const ACTIVE_KEYS = ['book', 'deda_notes', 'mooc', 'others', 'review'];
@@ -37,7 +40,7 @@ const sum = (row: unknown, keys: string[]) =>
     keys.reduce((t, k) => t + (Number((row as Record<string, unknown> | undefined)?.[k]) || 0), 0);
 
 /** A leitura por dia (aba Input) no mesmo formato da leitura do programa. */
-const fromInput = (data: Day | undefined): Omit<ProgramDay, 'week' | 'day'> => {
+const fromInput = (data: Day | undefined): Omit<LampDay, 'week' | 'day'> => {
     const deda = data?.dedaInput;
     return {
         deda: Number(deda?.deda_concluded_score) || 0,
@@ -52,6 +55,7 @@ const fromInput = (data: Day | undefined): Omit<ProgramDay, 'week' | 'day'> => {
             deda?.deda_state_being,
             deda?.deda_focus,
         ].map((v) => Number(v) || 0),
+        iso: deda?.date,
     };
 };
 const EMPTY = fromInput(undefined);
@@ -75,27 +79,29 @@ const writeStored = (key: string, data: Day) => {
     }
 };
 
-/** Semanas pedidas por vez: o histórico chega em lotes de 4 semanas (28 consultas), um lote depois do outro. */
+/** Teto da reserva dia a dia: 4 semanas (28 consultas), nunca mais (frente 4b, item 6). */
 const BATCH = 4;
 
 /**
- * Dias da LAMP (plataforma nova) para a DEDA Run, Best e o mapa/calendário.
- * - Histórico (semanas anteriores): uma leitura do programa inteiro, `GET /performance/<uid>/weekly/days`
- *   (react-query `['lamp-days', uid]`).
+ * Dias da LAMP (plataforma nova) para a DEDA Run, Best, a semana e o calendário.
+ * - "Hoje" na LAMP é o último dia dela (libs/dedaClock.lampLastDay): o de hoje com ela contando; em pausa, fim ou
+ *   espera, o último dia ativo (antes, o dia da semana de hoje caía numa semana congelada — PF-07).
+ * - Histórico: uma leitura do programa inteiro, `GET /performance/<uid>/weekly/days` (react-query `['lamp-days', uid]`);
+ *   no relógio novo cada linha traz a data e o DEDA.
  * - Semana atual: a MESMA leitura da aba Input (`GET /input/v2/<uid>/<semana>/<dia>`, mesma chave), para que uma
  *   gravação no Input apareça na hora.
- * - Se a leitura do programa falhar: volta ao modo antigo, um dia por consulta, `minWeeks` semanas em lotes; enquanto a
- *   Run atual chega ao dia mais antigo carregado, puxa mais. Dias passados ficam na sessão (sessionStorage) por 30 min.
+ * - Reserva dia a dia só quando o servidor não tem a leitura do programa (404/501), e só as últimas semanas pedidas
+ *   (no máximo 4). Em 5xx, tempo esgotado ou rede, não: o leque de pedidos realimentaria a sobrecarga — o histórico
+ *   fica como falha (`historyFailed`, "Try again").
  */
 export const useLampDays = (minWeeks: number) => {
     const { user } = useAppContext();
     const { melpSummary } = useMelpContext();
     const uid = user?.uid;
-    const currentWeek = melpSummary?.current_deda_week ?? 0;
-    const today = Number(getDayToday().replace('day', ''));
-    const [target, setTarget] = useState(minWeeks);
-    useEffect(() => setTarget((t) => Math.max(t, minWeeks)), [minWeeks]);
-    const [loaded, setLoaded] = useState(Math.min(BATCH, minWeeks));
+    const last = lampLastDay(melpSummary);
+    const running = lampRunning(melpSummary);
+    const currentWeek = last?.week ?? 0;
+    const today = last?.day ?? 0;
     const program = useQuery({
         queryKey: ['lamp-days', uid],
         queryFn: () =>
@@ -106,14 +112,21 @@ export const useLampDays = (minWeeks: number) => {
         staleTime: 5 * 60_000,
         retry: 1,
     });
-    const perDay = program.isError; // reserva: o modo antigo, um dia por consulta
-    const weeks = perDay ? Math.min(loaded, target, currentWeek) : currentWeek;
+    const status = (program.error as { response?: { status?: number } } | null)?.response?.status;
+    const perDay = program.isError && (status === 404 || status === 501);
+    const historyFailed = program.isError && !perDay;
+    // sem histórico (falha que não é 404) só a semana atual existe: nada de dias zerados inventados para trás
+    const weeks = perDay
+        ? Math.min(BATCH, Math.max(1, minWeeks), currentWeek)
+        : historyFailed
+          ? Math.min(1, currentWeek)
+          : currentWeek;
 
     const keys = useMemo(() => {
         const out: { week: number; day: number }[] = [];
         for (let w = currentWeek; w >= Math.max(1, currentWeek - weeks + 1); w--)
             for (let d = w === currentWeek ? today : 7; d >= 1; d--) out.push({ week: w, day: d });
-        return out; // do mais recente (hoje) para trás
+        return out; // do mais recente (o último dia da LAMP) para trás
     }, [currentWeek, today, weeks]);
 
     // com a leitura do programa, só a semana atual vai dia a dia
@@ -130,7 +143,7 @@ export const useLampDays = (minWeeks: number) => {
     );
     const results = useQueries({
         queries: fetchKeys.map(({ week, day }, i) => {
-            const isToday = week === currentWeek && day === today;
+            const isToday = running && week === currentWeek && day === today;
             return {
                 queryKey: ['get-input-data', uid, `week${week}`, `day${day}`],
                 queryFn: () =>
@@ -148,55 +161,59 @@ export const useLampDays = (minWeeks: number) => {
     });
 
     const loading = results.some((r) => r.isLoading) || program.isLoading;
-    // datas: o dia da LAMP é o dia da semana (segunda = 1); sem pausa no programa, a semana N é N semanas atrás
-    const noPause = !melpSummary?.deda_pause_dates?.length;
-    const todayDate = new Date();
-    todayDate.setHours(12, 0, 0, 0);
     const newestFirst: LampDay[] = keys.map(({ week, day }, i) => {
-        const date = new Date(todayDate);
-        date.setDate(todayDate.getDate() - ((currentWeek - week) * 7 + (today - day)));
-        const fetched = perDay || week === currentWeek;
-        const values = fetched
-            ? fromInput(results[i]?.data) // a semana atual abre `keys`: mesmos índices
-            : (program.data?.get(`${week}:${day}`) ?? EMPTY);
-        return { ...values, week, day, date: noPause ? date : undefined };
+        const row = program.data?.get(`${week}:${day}`);
+        const fromRow = { ...(row ?? EMPTY), week, day, iso: row?.date ?? undefined, dedaId: row?.dedaId };
+        // semana atual dia a dia (mesmos índices de `keys`); sem a resposta do dia, vale a linha do programa
+        const asked = perDay || week === currentWeek;
+        const daily = asked && results[i]?.data;
+        if (daily) return { ...fromRow, ...fromInput(daily), iso: daily.dedaInput?.date ?? fromRow.iso };
+        return asked && results[i]?.isError && !row ? { ...fromRow, unknown: true } : fromRow;
     });
 
-    const streak = dedaStreak(newestFirst);
-    const oldest = keys[keys.length - 1]?.week ?? 1;
-    // próximo lote quando o anterior terminou
-    useEffect(() => {
-        if (perDay && !loading && loaded < Math.min(target, currentWeek)) setLoaded((l) => l + BATCH);
-    }, [perDay, loading, loaded, target, currentWeek]);
-    // a Run atual chegou ao dia mais antigo: precisa de mais histórico
-    useEffect(() => {
-        if (perDay && !loading && streak.toEdge && oldest > 1 && weeks >= target) setTarget((t) => t + 2 * BATCH);
-    }, [perDay, loading, streak.toEdge, oldest, weeks, target]);
-
+    const streak = dedaStreak(newestFirst, running);
+    // um pedido de dia falhou: aquele dia não é "nada feito" nem "pausa" — fica desconhecido (Try again)
+    const dailyFailed = results.some((r) => r.isError && !r.data);
+    // a janela lida não chega à semana 1 (reserva com teto, ou histórico em falha): a Run pode ser maior que a vista
+    const truncated = (perDay || historyFailed) && currentWeek > weeks;
     return {
         newestFirst,
-        loading: loading || weeks < Math.min(target, currentWeek),
+        loading,
         streak,
-        weeksLoaded: weeks,
         currentWeek,
         today,
-        requests: fetchKeys.length + (perDay ? 0 : 1),
-        more: (n: number) => setTarget((t) => Math.min(currentWeek, Math.max(t, weeks) + n)),
+        /** a LAMP conta hoje (sem isso não há "hoje" na semana nem no calendário) */
+        running,
+        /** a leitura do programa falhou (não 404) ou um dia não veio: o calendário pede "Try again" */
+        historyFailed: historyFailed || dailyFailed,
+        /** um dia da janela não veio (desconhecido, não "nada feito") */
+        dailyFailed,
+        /** os dias lidos não chegam ao começo do programa */
+        truncated,
+        retryHistory: () => {
+            if (program.isError) void program.refetch();
+            for (const r of results) if (r.isError) void r.refetch();
+        },
     };
 };
 
 /**
  * DEDA Run (o KPI principal do programa): dias seguidos com o DEDA a 80% ou mais. `beforeToday` = a Run até ontem;
- * `todayCounted` = hoje já contou. `best` vale para as semanas carregadas (`weeksLoaded`).
+ * `todayCounted` = hoje já contou. `best` vale para as semanas carregadas.
  */
 export const useDedaRun = (minWeeks = 2) => {
     const days = useLampDays(minWeeks);
     const today = days.newestFirst[0];
+    // a Run chega ao fim do que foi lido e o lido não chega ao começo do programa, ou um dia não veio: o número
+    // sairia menor que o real — fica "carregando" ("—") até o histórico voltar
+    const partial = (days.truncated && days.streak.toEdge) || days.dailyFailed;
     return {
         ...days,
-        current: days.streak.current,
-        beforeToday: runBeforeToday(days.newestFirst),
-        todayCounted: !!today && countsForRun(today.deda),
+        loading: days.loading || partial,
+        current: partial ? 0 : days.streak.current,
+        beforeToday: partial ? 0 : runBeforeToday(days.newestFirst),
+        // "hoje contou" só existe com a LAMP contando
+        todayCounted: days.running && !!today && countsForRun(today.deda),
         best: bestStreak([...days.newestFirst].reverse()),
     };
 };

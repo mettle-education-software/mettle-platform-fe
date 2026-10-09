@@ -215,19 +215,26 @@ const save = (d: DayDraft) =>
         return sent;
     });
 
+/** Um pedido da aba Review do DEDA: o destino (conta, semana, dia, linha) fica preso ao pedido. */
+export interface ReviewJob {
+    uid: string;
+    week: string;
+    day: string;
+    /** a linha que a aba Review carregou (relógio novo); outra linha no servidor = dia trocado, recusa */
+    expectedRowId?: string;
+    statuses: Partial<Pick<LampInputEdit, 'reviewStatus1' | 'reviewStatus2' | 'reviewStatus3'>>;
+}
+
 /**
  * Marcar revisões (aba Review do DEDA), na vez do dia (withDayLock, a mesma fila da aba Input e da conclusão): lê o dia
- * agora e manda só os estados das revisões sobre o que o servidor tem — nunca reenvia valores velhos da LAMP.
+ * agora, confere que é a mesma linha e manda só as revisões alteradas sobre o que o servidor tem — nunca reenvia
+ * valores velhos da LAMP nem marca a linha que substituiu a carregada.
  */
-export const saveReviewStatuses = (
-    uid: string,
-    week: string,
-    day: string,
-    statuses: Pick<LampInputEdit, 'reviewStatus1' | 'reviewStatus2' | 'reviewStatus3'>,
-) =>
+export const saveReviewStatuses = ({ uid, week, day, expectedRowId, statuses }: ReviewJob) =>
     withDayLock(`${uid}:${week}:${day}`, async () => {
         const path = `/input/v2/${uid}/${week}/${day}`;
         const fresh = await lampService.get<InputDataResponse>(path).then(({ data }) => data.data);
+        if (rowOf(fresh) !== (expectedRowId ?? NO_ROW)) throw lampRefusal('LAMP_DAY_REPLACED');
         await lampService.patch(path, { ...toDTO({ ...fromInput(fresh), ...statuses }, fresh) });
     });
 

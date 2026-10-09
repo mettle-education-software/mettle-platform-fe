@@ -15,6 +15,7 @@ import { handleLogout } from 'libs';
 import { CHAT_PATH } from 'libs/chat';
 import { hpecLessonPath } from 'libs/cleanUrls';
 import { COMUNIDADE_PATH } from 'libs/comunidade';
+import { lampOpen } from 'libs/dedaClock';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { usePathname, useRouter } from 'next/navigation';
 import { useMelpContext, useProductAccess } from 'providers';
@@ -74,9 +75,13 @@ export const useAppMenu = (onNavigate: () => void = () => {}) => {
                           {
                               key: 'melpLamp',
                               label: 'LAMP',
-                              disabled: !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(
-                                  melpSummary?.melp_status,
-                              ),
+                              // relógio novo na plataforma nova: aberta em todo estado depois do start (§4.3); a tela
+                              // atual mantém a regra de sempre (em andamento, pausada, concluída)
+                              disabled: newDesign
+                                  ? !lampOpen(melpSummary)
+                                  : !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(
+                                        melpSummary?.melp_status,
+                                    ),
                               onClick: go(() => router.push('/imerso/lamp')),
                           },
                       ],

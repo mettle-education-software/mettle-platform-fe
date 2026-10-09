@@ -195,16 +195,19 @@ const LampPage: React.FC = ({ searchParams }: { searchParams?: { lampTab?: strin
 
     if (isMelpSummaryLoading) return <LoadingLayout />;
 
-    // TODO - move this logic to server side rendering
-    if (!!melpSummary && !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(melpSummary?.melp_status))
-        router.push('/404');
-
+    // plataforma nova: a própria LAMP mostra o estado calmo (antes do início, aguardando, suspenso, resumo fora do ar)
     if (newDesign)
         return (
             <AppLayout withMelpSummary>
                 <NewLamp initialTab={searchParams?.lampTab} />
             </AppLayout>
         );
+
+    // tela atual (regra de sempre: em andamento, pausada ou concluída): sem LAMP, volta ao IMERSO, nunca 404 — PF-15
+    if (!!melpSummary && !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(melpSummary.melp_status)) {
+        router.replace('/imerso');
+        return <LoadingLayout />;
+    }
 
     const tabBarExtra = new Map([
         ['performance', undefined],

@@ -3,6 +3,7 @@
 import { useDedaReviews } from 'components/_melp/_deda/DedaReview/DedaReview';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaWatchQueryResponse } from 'interfaces';
+import { lampSaveProblem } from 'libs/dedaClock';
 import { Check } from 'lucide-react';
 import React from 'react';
 import { InfoTip } from './ReaderInfo';
@@ -33,8 +34,7 @@ const ReviewVideo = ({ dedaId, title }: { dedaId: string | null; title: string }
  * página atual (useDedaReviews); muda só a apresentação.
  */
 export const ReaderReview = ({ dedaId }: { dedaId: string }) => {
-    const { hasReview, inputData, isInputLoading, editReview, setEditReview, setSaveKey, saveInput } =
-        useDedaReviews(dedaId);
+    const { hasReview, inputData, isInputLoading, editReview, markReview, saveInput } = useDedaReviews(dedaId);
 
     const head = (
         <div className="head">
@@ -61,14 +61,16 @@ export const ReaderReview = ({ dedaId }: { dedaId: string }) => {
             </div>
         );
 
-    const mark = (key: ReviewKey, status: boolean) => {
-        setEditReview((previousEdit) => ({ ...previousEdit, [key]: status }));
-        setSaveKey(`reviewInput.${key}.status=${status}-${new Date().getTime()}`);
-    };
+    const mark = (key: ReviewKey, status: boolean) => markReview(key, status);
 
     return (
         <div className="review">
             {head}
+            {saveInput.isError && (
+                <p className="hint" role="alert">
+                    {lampSaveProblem(saveInput.error).text}
+                </p>
+            )}
             <ol className="cards">
                 {(['review1', 'review2', 'review3'] as const).map((key, i) => {
                     const review = inputData.reviewInput?.[key];

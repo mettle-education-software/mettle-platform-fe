@@ -1,16 +1,17 @@
 'use client';
 
 import styled from '@emotion/styled';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Col, Flex, Row, Skeleton, Typography } from 'antd';
 import { InputsWrapper, MaxWidthContainer } from 'components';
 import { ReviewThumbnail } from 'components/_melp/ReviewThumbnail/ReviewThumbnail';
-import { useGetInputData, useSaveInput } from 'hooks';
-import { InputDataDTO } from 'interfaces';
+import { useGetInputData } from 'hooks';
+import { saveReviewStatuses } from 'hooks/melp/lampInputForm';
 import { getDayToday, SMALL_VIEWPORT } from 'libs';
-import { dedaLampWeek } from 'libs/dedaClock';
+import { dedaLampWeek, lampSaveError, lampSaveProblem } from 'libs/dedaClock';
 import { hasReviews } from 'libs/dedaReader';
-import { useMelpContext } from 'providers';
-import React, { useEffect, useState } from 'react';
+import { useAppContext, useMelpContext } from 'providers';
+import React, { useEffect, useRef, useState } from 'react';
 
 const { Title, Text } = Typography;
 
@@ -41,6 +42,8 @@ const NoReviewContainer = styled.div`
     height: 500px;
 `;
 
+type ReviewKey = 'review1' | 'review2' | 'review3';
+
 interface EditReviews {
     review1: boolean;
     review2?: boolean;
@@ -61,6 +64,10 @@ export const useDedaReviews = (dedaId: string) => {
     const [editReview, setEditReview] = useState<EditReviews>({
         review1: inputData?.reviewInput?.review1?.status as boolean,
     });
+    // revisões que o aluno mudou e o servidor ainda não confirmou: só elas vão no pedido; as demais seguem o servidor
+    const changed = useRef(new Set<ReviewKey>());
+    const editRef = useRef(editReview);
+    editRef.current = editReview;
 
     useEffect(() => {
         if (inputData?.reviewInput) {
@@ -75,74 +82,61 @@ export const useDedaReviews = (dedaId: string) => {
             if (review2) reviews.review2 = review2;
             if (review3) reviews.review3 = review3;
 
-            setEditReview(reviews);
+            // uma releitura não desfaz a marca que ainda vai ser gravada
+            setEditReview((previous) => ({
+                ...reviews,
+                ...Object.fromEntries([...changed.current].map((key) => [key, previous[key]])),
+            }));
         }
     }, [inputData?.reviewInput]);
 
     const [saveKey, setSaveKey] = useState<string>();
-    const saveInput = useSaveInput();
+    const { user } = useAppContext();
+    const queryClient = useQueryClient();
+    // na fila do dia (a mesma da aba Input e da conclusão do DEDA): lê o dia na hora e manda só as revisões alteradas;
+    // o destino vai no próprio pedido (um pedido que espera a rede não muda de dia)
+    const saveInput = useMutation({
+        mutationFn: saveReviewStatuses,
+        onSuccess: (_data, job) =>
+            Promise.all(
+                [
+                    ['get-input-data', job.uid, job.week, job.day],
+                    ['get-weekly-performance'],
+                    ['get-general-weekly-development'],
+                    ['get-overall-progress'],
+                ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+            ),
+        onError: (error, job) => {
+            // dia trocado no servidor: a marca não vale para a linha nova — relê o dia
+            if (lampSaveError(error) !== 'LAMP_DAY_REPLACED') return;
+            changed.current.clear();
+            queryClient.invalidateQueries({ queryKey: ['get-input-data', job.uid, job.week, job.day] });
+        },
+    });
 
     const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
     const saveReviewCall = () => {
-        if (!inputData) return;
-
-        const inputDTO: InputDataDTO = {
-            // relógio novo: a linha do dia que o formulário carregou (o servidor recusa se ela foi substituída)
-            expectedRowId: inputData.dedaInput?.rowId,
-            inputData: {
-                dedaInputData: {
-                    dedaTime: inputData.dedaInput.deda_time,
-                    readingTime: inputData.dedaInput.reading_time,
-                    dedaPredPlace: inputData.dedaInput.deda_pred_place,
-                    dedaSteps: inputData.dedaInput.deda_steps,
-                    dedaStateMind: inputData.dedaInput.deda_state_mind,
-                    dedaStateBeing: inputData.dedaInput.deda_state_being,
-                    dedaFocus: inputData.dedaInput.deda_focus,
-                },
-                activeInputData: {
-                    book: inputData.activeInput.book,
-                    dedaNotes: inputData.activeInput.deda_notes,
-                    mooc: inputData.activeInput.mooc,
-                    others: inputData.activeInput.others,
-                    review: inputData.activeInput.review,
-                },
-                passiveInputData: {
-                    audiobook: inputData.passiveInput.audiobook,
-                    conversation: inputData.passiveInput.conversation,
-                    movieDoc: inputData.passiveInput.movie_doc,
-                    newsShows: inputData.passiveInput.news_shows,
-                    others: inputData.passiveInput.others,
-                    podcast: inputData.passiveInput.podcast,
-                    series: inputData.passiveInput.series,
-                    ted: inputData.passiveInput.ted,
-                    youtube: inputData.passiveInput.youtube,
-                },
-                reviewInputData: {
-                    review1: {
-                        status: editReview.review1,
-                    },
-                },
-            },
-        };
-
-        if (inputData?.reviewInput?.review2 && inputDTO.inputData.reviewInputData)
-            inputDTO.inputData.reviewInputData.review2 = {
-                status: editReview.review2 === undefined ? false : editReview.review2,
-            };
-        if (inputData?.reviewInput?.review3 && inputDTO.inputData.reviewInputData)
-            inputDTO.inputData.reviewInputData.review3 = {
-                status: editReview.review3 === undefined ? false : editReview.review3,
-            };
-
+        if (!inputData || !user?.uid || !changed.current.size) return;
+        const sent = Object.fromEntries([...changed.current].map((key) => [key, !!editRef.current[key]])) as Record<
+            ReviewKey,
+            boolean
+        >;
         saveInput.mutate(
             {
+                uid: user.uid,
                 week: selectedWeek,
                 day: selectedDay,
-                inputDTO,
+                expectedRowId: inputData.dedaInput?.rowId,
+                statuses: Object.fromEntries(
+                    Object.entries(sent).map(([key, value]) => [`reviewStatus${key.slice(6)}`, value]),
+                ),
             },
             {
                 onSuccess: () => {
+                    // confirmadas (e não mudadas de novo durante o pedido) voltam a seguir o servidor
+                    for (const [key, value] of Object.entries(sent) as [ReviewKey, boolean][])
+                        if (!!editRef.current[key] === value) changed.current.delete(key);
                     setSaveKey(undefined);
                 },
             },
@@ -165,12 +159,18 @@ export const useDedaReviews = (dedaId: string) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [saveKey]);
 
-    return { hasReview, inputData, isInputLoading, editReview, setEditReview, setSaveKey, saveInput };
+    /** Marca/desmarca uma revisão e agenda a gravação. */
+    const markReview = (key: ReviewKey, status: boolean) => {
+        changed.current.add(key);
+        setEditReview((previous) => ({ ...previous, [key]: status }));
+        setSaveKey(`reviewInput.${key}.status=${status}-${Date.now()}`);
+    };
+
+    return { hasReview, inputData, isInputLoading, editReview, markReview, saveInput };
 };
 
 export const DedaReview = ({ dedaId }: { dedaId: string }) => {
-    const { hasReview, inputData, isInputLoading, editReview, setEditReview, setSaveKey, saveInput } =
-        useDedaReviews(dedaId);
+    const { hasReview, inputData, isInputLoading, editReview, markReview, saveInput } = useDedaReviews(dedaId);
 
     if (hasReview === false)
         return (
@@ -214,6 +214,11 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                         </Title>
                         <Text className="color-white">(Mark each review as completed when done).</Text>
                     </div>
+                    {saveInput.isError && (
+                        <Text type="danger" role="alert">
+                            {lampSaveProblem(saveInput.error).text}
+                        </Text>
+                    )}
                     <InputsWrapper>
                         <Row gutter={[24, 24]}>
                             <Col xs={24} md={8}>
@@ -224,13 +229,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                                     title={inputData.reviewInput?.review1.name as string}
                                     week={inputData.reviewInput?.review1.weekNumber as string}
                                     status={editReview.review1}
-                                    onMarkCompleted={(status) => {
-                                        setEditReview((previousEdit) => ({
-                                            ...previousEdit,
-                                            review1: status,
-                                        }));
-                                        setSaveKey(`reviewInput.review1.status=${status}-${new Date().getTime()}`);
-                                    }}
+                                    onMarkCompleted={(status) => markReview('review1', status)}
                                 />
                             </Col>
                             {inputData.reviewInput?.review2 && (
@@ -242,13 +241,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                                         title={inputData.reviewInput.review2.name}
                                         week={inputData.reviewInput.review2.weekNumber}
                                         status={editReview.review2 as boolean}
-                                        onMarkCompleted={(status) => {
-                                            setEditReview((previousEdit) => ({
-                                                ...previousEdit,
-                                                review2: status,
-                                            }));
-                                            setSaveKey(`reviewInput.review2.status=${status}-${new Date().getTime()}`);
-                                        }}
+                                        onMarkCompleted={(status) => markReview('review2', status)}
                                     />
                                 </Col>
                             )}
@@ -261,13 +254,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                                         title={inputData.reviewInput.review3.name}
                                         week={inputData.reviewInput.review3.weekNumber}
                                         status={editReview.review3 as boolean}
-                                        onMarkCompleted={(status) => {
-                                            setEditReview((previousEdit) => ({
-                                                ...previousEdit,
-                                                review3: status,
-                                            }));
-                                            setSaveKey(`reviewInput.review3.status=${status}-${new Date().getTime()}`);
-                                        }}
+                                        onMarkCompleted={(status) => markReview('review3', status)}
                                     />
                                 </Col>
                             )}

@@ -125,6 +125,8 @@ export const InputTab: React.FC<InputTabProps> = (props) => {
         if (Object.keys(inputDataEdit).length === 0) return;
 
         const inputDTO: InputDataDTO = {
+            // relógio novo: a linha do dia que o formulário carregou (o servidor recusa se ela foi substituída)
+            expectedRowId: inputData?.dedaInput?.rowId,
             inputData: {
                 dedaInputData: {
                     dedaTime: inputDataEdit.dedaTime,

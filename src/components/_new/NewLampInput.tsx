@@ -3,10 +3,9 @@
 import { css, Global } from '@emotion/react';
 import { Rate, Select, Tooltip } from 'antd';
 import { useGetDedasList, useGetGoalByLevel } from 'hooks';
-import { LampInputEdit, useLampInputForm } from 'hooks/melp/lampInputForm';
+import { LampInputEdit, LampInputForm } from 'hooks/melp/lampInputForm';
 import { useDeda } from 'hooks/queries/dedaQueries';
 import { DedaWatchQueryResponse } from 'interfaces';
-import { getDayToday } from 'libs';
 import {
     addMinutes,
     clampWeekDay,
@@ -73,6 +72,18 @@ const styles = css`
     .linput .nav .ib:disabled {
         opacity: 0.35;
         cursor: default;
+    }
+    .linput fieldset.ro {
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+    .linput .save.err {
+        color: var(--r-danger);
+    }
+    .linput .save .lnk {
+        margin-left: 8px;
     }
     .linput .pick {
         display: flex;
@@ -441,17 +452,24 @@ const GoalTile: React.FC<{ name: string; done: number; goal: number }> = ({ name
     );
 };
 
+/** Rótulo do dia com a LAMP parada: o formulário fica só leitura (lançar só com a LAMP contando). */
+const FROZEN: Record<string, string> = {
+    DEDA_PAUSED: 'LAMP paused',
+    DEDA_FINISHED: 'LAMP finished',
+    DEDA_STARTED_NOT_BEGUN: 'LAMP starts Monday',
+    inconsistent: 'Under maintenance',
+};
+
 /** Aba Input: o dia contra a meta, com o mesmo estado e a mesma gravação de hoje (hooks/melp/lampInputForm). */
-export const NewLampInput: React.FC = () => {
+export const NewLampInput: React.FC<{ form: LampInputForm }> = ({ form }) => {
     const { melpSummary } = useMelpContext();
     const { dedasList } = useGetDedasList();
-    const form = useLampInputForm();
     const { edit, change, inputData, isLoading, selectedWeek, selectedDay } = form;
     const goals = goalDays(useGetGoalByLevel(melpSummary?.deda_difficulty).data);
 
-    // mesma regra do seletor atual: na semana em curso só até hoje; o dia escolhido cai para hoje se preciso
-    const todayKey = getDayToday();
-    const today = Number(todayKey.replace('day', ''));
+    // na semana em curso só até o último dia da LAMP (hoje, com ela contando; senão o último dia ativo)
+    const today = form.lastDay?.day ?? 7;
+    const todayKey = `day${today}`;
     const currentWeek = melpSummary?.current_deda_week;
     const days = weekDayOptions(selectedWeek, currentWeek, today);
     useEffect(() => {
@@ -461,7 +479,9 @@ export const NewLampInput: React.FC = () => {
     }, [selectedWeek, selectedDay]);
 
     const weekNumber = Number(selectedWeek.replace('week', ''));
-    const isToday = weekNumber === currentWeek && selectedDay === todayKey;
+    const isToday = !form.readOnly && weekNumber === currentWeek && selectedDay === todayKey;
+    const readOnlyReason =
+        melpSummary?.program_health === 'inconsistent' ? 'inconsistent' : (melpSummary?.melp_status ?? '');
     const go = (target?: { week: string; day: string }) => {
         if (!target) return;
         if (target.week !== selectedWeek) form.setSelectedWeek(target.week);
@@ -493,6 +513,7 @@ export const NewLampInput: React.FC = () => {
                         aria-labelledby={`lamp-${key}`}
                         tooltips={[...STAR_NAMES]}
                         value={value}
+                        disabled={form.readOnly}
                         onChange={(v) => change(key, v as never)}
                     />
                     <span className="sname" aria-live="polite">
@@ -601,15 +622,25 @@ export const NewLampInput: React.FC = () => {
 
     const dayName = WEEK_DAYS.find((d) => d.value === selectedDay)?.label ?? '';
 
+    // a LAMP ainda não tem dia (aguardando a segunda): uma linha, sem formulário
+    if (!form.lastDay)
+        return (
+            <div className="panel linput" role="tabpanel">
+                <p className="hint">Your LAMP starts on Monday.</p>
+            </div>
+        );
+
     return (
         <div className="panel linput" role="tabpanel">
             <Global styles={styles} />
             <div className="dayhead">
                 <div className="when">
-                    <p className={`eyebrow${isToday ? '' : ' past'}`}>{isToday ? 'Today' : 'Past day'}</p>
+                    <p className={`eyebrow${isToday ? '' : ' past'}`}>
+                        {isToday ? 'Today' : form.readOnly ? (FROZEN[readOnlyReason] ?? 'Read only') : 'Past day'}
+                    </p>
                     <h2>
                         {dayName}
-                        <span>Week {String(weekNumber).padStart(2, '0')}</span>
+                        <span>Week {weekNumber}</span>
                     </h2>
                 </div>
                 <div className="nav">
@@ -635,6 +666,7 @@ export const NewLampInput: React.FC = () => {
             </div>
             <div className="pick">
                 <Select
+                    className="wk"
                     aria-label="DEDA week"
                     value={dedasList.length ? selectedWeek : undefined}
                     options={dedasList}
@@ -649,7 +681,7 @@ export const NewLampInput: React.FC = () => {
                     onChange={(value) => form.setSelectedDay(value)}
                     popupMatchSelectWidth={false}
                 />
-                {!isToday && currentWeek && (
+                {!isToday && !form.readOnly && currentWeek && (
                     <button
                         type="button"
                         className="lnk gold"
@@ -658,19 +690,30 @@ export const NewLampInput: React.FC = () => {
                         Back to today
                     </button>
                 )}
-                <span className="save" role="status">
-                    {form.isSaving ? (
-                        <>
-                            <LoaderCircle {...ICON} size={16} className="spin" aria-hidden /> Saving…
-                        </>
-                    ) : (
-                        <>
-                            <Cloud {...ICON} size={16} aria-hidden /> Saved
-                            {form.lastSavedAt &&
-                                ` ${form.lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-                        </>
-                    )}
-                </span>
+                {(!form.readOnly || form.status.kind === 'error') && (
+                    <span className={`save${form.status.kind === 'error' ? ' err' : ''}`} role="status">
+                        {form.status.kind === 'saving' ? (
+                            <>
+                                <LoaderCircle {...ICON} size={16} className="spin" aria-hidden /> Saving…
+                            </>
+                        ) : form.status.kind === 'error' ? (
+                            <>
+                                {form.status.text}
+                                {form.status.retry && (
+                                    <button type="button" className="lnk gold" onClick={form.retry}>
+                                        Try again
+                                    </button>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <Cloud {...ICON} size={16} aria-hidden /> Saved
+                                {form.status.at &&
+                                    ` ${form.status.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                            </>
+                        )}
+                    </span>
+                )}
             </div>
 
             {isLoading || !inputData ? (
@@ -680,7 +723,8 @@ export const NewLampInput: React.FC = () => {
                     ))}
                 </div>
             ) : (
-                <>
+                // só leitura com a LAMP parada: o fieldset desliga campos, chips e revisões de uma vez (estrelas: disabled)
+                <fieldset className="ro" disabled={form.readOnly}>
                     <ul
                         className="glance"
                         aria-label="This day against your goal"
@@ -782,7 +826,7 @@ export const NewLampInput: React.FC = () => {
                             </div>
                         </section>
                     )}
-                </>
+                </fieldset>
             )}
         </div>
     );

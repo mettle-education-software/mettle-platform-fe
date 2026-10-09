@@ -90,8 +90,15 @@ export const useDedasGrid = (type: DedasGridProps['type'], blockedDEDAs?: boolea
         lastDedas: sortedLastDedasResult,
         nextDedas: nextDedasItems,
         allDedas: sortedAllDedasResult,
-        /** "Next DEDAs" só com DEDAs liberados e programa não concluído. */
-        showNext: unlockedDEDAs.length > 0 && melpSummary?.melp_status !== 'DEDA_FINISHED',
+        /**
+         * "Next DEDAs" só com DEDAs liberados e programa em curso. Antes do início não: a rotação é litúrgica (o aluno
+         * entra onde o círculo estiver na segunda), e a ordem do catálogo mostraria DEDAs que ele não vai fazer.
+         */
+        showNext:
+            unlockedDEDAs.length > 0 &&
+            !['DEDA_FINISHED', 'MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN'].includes(
+                melpSummary?.melp_status as string,
+            ),
     };
 };
 

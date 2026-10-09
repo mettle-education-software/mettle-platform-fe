@@ -373,6 +373,32 @@ const Skel: React.FC = () => (
     </div>
 );
 
+/* ---------- estados sem painel (falha, suspenso) ---------- */
+
+/** O resumo do IMERSO não veio (5xx, rede): uma linha calma e "Try again" — nunca esqueleto eterno. */
+export const SummaryError: React.FC<{ onRetry?: () => void }> = ({ onRetry }) => (
+    <div className="notice" role="alert">
+        <div>
+            <b>We couldn’t load your IMERSO</b>
+        </div>
+        <button type="button" className="btn line" onClick={onRetry}>
+            Try again
+        </button>
+    </div>
+);
+
+/** MELP_SUSPENDED: o aviso e a saída (Suporte). */
+export const SuspendedNotice: React.FC = () => (
+    <div className="notice" role="status">
+        <div>
+            <b>Your IMERSO access is suspended</b>
+        </div>
+        <Link className="btn line" href="/suporte" data-access-allow>
+            Contact support
+        </Link>
+    </div>
+);
+
 /* ---------- Agora ---------- */
 
 /** DEDA de hoje: o atual (último liberado), da mesma consulta da grade de recentes; um clique abre. */

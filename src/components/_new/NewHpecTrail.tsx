@@ -550,7 +550,11 @@ export const NewHpecTrail: React.FC<{ modules: TrailModule[]; title: React.React
                                 <div className="mh">
                                     <span className="dot mdot" aria-hidden />
                                     <b>{module.title}</b>
-                                    {module.unlockDate && <small>{opensLabel(module.unlockDate)}</small>}
+                                    {/* a data/regra de liberação só quando muda (nunca a mesma frase módulo a módulo) */}
+                                    {module.unlockDate &&
+                                        opensLabel(module.unlockDate) !== opensLabel(modules[i - 1]?.unlockDate) && (
+                                            <small>{opensLabel(module.unlockDate)}</small>
+                                        )}
                                 </div>
                                 <ol className="ls" aria-label={module.title}>
                                     {module.lessons.map((lesson) => (

@@ -61,7 +61,7 @@ describe('opensLabel', () => {
         expect(opensLabel('Available on: 1/3/2027', now)).toBe('Opens Jan 3, 2027');
     });
     it('keeps other texts', () => {
-        expect(opensLabel('Start DEDA to unlock this module', now)).toBe('Start DEDA to unlock this module');
+        expect(opensLabel('Start DEDA to unlock this module', now)).toBe('Opens with DEDA');
         expect(opensLabel(undefined, now)).toBe('');
     });
 });

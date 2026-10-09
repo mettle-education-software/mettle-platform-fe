@@ -563,7 +563,10 @@ const NewLeaderboard: React.FC = () => {
                 <p className="mut">O retrato com as regras atuais sai na próxima noite.</p>
             )}
             {current && tab === 'rank' && <Ranking snap={snap} />}
-            {snap && tab === 'rules' && (
+            {snap && tab === 'rules' && !current && (
+                <p className="mut">O Livro de Regras atual sai com o próximo retrato.</p>
+            )}
+            {current && tab === 'rules' && (
                 <article className="rules">
                     <ReactMarkdown>{snap.rulebook ?? ''}</ReactMarkdown>
                 </article>

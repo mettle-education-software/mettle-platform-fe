@@ -17,7 +17,13 @@ import { ADMIN_SEGMENTS, SEGMENT_OWNERS } from 'libs/adminSegments';
 import { ADMIN_PANEL_EVENT } from 'libs/adminTools';
 import { isLeituraOwner } from 'libs/leitura';
 import { activeMenuKeys, displayName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
-import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
+import {
+    IMERSO_PRODUCT,
+    IMERSO_SALES_URL,
+    isImersoRouteAllowedWhenExpired,
+    RENEWAL_URLS,
+    renewalNotice,
+} from 'libs/productAccess';
 import {
     GraduationCap,
     Headset,
@@ -1049,12 +1055,16 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                 </div>
             </ConfigProvider>
         );
-        const graceBanner = imersoState === 'grace' && (
-            <div className={`grace ${UI_FONT_CLASS}`} role="status">
+        // Carência e "vence em breve": uma linha com a data e "Renovar" (libs/productAccess.renewalNotice); dentro do
+        // IMERSO em inglês.
+        const en = pathname.startsWith('/imerso');
+        const renewText = renewalNotice(access(IMERSO_PRODUCT), en);
+        const graceBanner = renewText && (
+            <div className={`grace ${UI_FONT_CLASS}`} role="status" lang={en ? 'en' : 'pt-BR'}>
                 <TriangleAlert {...ICON} aria-hidden />
-                <span>Não conseguimos processar seu pagamento — atualize para manter o acesso.</span>
+                <span>{renewText}</span>
                 <a className="lnk gold" href={RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL}>
-                    Atualizar pagamento
+                    {en ? 'Renew' : 'Renovar'}
                 </a>
             </div>
         );

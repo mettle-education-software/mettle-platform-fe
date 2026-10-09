@@ -190,9 +190,9 @@ describe('mediaUrl', () => {
 
 describe('playbackAnnouncement', () => {
     it('anuncia play, pausa e fim', () => {
-        expect(playbackAnnouncement('play', 'Big Ben')).toBe('Tocando: Big Ben');
-        expect(playbackAnnouncement('pause', 'Big Ben')).toBe('Pausado: Big Ben');
-        expect(playbackAnnouncement('ended', 'Big Ben')).toBe('Fim do episódio: Big Ben');
+        expect(playbackAnnouncement('play', 'Big Ben')).toBe('Playing: Big Ben');
+        expect(playbackAnnouncement('pause', 'Big Ben')).toBe('Paused: Big Ben');
+        expect(playbackAnnouncement('ended', 'Big Ben')).toBe('Episode ended: Big Ben');
     });
 
     it('a pausa disparada pelo fim do episódio não anuncia "Pausado"', () => {

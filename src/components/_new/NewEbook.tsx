@@ -148,11 +148,18 @@ export const NewEbook: React.FC = () => {
                             {until && <p className="note">Acesso até {until}</p>}
                         </>
                     ) : (
-                        <p className="note">
-                            {state.state === 'expired'
-                                ? 'O seu acesso a este e-book terminou.'
-                                : 'Este e-book não faz parte da sua conta.'}
-                        </p>
+                        <>
+                            <p className="note">
+                                {state.state === 'expired'
+                                    ? 'O seu acesso a este e-book terminou.'
+                                    : 'Este e-book não faz parte da sua conta.'}
+                            </p>
+                            <div className="acts">
+                                <Link href="/" className="btn line">
+                                    Voltar ao Início
+                                </Link>
+                            </div>
+                        </>
                     )}
                 </div>
             </Product>

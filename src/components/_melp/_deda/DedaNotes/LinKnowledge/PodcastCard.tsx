@@ -219,7 +219,7 @@ const VisuallyHidden = styled.span`
     white-space: nowrap;
 `;
 
-const ERROR_MESSAGE = 'Não foi possível carregar este episódio.';
+const ERROR_MESSAGE = 'Couldn’t load this episode.';
 
 /** Card de episódio no estilo Spotify, com player inline (sem popup). */
 export const PodcastCard = ({ episode }: { episode: PodcastEpisode }) => {

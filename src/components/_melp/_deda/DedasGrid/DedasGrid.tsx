@@ -127,6 +127,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
         allDedas: sortedAllDedasResult,
         weekOf,
         nextWeekOf,
+        showNext,
     } = useDedasGrid(type, blockedDEDAs);
     const weekText = (week?: number) => (week ? `Week ${week}` : undefined);
 
@@ -136,12 +137,11 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                 <strong>Most recent</strong> DEDAs
             </Title>
         ),
-        nextDedas:
-            unlockedDEDAs.length > 0 && melpSummary?.melp_status !== 'DEDA_FINISHED' ? (
-                <Title level={4}>
-                    <strong>Next</strong> DEDAs
-                </Title>
-            ) : null,
+        nextDedas: showNext ? (
+            <Title level={4}>
+                <strong>Next</strong> DEDAs
+            </Title>
+        ) : null,
         allDedas: (
             <Title level={4}>
                 <strong>All</strong> DEDAs
@@ -208,7 +208,7 @@ export const DedasGrid: React.FC<DedasGridProps> = ({ type, onSelectedDeda, cust
                             </Col>
                         ))}
                     {type === 'nextDedas' &&
-                        melpSummary?.melp_status !== 'DEDA_FINISHED' &&
+                        showNext &&
                         nextDedasItems?.map((deda, index) => (
                             <Col xs={12} md={6} key={deda.dedaSlug}>
                                 <DedaCard

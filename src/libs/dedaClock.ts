@@ -127,6 +127,20 @@ export const legacyLampLastDate = (s?: Summary | null): string | null => {
     return null;
 };
 
+/**
+ * Dia que goteja o HPEC depois do start (§3.5). Relógio novo: o dia de calendário desde a primeira segunda, em todo
+ * estado depois dela (pausa não muda nada; voltar da pausa não tranca de novo). Legado: o dia ativo da LAMP — congelado
+ * (`frozen`) em pausa, fim ou espera, em vez de abrir tudo (PF-19). `null` = antes do start: gotejamento pré-start.
+ */
+export const hpecDay = (s?: Summary | null): { day: number; frozen: boolean } | null => {
+    if (!s) return null;
+    if (isCalendarClock(s)) return s.deda_calendar_day ? { day: s.deda_calendar_day, frozen: false } : null;
+    if (s.melp_status === 'DEDA_STARTED') return { day: s.current_deda_day, frozen: false };
+    if (['DEDA_PAUSED', 'DEDA_FINISHED'].includes(s.melp_status) || s.current_deda_day > 0)
+        return { day: s.current_deda_day ?? 0, frozen: true };
+    return null;
+};
+
 /** "Week 4 · Day 4": o único formato de semana e dia (inglês, sem zero à esquerda). */
 export const weekDayLabel = (week: number, day: number) => `Week ${week} · Day ${day}`;
 

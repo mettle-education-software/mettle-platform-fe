@@ -3,6 +3,7 @@ import gql from 'graphql-tag';
 import { HpecModulesResponse, HpecResourcesResponse, IHPECLesson } from 'interfaces';
 import { getUnlockedDate } from 'libs';
 import { hpecIdOfLesson } from 'libs/cleanUrls';
+import { hpecDay } from 'libs/dedaClock';
 import { useMelpContext } from 'providers';
 import { useEffect, useState } from 'react';
 
@@ -46,17 +47,16 @@ export const useGetHpecsModules = () => {
 
     useEffect(() => {
         if (melpSummary && modulesContentData) {
-            const drippingBeforeDedaStatuses = ['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN'];
-
-            const melpStatus = melpSummary.melp_status;
             const daysSinceMelpStart = melpSummary.days_since_melp_start;
-            const currentDedaDay = melpSummary.current_deda_day;
+            // depois do start, o dia que goteja (libs/dedaClock.hpecDay): relógio novo = calendário em todo estado;
+            // legado = dia ativo, congelado em pausa/fim/espera (antes, pausado via o HPEC inteiro aberto — PF-19)
+            const after = hpecDay(melpSummary);
 
             const unlocked: IHPECLesson[] = [];
             const locked: ({ unlockDate: string } & IHPECLesson)[] = [];
 
             modulesContentData.hpecContentCollection.items.forEach((hpec) => {
-                if (drippingBeforeDedaStatuses.includes(melpStatus)) {
+                if (!after) {
                     if (daysSinceMelpStart < hpec.drippingDayBeforeDedaStart) {
                         return locked.push({
                             ...hpec,
@@ -69,15 +69,14 @@ export const useGetHpecsModules = () => {
                             unlockDate: 'Start DEDA to unlock this module',
                         });
                     }
-                }
-
-                if (melpStatus === 'DEDA_STARTED') {
-                    if (currentDedaDay < hpec.drippingDayAfterDedaStart) {
-                        return locked.push({
-                            ...hpec,
-                            unlockDate: getUnlockedDate(currentDedaDay, hpec.drippingDayAfterDedaStart),
-                        });
-                    }
+                } else if (after.day < hpec.drippingDayAfterDedaStart) {
+                    return locked.push({
+                        ...hpec,
+                        // dia congelado (legado parado): a data não existe até o DEDA voltar a contar
+                        unlockDate: after.frozen
+                            ? 'Opens when DEDA resumes'
+                            : getUnlockedDate(after.day, hpec.drippingDayAfterDedaStart),
+                    });
                 }
 
                 unlocked.push(hpec);

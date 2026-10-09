@@ -1,6 +1,7 @@
 import { DedaWeek, MelpSummaryResponse } from '../../interfaces/melp';
 import {
     dedaLampWeek,
+    hpecDay,
     legacyLampLastDate,
     isCalendarClock,
     lampRunning,
@@ -362,5 +363,38 @@ describe('legacyLampLastDate (data do último dia da LAMP no legado)', () => {
         expect(legacyLampLastDate(legacy({ current_deda_day: 0, current_deda_week: 0 }))).toBeNull();
         expect(legacyLampLastDate(legacy({ deda_start_dates: [], deda_pause_dates: [] }))).toBeNull();
         expect(legacyLampLastDate(undefined)).toBeNull();
+    });
+});
+
+describe('hpecDay (gotejamento do HPEC depois do start, §3.5)', () => {
+    it('relógio novo: dia de calendário em todo estado depois da primeira segunda; antes dela, pré-start', () => {
+        expect(hpecDay({ ...secondLap, melp_status: 'DEDA_PAUSED', deda_calendar_day: 33 })).toEqual({
+            day: 33,
+            frozen: false,
+        });
+        expect(hpecDay({ ...secondLap, melp_status: 'DEDA_STARTED_NOT_BEGUN', deda_calendar_day: 40 })?.day).toBe(40);
+        expect(
+            hpecDay(calendar({ deda_weeks: [], melp_status: 'DEDA_STARTED_NOT_BEGUN', deda_calendar_day: 0 })),
+        ).toBeNull();
+    });
+
+    it('legado: em andamento pelo dia ativo; pausado, formado e voltando congelados (não abre tudo)', () => {
+        expect(hpecDay(legacy({ current_deda_day: 12 }))).toEqual({ day: 12, frozen: false });
+        expect(hpecDay(legacy({ melp_status: 'DEDA_PAUSED', current_deda_day: 7, current_deda_week: 1 }))).toEqual({
+            day: 7,
+            frozen: true,
+        });
+        expect(
+            hpecDay(legacy({ melp_status: 'DEDA_FINISHED', current_deda_day: 729, current_deda_week: 105 }))?.frozen,
+        ).toBe(true);
+        expect(
+            hpecDay(legacy({ melp_status: 'DEDA_STARTED_NOT_BEGUN', current_deda_day: 14, current_deda_week: 2 })),
+        ).toEqual({ day: 14, frozen: true });
+    });
+
+    it('legado antes do start (inclusive o 1º aguardando a segunda): gotejamento pré-start', () => {
+        for (const melp_status of ['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN'] as const)
+            expect(hpecDay(legacy({ melp_status, current_deda_day: 0, current_deda_week: 0 }))).toBeNull();
+        expect(hpecDay(undefined)).toBeNull();
     });
 });

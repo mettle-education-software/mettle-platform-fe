@@ -42,15 +42,16 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
 
             sendFirstLoginEvent({ email: claims.email });
 
-            const splitName = (claims?.name as string).split(' ');
-
             // A claim fica no token depois que a impersonação vence; só vale enquanto não expirou.
             const impersonating = !!claims.impersonating && (claims.expires as number) > Date.now();
 
             const contextUser = {
                 impersonating,
                 email: claims.email,
-                name: `${splitName[0]} ${splitName[1]}`,
+                // nome inteiro; cada tela escolhe o que mostrar (libs/newDesign: firstName, displayName)
+                name: String(claims?.name ?? '')
+                    .trim()
+                    .replace(/\s+/g, ' '),
                 roles: claims.roles,
                 uid: claims.user_id,
                 businessUuid: claims.businessUuid,
@@ -65,7 +66,9 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
                 // @ts-ignore
                 contextUser.email = claims.impersonatedUser?.email as string;
                 // @ts-ignore
-                contextUser.name = claims.impersonatedUser?.displayName?.split(' ')[0] as string;
+                contextUser.name = String(claims.impersonatedUser?.displayName ?? '')
+                    .trim()
+                    .replace(/\s+/g, ' ');
                 // @ts-ignore
                 contextUser.uid = claims.impersonatedUser?.uid as string;
                 contextUser.roles = claims.roles;

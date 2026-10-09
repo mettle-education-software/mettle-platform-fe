@@ -12,11 +12,11 @@ import { useDeviceSize } from 'hooks';
 import { useDedaRun } from 'hooks/melp/lampDays';
 import { useSegmentCounts } from 'hooks/useAdmin';
 import { useLogoTheme, useNewAntdTheme } from 'hooks/useTheme';
-import { getWeekDay } from 'libs';
+import { saoPauloWeekday } from 'libs';
 import { ADMIN_SEGMENTS, SEGMENT_OWNERS } from 'libs/adminSegments';
 import { ADMIN_PANEL_EVENT } from 'libs/adminTools';
 import { isLeituraOwner } from 'libs/leitura';
-import { activeMenuKeys, firstName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
+import { activeMenuKeys, displayName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, isImersoRouteAllowedWhenExpired, RENEWAL_URLS } from 'libs/productAccess';
 import {
     GraduationCap,
@@ -81,8 +81,8 @@ const chrome = css`
         color: inherit;
         letter-spacing: inherit;
     }
-    .it:hover:not(:disabled),
-    .it:active:not(:disabled) {
+    .it:hover:not(:disabled):not([aria-disabled='true']),
+    .it:active:not(:disabled):not([aria-disabled='true']) {
         background: var(--r-hover);
     }
     .it[aria-current='page'],
@@ -90,7 +90,8 @@ const chrome = css`
     .grp.on > .it svg {
         color: var(--r-gold-hi);
     }
-    .it:disabled {
+    .it:disabled,
+    .it[aria-disabled='true'] {
         opacity: 0.45;
         cursor: default;
     }
@@ -638,6 +639,12 @@ const MENU_ICONS: Record<string, React.ReactNode> = {
 
 const labelText = (item: MenuItem) => (typeof item.label === 'string' ? item.label : 'IMERSO');
 
+/** Por que um item do IMERSO está apagado (o menu é da casca: português). */
+const DISABLED_HINT: Record<string, string> = {
+    melpLamp: 'Abre quando o DEDA começar',
+    melpDeda: 'Acesso suspenso',
+};
+
 /** `onClick` dos itens do antd recebe `{ domEvent }`; o menu só usa `domEvent.preventDefault()`. */
 const fire = (item: MenuItem, event: React.MouseEvent) =>
     (item.onClick as ((info: { domEvent: React.MouseEvent }) => void) | undefined)?.({ domEvent: event });
@@ -686,14 +693,17 @@ const NavGroup: React.FC<{
             <div className="sub">
                 {item.children?.map((child) => {
                     const childKey = String(child.key);
+                    // apagado, mas com o motivo ao passar o mouse (botão desligado não mostraria o title)
                     return (
                         <button
                             key={childKey}
                             type="button"
                             className="it s"
-                            disabled={child.disabled}
+                            aria-disabled={child.disabled || undefined}
+                            title={child.disabled ? DISABLED_HINT[childKey] : undefined}
                             aria-current={active.includes(childKey) ? 'page' : undefined}
                             onClick={(event) => {
+                                if (child.disabled) return;
                                 fire(child, event);
                                 dismiss(event.currentTarget);
                             }}
@@ -760,13 +770,12 @@ const MelpRun: React.FC<{ rail?: boolean }> = ({ rail }) => {
 const MelpMini: React.FC<{ bar?: boolean }> = ({ bar }) => {
     const { melpSummary } = useMelpContext();
     if (melpSummary?.melp_status !== 'DEDA_STARTED') return null;
-    const day = getWeekDay();
     return (
         <div className="melp" title={`DEDA ${melpSummary.currentDedaName ?? ''}`}>
             <small>DEDA</small>
             <b>{melpSummary.currentDedaName}</b>
             <span>
-                Week {melpSummary.current_deda_week} · Day {day}
+                Week {melpSummary.current_deda_week} · Day {saoPauloWeekday()}
             </span>
             {!bar && <MelpRun />}
         </div>
@@ -930,15 +939,14 @@ const AdminItem: React.FC<{ host?: boolean }> = ({ host }) => {
 
 const User: React.FC = () => {
     const { user } = useAppContext();
-    const name = firstName(user?.name);
-    const fullName = (user?.name ?? '').trim().replace(/\s+/g, ' ') || name;
+    const name = displayName(user?.name);
     return (
-        <div className="user" title={user?.name ?? undefined}>
+        <div className="user" title={user?.name || undefined}>
             <span className="av" aria-hidden>
                 {/* eslint-disable-next-line @next/next/no-img-element -- foto do perfil (Firebase) */}
                 {user?.profileImageSrc ? <img src={user.profileImageSrc} alt="" /> : name[0]}
             </span>
-            <span className="lbl">{fullName}</span>
+            <span className="lbl">{name}</span>
         </div>
     );
 };

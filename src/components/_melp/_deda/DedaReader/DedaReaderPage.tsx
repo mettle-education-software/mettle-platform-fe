@@ -53,7 +53,8 @@ interface Props {
     tabs: ReaderTab[];
     activeTab: string;
     onTab(key: string): void;
-    onClassic(): void;
+    /** "Classic view": só para a equipe (useDedaReader.canSwitch); ausente = sem o link. */
+    onClassic?: () => void;
 }
 
 const NOTES_SECTIONS = [
@@ -318,7 +319,7 @@ export const DedaReaderPage: React.FC<Props> = ({
                                 Glossary
                             </button>
                         ))}
-                    {!isMobile && (
+                    {!isMobile && onClassic && (
                         <button type="button" className="lnk" onClick={onClassic}>
                             Classic view
                         </button>
@@ -360,12 +361,14 @@ export const DedaReaderPage: React.FC<Props> = ({
                 >
                     <DrawerBody>
                         <div className="menu">{tabButtons()}</div>
-                        <div className="menu">
-                            <hr />
-                            <button type="button" onClick={onClassic}>
-                                Classic view
-                            </button>
-                        </div>
+                        {onClassic && (
+                            <div className="menu">
+                                <hr />
+                                <button type="button" onClick={onClassic}>
+                                    Classic view
+                                </button>
+                            </div>
+                        )}
                     </DrawerBody>
                 </Drawer>
 

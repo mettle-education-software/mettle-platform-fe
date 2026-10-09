@@ -1,5 +1,6 @@
 // Página nova do DEDA ("Direção A — Leitor focado"): chave por conta e regras puras (testadas em
 // libs/__tests__/dedaReader.test.ts). Ponto único: quem vê a página nova é decidido só aqui.
+import { saoPauloWeekday } from './helpers';
 
 /**
  * Contas com a página nova. Só a do André (dono do produto), por decisão dele: usa a própria conta em produção
@@ -77,7 +78,8 @@ export const WRITE_DAY_KEYS = [
     'dedaWriteContentDaySeven',
 ] as const;
 
-export const writeDayToday = (date: Date = new Date()) => (date.getDay() === 0 ? 7 : date.getDay());
+/** Dia de hoje no passo 5, em Brasília (o dia do servidor, nunca o do aparelho). */
+export const writeDayToday = (date: Date = new Date()) => saoPauloWeekday(date);
 
 export type WriteDayState = 'today' | 'past' | 'locked';
 /** `pastDeda`: DEDA que não é o da semana — já passou, os 7 dias ficam abertos para consulta (nenhum é "hoje"). */

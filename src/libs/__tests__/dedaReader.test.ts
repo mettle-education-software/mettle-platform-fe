@@ -86,8 +86,10 @@ describe('passos', () => {
 
 describe('passo 5: dias', () => {
     it('segunda = Day 1, domingo = Day 7', () => {
-        expect(writeDayToday(new Date(2026, 9, 5))).toBe(1); // segunda
-        expect(writeDayToday(new Date(2026, 9, 11))).toBe(7); // domingo
+        expect(writeDayToday(new Date('2026-10-05T15:00:00Z'))).toBe(1); // segunda
+        expect(writeDayToday(new Date('2026-10-11T15:00:00Z'))).toBe(7); // domingo
+        // quinta 22h30 em Brasília é sexta em UTC: vale o dia de Brasília
+        expect(writeDayToday(new Date('2026-10-09T01:30:00Z'))).toBe(4);
     });
 
     it('hoje, anteriores para consulta, futuros bloqueados', () => {

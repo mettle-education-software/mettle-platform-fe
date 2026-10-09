@@ -4,7 +4,9 @@ import styled from '@emotion/styled';
 import { uiFont } from 'components/_melp/_deda/DedaReader/readerFonts';
 import { auth } from 'config/firebase';
 import { SLIDE_HOTSPOTS, SLIDES_API } from 'libs/masterclass';
+import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { ChevronLeft, ChevronRight, LayoutGrid, X } from 'lucide-react';
+import { useProductAccess } from 'providers';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ICON, UI_FONT_VAR, ui } from 'themes/newDesign';
@@ -23,6 +25,8 @@ const block = (e: React.SyntheticEvent) => e.preventDefault();
 
 export const SlideViewer: React.FC<{ title: string; onClose: () => void }> = ({ title, onClose }) => {
     const [load, setLoad] = useState<Load>({ state: 'loading' });
+    // "Matricular-se" dos slides 91/92 (oferta do Imerso para alunos da Masterclass): nunca para quem já tem o Imerso
+    const offer = useProductAccess().access(IMERSO_PRODUCT).state === 'none';
     const [i, setI] = useState(0);
     const [grid, setGrid] = useState(false);
     const closeRef = useRef<HTMLButtonElement>(null);
@@ -171,7 +175,7 @@ export const SlideViewer: React.FC<{ title: string; onClose: () => void }> = ({ 
                     <figure className="slide" onContextMenu={block} onDragStart={block}>
                         {/* eslint-disable-next-line @next/next/no-img-element -- URL assinada e curta: sem otimizador */}
                         <img src={slides[i]} alt={`Slide ${n} de ${total}`} draggable={false} />
-                        {(SLIDE_HOTSPOTS[n] ?? []).map((h) => (
+                        {(offer ? (SLIDE_HOTSPOTS[n] ?? []) : []).map((h) => (
                             <a
                                 key={h.href}
                                 className="hot"

@@ -1,9 +1,13 @@
 // Masterclass "As 7 Regras" na Plataforma nova (8-Out-2026): slides dentro da Plataforma e a camada que apresenta o
 // Programa Imerso na aba Texto. O texto do resumo vem do Contentful e NÃO muda aqui (escrita bloqueada até 1-Nov);
 // tudo o que está abaixo é só do front. Testes: libs/__tests__/masterclass.test.ts.
-import type { AccessState } from './productAccess';
+import { type AccessState, imersoSalesUrl } from './productAccess';
 
 export const MASTERCLASS_LESSON = 'as-7-regras-para-a-fluencia-em-ingles';
+export const MASTERCLASS_COURSE = 'masterclass-as-7-regras';
+/** Página de vendas da própria Masterclass (site; 200 conferido em 9-Out-2026). O paymentCheckout do curso leva ao Imerso. */
+export const MASTERCLASS_SALES_URL =
+    'https://mettle.com.br/masterclass/?utm_source=plataforma&utm_medium=home&utm_campaign=masterclass';
 
 /** O link "aqui" do resumo (página externa, mantida para quem já a usa): na Plataforma, abre o leitor de slides. */
 export const SLIDES_LINK = 'https://lp.mettle.com.br/masterclass/slides';
@@ -61,8 +65,8 @@ export const isSlidesLink = (uri: unknown) =>
  * nada de garantia (só na oferta), números inventados ou depoimentos. Prazo honesto: de 1 a 3 anos.
  */
 export const IMERSO_CTA = {
-    /** Página de vendas: o paymentCheckout do curso (lp.mettle.com.br/imerso/plataforma → mettle.com.br/programa-imerso). */
-    salesUrl: 'https://lp.mettle.com.br/imerso/plataforma',
+    /** Página de vendas do Imerso (o mesmo destino de todos os convites). */
+    salesUrl: imersoSalesUrl('masterclass'),
 
     /** (a) no meio do texto, logo depois da Regra 6 ("insira-se num sistema"). */
     inline: {

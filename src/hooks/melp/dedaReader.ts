@@ -11,6 +11,9 @@ import { useCallback, useState } from 'react';
 export const useDedaReader = () => {
     const { user } = useAppContext();
     const allowed = isDedaReaderAccount(user ? auth.currentUser?.uid : null);
+    // "Classic view" / "New view": só a equipe (METTLE_ADMIN; impersonando, as roles são as do administrador).
+    // Aluno nunca troca nem fica preso numa escolha antiga guardada no aparelho.
+    const canSwitch = allowed && !!user?.roles?.includes('METTLE_ADMIN');
     const [view, setViewState] = useState<DedaReaderView>(() =>
         typeof window === 'undefined' ? 'new' : readReaderView(),
     );
@@ -18,5 +21,5 @@ export const useDedaReader = () => {
         saveReaderView(next);
         setViewState(next);
     }, []);
-    return { allowed, on: allowed && view === 'new', setView };
+    return { allowed, canSwitch, on: allowed && (view === 'new' || !canSwitch), setView };
 };

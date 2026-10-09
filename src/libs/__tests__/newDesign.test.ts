@@ -7,6 +7,7 @@ import {
     activeMenuKeys,
     clampWeekDay,
     fileSizeLabel,
+    displayName,
     firstName,
     formatHm,
     goalLabel,
@@ -112,6 +113,19 @@ describe('textos', () => {
         expect(firstName('Andre Floriano')).toBe('Andre');
         expect(firstName('  Maria ')).toBe('Maria');
         expect(firstName(undefined)).toBe('');
+        expect(firstName('Pe. João Silva')).toBe('João');
+        expect(firstName('Dr. Dra.')).toBe('');
+    });
+
+    it('nome do menu: primeiro nome + último sobrenome', () => {
+        expect(displayName('Maria da Silva Souza')).toBe('Maria Souza');
+        expect(displayName('Ana de Souza')).toBe('Ana Souza');
+        expect(displayName('João Pedro dos Santos')).toBe('João Santos');
+        expect(displayName('Pe. João Silva Jr.')).toBe('João Silva');
+        expect(displayName('Nome undefined')).toBe('Nome');
+        expect(displayName('Maria de')).toBe('Maria');
+        expect(displayName('  Cher  ')).toBe('Cher');
+        expect(displayName(null)).toBe('');
     });
 
     it('aba de /settings pelo ?tab=', () => {

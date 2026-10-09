@@ -28,7 +28,7 @@ const DedaReaderPage = dynamic(() => import('components/_melp/_deda/DedaReader/D
     loading: () => <LoadingLayout />,
 });
 
-// Link discreto "Classic view" / "New view": só aparece para as contas da página nova.
+// Link discreto "Classic view" / "New view": só a equipe (METTLE_ADMIN) com a página nova.
 const ViewSwitch = styled.button`
     /* && vence o "position: relative" que HeaderSummary dá aos filhos */
     && {
@@ -217,7 +217,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                     ]}
                     activeTab={activeTab}
                     onTab={setActiveTab}
-                    onClassic={() => reader.setView('classic')}
+                    onClassic={reader.canSwitch ? () => reader.setView('classic') : undefined}
                 />
             </AppLayout>
         );
@@ -229,7 +229,7 @@ function DedaContent({ params: { dedaId } }: { params: { dedaId: string } }) {
                     images={[headerImage, featuredDeda?.dedaFeaturedImage]}
                     gradient={HEADER_GRADIENT}
                 />
-                {reader.allowed && (
+                {reader.canSwitch && (
                     <ViewSwitch type="button" onClick={() => reader.setView(reader.on ? 'classic' : 'new')}>
                         {reader.on ? 'Classic view' : 'New view'}
                     </ViewSwitch>

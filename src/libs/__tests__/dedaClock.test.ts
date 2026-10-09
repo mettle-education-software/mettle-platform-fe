@@ -274,6 +274,12 @@ describe('lampSaveProblem (recusas da gravação da LAMP)', () => {
         });
     });
 
+    it('conferência na hora de gravar: dia novo tenta de novo; DEDA que deixou de ser o de hoje, não', () => {
+        expect(lampSaveProblem(http(0, 'LAMP_DAY_CHANGED')).retry).toBe(true);
+        expect(lampSaveProblem(http(0, 'DEDA_NOT_TODAY')).retry).toBe(false);
+        expect(lampSaveProblem(http(400, 'EXPECTED_ROW_ID_REQUIRED')).retry).toBe(true);
+    });
+
     it('linha do dia substituída, rede, 5xx e 409 sem código: tentar de novo', () => {
         expect(lampSaveProblem(http(409, 'LAMP_DAY_REPLACED')).retry).toBe(true);
         expect(lampSaveProblem(http(409)).retry).toBe(true);

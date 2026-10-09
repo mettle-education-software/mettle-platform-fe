@@ -15,7 +15,7 @@ import { statisticsColors } from 'libs';
 import { isCalendarClock, lampSaveError, lampSaveProblem, lampToday, todaysDedaId } from 'libs/dedaClock';
 import { useAppContext, useMelpContext } from 'providers';
 import { useEffect, useMemo, useState } from 'react';
-import { lampService } from 'services';
+import { lampService, melpService } from 'services';
 import { font } from 'themes';
 
 export interface SaveDedaInputMutationDedaData {
@@ -38,13 +38,36 @@ interface SaveDedaInputMutation {
      * bloco do DEDA e a identidade da linha, sem GET no salvar e sem reenviar ativo/passivo/revisão.
      */
     expectedRowId?: string;
+    /**
+     * DEDA concluído. Com ele, a gravação relê o resumo NA HORA DE EXECUTAR (também quando volta de uma pausa offline)
+     * e só grava se esse DEDA ainda é o de hoje, no mesmo dia da LAMP e no mesmo relógio.
+     */
+    dedaId?: string;
 }
+
+/** Recusa local, no mesmo formato das do servidor (`response.data.code`), para lampSaveProblem. */
+const lampRefusal = (code: string) => Object.assign(new Error(code), { response: { data: { code } } });
 
 export const useSaveDedaInput = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ userUid, week, day, inputData, expectedRowId }: SaveDedaInputMutation) => {
+        mutationFn: async ({ userUid, week, day, inputData, expectedRowId, dedaId }: SaveDedaInputMutation) => {
+            if (dedaId) {
+                // o resumo da tela pode ser de ontem (aba aberta na virada do dia em Brasília, ou offline): confere agora
+                const fresh = await melpService
+                    .get<MelpSummaryResponse>(`/v2/${userUid}/summary`)
+                    .then(({ data }) => data.data);
+                queryClient.setQueryData(['imerso-summary', userUid], fresh);
+                const today = todaysDedaId(fresh) === dedaId ? lampToday(fresh) : null;
+                if (!today) throw lampRefusal('DEDA_NOT_TODAY');
+                if (
+                    `week${today.week}` !== week ||
+                    `day${today.day}` !== day ||
+                    isCalendarClock(fresh) !== !!expectedRowId
+                )
+                    throw lampRefusal('LAMP_DAY_CHANGED');
+            }
             const dedaInputData = {
                 dedaFocus: inputData.dedaFocus,
                 dedaSteps: inputData.dedaSteps,
@@ -124,7 +147,6 @@ export const useSaveDedaInput = () => {
  */
 export const useDedaCompletion = (dedaId: string) => {
     const { user } = useAppContext();
-    const queryClient = useQueryClient();
     const { melpSummary, isTodaysDedaCompleted } = useMelpContext();
     const isTodaysDeda = todaysDedaId(melpSummary) === dedaId;
     const lampDay = isTodaysDeda ? lampToday(melpSummary) : null;
@@ -137,29 +159,14 @@ export const useDedaCompletion = (dedaId: string) => {
     const [rejectedRowId, setRejectedRowId] = useState<string>();
     const rowId = row.data?.dedaInput?.rowId !== rejectedRowId ? row.data?.dedaInput?.rowId : undefined;
     const save = useSaveDedaInput();
-    const [checking, setChecking] = useState(false);
-    const [notice, setNotice] = useState<{ text: string; retry: boolean }>();
 
-    const complete = async (inputData: SaveDedaInputMutationDedaData, onDone: () => void) => {
-        if (!lampDay || !user?.uid || save.isPending || checking) return;
-        setNotice(undefined);
+    const complete = (inputData: SaveDedaInputMutationDedaData, onDone: () => void) => {
+        if (!lampDay || !user?.uid || save.isPending) return;
         save.reset();
         // sem a linha do dia (a leitura falhou ou foi recusada): tenta lê-la de novo, sem gravar
         if (calendar && !rowId) return void row.refetch();
-        // o resumo pode ter ficado para trás (aba aberta na virada do dia em Brasília): confere antes de gravar
-        setChecking(true);
-        const fresh = await queryClient
-            .refetchQueries({ queryKey: ['imerso-summary', user.uid], exact: true }, { throwOnError: true })
-            .then(() => queryClient.getQueryData<MelpSummaryResponse['data']>(['imerso-summary', user.uid]))
-            .catch(() => undefined);
-        setChecking(false);
-        const freshDay = fresh && todaysDedaId(fresh) === dedaId ? lampToday(fresh) : null;
-        if (!fresh) return setNotice(lampSaveProblem(undefined));
-        if (!freshDay) return setNotice({ text: 'This DEDA can no longer be completed today.', retry: false });
-        if (freshDay.week !== lampDay.week || freshDay.day !== lampDay.day || isCalendarClock(fresh) !== calendar)
-            return setNotice({ text: 'A new LAMP day has started. Please try again.', retry: true });
         save.mutate(
-            { userUid: user.uid, week, day, inputData, expectedRowId: calendar ? rowId : undefined },
+            { userUid: user.uid, week, day, inputData, expectedRowId: calendar ? rowId : undefined, dedaId },
             {
                 onSuccess: onDone,
                 onError: (error) => {
@@ -174,15 +181,15 @@ export const useDedaCompletion = (dedaId: string) => {
     };
 
     const failure = save.error ?? (calendar && completable && row.isError ? row.error : undefined);
-    const problem = useMemo(() => notice ?? (failure ? lampSaveProblem(failure) : undefined), [notice, failure]);
+    const problem = useMemo(() => (failure ? lampSaveProblem(failure) : undefined), [failure]);
     return {
         isTodaysDeda,
         lampDay,
         /** pode concluir hoje (o passo Summary aparece) */
         completable,
         /** o botão pode ser usado: relógio novo com a linha do dia lida (ou com a leitura falha, para tentar de novo) */
-        ready: !checking && (!calendar || (!row.isFetching && (!!rowId || row.isError || !!rejectedRowId))),
-        saving: save.isPending || checking,
+        ready: !calendar || (!row.isFetching && (!!rowId || row.isError || !!rejectedRowId)),
+        saving: save.isPending,
         problem,
         complete,
     };

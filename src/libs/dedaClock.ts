@@ -103,6 +103,11 @@ export const lampSaveProblem = (error: unknown): { text: string; retry: boolean 
         case 'LAMP_DAY_REPLACED':
         case 'EXPECTED_ROW_ID_REQUIRED':
             return { text: 'This LAMP day was updated. Please try again.', retry: true };
+        // recusas do próprio front, conferidas na hora de gravar (hooks/melp/lamp.useSaveDedaInput)
+        case 'LAMP_DAY_CHANGED':
+            return { text: 'A new LAMP day has started. Please try again.', retry: true };
+        case 'DEDA_NOT_TODAY':
+            return { text: 'This DEDA can no longer be completed today.', retry: false };
         default:
             return { text: 'We couldn’t save. Check your connection and try again.', retry: true };
     }

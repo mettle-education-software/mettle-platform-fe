@@ -441,12 +441,16 @@ const WeekRow: React.FC<{
     }, [near]);
     const q = useDedaRecordings(w.dedaId, near);
     const all = useMemo(() => (q.data?.recordings ?? []).map((r) => ({ ...r, title: w.title })), [q.data, w.title]);
-    // uma gravação por dia (a última tomada): se vier mais de uma, fica a mais recente
+    // uma gravação por dia (a última tomada): legado, por dia da semana daquela semana; relógio novo, por data (o mesmo
+    // DEDA pode ter sido gravado em mais de uma semana — todas as datas aparecem)
     const byDay = new Map<string, Rec>();
     all.filter((r) => !w.byWeek || r.week === `week${w.week}`)
         .sort((a, b) => (a.createdAt ?? a.recordedOn).localeCompare(b.createdAt ?? b.recordedOn))
-        .forEach((r) => byDay.set(r.weekDay, r));
-    const mine = [...byDay.values()].sort((a, b) => a.weekDay.localeCompare(b.weekDay));
+        .forEach((r) => byDay.set(w.byWeek ? r.weekDay : r.recordedOn, r));
+    const mine = [...byDay.values()].sort((a, b) =>
+        w.byWeek ? a.weekDay.localeCompare(b.weekDay) : a.recordedOn.localeCompare(b.recordedOn),
+    );
+    const onDay = (d: number) => mine.some((r) => r.weekDay === `day${d}`);
     const known = !!q.data || q.isError;
     useEffect(() => {
         if (known) onRecs(w.key, mine);
@@ -477,11 +481,14 @@ const WeekRow: React.FC<{
                     ) : has ? (
                         <>
                             <span>
-                                {mine.length} of 7 days · {formatDuration(total)}
+                                {w.byWeek
+                                    ? `${mine.length} of 7 days`
+                                    : `${mine.length} ${mine.length === 1 ? 'day' : 'days'}`}{' '}
+                                · {formatDuration(total)}
                             </span>
                             <span className="d7" aria-hidden>
                                 {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-                                    <i key={d} className={byDay.has(`day${d}`) ? 'on' : undefined} />
+                                    <i key={d} className={onDay(d) ? 'on' : undefined} />
                                 ))}
                             </span>
                         </>
@@ -523,31 +530,45 @@ const WeekRow: React.FC<{
                             </div>
                         )}
                         <ul className="recs">
-                            {[1, 2, 3, 4, 5, 6, 7].map((d) => {
-                                const r = byDay.get(`day${d}`);
-                                const wd = WEEK_DAYS[d - 1].label;
-                                return (
-                                    <li key={d}>
-                                        {r ? (
-                                            <RecRow
-                                                rec={r}
-                                                label={`Day ${d} · ${formatRecordedOn(r.recordedOn)}`}
-                                                playing={playing}
-                                                play={play}
-                                                onEnd={onEnd}
-                                                stop={stop}
-                                            />
-                                        ) : (
-                                            <p className="none">
-                                                <span>
-                                                    Day {d} · {wd}
-                                                </span>
-                                                <small>—</small>
-                                            </p>
-                                        )}
+                            {!w.byWeek &&
+                                mine.map((r) => (
+                                    <li key={r.id}>
+                                        <RecRow
+                                            rec={r}
+                                            label={`Day ${r.weekDay.replace('day', '')} · ${formatRecordedOn(r.recordedOn)}`}
+                                            playing={playing}
+                                            play={play}
+                                            onEnd={onEnd}
+                                            stop={stop}
+                                        />
                                     </li>
-                                );
-                            })}
+                                ))}
+                            {w.byWeek &&
+                                [1, 2, 3, 4, 5, 6, 7].map((d) => {
+                                    const r = byDay.get(`day${d}`);
+                                    const wd = WEEK_DAYS[d - 1].label;
+                                    return (
+                                        <li key={d}>
+                                            {r ? (
+                                                <RecRow
+                                                    rec={r}
+                                                    label={`Day ${d} · ${formatRecordedOn(r.recordedOn)}`}
+                                                    playing={playing}
+                                                    play={play}
+                                                    onEnd={onEnd}
+                                                    stop={stop}
+                                                />
+                                            ) : (
+                                                <p className="none">
+                                                    <span>
+                                                        Day {d} · {wd}
+                                                    </span>
+                                                    <small>—</small>
+                                                </p>
+                                            )}
+                                        </li>
+                                    );
+                                })}
                         </ul>
                     </div>
                 </div>
@@ -653,7 +674,10 @@ export const LampRecordings: React.FC = () => {
     };
 
     const known = allWeeks.filter((w) => recs[w.key] !== undefined);
-    const none = allWeeks.length > 0 && known.length === allWeeks.length && known.every((w) => !recs[w.key].length);
+    // nada ainda: nenhuma linha (relógio novo antes da primeira segunda) ou todas conhecidas e vazias
+    const none =
+        (allWeeks.length === 0 && !stats.loading) ||
+        (allWeeks.length > 0 && known.length === allWeeks.length && known.every((w) => !recs[w.key].length));
     const today = allWeeks[0];
 
     return (

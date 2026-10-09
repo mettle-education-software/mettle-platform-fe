@@ -1,5 +1,6 @@
 import { QueryClient, useQueryClient } from '@tanstack/react-query';
 import { InputDataDTO, InputDataResponse } from 'interfaces';
+import { MelpSummaryResponse } from 'interfaces/melp';
 import { lampLastDay, lampRunning, lampSaveError, lampSaveProblem } from 'libs/dedaClock';
 import { useAppContext, useMelpContext, useNotificationsContext } from 'providers';
 import { useEffect, useMemo, useReducer, useState } from 'react';
@@ -153,18 +154,27 @@ const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((listener) => listener());
 const keyOf = (uid: string, week: string, day: string) => `${uid}:${week}:${day}`;
 let timer: ReturnType<typeof setTimeout> | null = null;
-/** o que só a tela sabe: o cliente de consultas, se a LAMP conta agora, se a LAMP está aberta e como avisar */
+/** o que só a tela sabe: o cliente de consultas, se a LAMP está aberta, o dia na tela e como avisar */
 const env: {
     queryClient?: QueryClient;
-    writable: boolean;
     mounted: boolean;
+    currentKey?: string;
     notify?: (text: string) => void;
-} = { writable: false, mounted: false };
+} = { mounted: false };
 
-const refresh = (d: DayDraft) => {
+/** A LAMP conta agora para esta conta? Pelo resumo mais recente em cache (vale também com a LAMP fora da tela). */
+const writable = (uid: string) =>
+    lampRunning(env.queryClient?.getQueryData<MelpSummaryResponse['data']>(['imerso-summary', uid]));
+
+const dayText = (d: DayDraft) => `Week ${Number(d.week.replace('week', ''))} · Day ${Number(d.day.replace('day', ''))}`;
+
+const refresh = async (d: DayDraft) => {
     const qc = env.queryClient;
     if (!qc) return;
-    qc.invalidateQueries({ queryKey: ['get-input-data', d.uid, d.week, d.day] });
+    // uma leitura do dia começada antes da gravação não pode aposentar o rascunho confirmado: cancela e relê
+    const queryKey = ['get-input-data', d.uid, d.week, d.day];
+    await qc.cancelQueries({ queryKey });
+    qc.invalidateQueries({ queryKey, refetchType: 'all' });
     for (const queryKey of [
         ['get-weekly-performance'],
         ['get-general-weekly-development'],
@@ -178,7 +188,7 @@ const send = (k: string) => {
     const d = drafts.get(k);
     if (!d || d.inflight || !d.dirty || d.error) return;
     // a LAMP parou de contar (pausa em outra aba, fim, manutenção) entre a alteração e o envio: não grava
-    if (!env.writable) {
+    if (!writable(d.uid)) {
         d.dirty = false;
         d.error = { text: 'Your LAMP is not counting now, so this change was not saved.', retry: false };
         return emit();
@@ -193,23 +203,30 @@ const send = (k: string) => {
             if (d.dirty) return send(k); // chegou alteração durante o pedido: vai a mais recente
             d.ackedAt = Date.now();
             savedAt.set(d.uid, new Date());
-            refresh(d);
+            void refresh(d);
             emit();
         },
         (error) => {
             d.inflight = false;
             const problem = lampSaveProblem(error);
-            if (lampSaveError(error) === 'LAMP_DAY_REPLACED') {
+            const code = lampSaveError(error);
+            if (code === 'LAMP_DAY_REPLACED') {
                 // a linha do dia foi trocada (pausa e volta na mesma segunda): o rascunho não vale mais
                 drafts.delete(k);
                 replaced.set(k, d.snapshot.dedaInput?.rowId ?? '');
-                refresh(d);
+                void refresh(d);
+                // outro dia que não o da tela: o aviso diz qual
+                if (env.mounted && env.currentKey !== k)
+                    env.notify?.(`${dayText(d)} was updated. Please enter it again.`);
             } else if (drafts.get(k) === d) {
                 d.error = problem; // os valores ficam; "Try again" manda os mais recentes deste dia
                 d.dirty = problem.retry;
             }
+            // recusa definitiva (manutenção, LAMP encerrada): o resumo relido deixa a LAMP só leitura
+            if (!problem.retry) env.queryClient?.invalidateQueries({ queryKey: ['imerso-summary', d.uid] });
             // fora da LAMP: a falha não pode sumir em silêncio
-            if (!env.mounted) env.notify?.(problem.text);
+            if (!env.mounted)
+                env.notify?.(code === 'LAMP_DAY_REPLACED' ? `${dayText(d)}: ${problem.text}` : problem.text);
             emit();
         },
     );
@@ -232,7 +249,6 @@ export const useLampInputForm = () => {
     const readOnly = !lampRunning(melpSummary);
     const currentWeek = melpSummary?.current_deda_week;
     env.queryClient = queryClient;
-    env.writable = !readOnly;
     env.notify = (text) => showNotification('error', 'LAMP', text);
 
     // sem dia na LAMP ainda (semana 0: aguardando a segunda) não há o que pedir
@@ -263,6 +279,7 @@ export const useLampInputForm = () => {
     }, [currentWeek]);
 
     const k = uid ? keyOf(uid, selectedWeek, selectedDay) : '';
+    env.currentKey = k;
     const draft = drafts.get(k);
     const rejected = replaced.get(k);
     const stale = !!rejected && inputData?.dedaInput?.rowId === rejected;
@@ -289,6 +306,8 @@ export const useLampInputForm = () => {
     /** Altera um campo deste dia e agenda a gravação (3,5 s depois da última alteração). */
     const change = <K extends keyof LampInputEdit>(field: K, value: LampInputEdit[K]) => {
         if (readOnly || stale || !uid || !inputData?.dedaInput) return;
+        // recusa definitiva neste dia (manutenção, LAMP encerrada): nada mais é enviado até o resumo se refazer
+        if (drafts.get(k)?.error?.retry === false) return;
         const d = drafts.get(k) ?? {
             uid,
             week: selectedWeek,

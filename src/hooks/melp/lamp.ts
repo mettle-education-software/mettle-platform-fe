@@ -10,11 +10,12 @@ import {
     WeeklyPerformanceResponse,
     WeeklyStatisticsResponse,
 } from 'interfaces';
-import { DedaDifficulty } from 'interfaces/melp';
+import { DedaDifficulty, MelpSummaryResponse } from 'interfaces/melp';
 import { statisticsColors } from 'libs';
-import { useAppContext } from 'providers';
-import { useEffect, useState } from 'react';
-import { lampService } from 'services';
+import { isCalendarClock, lampSaveError, lampSaveProblem, lampToday, todaysDedaId } from 'libs/dedaClock';
+import { useAppContext, useMelpContext } from 'providers';
+import { useEffect, useMemo, useState } from 'react';
+import { lampService, melpService } from 'services';
 import { font } from 'themes';
 
 export interface SaveDedaInputMutationDedaData {
@@ -32,85 +33,166 @@ interface SaveDedaInputMutation {
     week: string;
     day: string;
     inputData: SaveDedaInputMutationDedaData;
+    /**
+     * Relógio novo (§4.2): `rowId` da linha do dia lida quando o estudo abriu. Com ele, salvamento parcial — só o
+     * bloco do DEDA e a identidade da linha, sem GET no salvar e sem reenviar ativo/passivo/revisão.
+     */
+    expectedRowId?: string;
+    /**
+     * DEDA concluído. Com ele, a gravação relê o resumo NA HORA DE EXECUTAR (também quando volta de uma pausa offline)
+     * e só grava se esse DEDA ainda é o de hoje, no mesmo dia da LAMP e no mesmo relógio.
+     */
+    dedaId?: string;
 }
+
+/** Recusa local, no mesmo formato das do servidor (`response.data.code`), para lampSaveProblem. */
+const lampRefusal = (code: string) => Object.assign(new Error(code), { response: { data: { code } } });
 
 export const useSaveDedaInput = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ userUid, week, day, inputData }: SaveDedaInputMutation) => {
-            try {
-                const { data: currentInputData } = await lampService
-                    .get<InputDataResponse>(`/input/v2/${userUid}/${week}/${day}`)
-                    .then(({ data }) => data);
+        mutationFn: async ({ userUid, week, day, inputData, expectedRowId, dedaId }: SaveDedaInputMutation) => {
+            if (dedaId) {
+                // o resumo da tela pode ser de ontem (aba aberta na virada do dia em Brasília, ou offline): confere agora
+                const fresh = await melpService
+                    .get<MelpSummaryResponse>(`/v2/${userUid}/summary`)
+                    .then(({ data }) => data.data);
+                queryClient.setQueryData(['imerso-summary', userUid], fresh);
+                const today = todaysDedaId(fresh) === dedaId ? lampToday(fresh) : null;
+                if (!today) throw lampRefusal('DEDA_NOT_TODAY');
+                if (
+                    `week${today.week}` !== week ||
+                    `day${today.day}` !== day ||
+                    isCalendarClock(fresh) !== !!expectedRowId
+                )
+                    throw lampRefusal('LAMP_DAY_CHANGED');
+            }
+            const dedaInputData = {
+                dedaFocus: inputData.dedaFocus,
+                dedaSteps: inputData.dedaSteps,
+                dedaPredPlace: inputData.dedaPredPlace,
+                dedaStateBeing: inputData.dedaStateBeing,
+                dedaStateMind: inputData.dedaStateMind,
+                readingTime: inputData.readingTime,
+                dedaTime: inputData.dedaTime,
+            };
+            const path = `/input/v2/${userUid}/${week}/${day}`;
+            if (expectedRowId) return lampService.patch(path, { inputData: { dedaInputData }, expectedRowId });
 
-                const inputDTO: InputDataDTO = {
-                    inputData: {
-                        activeInputData: {
-                            book: currentInputData.activeInput.book,
-                            dedaNotes: currentInputData.activeInput.deda_notes,
-                            mooc: currentInputData.activeInput.mooc,
-                            others: currentInputData.activeInput.others,
-                            review: currentInputData.activeInput.review,
-                        },
-                        passiveInputData: {
-                            audiobook: currentInputData.passiveInput.audiobook,
-                            conversation: currentInputData.passiveInput.conversation,
-                            movieDoc: currentInputData.passiveInput.movie_doc,
-                            newsShows: currentInputData.passiveInput.news_shows,
-                            others: currentInputData.passiveInput.others,
-                            podcast: currentInputData.passiveInput.podcast,
-                            series: currentInputData.passiveInput.series,
-                            ted: currentInputData.passiveInput.ted,
-                            youtube: currentInputData.passiveInput.youtube,
-                        },
-                        dedaInputData: {
-                            dedaFocus: inputData.dedaFocus,
-                            dedaSteps: inputData.dedaSteps,
-                            dedaPredPlace: inputData.dedaPredPlace,
-                            dedaStateBeing: inputData.dedaStateBeing,
-                            dedaStateMind: inputData.dedaStateMind,
-                            readingTime: inputData.readingTime,
-                            dedaTime: inputData.dedaTime,
-                        },
+            // legado: o servidor regrava os três blocos a cada PATCH, então reenvia os valores atuais do dia
+            const { data: currentInputData } = await lampService.get<InputDataResponse>(path).then(({ data }) => data);
+
+            const inputDTO: InputDataDTO = {
+                inputData: {
+                    activeInputData: {
+                        book: currentInputData.activeInput.book,
+                        dedaNotes: currentInputData.activeInput.deda_notes,
+                        mooc: currentInputData.activeInput.mooc,
+                        others: currentInputData.activeInput.others,
+                        review: currentInputData.activeInput.review,
+                    },
+                    passiveInputData: {
+                        audiobook: currentInputData.passiveInput.audiobook,
+                        conversation: currentInputData.passiveInput.conversation,
+                        movieDoc: currentInputData.passiveInput.movie_doc,
+                        newsShows: currentInputData.passiveInput.news_shows,
+                        others: currentInputData.passiveInput.others,
+                        podcast: currentInputData.passiveInput.podcast,
+                        series: currentInputData.passiveInput.series,
+                        ted: currentInputData.passiveInput.ted,
+                        youtube: currentInputData.passiveInput.youtube,
+                    },
+                    dedaInputData,
+                },
+            };
+
+            if (currentInputData.reviewInput) {
+                inputDTO.inputData.reviewInputData = {
+                    review1: {
+                        status: currentInputData.reviewInput.review1.status,
                     },
                 };
 
-                if (currentInputData.reviewInput) {
-                    inputDTO.inputData.reviewInputData = {
-                        review1: {
-                            status: currentInputData.reviewInput.review1.status,
-                        },
+                if (currentInputData.reviewInput.review2) {
+                    inputDTO.inputData.reviewInputData.review2 = {
+                        status: currentInputData.reviewInput.review2.status,
                     };
-
-                    if (currentInputData.reviewInput.review2) {
-                        inputDTO.inputData.reviewInputData.review2 = {
-                            status: currentInputData.reviewInput.review2.status,
-                        };
-                    }
-
-                    if (currentInputData.reviewInput.review3) {
-                        inputDTO.inputData.reviewInputData.review3 = {
-                            status: currentInputData.reviewInput.review3.status,
-                        };
-                    }
                 }
 
-                await lampService.patch(`/input/v2/${userUid}/${week}/${day}`, { ...inputDTO });
-            } catch (error) {
-                console.error(error);
-                throw error;
+                if (currentInputData.reviewInput.review3) {
+                    inputDTO.inputData.reviewInputData.review3 = {
+                        status: currentInputData.reviewInput.review3.status,
+                    };
+                }
             }
+
+            return lampService.patch(path, { ...inputDTO });
         },
-        onSuccess: async () => {
-            await queryClient.invalidateQueries({
-                queryKey: ['get-deda-status'],
-            });
-        },
-        onError: (error) => {
-            throw error;
-        },
+        // a conclusão aparece no app inteiro sem recarregar a página: "feito hoje", o dia na LAMP e a DEDA Run
+        onSuccess: (_data, { userUid, week, day }) =>
+            Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['get-deda-status'] }),
+                queryClient.invalidateQueries({ queryKey: ['get-input-data', userUid, week, day] }),
+                queryClient.invalidateQueries({ queryKey: ['lamp-days', userUid] }),
+            ]),
     });
+};
+
+/**
+ * Conclusão do DEDA de hoje (leitor novo e DedaSteps). Só o DEDA de hoje e só com a LAMP contando: em pausa, fim, espera
+ * da segunda e semana zero os passos ficam abertos e nada vai para a LAMP (QA PF-20/PF-32). Semana e dia vêm do resumo
+ * (lampToday), nunca da posição do DEDA na lista (PF-09: na 2ª volta do círculo a posição aponta a semana 1).
+ * Relógio novo: lê a linha do dia ao abrir o estudo e salva só o DEDA com o `rowId` dela (§4.2).
+ */
+export const useDedaCompletion = (dedaId: string) => {
+    const { user } = useAppContext();
+    const { melpSummary, isTodaysDedaCompleted } = useMelpContext();
+    const isTodaysDeda = todaysDedaId(melpSummary) === dedaId;
+    const lampDay = isTodaysDeda ? lampToday(melpSummary) : null;
+    const completable = !!lampDay && !isTodaysDedaCompleted;
+    const calendar = isCalendarClock(melpSummary);
+    const week = lampDay ? `week${lampDay.week}` : '';
+    const day = lampDay ? `day${lampDay.day}` : '';
+    const row = useGetInputData(calendar && completable ? week : '', day);
+    // a identidade recusada pelo servidor (409 LAMP_DAY_REPLACED) não volta a ser enviada, nem se a releitura falhar
+    const [rejectedRowId, setRejectedRowId] = useState<string>();
+    const rowId = row.data?.dedaInput?.rowId !== rejectedRowId ? row.data?.dedaInput?.rowId : undefined;
+    const save = useSaveDedaInput();
+
+    const complete = (inputData: SaveDedaInputMutationDedaData, onDone: () => void) => {
+        if (!lampDay || !user?.uid || save.isPending) return;
+        save.reset();
+        // sem a linha do dia (a leitura falhou ou foi recusada): tenta lê-la de novo, sem gravar
+        if (calendar && !rowId) return void row.refetch();
+        save.mutate(
+            { userUid: user.uid, week, day, inputData, expectedRowId: calendar ? rowId : undefined, dedaId },
+            {
+                onSuccess: onDone,
+                onError: (error) => {
+                    // a linha do dia foi trocada (pausa e volta na mesma segunda): relê para o próximo "Try again"
+                    if (lampSaveError(error) === 'LAMP_DAY_REPLACED') {
+                        setRejectedRowId(rowId);
+                        row.refetch();
+                    }
+                },
+            },
+        );
+    };
+
+    const failure = save.error ?? (calendar && completable && row.isError ? row.error : undefined);
+    const problem = useMemo(() => (failure ? lampSaveProblem(failure) : undefined), [failure]);
+    return {
+        isTodaysDeda,
+        lampDay,
+        /** pode concluir hoje (o passo Summary aparece) */
+        completable,
+        /** o botão pode ser usado: relógio novo com a linha do dia lida (ou com a leitura falha, para tentar de novo) */
+        ready: !calendar || (!row.isFetching && (!!rowId || row.isError || !!rejectedRowId)),
+        saving: save.isPending,
+        problem,
+        complete,
+    };
 };
 
 const graphLabelsStyles = {

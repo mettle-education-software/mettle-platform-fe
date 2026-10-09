@@ -661,6 +661,8 @@ const NewChat: React.FC = () => {
     };
 
     const send = (opts: { blob?: Blob | null; name?: string; sticker?: { id: string; url: string } } = {}) => {
+        // só com a conversa carregada (fechado/fora do ar não envia nada, nem figurinha nem áudio)
+        if (state !== 'ready') return;
         const blob = opts.sticker ? null : opts.blob !== undefined ? opts.blob : file;
         const body = opts.sticker || (opts.blob && opts.blob !== file) ? '' : text.trim();
         if (!body && !blob && !opts.sticker) return;
@@ -708,6 +710,7 @@ const NewChat: React.FC = () => {
         if (!opts.sticker) input.current?.focus();
     };
     const resend = (m: ChatMessage) => {
+        if (state !== 'ready') return;
         const job = jobs.current.get(m.id);
         if (!job) return;
         setMessages((cur) => cur.map((x) => (x.id === m.id ? { ...x, pending: 'sending' } : x)));
@@ -959,7 +962,8 @@ const NewChat: React.FC = () => {
                     }}
                 >
                     <div className="col" role="log" aria-live="polite" aria-label="Conversa com o suporte">
-                        {/* fechado (404) ou fora do ar: uma linha calma, a saída por e-mail e o campo desligado */}
+                        {/* fechado (404) ou fora do ar: uma linha calma, a saída por e-mail e o campo desligado (o campo só
+                            liga com a conversa carregada) */}
                         {state === 'error' && (
                             <div className="state" role="status">
                                 <p>Suporte indisponível no momento</p>
@@ -1096,7 +1100,7 @@ const NewChat: React.FC = () => {
                     </div>
                 </div>
 
-                {picker && (
+                {picker && state === 'ready' && (
                     <ChatPicker
                         tab={picker}
                         onTab={setPicker}
@@ -1112,10 +1116,10 @@ const NewChat: React.FC = () => {
                     className="composer"
                     onSubmit={(e) => {
                         e.preventDefault();
-                        if (state !== 'error') send();
+                        send();
                     }}
                 >
-                    <fieldset disabled={state === 'error'}>
+                    <fieldset disabled={state !== 'ready'}>
                         {replyTo && (
                             <div className="replying">
                                 <QuoteBlock q={replyTo} me="Você" />

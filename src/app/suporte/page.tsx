@@ -15,8 +15,19 @@ function Suporte() {
     const router = useRouter();
     useEffect(() => {
         if (newDesign) return;
-        window.$chatwoot?.toggle?.('open');
-        router.replace('/');
+        // tela atual: o widget do Chatwoot entra depois de conhecida a sessão; abre quando ficar pronto
+        const open = () => {
+            window.$chatwoot?.toggle?.('open');
+            router.replace('/');
+        };
+        if (window.$chatwoot?.toggle) return open();
+        window.addEventListener('chatwoot:ready', open, { once: true });
+        // widget bloqueado ou fora do ar: a aba de ajuda (e-mail) no lugar de uma tela vazia
+        const fallback = window.setTimeout(() => router.replace('/settings?tab=help'), 8000);
+        return () => {
+            window.removeEventListener('chatwoot:ready', open);
+            window.clearTimeout(fallback);
+        };
     }, [newDesign, router]);
     if (!newDesign) return null;
 

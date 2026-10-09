@@ -5,7 +5,7 @@ import { lampLastDay, lampRunning, lampSaveError, lampSaveProblem } from 'libs/d
 import { useAppContext, useMelpContext, useNotificationsContext } from 'providers';
 import { useEffect, useMemo, useReducer, useState } from 'react';
 import { lampService } from 'services';
-import { useGetInputData } from './lamp';
+import { lampRefusal, useGetInputData, withDayLock } from './lamp';
 
 /**
  * Estado e gravação da aba Input da LAMP (plataforma nova): os mesmos campos de components/_melp/_lamp/InputTab (menos
@@ -194,22 +194,26 @@ const refresh = async (d: DayDraft) => {
         qc.invalidateQueries({ queryKey });
 };
 
-/** Uma recusa no mesmo formato das do servidor (`response.data.code`), para o mesmo tratamento. */
-const refusal = (code: string) => Object.assign(new Error(code), { response: { data: { code } } });
+const NOT_COUNTING = 'Your LAMP is not counting now, so this change was not saved.';
 
 /**
- * O pedido de um dia: lê o dia agora (a mesma linha, conferida pelo rowId do rascunho) e manda os campos que o aluno
- * alterou sobre o que o servidor tem — tempos do Summary e estrelas gravados pela conclusão do DEDA nunca voltam velhos.
+ * O pedido de um dia, na vez dele (withDayLock: nunca intercalado com a conclusão do DEDA nesta aba): lê o dia agora
+ * (a mesma linha, conferida pelo rowId do rascunho) e manda os campos que o aluno alterou sobre o que o servidor tem —
+ * tempos do Summary e estrelas gravados pela conclusão do DEDA nunca voltam velhos. Devolve o que foi enviado.
  */
-const save = async (d: DayDraft) => {
-    const path = `/input/v2/${d.uid}/${d.week}/${d.day}`;
-    const fresh = await lampService.get<InputDataResponse>(path).then(({ data }) => data.data);
-    if (rowOf(fresh) !== rowOf(d.snapshot)) throw refusal('LAMP_DAY_REPLACED');
-    const picked = Object.fromEntries([...d.changed].map((field) => [field, d.values[field]]));
-    d.values = { ...fromInput(fresh), ...picked };
-    d.snapshot = fresh;
-    await lampService.patch(path, { ...toDTO(d.values, fresh) });
-};
+const save = (d: DayDraft) =>
+    withDayLock(`${d.uid}:${d.week}:${d.day}`, async () => {
+        const path = `/input/v2/${d.uid}/${d.week}/${d.day}`;
+        const fresh = await lampService.get<InputDataResponse>(path).then(({ data }) => data.data);
+        if (rowOf(fresh) !== rowOf(d.snapshot)) throw lampRefusal('LAMP_DAY_REPLACED');
+        // a LAMP pode ter parado enquanto o dia era lido
+        if (!writable(d.uid)) throw lampRefusal('LAMP_NOT_COUNTING');
+        const sent: Partial<LampInputEdit> = Object.fromEntries([...d.changed].map((f) => [f, d.values[f]]));
+        d.values = { ...fromInput(fresh), ...sent };
+        d.snapshot = fresh;
+        await lampService.patch(path, { ...toDTO(d.values, fresh) });
+        return sent;
+    });
 
 const send = (k: string) => {
     const d = drafts.get(k);
@@ -217,11 +221,7 @@ const send = (k: string) => {
     // a LAMP parou de contar (pausa em outra aba, fim, manutenção) entre a alteração e o envio: não grava
     if (!writable(d.uid)) {
         d.dirty = false;
-        d.error = {
-            text: 'Your LAMP is not counting now, so this change was not saved.',
-            retry: false,
-            at: Date.now(),
-        };
+        d.error = { text: NOT_COUNTING, retry: false, at: Date.now() };
         if (!env.mounted) env.notify?.(`${dayText(d)}: ${d.error.text}`);
         return emit();
     }
@@ -229,8 +229,11 @@ const send = (k: string) => {
     d.dirty = false;
     emit();
     save(d).then(
-        () => {
+        (sent) => {
             d.inflight = false;
+            // o que o servidor confirmou deixa de ser "alterado" (a não ser que tenha mudado de novo durante o pedido)
+            for (const [field, value] of Object.entries(sent) as [keyof LampInputEdit, unknown][])
+                if (d.values[field] === value) d.changed.delete(field);
             savedAt.set(d.uid, new Date());
             const current = drafts.get(k) === d;
             if (current && !d.dirty) d.ackedAt = Date.now();
@@ -241,8 +244,9 @@ const send = (k: string) => {
         },
         (error) => {
             d.inflight = false;
-            const problem = lampSaveProblem(error);
             const code = lampSaveError(error);
+            const problem =
+                code === 'LAMP_NOT_COUNTING' ? { text: NOT_COUNTING, retry: false } : lampSaveProblem(error);
             if (code === 'LAMP_DAY_REPLACED' || code === 'EXPECTED_ROW_ID_REQUIRED') {
                 // a linha do dia foi trocada (pausa e volta na mesma segunda) ou a conta passou ao relógio novo com um
                 // rascunho antigo: o rascunho não vale mais; relê o dia (e o resumo) e o aluno lança de novo

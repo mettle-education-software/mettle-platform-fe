@@ -206,6 +206,13 @@ describe('recentDedaIds', () => {
         expect(recentDedaIds(secondLap, 4)).toEqual(['DEDA35', 'DEDA34', 'DEDA33', 'DEDA32']);
         const s = calendar({ deda_weeks: dedaWeeks('2024-10-07', [...lap.slice(0, 5), null], (i) => i + 1) });
         expect(recentDedaIds(s, 2)).toEqual(['DEDA39', 'DEDA38']);
+        expect(recentDedaIds(s, Infinity)).toEqual(['DEDA39', 'DEDA38', 'DEDA37', 'DEDA36', 'DEDA35', 'DEDA0']);
+    });
+
+    it('relógio novo antes da primeira segunda: o DEDA0 de treino (a grade da semana zero não fica vazia)', () => {
+        const s = calendar({ deda_weeks: [], melp_status: 'CAN_START_DEDA', deda_calendar_day: 0, deda_today: null });
+        expect(recentDedaIds(s, 4)).toEqual(['DEDA0']);
+        expect(todaysDedaId(s)).toBe('DEDA0');
     });
 
     it('legado: o fim de unlocked_dedas, do mais novo para trás', () => {

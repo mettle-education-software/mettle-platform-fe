@@ -52,7 +52,8 @@ export const dedaLampWeek = (s: Summary | null | undefined, dedaId: string): num
 
 /**
  * Os `n` DEDAs mais recentes, do mais novo para trás, sem repetir. Relógio novo: as exibições datadas (`deda_weeks`,
- * só semanas publicadas); legado: o fim de `unlocked_dedas`.
+ * só semanas publicadas) e, por último, o DEDA0 de treino (como no legado, e o único antes da primeira segunda);
+ * legado: o fim de `unlocked_dedas`.
  */
 export const recentDedaIds = (s: Summary | null | undefined, n: number): string[] => {
     if (!s) return [];
@@ -63,6 +64,7 @@ export const recentDedaIds = (s: Summary | null | undefined, n: number): string[
         const id = weeks[i].deda_id;
         if (id && !out.includes(id)) out.push(id);
     }
+    if (out.length < n && s.unlocked_dedas?.includes('DEDA0') && !out.includes('DEDA0')) out.push('DEDA0');
     return out;
 };
 

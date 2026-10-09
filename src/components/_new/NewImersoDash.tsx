@@ -405,7 +405,8 @@ export const SuspendedNotice: React.FC = () => (
 export const NowDeda: React.FC = () => {
     const { isTodaysDedaCompleted } = useMelpContext();
     const grid = useDedasGrid('lastDedas');
-    const deda = grid.lastDedas[0];
+    // o de hoje (libs/dedaClock): no relógio novo, antes de a rotação da semana sair não há "de hoje" — nada aparece
+    const deda = grid.lastDedas.find((item) => item?.dedaId === grid.currentDeda);
     if (!deda) return grid.showSkeleton ? <Skel /> : null;
     const thumb = contentfulImage(deda.dedaFeaturedImage?.url, { w: 448, h: 252, fit: 'fill', fm: 'webp', q: 70 });
     return (

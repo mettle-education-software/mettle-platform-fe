@@ -52,11 +52,12 @@ export const useDedaReviews = (dedaId: string) => {
     const { melpSummary } = useMelpContext();
 
     // semana da LAMP em que o aluno fez o DEDA (libs/dedaClock): relógio novo pela exibição datada, legado pela posição
-    const hasReview = !!hasReviews(melpSummary, dedaId);
+    const hasReview = hasReviews(melpSummary, dedaId); // undefined = resumo ainda não chegou
     const selectedWeek = `week${dedaLampWeek(melpSummary, dedaId) ?? 0}`;
     const selectedDay = getDayToday();
 
-    const { data: inputData, isLoading: isInputLoading } = useGetInputData(selectedWeek, selectedDay);
+    // sem semana de revisão (antes da semana 4, DEDA exibido só em pausa ou de um ciclo arquivado): nada a pedir
+    const { data: inputData, isLoading: isInputLoading } = useGetInputData(hasReview ? selectedWeek : '', selectedDay);
     const [editReview, setEditReview] = useState<EditReviews>({
         review1: inputData?.reviewInput?.review1?.status as boolean,
     });
@@ -171,16 +172,7 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
     const { hasReview, inputData, isInputLoading, editReview, setEditReview, setSaveKey, saveInput } =
         useDedaReviews(dedaId);
 
-    if (!inputData || isInputLoading)
-        return (
-            <ReviewContainer>
-                <MaxWidthContainer>
-                    <Skeleton active loading />
-                </MaxWidthContainer>
-            </ReviewContainer>
-        );
-
-    if (!hasReview)
+    if (hasReview === false)
         return (
             <ReviewContainer>
                 <MaxWidthContainer>
@@ -199,6 +191,15 @@ export const DedaReview = ({ dedaId }: { dedaId: string }) => {
                             </div>
                         </NoReviewContainer>
                     </Flex>
+                </MaxWidthContainer>
+            </ReviewContainer>
+        );
+
+    if (!inputData || isInputLoading)
+        return (
+            <ReviewContainer>
+                <MaxWidthContainer>
+                    <Skeleton active loading />
                 </MaxWidthContainer>
             </ReviewContainer>
         );

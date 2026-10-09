@@ -43,21 +43,21 @@ export const ReaderReview = ({ dedaId }: { dedaId: string }) => {
         </div>
     );
 
-    if (!inputData || isInputLoading)
-        return (
-            <div className="review">
-                {head}
-                <p className="hint">Loading…</p>
-            </div>
-        );
-
-    if (!hasReview)
+    if (hasReview === false)
         return (
             <div className="review">
                 {head}
                 <p className="empty">
                     No reviews available at this stage of the program. Keep progressing to unlock them!
                 </p>
+            </div>
+        );
+
+    if (!inputData || isInputLoading)
+        return (
+            <div className="review">
+                {head}
+                <p className="hint">Loading…</p>
             </div>
         );
 

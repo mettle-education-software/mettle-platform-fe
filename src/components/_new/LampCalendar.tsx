@@ -360,8 +360,18 @@ const styles = css`
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 14px;
         }
+        .rcal .mini {
+            min-width: 0;
+            padding: 8px;
+            border: 1px solid var(--r-line);
+            border-radius: 8px;
+        }
         .rcal .mini .mg {
+            /* A largura explícita evita o colapso das colunas fr dentro do botão flex. */
+            width: 100%;
             grid-template-columns: repeat(7, minmax(0, 1fr));
+            /* Reserva seis semanas para alinhar também meses com quatro ou cinco. */
+            grid-template-rows: repeat(6, 1fr);
         }
         .rcal .mini i {
             width: auto;

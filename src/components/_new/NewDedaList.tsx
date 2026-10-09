@@ -77,7 +77,7 @@ export const NewDedaList: React.FC = () => {
             <NewDedasGrid
                 blockedDEDAs={blockedDEDAs}
                 type="lastDedas"
-                skipCurrent={!blockedDEDAs}
+                skipCurrent={!blockedDEDAs && !!featured && featured.dedaId === unlockedDEDAs[unlockedDEDAs.length - 1]}
                 onSelectedDeda={handleSelectedDeda}
             />
             <NewDedasGrid blockedDEDAs={blockedDEDAs} type="nextDedas" onSelectedDeda={handleSelectedDeda} />

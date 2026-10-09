@@ -403,6 +403,8 @@ const Wrap = styled.div`
         flex: none;
         display: flex;
         align-items: center;
+        /* sem seletor de abas (aba única), o "Aa" continua à direita (o balão abre para a esquerda) */
+        margin-left: auto;
         margin-right: -10px;
     }
     .tabs .tools .ib {

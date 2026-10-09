@@ -31,7 +31,8 @@ export const NewDedasGrid: React.FC<Props> = ({ type, onSelectedDeda, customTitl
     // Mesmas condições de título da grade atual.
     const visible =
         type === 'allDedas' || (type === 'lastDedas' ? unlockedDEDAs.length > 0 : grid.showNext) || !!customTitle;
-    if (!visible && !grid.showSkeleton) return null;
+    // "Next DEDAs" nunca aparece só como esqueleto (antes do início ele nem existe)
+    if (!visible && (!grid.showSkeleton || type === 'nextDedas')) return null;
 
     // "feito" só vale para DEDAs liberados que não são o atual, nas grades de passado e de todos; nos próximos, liberado é só "aberto"
     const stateOf = (dedaId: string): DedaCardState =>

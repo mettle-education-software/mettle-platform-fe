@@ -1,5 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
+import { isCalendarClock } from 'libs/dedaClock';
 import {
     baseMimeType,
     brasiliaDate,
@@ -15,6 +16,7 @@ import {
     RecordingAttempts,
     recordingStats,
     recordingsOrDisabled,
+    weeksSinceRecorder,
 } from 'libs/dedaRecording';
 import { flushQueue, idbQueue, QueuedRecording } from 'libs/recordingQueue';
 import { useAppContext, useMelpContext } from 'providers';
@@ -50,17 +52,32 @@ export const useRecordingStats = () => {
     const { melpSummary } = useMelpContext();
     const uid = user?.uid;
     const allowed = RECORDER_FLAG_ON && !!uid && !user?.impersonating;
+    // relógio novo: gravar é do DEDA, não da LAMP — uma consulta por data (?since=), sem descontar pausas e sem exigir
+    // semana na LAMP (vale em pausa e depois do fim); legado: por DEDA, as semanas desde o gravador
+    const calendar = isCalendarClock(melpSummary);
     const current = melpSummary?.current_deda_week ?? 0;
     const unlocked = melpSummary?.unlocked_dedas ?? [];
-    const back = Math.ceil((Date.now() - Date.parse(`${RECORDER_SINCE}T00:00:00-03:00`)) / (7 * 864e5)) + 2;
-    const ids = [...new Set(unlocked.slice(Math.max(1, current - back), current + 1))];
+    const back = weeksSinceRecorder();
+    const ids = calendar ? [] : [...new Set(unlocked.slice(Math.max(1, current - back), current + 1))];
     const results = useQueries({
         queries: ids.map((id) => ({ ...recordingsQuery(uid, id), enabled: allowed && current > 0, staleTime: 60_000 })),
     });
-    const loading = results.some((r) => r.isLoading);
-    const enabled = results.some((r) => r.data?.enabled);
-    const all = results.flatMap((r) => r.data?.recordings ?? []);
-    const paused = pausedIntervals(melpSummary?.deda_pause_dates, melpSummary?.deda_start_dates);
+    const since = useQuery({
+        // mesmo prefixo ['deda-recordings', uid]: toda gravação nova invalida também esta
+        queryKey: ['deda-recordings', uid, 'since', RECORDER_SINCE],
+        queryFn: () =>
+            melpService
+                .get<DedaRecordingsResponse>(`${base(uid as string)}?since=${RECORDER_SINCE}`)
+                .then(({ data }) => data)
+                .catch(recordingsOrDisabled),
+        enabled: allowed && calendar,
+        staleTime: 60_000,
+        retry: false,
+    });
+    const loading = calendar ? since.isLoading : results.some((r) => r.isLoading);
+    const enabled = calendar ? !!since.data?.enabled : results.some((r) => r.data?.enabled);
+    const all = calendar ? (since.data?.recordings ?? []) : results.flatMap((r) => r.data?.recordings ?? []);
+    const paused = calendar ? [] : pausedIntervals(melpSummary?.deda_pause_dates, melpSummary?.deda_start_dates);
     const stats = recordingStats(all, brasiliaDate(new Date()), paused);
     return { allowed: allowed && enabled, loading, stats };
 };

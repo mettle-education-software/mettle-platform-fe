@@ -3,10 +3,10 @@
 import { css, Global } from '@emotion/react';
 import { Select } from 'antd';
 import { useGeneralWeeklyDevelopment, useGetDedasList, useGetWeeklyPerformance, useOverallProgress } from 'hooks';
-import { RECORDER_FLAG_ON } from 'hooks/melp/dedaRecording';
+import { useDedaRecordings } from 'hooks/melp/dedaRecording';
 import { useLampInputForm } from 'hooks/melp/lampInputForm';
 import { statisticsColors } from 'libs';
-import { lampOpen } from 'libs/dedaClock';
+import { lampOpen, todaysDedaId } from 'libs/dedaClock';
 import { formatImersoDate, nextMondayDate } from 'libs/helpers';
 import { axisWords, minutesText } from 'libs/newDesign';
 import dynamic from 'next/dynamic';
@@ -642,11 +642,14 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
     // na casca persistente a página nem sempre recebe searchParams: o endereço é a fonte (?lampTab=goal)
     const params = useSearchParams();
     const asked = initialTab ?? params?.get('lampTab') ?? undefined;
-    // Recordings: só com o gravador ligado e na própria conta (navegar "como o aluno" nunca mostra gravações)
-    const { user } = useAppContext();
-    const tabs = TABS.filter((t) => t.key !== 'recordings' || (RECORDER_FLAG_ON && !!user && !user.impersonating));
-    const [tab, setTab] = useState<TabKey>(tabs.some((t) => t.key === asked) ? (asked as TabKey) : 'performance');
     const { melpSummary, isMelpSummaryError, retryMelpSummary } = useMelpContext();
+    // Recordings: só quando o SERVIDOR diz que o gravador está ligado para esta conta (a env sozinha não basta — PF-03);
+    // a consulta é a do DEDA de hoje (a mesma do leitor). Navegar "como o aluno" nunca mostra gravações.
+    const recorder = useDedaRecordings(todaysDedaId(melpSummary) ?? 'DEDA0');
+    const tabs = TABS.filter((t) => t.key !== 'recordings' || recorder.active);
+    const [tab, setTab] = useState<TabKey>(TABS.some((t) => t.key === asked) ? (asked as TabKey) : 'performance');
+    // pedido direto de ?lampTab=recordings: espera a resposta do servidor; sem gravador, Performance
+    const shown = tab === 'recordings' && !recorder.active ? (recorder.isLoading ? undefined : 'performance') : tab;
     // o formulário da aba Input vive na página: trocar de aba não descarta rascunho nem falha de gravação
     const inputForm = useLampInputForm();
 
@@ -684,7 +687,7 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
                                 key={t.key}
                                 type="button"
                                 role="tab"
-                                aria-selected={t.key === tab}
+                                aria-selected={t.key === shown}
                                 onClick={() => {
                                     // só o endereço muda (o roteador do Next acompanha): sem ida ao servidor nem remontar a página
                                     window.history.replaceState(null, '', `/imerso/lamp?lampTab=${t.key}`);
@@ -697,10 +700,10 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
                     </div>
                 }
             />
-            {tab === 'performance' && <Performance />}
-            {tab === 'input' && <NewLampInput form={inputForm} />}
-            {tab === 'goal' && <LampGoals help={GOALS_HELP} />}
-            {tab === 'recordings' && tabs.some((t) => t.key === 'recordings') && <LampRecordings />}
+            {shown === 'performance' && <Performance />}
+            {shown === 'input' && <NewLampInput form={inputForm} />}
+            {shown === 'goal' && <LampGoals help={GOALS_HELP} />}
+            {shown === 'recordings' && <LampRecordings />}
         </NewPage>
     );
 };

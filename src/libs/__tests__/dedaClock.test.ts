@@ -1,5 +1,6 @@
 import { DedaWeek, MelpSummaryResponse } from '../../interfaces/melp';
 import {
+    dedaIdsSince,
     dedaLampWeek,
     legacyLampLastDate,
     isCalendarClock,
@@ -362,5 +363,16 @@ describe('legacyLampLastDate (data do último dia da LAMP no legado)', () => {
         expect(legacyLampLastDate(legacy({ current_deda_day: 0, current_deda_week: 0 }))).toBeNull();
         expect(legacyLampLastDate(legacy({ deda_start_dates: [], deda_pause_dates: [] }))).toBeNull();
         expect(legacyLampLastDate(undefined)).toBeNull();
+    });
+});
+
+describe('dedaIdsSince (linhas da aba Recordings no relógio novo)', () => {
+    it('só os DEDAs exibidos desde a data, do mais recente para trás, sem repetir nem semana não publicada', () => {
+        const s = calendar({
+            deda_weeks: dedaWeeks('2026-09-07', ['DEDA7', 'DEDA8', null, 'DEDA9', 'DEDA7'], (i) => i + 1),
+        });
+        expect(dedaIdsSince(s, '2026-09-21')).toEqual(['DEDA7', 'DEDA9']);
+        expect(dedaIdsSince(s, '2026-01-01')).toEqual(['DEDA7', 'DEDA9', 'DEDA8']);
+        expect(dedaIdsSince(undefined, '2026-01-01')).toEqual([]);
     });
 });

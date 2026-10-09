@@ -19,13 +19,14 @@ export function withRoles<P extends object>(Component: React.FC<P>, config: Conf
         const { roles, fallback } = config;
 
         const { user } = useAppContext();
-        const { access } = useProductAccess();
+        const { access, accessLoading } = useProductAccess();
         const router = useRouter();
 
         // Expirado ainda entra (modo leitura; o AppLayout decide o que abre). Só "none" é barrado.
         const hasPermission = roles.some((role) => user?.roles?.includes(role) || access(role).state !== 'none');
 
-        if (!user) return <LoadingLayout />;
+        // sem a role, a permissão ainda pode vir de /v2/me/access: espera a resposta antes de barrar
+        if (!user || (!hasPermission && accessLoading)) return <LoadingLayout />;
 
         if (!hasPermission) {
             if (fallback.type === 'redirect') {

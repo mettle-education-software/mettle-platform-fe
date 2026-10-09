@@ -24,7 +24,7 @@ export const withDedaSlug = (Component: any) => (props: { params: { dedaSlug: st
         if (error && newDesign)
             return (
                 <NewStatus
-                    title="Ops!"
+                    title="Oops!"
                     text="We couldn’t load this DEDA."
                     action={
                         <button type="button" className="btn line" onClick={() => refetch()}>

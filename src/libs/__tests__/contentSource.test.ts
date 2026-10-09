@@ -206,6 +206,27 @@ describe('makeContentFetch', () => {
         expect(calls).toEqual([M]);
     });
 
+    it('só o espelho: corpo que trava no meio também esgota o tempo (e tenta mais uma vez)', async () => {
+        jest.useFakeTimers();
+        let n = 0;
+        const f = makeContentFetch({
+            mirror: M,
+            fetchImpl: async (_i, init) => {
+                n += 1;
+                const body = new ReadableStream({
+                    start: (c) => init!.signal!.addEventListener('abort', () => c.error(new Error('aborted'))),
+                });
+                return new Response(body, { status: 200 });
+            },
+        });
+        const p = f(M);
+        const done = expect(p).rejects.toThrow('aborted');
+        await jest.advanceTimersByTimeAsync(16000);
+        await done;
+        expect(n).toBe(2);
+        jest.useRealTimers();
+    });
+
     it('só o espelho: tempo esgotado também tenta mais uma vez e depois desiste', async () => {
         jest.useFakeTimers();
         let n = 0;

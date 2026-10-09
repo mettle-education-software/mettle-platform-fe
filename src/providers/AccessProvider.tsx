@@ -29,6 +29,8 @@ export interface CtaTarget {
 
 interface AccessContext {
     access: (product: string) => ProductAccess;
+    /** a resposta de /v2/me/access ainda não chegou (negar acesso só depois dela: o produto pode vir só de lá) */
+    accessLoading: boolean;
     imerso: MyAccessResponse['imerso'];
     cta: CtaTarget | null;
     openCta: (target: CtaTarget | null) => void;
@@ -36,6 +38,7 @@ interface AccessContext {
 
 const Context = createContext<AccessContext>({
     access: () => ({ state: 'none' }),
+    accessLoading: false,
     imerso: null,
     cta: null,
     openCta: () => undefined,
@@ -74,7 +77,7 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [cta, setCta] = useState<CtaTarget | null>(null);
 
     // Sem o endpoint (backend sem o PR #102) o erro é ignorado e vale o comportamento atual pelas roles.
-    const { data } = useQuery({
+    const { data, isLoading: accessLoading } = useQuery({
         queryKey: ['my-access', user?.uid],
         queryFn: () => accountService.get<{ data: MyAccessResponse }>('/v2/me/access').then(({ data }) => data.data),
         enabled: !!user?.uid,
@@ -92,11 +95,12 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const value = useMemo<AccessContext>(
         () => ({
             access: (product) => resolveAccess(product, roles, data),
+            accessLoading,
             imerso: data?.imerso ?? null,
             cta,
             openCta: setCta,
         }),
-        [roles, data, cta],
+        [roles, data, accessLoading, cta],
     );
 
     return <Context.Provider value={value}>{children}</Context.Provider>;

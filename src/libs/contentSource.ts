@@ -72,15 +72,19 @@ export const makeContentFetch = ({
         return res;
     };
 
-    // Uma ida à fonte com tempo-limite (o aborto de quem chamou também vale).
+    // Uma ida à fonte com tempo-limite que vale até o fim do corpo (resposta que trava no meio também conta);
+    // o aborto de quem chamou também vale, inclusive se já veio abortado.
     const timed = async (url: string, init: RequestInit | undefined) => {
         const caller = init?.signal;
         const ctrl = new AbortController();
         const abort = () => ctrl.abort();
+        if (caller?.aborted) abort();
         caller?.addEventListener('abort', abort);
         const timer = setTimeout(abort, MIRROR_TIMEOUT_MS);
         try {
-            return await fetchImpl(url, { ...init, signal: ctrl.signal });
+            const res = await fetchImpl(url, { ...init, signal: ctrl.signal });
+            const text = await res.text();
+            return new Response(text, { status: res.status, statusText: res.statusText, headers: res.headers });
         } finally {
             clearTimeout(timer);
             caller?.removeEventListener('abort', abort);

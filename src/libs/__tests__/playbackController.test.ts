@@ -137,7 +137,7 @@ describe('createPlaybackController', () => {
         expect(coordinator.activeId()).toBeNull();
     });
 
-    it('pausa causada por invalidação não é anunciada: B mantém "Tocando: B"', async () => {
+    it('pausa causada por invalidação não é anunciada: B mantém "Playing: B"', async () => {
         const coordinator = createPlaybackCoordinator();
         const a = setup('a', coordinator);
         const b = setup('b', coordinator);
@@ -156,20 +156,20 @@ describe('createPlaybackController', () => {
         b.audio.calls[0].resolve();
         await flush();
         onPlay(b, 'B');
-        expect(live).toBe('Tocando: B');
+        expect(live).toBe('Playing: B');
 
         // onPlay atrasado de A: obsoleto, pausa o próprio áudio, e essa pausa também é silenciosa
         a.audio.paused = false;
         onPlay(a, 'A');
         expect(a.audio.pause).toHaveBeenCalledTimes(2);
         onPause(a, 'A');
-        expect(live).toBe('Tocando: B');
+        expect(live).toBe('Playing: B');
         expect(coordinator.activeId()).toBe('b');
 
         // Pausa do usuário em B é anunciada
         b.controller.toggle();
         onPause(b, 'B');
-        expect(live).toBe('Pausado: B');
+        expect(live).toBe('Paused: B');
     });
 
     it('flag de silêncio não vaza: sem pausa real, a próxima pausa do usuário é anunciada', () => {

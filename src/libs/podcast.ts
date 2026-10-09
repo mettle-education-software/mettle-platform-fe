@@ -147,9 +147,9 @@ export const cleanEpisodeTitle = (title: string) => title.replace(EPISODE_NUMBER
 
 /** Texto da região aria-live para cada evento do <audio>; o `pause` que vem junto do fim não anuncia. */
 export const playbackAnnouncement = (event: 'play' | 'pause' | 'ended', title: string, ended = false) => {
-    if (event === 'play') return `Tocando: ${title}`;
-    if (event === 'ended') return `Fim do episódio: ${title}`;
-    return ended ? null : `Pausado: ${title}`;
+    if (event === 'play') return `Playing: ${title}`;
+    if (event === 'ended') return `Episode ended: ${title}`;
+    return ended ? null : `Paused: ${title}`;
 };
 
 // Cor do card de podcast (estilo Spotify): só hex #rrggbb validado; senão o marrom escuro da Mettle.

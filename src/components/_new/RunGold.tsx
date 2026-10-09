@@ -330,7 +330,7 @@ export const RunCard: React.FC<{ current: number; counted: boolean; ready: boole
                         {ready ? current : '—'}
                     </span>
                 </Ring>
-                {burst > 0 && <span className="rg-badge">{burst} dias</span>}
+                {burst > 0 && <span className="rg-badge">{burst} days</span>}
             </div>
         </section>
     );

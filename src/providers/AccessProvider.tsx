@@ -46,26 +46,42 @@ const Context = createContext<AccessContext>({
 
 const PRODUCT_NAMES: Record<string, string> = { [IMERSO_PRODUCT]: 'Programa Imerso' };
 
-const CtaContent: React.FC<{ target: CtaTarget; imerso: MyAccessResponse['imerso']; onClose?: () => void }> = ({
-    target,
-    imerso,
-    onClose,
-}) => {
+const CtaContent: React.FC<{
+    target: CtaTarget;
+    imerso: MyAccessResponse['imerso'];
+    onClose?: () => void;
+    /** bloco no lugar do conteúdo: botão alinhado ao texto (no modal, à direita) */
+    inline?: boolean;
+}> = ({ target, imerso, onClose, inline }) => {
     const name = target.name ?? PRODUCT_NAMES[target.product] ?? 'este produto';
     const renewUrl = target.renewUrl ?? RENEWAL_URLS[target.product] ?? IMERSO_SALES_URL;
-    const progress =
-        target.product === IMERSO_PRODUCT && imerso
-            ? `Você parou na semana ${imerso.week}, com ${imerso.dedasConcluded} DEDAs concluídos. Seu progresso está guardado.`
-            : 'Seu progresso está guardado.';
+    // a semana em que parou (o "DEDAs concluídos" do servidor conta dias, não DEDAs: fica de fora)
+    const week = target.product === IMERSO_PRODUCT && imerso?.week ? imerso.week : null;
+    const newDesign = useNewDesign();
+    // dentro do Imerso, na plataforma nova, tudo em inglês
+    const t =
+        newDesign && target.product === IMERSO_PRODUCT
+            ? {
+                  title: 'Your IMERSO access has expired',
+                  text: `${week ? `You stopped at week ${week}. ` : ''}Your progress is saved.`,
+                  later: 'Not now',
+                  renew: 'Renew access',
+              }
+            : {
+                  title: `Seu acesso ao ${name} expirou`,
+                  text: `${week ? `Você parou na semana ${week}. ` : ''}Seu progresso está guardado. Renove para continuar de onde parou.`,
+                  later: 'Agora não',
+                  renew: 'Renovar meu acesso',
+              };
 
     return (
         <Flex vertical gap="0.5rem">
-            <Title level={4}>Seu acesso ao {name} expirou</Title>
-            <Paragraph>{progress} Renove para continuar de onde parou.</Paragraph>
-            <Flex gap="0.5rem" justify="flex-end">
-                {onClose && <Button onClick={onClose}>Agora não</Button>}
+            <Title level={4}>{t.title}</Title>
+            <Paragraph>{t.text}</Paragraph>
+            <Flex gap="0.5rem" justify={inline ? 'flex-start' : 'flex-end'} wrap>
+                {onClose && <Button onClick={onClose}>{t.later}</Button>}
                 <Button type="primary" href={renewUrl}>
-                    Renovar meu acesso
+                    {t.renew}
                 </Button>
             </Flex>
         </Flex>
@@ -141,7 +157,7 @@ export const AccessCtaBlock: React.FC<{ target: CtaTarget }> = ({ target }) => {
     return (
         <Flex justify="center" style={{ padding: '3rem 1rem' }}>
             <div style={{ maxWidth: '32rem', width: '100%' }}>
-                <CtaContent target={target} imerso={imerso} />
+                <CtaContent target={target} imerso={imerso} inline />
             </div>
         </Flex>
     );

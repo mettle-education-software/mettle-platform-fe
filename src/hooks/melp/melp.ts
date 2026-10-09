@@ -80,7 +80,7 @@ export const useResetMelp = () => {
             await queryClient.invalidateQueries({
                 queryKey: ['imerso-summary'],
             });
-            showNotification('success', 'A fresh start', 'Você reiniciou o programa IMERSO');
+            showNotification('success', 'Recomeço', 'Você reiniciou o programa IMERSO.');
         },
     });
 };

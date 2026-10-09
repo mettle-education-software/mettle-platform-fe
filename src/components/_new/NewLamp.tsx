@@ -6,7 +6,7 @@ import { useGeneralWeeklyDevelopment, useGetDedasList, useGetWeeklyPerformance, 
 import { useDedaRecordings } from 'hooks/melp/dedaRecording';
 import { useLampInputForm } from 'hooks/melp/lampInputForm';
 import { statisticsColors } from 'libs';
-import { lampOpen, todaysDedaId } from 'libs/dedaClock';
+import { lampLastDay, lampOpen, todaysDedaId } from 'libs/dedaClock';
 import { formatImersoDate, nextMondayDate } from 'libs/helpers';
 import { axisWords, minutesText } from 'libs/newDesign';
 import dynamic from 'next/dynamic';
@@ -625,7 +625,9 @@ const LampClosed: React.FC<{ status?: string }> = ({ status }) =>
                 <b>
                     {status === 'DEDA_STARTED_NOT_BEGUN'
                         ? `Your LAMP starts on ${formatImersoDate(nextMondayDate())}`
-                        : 'Your LAMP starts with your first DEDA week'}
+                        : status === 'DEDA_PAUSED'
+                          ? 'Your LAMP is paused'
+                          : 'Your LAMP starts with your first DEDA week'}
                 </b>
             </div>
             <Link className="btn line" href="/imerso">
@@ -653,8 +655,9 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
     // o formulário da aba Input vive na página: trocar de aba não descarta rascunho nem falha de gravação
     const inputForm = useLampInputForm();
 
-    // resumo fora do ar ou LAMP fechada neste estado: título e uma linha (PF-21, PF-15)
-    if (isMelpSummaryError || (melpSummary && !lampOpen(melpSummary)))
+    // resumo fora do ar, LAMP fechada neste estado ou ainda sem dia (aguardando a segunda): título e uma linha
+    // (PF-21, PF-15)
+    if (isMelpSummaryError || (melpSummary && (!lampOpen(melpSummary) || !lampLastDay(melpSummary))))
         return (
             <NewPage className="lamp">
                 <Global styles={lampStyles} />

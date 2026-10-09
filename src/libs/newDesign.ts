@@ -506,10 +506,11 @@ const qualifies = (d?: LampDay) => !!d && countsForRun(d.deda);
 
 /**
  * Sequência atual de DEDA bem feito, do dia mais recente para trás (`newestFirst`, o primeiro é hoje). Hoje ainda
- * sem DEDA não quebra a sequência. `toEdge`: a sequência chegou ao dia mais antigo carregado (pode ser maior).
+ * sem DEDA não quebra a sequência — só com a LAMP contando (`todayPending`): parada, o último dia já acabou.
+ * `toEdge`: a sequência chegou ao dia mais antigo carregado (pode ser maior).
  */
-export const dedaStreak = (newestFirst: LampDay[]) => {
-    let i = qualifies(newestFirst[0]) ? 0 : 1;
+export const dedaStreak = (newestFirst: LampDay[], todayPending = true) => {
+    let i = qualifies(newestFirst[0]) || !todayPending ? 0 : 1;
     let n = 0;
     for (; i < newestFirst.length && qualifies(newestFirst[i]); i++) n++;
     return { current: n, toEdge: n > 0 && i >= newestFirst.length };

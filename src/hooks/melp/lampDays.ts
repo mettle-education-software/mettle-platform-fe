@@ -115,7 +115,12 @@ export const useLampDays = (minWeeks: number) => {
     const status = (program.error as { response?: { status?: number } } | null)?.response?.status;
     const perDay = program.isError && (status === 404 || status === 501);
     const historyFailed = program.isError && !perDay;
-    const weeks = perDay ? Math.min(BATCH, Math.max(1, minWeeks), currentWeek) : currentWeek;
+    // sem histórico (falha que não é 404) só a semana atual existe: nada de dias zerados inventados para trás
+    const weeks = perDay
+        ? Math.min(BATCH, Math.max(1, minWeeks), currentWeek)
+        : historyFailed
+          ? Math.min(1, currentWeek)
+          : currentWeek;
 
     const keys = useMemo(() => {
         const out: { week: number; day: number }[] = [];
@@ -157,12 +162,16 @@ export const useLampDays = (minWeeks: number) => {
 
     const loading = results.some((r) => r.isLoading) || program.isLoading;
     const newestFirst: LampDay[] = keys.map(({ week, day }, i) => {
-        if (perDay || week === currentWeek) return { ...fromInput(results[i]?.data), week, day }; // mesmos índices
         const row = program.data?.get(`${week}:${day}`);
-        return { ...(row ?? EMPTY), week, day, iso: row?.date ?? undefined, dedaId: row?.dedaId };
+        const fromRow = { ...(row ?? EMPTY), week, day, iso: row?.date ?? undefined, dedaId: row?.dedaId };
+        // semana atual dia a dia (mesmos índices de `keys`); sem a resposta do dia, vale a linha do programa
+        const daily = (perDay || week === currentWeek) && results[i]?.data;
+        return daily ? { ...fromRow, ...fromInput(daily), iso: daily.dedaInput?.date ?? fromRow.iso } : fromRow;
     });
 
-    const streak = dedaStreak(newestFirst);
+    const streak = dedaStreak(newestFirst, running);
+    // a janela lida não chega à semana 1 (reserva com teto, ou histórico em falha): a Run pode ser maior que a vista
+    const truncated = (perDay || historyFailed) && currentWeek > weeks;
     return {
         newestFirst,
         loading,
@@ -173,6 +182,8 @@ export const useLampDays = (minWeeks: number) => {
         running,
         /** a leitura do programa falhou (não 404): o histórico não está aqui */
         historyFailed,
+        /** os dias lidos não chegam ao começo do programa */
+        truncated,
         retryHistory: () => void program.refetch(),
     };
 };
@@ -184,9 +195,9 @@ export const useLampDays = (minWeeks: number) => {
 export const useDedaRun = (minWeeks = 2) => {
     const days = useLampDays(minWeeks);
     const today = days.newestFirst[0];
-    // sem o histórico (falha que não é 404) e com a Run chegando ao fim do que foi lido, o número sairia menor que o
-    // real: fica "carregando" ("—") até o histórico voltar
-    const partial = days.historyFailed && days.streak.toEdge;
+    // a Run chega ao fim do que foi lido e o lido não chega ao começo do programa: o número sairia menor que o real —
+    // fica "carregando" ("—") até o histórico voltar
+    const partial = days.truncated && days.streak.toEdge;
     return {
         ...days,
         loading: days.loading || partial,

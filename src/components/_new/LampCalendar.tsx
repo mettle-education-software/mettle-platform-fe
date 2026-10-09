@@ -647,37 +647,39 @@ export const LampCalendar: React.FC<{
                     })}
                 </div>
             )}
-            <div className="cal-foot" hidden={failed}>
-                {mode === 'month' && (
-                    <p className="detail" aria-live="polite">
-                        {selCell && selCell.st !== 'pre' && selCell.st !== 'future' && detail(selCell)}
-                    </p>
-                )}
-                <p className="key" aria-hidden>
-                    <span className="m">
-                        <i />
-                        Goal met
-                    </span>
-                    <span className="p">
-                        <i />
-                        Partial
-                    </span>
-                    <span className="x">
-                        <i />
-                        Nothing
-                    </span>
-                    <span className="g">
-                        <i />
-                        DEDA 80%+
-                    </span>
-                    {pausedDays.size > 0 && (
-                        <span className="z">
-                            <i />
-                            Paused
-                        </span>
+            {!failed && (
+                <div className="cal-foot">
+                    {mode === 'month' && (
+                        <p className="detail" aria-live="polite">
+                            {selCell && selCell.st !== 'pre' && selCell.st !== 'future' && detail(selCell)}
+                        </p>
                     )}
-                </p>
-            </div>
+                    <p className="key" aria-hidden>
+                        <span className="m">
+                            <i />
+                            Goal met
+                        </span>
+                        <span className="p">
+                            <i />
+                            Partial
+                        </span>
+                        <span className="x">
+                            <i />
+                            Nothing
+                        </span>
+                        <span className="g">
+                            <i />
+                            DEDA 80%+
+                        </span>
+                        {pausedDays.size > 0 && (
+                            <span className="z">
+                                <i />
+                                Paused
+                            </span>
+                        )}
+                    </p>
+                </div>
+            )}
         </section>
     );
 };

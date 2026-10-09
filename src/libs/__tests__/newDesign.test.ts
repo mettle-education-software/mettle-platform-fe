@@ -446,6 +446,16 @@ describe('LAMP como espelho', () => {
     });
 });
 
+describe('dedaStreak com a LAMP parada', () => {
+    const d = (deda: number) => ({ week: 1, day: 1, deda, active: 0, passive: 0, ratings: [] });
+    it('o último dia de uma LAMP parada já acabou: sem DEDA, quebra a Run (sem o perdão do "hoje")', () => {
+        const days = [d(0), d(100), d(100), d(100)];
+        expect(dedaStreak(days).current).toBe(3);
+        expect(dedaStreak(days, false).current).toBe(0);
+        expect(dedaStreak([d(100), d(100)], false)).toEqual({ current: 2, toEdge: true });
+    });
+});
+
 describe('calendário da LAMP', () => {
     const day = (week: number, n: number) => ({ week, day: n, deda: 80, active: 100, passive: 100, ratings: [] });
     it('põe os dias do programa nas datas, pulando a pausa', () => {

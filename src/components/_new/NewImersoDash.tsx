@@ -547,7 +547,10 @@ export const Kpis: React.FC = () => {
             aria-label="DEDA Run and overall progress — open LAMP"
         >
             <span className="kpi run">
-                <RunChip current={run.current} counted={run.todayCounted} large />
+                {/* Run ainda carregando (ou com o histórico incompleto): nada de número menor que o real */}
+                {(!run.loading || run.current > 0) && (
+                    <RunChip current={run.current} counted={run.todayCounted} large />
+                )}
             </span>
             <span className="kpi">
                 <span className="v">

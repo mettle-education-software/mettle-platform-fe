@@ -3,6 +3,7 @@
 import { useGetHpecsModules } from 'hooks/queries/hpecQueries';
 import { useHpecProgress } from 'hooks/useHpecProgress';
 import { hpecLessonPath } from 'libs/cleanUrls';
+import { opensLabel } from 'libs/hpecTrail';
 import { CourseModule } from 'libs/newDesign';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { Check } from 'lucide-react';
@@ -39,7 +40,8 @@ const NewHpecLesson: React.FC<{ lessonId: string }> = ({ lessonId }) => {
                 title: lesson.lessonTitle,
                 href: hpecLessonPath(lesson.lessonId),
             })),
-            locked: hpec.unlockDate,
+            // "Opens Oct 12" / "Opens with DEDA", como no trilho do IMERSO; nunca vazio (vazio = módulo aberto)
+            locked: opensLabel(hpec.unlockDate) || 'Not open yet',
         })),
     ];
 

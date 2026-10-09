@@ -3,18 +3,19 @@
 import { Button, Modal, Select } from 'antd';
 import { useResumeDeda, useStartDeda } from 'hooks';
 import { DedaDifficulties, DedaDifficulty, MelpStatus } from 'interfaces/melp';
-import { nextMondayDate } from 'libs';
+import { formatImersoDate, nextMondayDate } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { firstName, IntensityLang, readIntensityLang, saveIntensityLang } from 'libs/newDesign';
-import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { IMERSO_PRODUCT, IMERSO_SALES_URL, RENEWAL_URLS } from 'libs/productAccess';
 import { ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewDedasGrid } from './NewDedasGrid';
-import { Dash, HpecSection, Kpis, NowRow, RecentDedas, useTrail } from './NewImersoDash';
+import { Dash, HpecSection, Kpis, NowRow, RecentDedas, SummaryError, SuspendedNotice, useTrail } from './NewImersoDash';
 import { NewPage } from './NewPage';
+import { NewContentLoading } from './NewStatus';
 
 /* ---------- estados (mesmo conteúdo, mesmas ações e mesmas chamadas de components/_melp/_melpHome) ---------- */
 
@@ -142,14 +143,13 @@ const CanStart: React.FC = () => {
             </Modal>
             <div className="notice">
                 <div>
-                    <b>Hey there!</b>
+                    <b>You can start DEDA</b>
                     <p>
-                        You can start already the DEDA program. The next available date is{' '}
-                        <strong>{nextMondayDate().toLocaleDateString()}</strong>
+                        Next start: <strong>{formatImersoDate(nextMondayDate())}</strong>
                     </p>
                 </div>
                 <Button type="primary" onClick={() => setOpen(true)} loading={confirmDedaStart.isPending}>
-                    Confirm DEDA start
+                    Start DEDA
                 </Button>
             </div>
         </>
@@ -159,11 +159,7 @@ const CanStart: React.FC = () => {
 const Waiting: React.FC = () => (
     <div className="notice">
         <div>
-            <b>Great!</b>
-            <p>
-                You have confirmed the start of DEDA. Come back on{' '}
-                <strong>{nextMondayDate().toLocaleDateString()}</strong> to start.
-            </p>
+            <b>DEDA starts on {formatImersoDate(nextMondayDate())}</b>
         </div>
     </div>
 );
@@ -173,10 +169,9 @@ const Paused: React.FC = () => {
     return (
         <div className="notice">
             <div>
-                <b>Feel like getting back to DEDA?</b>
+                <b>DEDA is paused</b>
                 <p>
-                    You can return to the DEDA program. The next available date is{' '}
-                    <strong>{nextMondayDate().toLocaleDateString()}</strong>
+                    Next start: <strong>{formatImersoDate(nextMondayDate())}</strong>
                 </p>
             </div>
             <Button type="primary" onClick={() => resumeDeda.mutate()} loading={resumeDeda.isPending}>
@@ -185,6 +180,19 @@ const Paused: React.FC = () => {
         </div>
     );
 };
+
+/** Imerso vencido: sem painel "ativo"; um aviso e uma ação (renovar). */
+const Expired: React.FC = () => (
+    <div className="notice">
+        <div>
+            <b>Your IMERSO access has expired</b>
+            <p>Your progress is saved.</p>
+        </div>
+        <a className="btn gold" href={RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL} data-access-allow>
+            Renew access
+        </a>
+    </div>
+);
 
 const Finished: React.FC = () => (
     <div className="notice">
@@ -220,11 +228,12 @@ const VIEWS: Partial<Record<MelpStatus, View>> = {
 };
 
 /**
- * Home do IMERSO (/imerso) na plataforma nova. O estado mostrado segue exatamente a regra da página atual
- * (melp_status, semana zero pelos dias desde o início, expirado = DEDA em andamento sob o convite de renovação).
+ * Home do IMERSO (/imerso) na plataforma nova. O estado mostrado segue a regra da página atual (melp_status, semana
+ * zero pelos dias desde o início); vencido mostra só o aviso de renovação, suspenso o aviso com a saída, e falha do
+ * resumo um "Try again".
  */
 export const NewImersoHome: React.FC = () => {
-    const { melpSummary } = useMelpContext();
+    const { melpSummary, isMelpSummaryError, retryMelpSummary } = useMelpContext();
     const { user } = useAppContext();
     const { access } = useProductAccess();
 
@@ -235,12 +244,30 @@ export const NewImersoHome: React.FC = () => {
     if (melpStatus === 'MELP_BEGIN' && daysSinceMelpStart >= 2 && daysSinceMelpStart < 9) {
         renderStatus = 'WEEK_ZERO' as MelpStatus;
     }
-    if (access(IMERSO_PRODUCT).state === 'expired') {
-        renderStatus = 'DEDA_STARTED';
-    }
+    const expired = access(IMERSO_PRODUCT).state === 'expired';
 
     const view = VIEWS[renderStatus];
     const { trail, loading, error } = useTrail();
+
+    let body: React.ReactNode;
+    if (expired) body = <Expired />;
+    else if (isMelpSummaryError) body = <SummaryError onRetry={retryMelpSummary} />;
+    else if (!melpSummary) body = <NewContentLoading />;
+    else if (melpStatus === 'MELP_SUSPENDED') body = <SuspendedNotice />;
+    else if (view)
+        body = (
+            <>
+                {view.notice}
+                <NowRow withDeda={!!view.deda} trail={trail} error={error} />
+                {view.kpis && (
+                    <section aria-label="Your numbers">
+                        <Kpis />
+                    </section>
+                )}
+                <HpecSection trail={trail} loading={loading} error={error} />
+                {view.dedas}
+            </>
+        );
 
     return (
         <NewPage className="xwide">
@@ -248,21 +275,7 @@ export const NewImersoHome: React.FC = () => {
                 <header className="ph">
                     <h1>Welcome, {firstName(user?.name)}</h1>
                 </header>
-                {view ? (
-                    <>
-                        {view.notice}
-                        <NowRow withDeda={!!view.deda} trail={trail} error={error} />
-                        {view.kpis && (
-                            <section aria-label="Your numbers">
-                                <Kpis />
-                            </section>
-                        )}
-                        <HpecSection trail={trail} loading={loading} error={error} />
-                        {view.dedas}
-                    </>
-                ) : (
-                    melpStatus === 'MELP_SUSPENDED' && <p className="hint">Your IMERSO access is suspended.</p>
-                )}
+                {body}
             </Dash>
         </NewPage>
     );

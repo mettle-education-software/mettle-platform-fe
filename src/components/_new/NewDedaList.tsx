@@ -1,7 +1,7 @@
 'use client';
 
 import { useDedaHeaderImage, useDedaHomeHeaderImage, useFeaturedDedaData } from 'hooks/queries/dedaQueries';
-import { getWeekDay } from 'libs';
+import { saoPauloWeekday } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { contentfulImage, pickHeaderImage } from 'libs/dedaHeader';
 import { ArrowRight } from 'lucide-react';
@@ -11,6 +11,7 @@ import { useMelpContext } from 'providers';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewDedasGrid } from './NewDedasGrid';
+import { SummaryError, SuspendedNotice } from './NewImersoDash';
 import { NewPage } from './NewPage';
 
 /**
@@ -20,7 +21,7 @@ import { NewPage } from './NewPage';
  */
 export const NewDedaList: React.FC = () => {
     const router = useRouter();
-    const { melpSummary, isTodaysDedaCompleted } = useMelpContext();
+    const { melpSummary, isTodaysDedaCompleted, isMelpSummaryError, retryMelpSummary } = useMelpContext();
 
     const blockedDEDAs =
         useMemo(() => ['MELP_SUSPENDED'].includes(melpSummary?.melp_status), [melpSummary]) ||
@@ -41,6 +42,14 @@ export const NewDedaList: React.FC = () => {
 
     const handleSelectedDeda = (dedaSlug: string) => router.push(dedaPath(dedaSlug));
 
+    // sem resumo (falha) ou suspenso: o aviso no lugar das grades (nada de esqueleto eterno nem lista trancada sem motivo)
+    if (isMelpSummaryError || melpSummary?.melp_status === 'MELP_SUSPENDED')
+        return (
+            <NewPage className="wide">
+                {isMelpSummaryError ? <SummaryError onRetry={retryMelpSummary} /> : <SuspendedNotice />}
+            </NewPage>
+        );
+
     return (
         <NewPage className="wide">
             {!blockedDEDAs && featured && (
@@ -54,7 +63,7 @@ export const NewDedaList: React.FC = () => {
                         <div>
                             <p className="eyebrow">
                                 <span className="wd">Current DEDA · </span>Week {melpSummary?.current_deda_week} · Day{' '}
-                                {getWeekDay()}
+                                {saoPauloWeekday()}
                                 {isTodaysDedaCompleted && <em> · Completed today</em>}
                             </p>
                             <h1>{featured.dedaTitle}</h1>

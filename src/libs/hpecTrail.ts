@@ -57,8 +57,12 @@ export const hpecTrail = (
     };
 };
 
-/** "Available on: 10/12/2026" (getUnlockedDate) → "Opens Oct 12"; outro texto ("Start DEDA to unlock…") fica igual. */
+/**
+ * "Available on: 10/12/2026" (getUnlockedDate) → "Opens Oct 12"; "Start DEDA to unlock this module" → "Opens with DEDA"
+ * (vale também para quem já confirmou o início e espera a segunda); outro texto fica igual.
+ */
 export const opensLabel = (unlockDate?: string, now = new Date()) => {
+    if (/^Start DEDA\b/i.test(unlockDate ?? '')) return 'Opens with DEDA';
     const m = /^Available on: (.+)$/.exec(unlockDate ?? '');
     if (!m) return unlockDate ?? '';
     const date = new Date(m[1]);

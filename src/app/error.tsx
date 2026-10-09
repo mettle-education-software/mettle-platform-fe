@@ -18,6 +18,7 @@ const ErrorContainer = styled.div`
     background: var(--main-bg);
 `;
 
+// O detalhe técnico (error.message) nunca vai para a tela do aluno: o Sentry já o guarda.
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     useEffect(() => {
         Sentry.captureException(error);
@@ -30,7 +31,6 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
             <NewStatus
                 title="Ops!"
                 text="Parece que algo deu errado."
-                detail={error.message}
                 action={
                     <button type="button" className="btn line" onClick={reset}>
                         Tentar de novo
@@ -65,9 +65,6 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
                     subTitle={
                         <Flex vertical>
                             <Typography.Text style={{ color: '#FFF' }}>Parece que algo deu errado.</Typography.Text>
-                            <Typography.Text style={{ color: '#FFF' }}>
-                                Detalhes do erro: {error.message}
-                            </Typography.Text>
                         </Flex>
                     }
                     extra={

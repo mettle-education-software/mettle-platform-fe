@@ -1,9 +1,12 @@
 import { withSentryConfig } from '@sentry/nextjs';
 
 // Desde 5-Out-2026 todas as consultas GraphQL (navegador e middleware) vão ao espelho somente-leitura
-// mettle-content-mirror (retrato do conteúdo publicado; mesmo token). Se o espelho falhar, a mesma consulta vai ao
-// Contentful (GRAPHQL_FALLBACK_URI; ver src/libs/contentSource.ts). Desligar = false: só Contentful, sem fallback.
+// mettle-content-mirror (retrato do conteúdo publicado; mesmo token). Desligar = false: só Contentful.
 const CONTENT_MIRROR = true;
+// Cair no Contentful quando o espelho falha (GRAPHQL_FALLBACK_URI; ver src/libs/contentSource.ts). Desligado desde
+// 9-Out-2026: o Contentful responde 402 até 1-Nov e cada consulta dos alunos gasta a cota. Sem ele: só o espelho, com
+// tempo-limite e uma segunda tentativa; a falha vai para a tela (tentar de novo), nunca para o Contentful.
+const CONTENTFUL_FALLBACK = false;
 const CONTENTFUL_GRAPHQL_URI = CONTENT_MIRROR
     ? process.env.CONTENTFUL_GRAPHQL_URI?.replace(
           'https://graphql.contentful.com/',
@@ -35,7 +38,7 @@ const nextConfig = {
         METTLE_API_URL: process.env.METTLE_API_URL,
         SENTRY_DSN: process.env.SENTRY_DSN,
         GRAPHQL_URI: CONTENTFUL_GRAPHQL_URI,
-        GRAPHQL_FALLBACK_URI: CONTENT_MIRROR ? process.env.CONTENTFUL_GRAPHQL_URI : undefined,
+        GRAPHQL_FALLBACK_URI: CONTENT_MIRROR && CONTENTFUL_FALLBACK ? process.env.CONTENTFUL_GRAPHQL_URI : undefined,
         TAWK_TO_PROPERTY_ID: process.env.TAWK_TO_PROPERTY_ID,
         TAWK_TO_WIDGET_ID: process.env.TAWK_TO_WIDGET_ID,
         TAWK_TO_CHAT_LINK: process.env.TAWK_TO_CHAT_LINK,
@@ -65,7 +68,7 @@ export default withSentryConfig(nextConfig, {
 
     // Subir sourcemaps nunca derruba o build (token de outra org, região errada, Sentry fora do ar): só avisa.
     unstable_sentryWebpackPluginOptions: {
-        errorHandler: err => console.warn(`[sentry] upload de sourcemaps ignorado: ${err.message.split('\n')[0]}`),
+        errorHandler: (err) => console.warn(`[sentry] upload de sourcemaps ignorado: ${err.message.split('\n')[0]}`),
     },
 
     // Only print logs for uploading source maps in CI

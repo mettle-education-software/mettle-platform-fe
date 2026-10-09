@@ -397,7 +397,11 @@ export const DedaReaderStudy: React.FC<Props> = ({ dedaId, timerSlot }) => {
     };
 
     const blockedByRecorder = recorderOn && currentStep === 'readRecord' && !readRecordDone;
-    const isNotWeekZero = !['CAN_START_DEDA', 'WEEK_ZERO'].includes(melpSummary.melp_status);
+    // Semana zero (DEDA0, treino): o servidor nunca manda 'WEEK_ZERO' (é só da tela); antes do início vêm MELP_BEGIN,
+    // CAN_START_DEDA ou DEDA_STARTED_NOT_BEGUN, na semana 0. Sem cronômetro e sem gravar na LAMP (não há week0).
+    const isNotWeekZero =
+        !['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN'].includes(melpSummary.melp_status) &&
+        melpSummary.current_deda_week !== 0;
     const showStopwatch =
         isTodaysDedaAndNotCompleted &&
         !['finish', 'completed'].includes(currentStep) &&

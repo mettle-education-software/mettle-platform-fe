@@ -168,10 +168,82 @@ describe('makeContentFetch', () => {
         expect(inits[0]).toMatchObject({ method: 'POST', body: init.body, next: { revalidate: 3600 } });
     });
 
-    it('sem fallback configurado (CONTENT_MIRROR = false): fetch comum', async () => {
+    it('sem fallback configurado: só a fonte configurada', async () => {
         const calls: string[] = [];
-        const f = makeContentFetch({ mirror: C, fetchImpl: async (i) => (calls.push(String(i)), ok()) });
-        await f(C);
-        expect(calls).toEqual([C]);
+        const f = makeContentFetch({ mirror: M, fetchImpl: async (i) => (calls.push(String(i)), ok()) });
+        await f(M);
+        expect(calls).toEqual([M]);
+    });
+
+    it('só o espelho (sem fallback): falha de rede ou 5xx tenta mais UMA vez, nunca o Contentful', async () => {
+        const calls: string[] = [];
+        const down = makeContentFetch({
+            mirror: M,
+            fetchImpl: async (i) => {
+                calls.push(String(i));
+                throw new TypeError('fetch failed');
+            },
+        });
+        await expect(down(M)).rejects.toThrow('fetch failed');
+        expect(calls).toEqual([M, M]);
+
+        calls.length = 0;
+        const flaky = makeContentFetch({
+            mirror: M,
+            fetchImpl: async (i) => (
+                calls.push(String(i)), calls.length === 1 ? new Response('', { status: 503 }) : ok()
+            ),
+        });
+        expect((await flaky(M)).status).toBe(200);
+        expect(calls).toEqual([M, M]);
+
+        calls.length = 0;
+        const notFound = makeContentFetch({
+            mirror: M,
+            fetchImpl: async (i) => (calls.push(String(i)), new Response('', { status: 404 })),
+        });
+        expect((await notFound(M)).status).toBe(404);
+        expect(calls).toEqual([M]);
+    });
+
+    it('só o espelho: corpo que trava no meio também esgota o tempo (e tenta mais uma vez)', async () => {
+        jest.useFakeTimers();
+        let n = 0;
+        const f = makeContentFetch({
+            mirror: M,
+            fetchImpl: async (_i, init) => {
+                n += 1;
+                const body = new ReadableStream({
+                    start: (c) => init!.signal!.addEventListener('abort', () => c.error(new Error('aborted'))),
+                });
+                return new Response(body, { status: 200 });
+            },
+        });
+        const p = f(M);
+        const done = expect(p).rejects.toThrow('aborted');
+        await jest.advanceTimersByTimeAsync(16000);
+        await done;
+        expect(n).toBe(2);
+        jest.useRealTimers();
+    });
+
+    it('só o espelho: tempo esgotado também tenta mais uma vez e depois desiste', async () => {
+        jest.useFakeTimers();
+        let n = 0;
+        const f = makeContentFetch({
+            mirror: M,
+            fetchImpl: (_i, init) => {
+                n += 1;
+                return new Promise((_, bad) =>
+                    init!.signal!.addEventListener('abort', () => bad(new Error('aborted'))),
+                );
+            },
+        });
+        const p = f(M);
+        const done = expect(p).rejects.toThrow('aborted');
+        await jest.advanceTimersByTimeAsync(16000);
+        await done;
+        expect(n).toBe(2);
+        jest.useRealTimers();
     });
 });

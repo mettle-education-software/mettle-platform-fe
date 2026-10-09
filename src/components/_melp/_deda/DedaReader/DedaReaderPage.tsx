@@ -66,9 +66,19 @@ type NotesSection = (typeof NOTES_SECTIONS)[number]['key'];
 
 /** Introdução / Glossário: o mesmo conteúdo e as mesmas notas de contexto da página atual, na leitura do leitor. */
 const NotesText = ({ dedaId, section }: { dedaId: string; section: 'introduction' | 'glossary' }) => {
-    const { data } = useDeda<DedaNotesQueryResponse>('deda-notes', dedaId);
+    const { data, error, refetch } = useDeda<DedaNotesQueryResponse>('deda-notes', dedaId);
     const item = data?.dedaContentCollection?.items[0];
     const content = section === 'introduction' ? item?.dedaNotesIntroductionContent : item?.dedaNotesGlossaryContent;
+    // conteúdo fora do ar (espelho): uma linha e "Try again", nunca "Loading…" para sempre
+    if (!item && error)
+        return (
+            <p className="rt hint">
+                We couldn’t load this text.{' '}
+                <button type="button" className="lnk" onClick={() => refetch()}>
+                    Try again
+                </button>
+            </p>
+        );
     if (!item) return <p className="rt hint">Loading…</p>;
     if (!content?.json) return null;
     return (

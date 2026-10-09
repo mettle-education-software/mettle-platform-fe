@@ -269,7 +269,13 @@ export const useLampInputForm = () => {
     const weekOf = (week?: number) => (week ? `week${week}` : '');
     const [selectedWeek, setSelectedWeek] = useState(weekOf(currentWeek));
     const [selectedDay, setSelectedDay] = useState(`day${last?.day ?? 1}`);
-    const { data: inputData, isLoading, dataUpdatedAt, refetch } = useGetInputData(selectedWeek, selectedDay);
+    const {
+        data: inputData,
+        isLoading,
+        isError: dayFailed,
+        dataUpdatedAt,
+        refetch,
+    } = useGetInputData(selectedWeek, selectedDay);
 
     const [, render] = useReducer((n: number) => n + 1, 0);
     useEffect(() => {
@@ -368,9 +374,11 @@ export const useLampInputForm = () => {
           }
         : stale
           ? { kind: 'error', text: 'This LAMP day was updated. Please enter it again.', retry: true }
-          : mine.some((d) => d.dirty || d.inflight)
-            ? { kind: 'saving' }
-            : { kind: 'saved', at: uid ? savedAt.get(uid) : undefined };
+          : draft?.recovering && dayFailed
+            ? { kind: 'error', text: 'We couldn’t reload this LAMP day.', retry: true }
+            : mine.some((d) => d.dirty || d.inflight)
+              ? { kind: 'saving' }
+              : { kind: 'saved', at: uid ? savedAt.get(uid) : undefined };
 
     return {
         selectedWeek,
@@ -393,7 +401,8 @@ export const useLampInputForm = () => {
         status,
         /** repete os dias que falharam (cada um com os seus valores mais recentes) ou relê o dia trocado */
         retry: () => {
-            if (stale) return void refetch();
+            // dia trocado ou recusa desfeita: relê o dia (nada é reenviado)
+            if (stale || draft?.recovering) return void refetch();
             for (const [key, d] of drafts)
                 if (d.uid === uid && d.error?.retry) {
                     d.error = undefined;

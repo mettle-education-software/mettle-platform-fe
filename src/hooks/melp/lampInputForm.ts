@@ -136,7 +136,9 @@ interface DayDraft {
     week: string;
     day: string;
     values: LampInputEdit;
-    /** a leitura do dia que originou o rascunho: identidade da linha e tempos do Summary vêm sempre dela */
+    /** os campos que o aluno alterou: só eles saem do rascunho; o resto vem de uma leitura do dia feita no envio */
+    changed: Set<keyof LampInputEdit>;
+    /** a leitura do dia que originou o rascunho: a identidade da linha (rowId) fica presa a ela */
     snapshot: Day;
     /** alteração ainda não enviada */
     dirty: boolean;
@@ -192,6 +194,23 @@ const refresh = async (d: DayDraft) => {
         qc.invalidateQueries({ queryKey });
 };
 
+/** Uma recusa no mesmo formato das do servidor (`response.data.code`), para o mesmo tratamento. */
+const refusal = (code: string) => Object.assign(new Error(code), { response: { data: { code } } });
+
+/**
+ * O pedido de um dia: lê o dia agora (a mesma linha, conferida pelo rowId do rascunho) e manda os campos que o aluno
+ * alterou sobre o que o servidor tem — tempos do Summary e estrelas gravados pela conclusão do DEDA nunca voltam velhos.
+ */
+const save = async (d: DayDraft) => {
+    const path = `/input/v2/${d.uid}/${d.week}/${d.day}`;
+    const fresh = await lampService.get<InputDataResponse>(path).then(({ data }) => data.data);
+    if (rowOf(fresh) !== rowOf(d.snapshot)) throw refusal('LAMP_DAY_REPLACED');
+    const picked = Object.fromEntries([...d.changed].map((field) => [field, d.values[field]]));
+    d.values = { ...fromInput(fresh), ...picked };
+    d.snapshot = fresh;
+    await lampService.patch(path, { ...toDTO(d.values, fresh) });
+};
+
 const send = (k: string) => {
     const d = drafts.get(k);
     if (!d || d.inflight || !d.dirty || d.error) return;
@@ -209,7 +228,7 @@ const send = (k: string) => {
     d.inflight = true;
     d.dirty = false;
     emit();
-    lampService.patch(`/input/v2/${d.uid}/${d.week}/${d.day}`, { ...toDTO(d.values, d.snapshot) }).then(
+    save(d).then(
         () => {
             d.inflight = false;
             savedAt.set(d.uid, new Date());
@@ -350,11 +369,13 @@ export const useLampInputForm = () => {
             week: selectedWeek,
             day: selectedDay,
             values: fromInput(inputData),
+            changed: new Set<keyof LampInputEdit>(),
             snapshot: inputData,
             dirty: false,
             inflight: false,
         };
         d.values = { ...d.values, [field]: value };
+        d.changed.add(field);
         d.dirty = true;
         d.ackedAt = undefined;
         d.error = undefined;
@@ -375,8 +396,9 @@ export const useLampInputForm = () => {
           ? { kind: 'error', text: 'We couldn’t reload this LAMP day.', retry: true }
           : failed.length
             ? {
+                  // uma falha que dá para repetir aparece primeiro: o "Try again" é sempre o da frase mostrada
                   kind: 'error',
-                  text: failed[failed.length - 1].error?.text ?? '',
+                  text: (failed.find((d) => d.error?.retry) ?? failed[failed.length - 1]).error?.text ?? '',
                   retry: failed.some((d) => d.error?.retry),
               }
             : mine.some((d) => d.dirty || d.inflight)

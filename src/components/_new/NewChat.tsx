@@ -959,15 +959,13 @@ const NewChat: React.FC = () => {
                     }}
                 >
                     <div className="col" role="log" aria-live="polite" aria-label="Conversa com o suporte">
+                        {/* fechado (404) ou fora do ar: uma linha calma, a saída por e-mail e o campo desligado */}
                         {state === 'error' && (
-                            <div className="state">
-                                <button
-                                    type="button"
-                                    className="retry"
-                                    onClick={() => refresh(true)}
-                                    aria-label="Tentar de novo"
-                                >
-                                    <RotateCw size={20} strokeWidth={1.6} />
+                            <div className="state" role="status">
+                                <p>Suporte indisponível no momento</p>
+                                <a href="mailto:hello@mettle.com.br">hello@mettle.com.br</a>
+                                <button type="button" className="again" onClick={() => refresh(true)}>
+                                    Tentar de novo
                                 </button>
                             </div>
                         )}
@@ -1114,146 +1112,148 @@ const NewChat: React.FC = () => {
                     className="composer"
                     onSubmit={(e) => {
                         e.preventDefault();
-                        send();
+                        if (state !== 'error') send();
                     }}
                 >
-                    {replyTo && (
-                        <div className="replying">
-                            <QuoteBlock q={replyTo} me="Você" />
-                            <button
-                                type="button"
-                                className="ib"
-                                aria-label="Cancelar resposta"
-                                onClick={() => setReplyTo(null)}
-                            >
-                                <X size={18} strokeWidth={1.7} />
-                            </button>
-                        </div>
-                    )}
-                    {(file || fileError) && (
-                        <div className="chip">
-                            {file ? (
-                                <>
-                                    <FileText size={16} strokeWidth={1.6} aria-hidden />
-                                    <span className="nm">{file.name}</span>
-                                    <span className="sz">{formatSize(file.size)}</span>
-                                </>
-                            ) : (
-                                <span className="nm err">{fileError}</span>
-                            )}
-                            <button
-                                type="button"
-                                className="ib"
-                                aria-label="Remover anexo"
-                                onClick={() => {
-                                    setFile(null);
-                                    setFileError('');
-                                }}
-                            >
-                                <X size={16} strokeWidth={1.6} />
-                            </button>
-                        </div>
-                    )}
-                    <div className="cbar">
-                        {recorder.recording ? (
-                            <>
+                    <fieldset disabled={state === 'error'}>
+                        {replyTo && (
+                            <div className="replying">
+                                <QuoteBlock q={replyTo} me="Você" />
                                 <button
                                     type="button"
-                                    className="ib plus"
-                                    aria-label="Descartar áudio"
-                                    onClick={() => recorder.stop(true)}
+                                    className="ib"
+                                    aria-label="Cancelar resposta"
+                                    onClick={() => setReplyTo(null)}
                                 >
-                                    <Trash2 size={21} strokeWidth={1.6} />
+                                    <X size={18} strokeWidth={1.7} />
                                 </button>
-                                <div className="rec" role="status">
-                                    <span className="pulse" />
-                                    {durationLabel(recorder.secs)}
-                                </div>
+                            </div>
+                        )}
+                        {(file || fileError) && (
+                            <div className="chip">
+                                {file ? (
+                                    <>
+                                        <FileText size={16} strokeWidth={1.6} aria-hidden />
+                                        <span className="nm">{file.name}</span>
+                                        <span className="sz">{formatSize(file.size)}</span>
+                                    </>
+                                ) : (
+                                    <span className="nm err">{fileError}</span>
+                                )}
                                 <button
                                     type="button"
-                                    className="go"
-                                    aria-label="Enviar áudio"
-                                    onClick={() => recorder.stop()}
-                                >
-                                    <SendHorizontal size={20} strokeWidth={2} />
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <button
-                                    type="button"
-                                    className="ib plus"
-                                    aria-label="Anexar"
-                                    onClick={() => fileInput.current?.click()}
-                                >
-                                    <Plus size={24} strokeWidth={1.6} />
-                                </button>
-                                <input
-                                    ref={fileInput}
-                                    type="file"
-                                    accept={ACCEPT}
-                                    hidden
-                                    onChange={(e) => {
-                                        pick(e.target.files?.[0]);
-                                        e.target.value = '';
+                                    className="ib"
+                                    aria-label="Remover anexo"
+                                    onClick={() => {
+                                        setFile(null);
+                                        setFileError('');
                                     }}
-                                />
-                                <div className="pillin">
-                                    <textarea
-                                        ref={input}
-                                        rows={1}
-                                        value={text}
-                                        aria-label="Mensagem"
-                                        maxLength={4000}
-                                        onFocus={() => matchMedia('(pointer: coarse)').matches && setPicker(null)}
-                                        onChange={(e) => onType(e.target.value)}
-                                        onPaste={(e) => {
-                                            const f = [...e.clipboardData.files][0];
-                                            if (f) {
-                                                e.preventDefault();
-                                                pick(f);
-                                            }
-                                        }}
-                                        onKeyDown={(e) => {
-                                            // Enter envia no computador; no celular o Enter quebra a linha (o botão envia)
-                                            if (
-                                                e.key === 'Enter' &&
-                                                !e.shiftKey &&
-                                                !e.nativeEvent.isComposing &&
-                                                matchMedia('(pointer: fine)').matches
-                                            ) {
-                                                e.preventDefault();
-                                                send();
-                                            }
-                                        }}
-                                    />
+                                >
+                                    <X size={16} strokeWidth={1.6} />
+                                </button>
+                            </div>
+                        )}
+                        <div className="cbar">
+                            {recorder.recording ? (
+                                <>
                                     <button
                                         type="button"
-                                        className="ib"
-                                        aria-label="Emojis"
-                                        aria-pressed={!!picker}
-                                        onClick={() => setPicker(picker ? null : 'emoji')}
+                                        className="ib plus"
+                                        aria-label="Descartar áudio"
+                                        onClick={() => recorder.stop(true)}
                                     >
-                                        <Smile size={21} strokeWidth={1.6} />
+                                        <Trash2 size={21} strokeWidth={1.6} />
                                     </button>
-                                </div>
-                                {canSend || !recorder.supported ? (
-                                    <button type="submit" className="go" aria-label="Enviar" disabled={!canSend}>
-                                        <SendHorizontal size={20} strokeWidth={2} />
-                                    </button>
-                                ) : (
+                                    <div className="rec" role="status">
+                                        <span className="pulse" />
+                                        {durationLabel(recorder.secs)}
+                                    </div>
                                     <button
                                         type="button"
                                         className="go"
-                                        aria-label="Gravar áudio"
-                                        onClick={recorder.start}
+                                        aria-label="Enviar áudio"
+                                        onClick={() => recorder.stop()}
                                     >
-                                        <Mic size={21} strokeWidth={2} />
+                                        <SendHorizontal size={20} strokeWidth={2} />
                                     </button>
-                                )}
-                            </>
-                        )}
-                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        type="button"
+                                        className="ib plus"
+                                        aria-label="Anexar"
+                                        onClick={() => fileInput.current?.click()}
+                                    >
+                                        <Plus size={24} strokeWidth={1.6} />
+                                    </button>
+                                    <input
+                                        ref={fileInput}
+                                        type="file"
+                                        accept={ACCEPT}
+                                        hidden
+                                        onChange={(e) => {
+                                            pick(e.target.files?.[0]);
+                                            e.target.value = '';
+                                        }}
+                                    />
+                                    <div className="pillin">
+                                        <textarea
+                                            ref={input}
+                                            rows={1}
+                                            value={text}
+                                            aria-label="Mensagem"
+                                            maxLength={4000}
+                                            onFocus={() => matchMedia('(pointer: coarse)').matches && setPicker(null)}
+                                            onChange={(e) => onType(e.target.value)}
+                                            onPaste={(e) => {
+                                                const f = [...e.clipboardData.files][0];
+                                                if (f) {
+                                                    e.preventDefault();
+                                                    pick(f);
+                                                }
+                                            }}
+                                            onKeyDown={(e) => {
+                                                // Enter envia no computador; no celular o Enter quebra a linha (o botão envia)
+                                                if (
+                                                    e.key === 'Enter' &&
+                                                    !e.shiftKey &&
+                                                    !e.nativeEvent.isComposing &&
+                                                    matchMedia('(pointer: fine)').matches
+                                                ) {
+                                                    e.preventDefault();
+                                                    send();
+                                                }
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="ib"
+                                            aria-label="Emojis"
+                                            aria-pressed={!!picker}
+                                            onClick={() => setPicker(picker ? null : 'emoji')}
+                                        >
+                                            <Smile size={21} strokeWidth={1.6} />
+                                        </button>
+                                    </div>
+                                    {canSend || !recorder.supported ? (
+                                        <button type="submit" className="go" aria-label="Enviar" disabled={!canSend}>
+                                            <SendHorizontal size={20} strokeWidth={2} />
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            className="go"
+                                            aria-label="Gravar áudio"
+                                            onClick={recorder.start}
+                                        >
+                                            <Mic size={21} strokeWidth={2} />
+                                        </button>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </fieldset>
                 </form>
             </Wrap>
         </NewPage>
@@ -1420,9 +1420,42 @@ export const Wrap = styled.div`
         justify-content: flex-end;
     }
     .state {
+        display: grid;
+        justify-items: center;
+        gap: 4px;
         margin: auto;
+        padding: 0 24px;
+        text-align: center;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--r-muted);
     }
-    .retry,
+    .state p {
+        color: var(--r-text);
+    }
+    .state a {
+        color: var(--r-gold-hi);
+    }
+    .state .again {
+        min-height: 44px;
+        padding: 0 12px;
+        border: 0;
+        background: none;
+        color: var(--r-muted);
+        font: inherit;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        cursor: pointer;
+    }
+    .composer fieldset {
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+    .composer fieldset:disabled {
+        opacity: 0.45;
+    }
     .older {
         display: grid;
         place-items: center;

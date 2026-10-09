@@ -36,14 +36,25 @@ const App = ({ children }: { children: React.ReactNode }) => {
         return () => window.removeEventListener('chatwoot:ready', apply);
     }, [chatScheme]);
 
+    // Widget antigo do Chatwoot: só na tela atual. A plataforma nova tem o Suporte próprio (/suporte); carregar o widget
+    // lá identificava o aluno a cada página e criava um segundo contato no Chatwoot. Decidido quando a sessão é conhecida.
+    const chatWidget = !!user && !newDesign;
     useEffect(() => {
-        if (user) {
-            window?.$chatwoot?.setUser(user.uid, {
+        if (!user || newDesign) return;
+        const identify = () =>
+            window.$chatwoot?.setUser?.(user.uid, {
                 email: user.email,
                 name: user.name,
                 avatar_url: user.profileImageSrc as string,
             });
+        identify();
+        // o script entra depois de conhecida a sessão: identifica quando o SDK ficar pronto
+        window.addEventListener('chatwoot:ready', identify);
+        return () => window.removeEventListener('chatwoot:ready', identify);
+    }, [user, newDesign]);
 
+    useEffect(() => {
+        if (user) {
             if (window?.clarity) {
                 try {
                     window.clarity('identify', user.uid, user.email);
@@ -66,8 +77,9 @@ const App = ({ children }: { children: React.ReactNode }) => {
             })(window, document, "clarity", "script", "${process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID}");
           `}
                 </Script>
-                <Script id="chatwool">
-                    {`window.chatwootSettings = {"position":"left","type":"standard","launcherTitle":"","hideMessageBubble":true,"darkMode":"light"};
+                {chatWidget && (
+                    <Script id="chatwool">
+                        {`window.chatwootSettings = {"position":"left","type":"standard","launcherTitle":"","hideMessageBubble":true,"darkMode":"light"};
                                    (function(d,t) {
                         var BASE_URL="https://support.mettle.com.br";
                         var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
@@ -82,7 +94,8 @@ const App = ({ children }: { children: React.ReactNode }) => {
                           })
                         }
                       })(document,"script");`}
-                </Script>
+                    </Script>
+                )}
                 <AntdRegistry>
                     <main data-theme={theme}>
                         <Spin spinning={isAppLoading}>

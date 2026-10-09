@@ -111,7 +111,9 @@ export const useDedasGrid = (type: DedasGridProps['type'], blockedDEDAs?: boolea
             unlockedDEDAs.length > 0 &&
             !['DEDA_FINISHED', 'MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN'].includes(
                 melpSummary?.melp_status as string,
-            ),
+            ) &&
+            // legado pausado: na volta o aluno entra onde a rotação estiver, não no DEDA seguinte ao dele (PF-18)
+            (calendarClock || melpSummary?.melp_status !== 'DEDA_PAUSED'),
     };
 };
 

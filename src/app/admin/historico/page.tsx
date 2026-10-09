@@ -10,7 +10,7 @@ import { useAppContext } from 'providers';
 import React from 'react';
 
 // Histórico do programa de cada aluno: só o dono (mesma chave do Leaderboard e da análise de leitura), plataforma nova,
-// fora do bundle dos alunos. O resumo de outro aluno só responde a METTLE_ADMIN (requireAccess no backend).
+// fora do bundle dos alunos. O endpoint do retrato também confere o dono pelo token Firebase.
 const NewAdminHistory = dynamic(() => import('components/_new/NewAdminHistory'), { ssr: false, loading: () => null });
 
 const AdminHistory = () => {

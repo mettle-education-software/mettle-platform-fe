@@ -364,18 +364,21 @@ export const useLampInputForm = () => {
         timer = setTimeout(flushAll, SAVE_DELAY_MS);
     };
 
+    // a frase e o "Try again" saem juntos, na mesma ordem: primeiro o problema do dia na tela (linha recusada, releitura
+    // falha), depois as gravações que falharam (em qualquer dia)
     const mine = [...drafts.values()].filter((d) => d.uid === uid);
     const failed = mine.filter((d) => d.error);
-    const status: LampSaveStatus = failed.length
-        ? {
-              kind: 'error',
-              text: failed[failed.length - 1].error?.text ?? '',
-              retry: failed.some((d) => d.error?.retry),
-          }
-        : stale
-          ? { kind: 'error', text: 'This LAMP day was updated. Please enter it again.', retry: true }
-          : draft?.recovering && dayFailed
-            ? { kind: 'error', text: 'We couldn’t reload this LAMP day.', retry: true }
+    const reloadDay = stale || (!!draft?.recovering && dayFailed);
+    const status: LampSaveStatus = stale
+        ? { kind: 'error', text: 'This LAMP day was updated. Please enter it again.', retry: true }
+        : reloadDay
+          ? { kind: 'error', text: 'We couldn’t reload this LAMP day.', retry: true }
+          : failed.length
+            ? {
+                  kind: 'error',
+                  text: failed[failed.length - 1].error?.text ?? '',
+                  retry: failed.some((d) => d.error?.retry),
+              }
             : mine.some((d) => d.dirty || d.inflight)
               ? { kind: 'saving' }
               : { kind: 'saved', at: uid ? savedAt.get(uid) : undefined };
@@ -401,8 +404,8 @@ export const useLampInputForm = () => {
         status,
         /** repete os dias que falharam (cada um com os seus valores mais recentes) ou relê o dia trocado */
         retry: () => {
-            // dia trocado ou recusa desfeita: relê o dia (nada é reenviado)
-            if (stale || draft?.recovering) return void refetch();
+            // dia trocado ou releitura falha: relê o dia (nada é reenviado)
+            if (reloadDay) return void refetch();
             for (const [key, d] of drafts)
                 if (d.uid === uid && d.error?.retry) {
                     d.error = undefined;

@@ -367,6 +367,13 @@ const shared = css`
         opacity: 0.45;
         cursor: default;
     }
+    /* dourado desabilitado legível nos dois temas (a 45% o rótulo claro sumia sobre o bege do tema claro) */
+    .btn.gold:disabled {
+        opacity: 1;
+        background: var(--r-surf);
+        border-color: var(--r-line-strong);
+        color: var(--r-muted);
+    }
     .ib {
         display: inline-grid;
         place-items: center;

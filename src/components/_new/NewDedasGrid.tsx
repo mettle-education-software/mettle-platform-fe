@@ -14,6 +14,8 @@ interface Props {
     blockedDEDAs?: boolean;
     /** À direita do título (ex.: "Explore all DEDAs"). */
     aside?: React.ReactNode;
+    /** o DEDA atual já está no destaque da página: "Most recent" começa no anterior (sem repetir) */
+    skipCurrent?: boolean;
 }
 
 const TITLES: Record<Props['type'], string> = { lastDedas: 'Most recent', nextDedas: 'Next', allDedas: 'All' };
@@ -22,7 +24,14 @@ const TITLES: Record<Props['type'], string> = { lastDedas: 'Most recent', nextDe
  * Grade de DEDAs da plataforma nova: os mesmos DEDAs, na mesma ordem e com os mesmos bloqueios da grade atual
  * (useDedasGrid), em cards leves; 4 por linha no computador, 2 no celular.
  */
-export const NewDedasGrid: React.FC<Props> = ({ type, onSelectedDeda, customTitle, blockedDEDAs, aside }) => {
+export const NewDedasGrid: React.FC<Props> = ({
+    type,
+    onSelectedDeda,
+    customTitle,
+    blockedDEDAs,
+    aside,
+    skipCurrent,
+}) => {
     // passar o mouse/focar num card adianta a rota do DEDA (produção): o clique abre sem esperar o servidor
     const router = useRouter();
     const grid = useDedasGrid(type, blockedDEDAs);
@@ -30,7 +39,9 @@ export const NewDedasGrid: React.FC<Props> = ({ type, onSelectedDeda, customTitl
 
     // Mesmas condições de título da grade atual.
     const visible =
-        type === 'allDedas' || (type === 'lastDedas' ? unlockedDEDAs.length > 0 : grid.showNext) || !!customTitle;
+        type === 'allDedas' ||
+        (type === 'lastDedas' ? unlockedDEDAs.length > (skipCurrent ? 1 : 0) : grid.showNext) ||
+        !!customTitle;
     // "Next DEDAs" nunca aparece só como esqueleto (antes do início ele nem existe)
     if (!visible && (!grid.showSkeleton || type === 'nextDedas')) return null;
 
@@ -46,7 +57,9 @@ export const NewDedasGrid: React.FC<Props> = ({ type, onSelectedDeda, customTitl
 
     const items: { deda: DedaItem; week?: string }[] =
         type === 'lastDedas'
-            ? grid.lastDedas.map((deda, index) => ({ deda, week: `Week ${(currentWeek as number) - index}` }))
+            ? grid.lastDedas
+                  .map((deda, index) => ({ deda, week: `Week ${(currentWeek as number) - index}` }))
+                  .filter(({ deda }) => !(skipCurrent && deda?.dedaId === currentDeda))
             : type === 'nextDedas'
               ? grid.showNext
                   ? (grid.nextDedas ?? []).map((deda, index) => ({

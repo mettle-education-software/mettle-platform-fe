@@ -403,6 +403,8 @@ const Wrap = styled.div`
         flex: none;
         display: flex;
         align-items: center;
+        /* sem seletor de abas (aba única), o "Aa" continua à direita (o balão abre para a esquerda) */
+        margin-left: auto;
         margin-right: -10px;
     }
     .tabs .tools .ib {
@@ -913,6 +915,8 @@ export const NewLesson: React.FC<NewLessonProps> = ({
     const hasVideo = !!lesson?.lessonVideoEmbedUrl;
     const hasResources = files.length > 0;
     const { current, previous, next, position, total } = lessonNeighbours(modules, lessonId);
+    // curso de uma aula só (Masterclass): sem lista de aulas, sem setas, sem "aula 1 de 1"
+    const single = !modulesLoading && modules.reduce((n, m) => n + m.lessons.length, 0) <= 1;
     const lockedModule = lockedModuleOf(modules, lessonId);
     const open = modules.filter((m) => !m.locked).flatMap((m) => m.lessons);
     const latest = open[open.length - 1];
@@ -940,7 +944,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
     const eyebrowLead = (isMobile ? [current?.module.title] : [railCollapsed && course.title, current?.module.title])
         .filter(Boolean)
         .join(' · ');
-    const eyebrowTail = current ? (isMobile ? `${position}/${total}` : t.lessonOf(position, total)) : '';
+    const eyebrowTail = current && !single ? (isMobile ? `${position}/${total}` : t.lessonOf(position, total)) : '';
     const eyebrow = [eyebrowLead, eyebrowTail].filter(Boolean).join(' · ');
 
     const list = (
@@ -976,7 +980,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
 
     const header = (
         <header className="lh">
-            {isMobile ? (
+            {single ? null : isMobile ? (
                 <button type="button" className="ib" aria-label={t.lessons} onClick={() => setSheet(true)}>
                     <List {...ICON} />
                 </button>
@@ -1002,27 +1006,29 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                 )}
                 <h1>{(switching ? current?.title : lesson?.lessonTitle) ?? current?.title ?? ' '}</h1>
             </div>
-            {!isMobile && tabs.length > 0 && <div className="hd-tabs">{tabsEl}</div>}
-            <nav className="pn" aria-label={t.lessons}>
-                {previous ? (
-                    <LessonLink href={previous.href} className="ib" aria-label={t.previous} title={previous.title}>
-                        <ChevronLeft {...ICON} />
-                    </LessonLink>
-                ) : (
-                    <button type="button" className="ib" aria-label={t.previous} disabled>
-                        <ChevronLeft {...ICON} />
-                    </button>
-                )}
-                {next ? (
-                    <LessonLink href={next.href} className="ib" aria-label={t.next} title={next.title}>
-                        <ChevronRight {...ICON} />
-                    </LessonLink>
-                ) : (
-                    <button type="button" className="ib" aria-label={t.next} disabled>
-                        <ChevronRight {...ICON} />
-                    </button>
-                )}
-            </nav>
+            {!isMobile && tabs.length > 1 && <div className="hd-tabs">{tabsEl}</div>}
+            {!single && (
+                <nav className="pn" aria-label={t.lessons}>
+                    {previous ? (
+                        <LessonLink href={previous.href} className="ib" aria-label={t.previous} title={previous.title}>
+                            <ChevronLeft {...ICON} />
+                        </LessonLink>
+                    ) : (
+                        <button type="button" className="ib" aria-label={t.previous} disabled>
+                            <ChevronLeft {...ICON} />
+                        </button>
+                    )}
+                    {next ? (
+                        <LessonLink href={next.href} className="ib" aria-label={t.next} title={next.title}>
+                            <ChevronRight {...ICON} />
+                        </LessonLink>
+                    ) : (
+                        <button type="button" className="ib" aria-label={t.next} disabled>
+                            <ChevronRight {...ICON} />
+                        </button>
+                    )}
+                </nav>
+            )}
         </header>
     );
 
@@ -1069,7 +1075,8 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                     </div>
                 )}
                 <div className="tabs">
-                    {tabsEl}
+                    {/* uma aba só (ex.: Texto): sem seletor */}
+                    {tabs.length > 1 && tabsEl}
                     {active === 'summary' && (
                         <div className="tools">
                             <TextSize scale={scale} onScale={onScale} />
@@ -1160,7 +1167,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
         <NewPage className="wide lesson">
             <Wrap
                 ref={wrapRef}
-                className={`${uiFont.className}${!isMobile && railCollapsed ? ' norail' : ''}`}
+                className={`${uiFont.className}${!isMobile && (railCollapsed || single) ? ' norail' : ''}`}
                 style={{ '--r-scale': scale, '--r-read-font': readFont.style.fontFamily } as React.CSSProperties}
             >
                 {!isMobile && (

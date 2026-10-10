@@ -13,7 +13,10 @@ export interface Split {
 }
 
 export interface Dashboard {
-    base: { contas: Count; imerso: Split; masterclassSemImerso: Split; ebookSemImerso: Split };
+    /** contas: com login; null se o servidor não conseguiu contar (Firebase fora) */
+    base: { contas: Split & { semProduto: Count }; imerso: Split; masterclass: Split; ebook: Split };
+    /** quantas pessoas em cada combinação de produtos (ativo ou leitura); null = não veio */
+    combinacoes: { label: string; alunos: number }[] | null;
     periodo: {
         gravacoes: { total: Count; segundos: Count };
         dedasConcluidos: Count;
@@ -37,6 +40,8 @@ export interface Dashboard {
         inCarencia: boolean;
     }[];
     vencendoTotal: Count;
+    /** pessoas que vencem em 30 dias (o vencendoTotal conta produtos) */
+    vencendoPessoas: Count;
     semAcesso: {
         uid: string;
         name: string | null;
@@ -85,6 +90,16 @@ const PLANS: [string, string][] = [
 
 const OPTIONAL_PLANS = ['doisAnos', 'aConfirmar'];
 
+const COMBOS: [string, string][] = [
+    ['imerso', 'Só Imerso'],
+    ['masterclass', 'Só Masterclass'],
+    ['ebook', 'Só E-book'],
+    ['imerso+masterclass', 'Imerso + Masterclass'],
+    ['imerso+ebook', 'Imerso + E-book'],
+    ['masterclass+ebook', 'Masterclass + E-book'],
+    ['imerso+masterclass+ebook', 'Imerso + Masterclass + E-book'],
+];
+
 /** "Não começou", "1–3 meses", "24+ meses". */
 export const programTimeLabel = (min: number | null, max: number | null) =>
     min === null && max === null ? 'Não começou' : max === null ? `${min}+ meses` : `${min ?? 0}–${max} meses`;
@@ -98,11 +113,18 @@ export const readDashboard = (data: unknown): Dashboard | null => {
     const plans = d.planosImerso && typeof d.planosImerso === 'object' ? obj(d.planosImerso) : null;
     return {
         base: {
-            contas: nn(base.contas),
+            contas: { ...split(base.contas), semProduto: nn(obj(base.contas).semProduto) },
             imerso: split(base.imerso),
-            masterclassSemImerso: split(base.masterclassSemImerso),
-            ebookSemImerso: split(base.ebookSemImerso),
+            masterclass: split(base.masterclass),
+            ebook: split(base.ebook),
         },
+        combinacoes:
+            d.combinacoes && typeof d.combinacoes === 'object'
+                ? COMBOS.flatMap(([key, label]) => {
+                      const alunos = nn(obj(d.combinacoes)[key]);
+                      return alunos === null ? [] : [{ label, alunos }];
+                  })
+                : null,
         periodo: {
             gravacoes: { total: nn(obj(p.gravacoes).total), segundos: nn(obj(p.gravacoes).segundos) },
             dedasConcluidos: nn(p.dedasConcluidos),
@@ -150,6 +172,7 @@ export const readDashboard = (data: unknown): Dashboard | null => {
                 : [];
         }),
         vencendoTotal: nn(d.vencendoTotal),
+        vencendoPessoas: nn(d.vencendoPessoas),
         semAcesso: list(d.semAcesso).flatMap((v) => {
             const uid = s(v.uid);
             return uid
@@ -218,7 +241,9 @@ export const productList = (products: Product[]) =>
  * Quantas pessoas vencem: exato quando a lista veio inteira (o total do servidor conta produtos, e cabe nela); com a
  * lista cortada (50 linhas), "N+" pelas pessoas que vieram.
  */
-export const duePeopleCount = (d: Pick<Dashboard, 'vencendo' | 'vencendoTotal'>) => {
+export const duePeopleCount = (d: Pick<Dashboard, 'vencendo' | 'vencendoTotal' | 'vencendoPessoas'>) => {
+    // o total de pessoas do servidor, quando vem, é exato
+    if (d.vencendoPessoas !== null) return count(d.vencendoPessoas);
     const people = new Set(d.vencendo.map((row) => row.uid)).size;
     if (d.vencendoTotal === null) return null;
     return d.vencendoTotal <= d.vencendo.length ? count(people) : `${count(people)}+`;

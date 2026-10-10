@@ -49,11 +49,12 @@ jest.mock('../../components/_new/NewPage', () => ({
 // mesma resposta de libs/__tests__/adminDashboard.test.ts
 const full = {
     base: {
-        contas: 5210,
+        contas: { total: 5210, ativo: 1700, leitura: 400, semProduto: 3110 },
         imerso: { total: 1500, ativo: 1250, leitura: 250 },
-        masterclassSemImerso: { total: 300, ativo: 280, leitura: 20 },
-        ebookSemImerso: { total: 40, ativo: 39, leitura: 1 },
+        masterclass: { total: 300, ativo: 280, leitura: 20 },
+        ebook: { total: 40, ativo: 39, leitura: 1 },
     },
+    combinacoes: { imerso: 900, masterclass: 120, 'imerso+masterclass': 500 },
     periodo: {
         from: '2026-09-11',
         to: '2026-10-10',
@@ -81,6 +82,7 @@ const full = {
         { uid: 'u2', name: 'Bia', product: 'outro', origin: 'compra', validUntil: null },
     ],
     vencendoTotal: 64,
+    vencendoPessoas: 41,
     semAcesso: [{ uid: 'u3', name: 'Caio', lastAccess: '2026-09-20T10:00:00Z', dias: 20, semana: 8 }],
     semAcessoTotal: 210,
     eventos: [
@@ -106,10 +108,10 @@ test('com os números: base, período, Imerso e atenção; listas abrem a conta;
     mockData = { isLoading: false, isPlaceholderData: false, data: readDashboard(full) };
     const d = render();
     expect(cards(d, 'db-base')).toEqual([
-        'Contas na Plataforma5.210',
+        'Contas na Plataforma5.210Ativos 1.700 · Leitura 400 · Sem produto 3.110',
         'Alunos Imerso1.500Ativos 1.250 · Leitura 250',
-        'Masterclass sem Imerso300Ativos 280 · Leitura 20',
-        'E-book sem Imerso40Ativos 39 · Leitura 1',
+        'Masterclass300Ativos 280 · Leitura 20',
+        'E-book40Ativos 39 · Leitura 1',
     ]);
     expect(cards(d, 'db-period')).toEqual([
         'Gravações8122h 3m',
@@ -138,7 +140,14 @@ test('com os números: base, período, Imerso e atenção; listas abrem a conta;
     // atenção: totais exatos do servidor, linhas abrem a conta
     const attention = d.querySelector('section[aria-labelledby="db-attention"]')!;
     // o total do servidor conta produtos (64) e a lista veio cortada: pessoas que vieram, com "+"
-    expect(attention.textContent).toContain('Vencem em 30 dias · 1+');
+    // o total de pessoas do servidor
+    expect(attention.textContent).toContain('Vencem em 30 dias · 41');
+    // combinações: lista calma (só as que vieram)
+    expect([...d.querySelectorAll('.combo-list li')].map((li) => li.textContent)).toEqual([
+        'Só Imerso900',
+        'Só Masterclass120',
+        'Imerso + Masterclass500',
+    ]);
     expect(attention.textContent).toContain('Sem acessar há 14+ dias · 210');
     const links = [...d.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')]);
     expect(links).toContainEqual(['ver todos', '/admin/contas?product=imerso&state=ativo&sort=expiry']);

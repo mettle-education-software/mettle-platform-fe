@@ -154,6 +154,12 @@ test('recusas do servidor: as do @username embaixo dele; o resto ao lado do bot�
     await submit(host);
     expect(host.querySelector('#profile-username-error')?.textContent).toBe('Este username já está em uso.');
     expect(document.activeElement).toBe(field('username'));
+    // sem a frase do servidor, a nossa
+    mockSave.mockRejectedValueOnce({ response: { status: 409, data: { code: 'username_cooldown' } } });
+    await submit(host);
+    expect(host.querySelector('#profile-username-error')?.textContent).toBe(
+        'O @username foi trocado há pouco. Tente mais tarde.',
+    );
     mockSave.mockRejectedValueOnce({ response: { status: 500 } });
     await submit(host);
     expect(host.querySelector('#profile-username-error')).toBeNull();

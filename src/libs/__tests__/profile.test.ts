@@ -122,6 +122,8 @@ describe('telefone (mundo todo; sem "+", Brasil)', () => {
         expect(typePhone('+447911123456', '')).toBe('+44 7911 123456');
         expect(typePhone('(11) 91234-567', '(11) 91234-5678')).toBe('(11) 91234-567');
         expect(typePhone('+447911123456', '+55 11 91234 5678')).toBe('+44 7911 123456');
+        // digitando no meio, o texto fica como está (o cursor não pula para o fim)
+        expect(typePhone('(11) 991234-5678', '(11) 91234-5678', false)).toBe('(11) 991234-5678');
     });
     test('E.164 só de número válido; vazio é vazio; exibição internacional', () => {
         expect(phoneE164('(11) 91234-5678')).toBe('+5511912345678');

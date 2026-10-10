@@ -15,7 +15,7 @@ import {
     sameValue,
     serverCode,
     typePhone,
-    USERNAME_CODES,
+    USERNAME_ERRORS,
     validateProfileField,
     validateProfileImage,
 } from 'libs/profile';
@@ -52,11 +52,16 @@ const ProfileForm: React.FC<{ data: Profile }> = ({ data }) => {
     const changed = PROFILE_FIELDS.map(({ key }) => key).filter((key) => fieldChanged(key, values[key], data[key]));
     const pending = mutation.isPending;
 
-    const edit = (field: ProfileField, raw: string) => {
+    const edit = (field: ProfileField, raw: string, atEnd: boolean) => {
         setValues((current) => ({
             ...current,
-            // @username só em minúsculas; telefone no formato do país enquanto digita
-            [field]: field === 'username' ? raw.toLowerCase() : field === 'phone' ? typePhone(raw, current.phone) : raw,
+            // @username só em minúsculas; telefone no formato do país enquanto digita no fim
+            [field]:
+                field === 'username'
+                    ? raw.toLowerCase()
+                    : field === 'phone'
+                      ? typePhone(raw, current.phone, atEnd)
+                      : raw,
         }));
         setErrors((current) => (current[field] ? { ...current, [field]: undefined } : current));
         setFormError(undefined);
@@ -91,8 +96,10 @@ const ProfileForm: React.FC<{ data: Profile }> = ({ data }) => {
             });
             setSuccess(true);
         } catch (failure) {
-            if (USERNAME_CODES.includes(serverCode(failure) ?? '')) {
-                setErrors({ username: profileError(failure) });
+            const code = serverCode(failure);
+            if (code && USERNAME_ERRORS[code]) {
+                const message = (failure as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+                setErrors({ username: typeof message === 'string' && message ? message : USERNAME_ERRORS[code] });
                 inputs.current.username?.focus();
             } else setFormError(profileError(failure));
         }
@@ -126,7 +133,14 @@ const ProfileForm: React.FC<{ data: Profile }> = ({ data }) => {
                                 spellCheck={key === 'username' || key === 'instagram' ? false : undefined}
                                 aria-invalid={!!error}
                                 aria-describedby={described || undefined}
-                                onChange={(event) => edit(key, event.target.value)}
+                                onChange={(event) =>
+                                    edit(
+                                        key,
+                                        event.target.value,
+                                        (event.target.selectionStart ?? event.target.value.length) >=
+                                            event.target.value.length,
+                                    )
+                                }
                             />
                             {key === 'phone' && (
                                 <p className="profile-hint" id={`${id}-hint`}>

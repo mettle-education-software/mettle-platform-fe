@@ -721,6 +721,12 @@ export const Page = styled.div`
         gap: 12px;
     }
     /* um formulário, um Salvar: logo depois do último campo, na coluna dos campos */
+    .profile-form .row {
+        align-items: start;
+    }
+    .profile-form .row > label {
+        padding-top: 10px;
+    }
     .profile-actions {
         border-bottom: 0;
     }

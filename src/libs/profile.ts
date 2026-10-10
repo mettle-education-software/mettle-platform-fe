@@ -36,9 +36,12 @@ const erased = (a: string, b: string) => {
     return a.length < b.length && i === a.length;
 };
 
-/** Enquanto digita (ou cola), o formato do país; apagando, o texto fica como está (senão a máscara voltaria). */
-export const typePhone = (next: string, previous: string) =>
-    erased(next, previous) ? next : new AsYouType(country(next)).input(next);
+/**
+ * Enquanto digita no fim (ou cola), o formato do país. Apagando, ou digitando no meio, o texto fica como está (a
+ * máscara voltaria ou o cursor pularia para o fim).
+ */
+export const typePhone = (next: string, previous: string, atEnd = true) =>
+    !atEnd || erased(next, previous) ? next : new AsYouType(country(next)).input(next);
 
 /** E.164 (+5511912345678) de um número válido; '' se vazio; null se não é um telefone. */
 export const phoneE164 = (raw: string): string | null => {
@@ -87,8 +90,12 @@ export const profilePatch = (changes: Partial<ProfileValues>) =>
         ]),
     ) as Partial<Record<ProfileField, string | null>>;
 
-/** Recusas do servidor que são do @username (a frase vai embaixo dele). */
-export const USERNAME_CODES = ['username_taken', 'username_reserved', 'username_cooldown'];
+/** Recusas do servidor que são do @username (a frase vai embaixo dele); a do servidor, ou esta. */
+export const USERNAME_ERRORS: Record<string, string> = {
+    username_taken: 'Este @username já está em uso.',
+    username_reserved: 'Este @username é reservado.',
+    username_cooldown: 'O @username foi trocado há pouco. Tente mais tarde.',
+};
 export const serverCode = (error: unknown) => {
     const code = (error as { response?: { data?: { code?: unknown } } })?.response?.data?.code;
     return typeof code === 'string' ? code : undefined;

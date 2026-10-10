@@ -5,8 +5,8 @@ import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { dedaPath } from 'libs/cleanUrls';
 import { isCalendarClock, lampToday, todaysDedaId, weekDayLabel } from 'libs/dedaClock';
 import { contentfulImage } from 'libs/dedaHeader';
-import { EBOOK, EBOOK_PATH, EBOOK_PRODUCT, EBOOK_SALES_URL, ebookOpen } from 'libs/ebook';
-import { MASTERCLASS_COURSE, MASTERCLASS_SALES_URL } from 'libs/masterclass';
+import { EBOOK, EBOOK_PATH, EBOOK_PRODUCT, EBOOK_RENEW_URL, EBOOK_SALES_URL, ebookOpen } from 'libs/ebook';
+import { MASTERCLASS_COURSE, MASTERCLASS_RENEW_URL } from 'libs/masterclass';
 import { firstName } from 'libs/newDesign';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { ArrowRight, Lock } from 'lucide-react';
@@ -74,7 +74,7 @@ export const NewHome: React.FC = () => {
 
     const renderCard = (card: CourseCardData) => {
         const renew = renewing(card);
-        const href = renew ? (card.key === MASTERCLASS_COURSE ? MASTERCLASS_SALES_URL : card.cta.renewUrl) : card.href;
+        const href = renew ? (card.key === MASTERCLASS_COURSE ? MASTERCLASS_RENEW_URL : card.cta.renewUrl) : card.href;
         const body = (
             <>
                 <span className="img">
@@ -109,9 +109,10 @@ export const NewHome: React.FC = () => {
         );
     };
 
-    // e-book: aberto lê aqui; leitura ou sem acesso, trancado, para a venda (o order bump da Masterclass)
+    // e-book: aberto lê aqui; sem acesso (inclusive quem tem a Masterclass), a compra; Leitura, a renovação
+    const ebookHref = ebook ? EBOOK_PATH : ebookState === 'expired' ? EBOOK_RENEW_URL : EBOOK_SALES_URL;
     const ebookCard = (
-        <Link className={`cc${ebook ? '' : ' locked'}`} href={ebook ? EBOOK_PATH : EBOOK_SALES_URL}>
+        <Link className={`cc${ebook ? '' : ' locked'}`} href={ebookHref}>
             <span className="img">
                 {/* eslint-disable-next-line @next/next/no-img-element -- o livro de pé na mesa (public/img), escolhido pelo André; o livro no centro do recorte */}
                 <img src="/img/ebook-card-livro.webp" alt="" loading="lazy" style={{ objectPosition: '52% 50%' }} />

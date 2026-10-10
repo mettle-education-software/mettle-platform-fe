@@ -260,6 +260,25 @@ test('Programa Imerso: semana e início; pausar antes de reiniciar; histórico',
     expect(program.textContent).not.toContain('20/07/2026');
 });
 
+test('histórico: reinício sem data em tom apagado; datas inteiras (só quebra no traço); singular com 1', () => {
+    mockSummary.data.remaining_resets = 1;
+    mockSummary.data.remaining_pauses = 1;
+    mockSummary.data.program_events = [
+        { id: '1', kind: 'start', at: '2026-07-20T12:00:00Z', actor: 'student' },
+        { id: '2', kind: 'pause', at: '2026-08-03T12:00:00Z', actor: 'student' },
+    ];
+    const program = section(render(), 'settings-imerso');
+    const muted = [...program.querySelectorAll('.tl li.muted')];
+    expect(muted.length).toBeGreaterThan(0);
+    expect(muted.every((li) => li.textContent?.includes('Reinício (data não registrada)'))).toBe(true);
+    expect(program.querySelectorAll('.tl li:not(.muted)').length).toBeGreaterThan(0);
+    // datas com espaço que não quebra ("desde" preso à data; o traço, à primeira data — libs/programHistory)
+    expect(program.textContent).toContain('20\u00a0de\u00a0julho\u00a0de\u00a02026');
+    expect(program.textContent).toContain('desde\u00a03\u00a0de\u00a0agosto\u00a0de\u00a02026');
+    expect(program.textContent).toContain('Pausa restante: 1');
+    expect(program.textContent).toContain('Reinício restante: 1');
+});
+
 test('aluno sem Imerso não vê o programa nem consulta o resumo', () => {
     mockUser!.roles = ['MASTERCLASS_TEST'];
     const doc = render();

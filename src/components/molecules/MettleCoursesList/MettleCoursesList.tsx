@@ -3,7 +3,7 @@
 import { Row, Col, Skeleton } from 'antd';
 import { useGetCourses } from 'hooks';
 import { MASTERCLASS_COURSE, MASTERCLASS_SALES_URL } from 'libs/masterclass';
-import { IMERSO_PRODUCT, imersoSalesUrl } from 'libs/productAccess';
+import { IMERSO_PRODUCT, IMERSO_SALES_URL } from 'libs/productAccess';
 import { CtaTarget, useProductAccess } from 'providers';
 import React from 'react';
 import { CourseCard } from '../../atoms';
@@ -38,7 +38,7 @@ export const useCourseCards = () => {
             imgUrl: '/img/imerso_thumb.webp',
             title: 'IMERSO',
             type: 'Programa',
-            href: isImersoLocked ? imersoSalesUrl('home') : '/imerso',
+            href: isImersoLocked ? IMERSO_SALES_URL : '/imerso',
             isLocked: isImersoLocked,
             isExpired: imersoState === 'expired',
             cta: { product: IMERSO_PRODUCT },

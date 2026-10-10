@@ -318,7 +318,7 @@ const DedaContentWithRoles = withRoles(withDedaUnlocked(DedaContent), {
     roles: ['METTLE_STUDENT', 'METTLE_ADMIN'],
     fallback: {
         type: 'redirect',
-        to: '/403',
+        to: '/403?p=imerso',
     },
 });
 

@@ -13,6 +13,8 @@ import {
     EBOOK_PATH,
     EBOOK_POSITION_URL,
     EBOOK_PRODUCT,
+    EBOOK_RENEW_URL,
+    EBOOK_SALES_URL,
     type EbookBook,
     type EbookBookmark,
     type EbookHighlight,
@@ -56,7 +58,7 @@ import { NewPage } from './NewPage';
  * de letra, tamanho e janela. Marcas por usuário no Worker (mettle-events, D1), com fila no aparelho se a rede falhar.
  */
 
-type Load = { state: 'loading' } | { state: 'error'; noAccess: boolean } | { state: 'ready'; book: EbookBook };
+type Load = { state: 'loading' } | { state: 'error' } | { state: 'ready'; book: EbookBook };
 type Theme = 'light' | 'sepia' | 'dark' | 'night';
 type Panel = null | 'toc' | 'bm' | 'hl' | 'aa' | 'search';
 type Anchor = { ci: number; o: number };
@@ -282,7 +284,8 @@ const Popover: React.FC<{
 export const NewEbookReader: React.FC = () => {
     const { user } = useAppContext();
     const { access } = useProductAccess();
-    const open = ebookOpen(access(EBOOK_PRODUCT).state);
+    const ebookState = access(EBOOK_PRODUCT).state;
+    const open = ebookOpen(ebookState);
     const { resolved, setPref } = useTheme();
 
     const [load, setLoad] = useState<Load>({ state: 'loading' });
@@ -364,9 +367,9 @@ export const NewEbookReader: React.FC = () => {
                 setLoad({ state: 'ready', book: b });
                 flushOutbox(b.save);
             })
-            .catch((e: Error) => {
+            .catch(() => {
                 fetched.current = false;
-                setLoad({ state: 'error', noAccess: e.message === '403' });
+                setLoad({ state: 'error' });
             });
     }, [user, open]);
 
@@ -810,16 +813,28 @@ export const NewEbookReader: React.FC = () => {
         return (
             <NewPage className="narrow">
                 {(load.state === 'error' || !open) && user ? (
-                    <State role="status">
-                        <p>
-                            {!open || (load.state === 'error' && load.noAccess)
-                                ? 'Este e-book não faz parte da sua conta.'
-                                : 'Não foi possível abrir o e-book agora. Tente de novo em instantes.'}
-                        </p>
-                        <Link href={EBOOK_PATH} className="btn line">
-                            {EBOOK.title}
-                        </Link>
-                    </State>
+                    // compra/renovação só quando o acesso diz que não pode; com acesso e o servidor recusando (o acesso
+                    // ainda chegando ao Worker), a linha neutra com o caminho para /guia — nunca "Desbloquear" a quem tem
+                    !open ? (
+                        // a mesma frase e a mesma ação de /guia (PF2-09): Leitura = terminou + Renovar
+                        <State role="status">
+                            <p>
+                                {ebookState === 'expired'
+                                    ? 'O seu acesso a este e-book terminou.'
+                                    : 'Este e-book não faz parte da sua conta.'}
+                            </p>
+                            <a href={ebookState === 'expired' ? EBOOK_RENEW_URL : EBOOK_SALES_URL} className="btn gold">
+                                {ebookState === 'expired' ? 'Renovar' : 'Desbloquear'}
+                            </a>
+                        </State>
+                    ) : (
+                        <State role="status">
+                            <p>Não foi possível abrir o e-book agora. Tente de novo em instantes.</p>
+                            <Link href={EBOOK_PATH} className="btn line">
+                                {EBOOK.title}
+                            </Link>
+                        </State>
+                    )
                 ) : null}
             </NewPage>
         );
@@ -1229,6 +1244,15 @@ const State = styled.div`
     padding-top: 64px;
     text-align: center;
     color: var(--r-muted);
+    /* o título longo do livro no botão quebra em vez de vazar no celular (PF2-09) */
+    .btn {
+        max-width: 100%;
+        height: auto;
+        white-space: normal;
+        /* em duas linhas, o botão respira (sem as linhas coladas na borda) */
+        line-height: 1.3;
+        padding-block: 10px;
+    }
 `;
 
 /** Temas só do leitor: sépia (papel amarelado) e noite (preto, tinta clara). Contraste AA em texto e rótulos. */

@@ -37,7 +37,17 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CError, cfetch, cpost, cupload } from 'services/comunidadeService';
 import { ChatPicker } from './ChatPicker';
-import { Meta, MettleMark, QuoteBlock, Text, useNoNativeSelection, useRecorder, Voice, Wrap } from './NewChat';
+import {
+    Meta,
+    MettleMark,
+    QuoteBlock,
+    Text,
+    useComposerInset,
+    useNoNativeSelection,
+    useRecorder,
+    Voice,
+    Wrap,
+} from './NewChat';
 import { NewPage } from './NewPage';
 
 const ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,application/pdf';
@@ -140,6 +150,8 @@ const NewComunidade: React.FC = () => {
     const me = st?.me;
     // impersonação: só para ver (sem escrever, reagir, responder, marcar como visto nem notificações)
     const readOnly = !!st?.readOnly || isViewOnly();
+    const root = useRef<HTMLDivElement>(null);
+    useComposerInset(root, !readOnly);
 
     const say = (s: string) => {
         setNotice(s);
@@ -767,7 +779,7 @@ const NewComunidade: React.FC = () => {
 
     return (
         <NewPage className="lesson fill">
-            <Root>
+            <Root ref={root}>
                 <header className="hd">
                     <button type="button" className="hdb" onClick={() => setSheet('info')} aria-label="Dados do grupo">
                         <MettleMark />
@@ -1534,9 +1546,6 @@ const Root = styled(Wrap)`
         text-align: center;
         font-size: 13px;
         color: var(--r-faint);
-    }
-    .composer {
-        position: relative;
     }
     .mlist {
         position: absolute;

@@ -17,6 +17,7 @@ import { useDeviceSize, useGetCourseDetails } from 'hooks';
 import useGetLessonContent from 'hooks/queries/useGetLessonContent';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { withAuthentication } from 'libs';
+import { MASTERCLASS_COURSE } from 'libs/masterclass';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useProductAccess } from 'providers';
@@ -72,7 +73,7 @@ const Lesson: React.FC<LessonProps> = ({ params: { courseSlug, lessonId } }) => 
 
     // temporary solution for permission to access (plataforma nova: depois do /accounts/me, quando é ele quem decide)
     if (!!user && !!course && courseState === 'none' && !levelsLoading) {
-        router.push('/403');
+        router.push(courseSlug === MASTERCLASS_COURSE ? '/403?p=masterclass' : '/403');
         return null;
     }
 

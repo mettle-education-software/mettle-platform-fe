@@ -12,7 +12,8 @@
 // - tipo de evento desconhecido, ou sem data válida, é ignorado (nunca quebra a tela).
 import type { ProgramEvent } from 'interfaces/melp';
 
-export type HistoryRow = { key: string; label: string; when: string };
+/** Uma linha do histórico; `muted` = registro incompleto (reinício antigo sem data), em tom apagado. */
+export type HistoryRow = { key: string; label: string; when: string; muted?: boolean };
 
 /** Resets que todo aluno recebe hoje (padrão de melp_program.remaining_resets). */
 export const RESET_ALLOWANCE = 3;
@@ -35,7 +36,7 @@ export const brDate = (iso: string | null | undefined) => {
     });
 };
 
-/** "14 de outubro de 2024" no horário de Brasília (Configurações do aluno). */
+/** "14 de outubro de 2024" no horário de Brasília (Configurações do aluno); `inteira`: sem quebra dentro da data. */
 export const brLongDate = (iso: string | null | undefined) => {
     const ok = validDate(iso);
     if (!ok) return '';
@@ -46,6 +47,9 @@ export const brLongDate = (iso: string | null | undefined) => {
         year: 'numeric',
     });
 };
+
+/** A data longa sem quebra dentro dela (espaços que não quebram): o histórico só quebra entre as datas. */
+export const brLongDateWhole = (iso: string | null | undefined) => brLongDate(iso).replace(/ /g, '\u00a0');
 
 /** Ids são bigint do Postgres (texto): compara pelo valor exato, sem passar por Number. */
 const cmpId = (a: unknown, b: unknown) => {
@@ -70,9 +74,10 @@ const plural = (n: number, one: string, many: string) => (n ? `${n} ${n === 1 ? 
 type Pause = { key: string; label: string; from: string; to: string | null; planned: string | null };
 type Item = HistoryRow | Pause;
 
+// o traço fica preso à primeira data (espaço que não quebra): na tela estreita, a linha quebra depois do traço
 const pauseText = (p: Pause, format: (iso: string | null | undefined) => string) => {
     const until = p.to ?? p.planned;
-    return until ? `${format(p.from)} – ${format(until)}` : `desde ${format(p.from)}`;
+    return until ? `${format(p.from)}\u00a0– ${format(until)}` : `desde\u00a0${format(p.from)}`;
 };
 
 /**
@@ -101,7 +106,8 @@ export const programHistory = (
     const granted = allowance + era.reduce((sum, e) => sum + (e.kind === 'allowance' ? extra(e.addResets) : 0), 0);
     const used = typeof remainingResets === 'number' ? Math.max(0, granted - remainingResets) : 0;
     const undated = Math.max(0, used - era.filter((e) => e.kind === 'reset').length);
-    for (let i = 0; i < undated; i++) items.push({ key: `reset-${i}`, label: 'Reset', when: 'data não registrada' });
+    for (let i = 0; i < undated; i++)
+        items.push({ key: `reset-${i}`, label: 'Reinício (data não registrada)', when: '', muted: true });
 
     let open: Pause[] = [];
     let bridge = false;
@@ -154,7 +160,7 @@ export const programHistory = (
                 bridge = false;
                 break;
             case 'reset':
-                items.push({ key, label: 'Reset', when: format(e.at) });
+                items.push({ key, label: 'Reinício', when: format(e.at) });
                 break;
             case 'lamp_restarted':
                 closeAll(e.at);

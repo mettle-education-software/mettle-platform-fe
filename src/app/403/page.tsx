@@ -1,11 +1,42 @@
 'use client';
 
 import { useNewDesign } from 'hooks/useNewDesign';
+import { MASTERCLASS_SALES_URL } from 'libs/masterclass';
+import { IMERSO_SALES_URL } from 'libs/productAccess';
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
+import React, { Suspense } from 'react';
 import NotFound from '../not-found';
 
 // /403: o conteúdo pedido não faz parte da conta (withRoles e aula de curso sem compra mandam para cá).
 const NewStatus = dynamic(() => import('components/_new/NewStatus'), { ssr: false, loading: () => null });
+
+/** Sem acesso = convite de compra (modelo de acesso): quem manda para cá diz o produto (`?p=`) (PF2-13). */
+const OFFERS: Record<string, { label: string; href: string }> = {
+    imerso: { label: 'Conhecer o IMERSO', href: IMERSO_SALES_URL },
+    masterclass: { label: 'Conhecer a Masterclass', href: MASTERCLASS_SALES_URL },
+};
+
+/**
+ * O produto vem do endereço lido no navegador (useSearchParams): a página é estática, e o `searchParams` da página
+ * sairia vazio do build. Só as chaves do próprio mapa valem (nada de herdado do objeto, como `?p=constructor`).
+ */
+const Offer: React.FC = () => {
+    const p = useSearchParams()?.get('p') ?? '';
+    const offer = Object.prototype.hasOwnProperty.call(OFFERS, p) ? OFFERS[p] : null;
+    return (
+        <div className="row">
+            {offer && (
+                <a className="btn gold" href={offer.href}>
+                    {offer.label}
+                </a>
+            )}
+            <a className="btn line" href="/">
+                Voltar ao Início
+            </a>
+        </div>
+    );
+};
 
 export default function Forbidden() {
     const newDesign = useNewDesign();
@@ -16,9 +47,9 @@ export default function Forbidden() {
             title="Sem acesso"
             text="Este conteúdo não faz parte da sua conta."
             action={
-                <a className="btn line" href="/">
-                    Voltar ao Início
-                </a>
+                <Suspense fallback={null}>
+                    <Offer />
+                </Suspense>
             }
         />
     );

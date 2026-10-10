@@ -2,6 +2,7 @@
 // Transição: produto sem linha em product_access (ou endpoint indisponível) vale pelas `roles` do Firebase, como hoje.
 // Modelo novo (10-Out-2026, vault "Acessos — Modelo e Lançamento"): claims `access` (ativo | leitura | none) na
 // plataforma nova; ver readLevels/resolveAccess.
+import { IMERSO_RENEW_URL } from './checkout';
 import { EBOOK_PRODUCT } from './ebook';
 
 export type AccessState = 'none' | 'active' | 'grace' | 'expired';
@@ -25,17 +26,10 @@ export const IMERSO_PRODUCT = 'METTLE_STUDENT';
 // Disparado pelo ApiClient quando melp/lamp respondem 403 ACCESS_EXPIRED; o AccessProvider abre o modal.
 export const ACCESS_DENIED_EVENT = 'mettle:access-expired';
 
-// TODO(André): definir os links de renovação por produto (checkout HeroSpark). Até lá, página de venda atual.
-export const RENEWAL_URLS: Record<string, string> = {
-    [IMERSO_PRODUCT]:
-        'https://mettle.com.br/programa-imerso/?utm_medium=organic&utm_source=plataforma&utm_campaign=renovacao',
-};
-/** Página de vendas do Imerso: um destino só para todo convite; `surface` = de onde o aluno veio (utm_medium). */
-export const imersoSalesUrl = (surface: string) =>
-    `https://mettle.com.br/programa-imerso/?utm_source=plataforma&utm_medium=${encodeURIComponent(surface)}&utm_campaign=imerso`;
-export const IMERSO_SALES_URL = imersoSalesUrl('organic');
-/** Destino de todo "Renew" do Imerso em Leitura (a fonte é RENEWAL_URLS). */
-export const IMERSO_RENEW_URL = RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL;
+// Links de compra e de renovação: libs/checkout (HeroSpark, com UTM de compra/renovação). RENEWAL_URLS fica como o mapa
+// por produto que o resto do código já lê (o Imerso; Masterclass e e-book em libs/masterclass e libs/ebook).
+export { IMERSO_RENEW_URL, IMERSO_SALES_URL } from './checkout';
+export const RENEWAL_URLS: Record<string, string> = { [IMERSO_PRODUCT]: IMERSO_RENEW_URL };
 
 // ---------- modelo novo: claims `access` do Firebase (GET /accounts/me como reserva) ----------
 

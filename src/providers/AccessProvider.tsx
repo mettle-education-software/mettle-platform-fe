@@ -7,14 +7,15 @@ import { popupStyles } from 'components/_new/ui';
 import { auth } from 'config/firebase';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { useNewAntdTheme } from 'hooks/useTheme';
-import { MASTERCLASS_SALES_URL } from 'libs/masterclass';
+import { EBOOK_RENEW_URL } from 'libs/ebook';
+import { MASTERCLASS_RENEW_URL } from 'libs/masterclass';
 import {
     ACCESS_DENIED_EVENT,
     accessKey,
     type AccessLevels,
     accessSource,
     IMERSO_PRODUCT,
-    IMERSO_SALES_URL,
+    IMERSO_RENEW_URL,
     levelsFromMe,
     MyAccessResponse,
     ProductAccess,
@@ -57,12 +58,13 @@ const Context = createContext<AccessContext>({
 
 const PRODUCT_NAMES: Record<string, string> = { [IMERSO_PRODUCT]: 'Programa Imerso' };
 
-/** Para onde vai o "Renovar" de um produto (o mesmo do convite). */
-export const renewUrlOf = (target: CtaTarget) =>
-    // Masterclass: a página de vendas dela (o paymentCheckout do curso leva ao Imerso)
-    (accessKey(target.product) === 'masterclass' ? MASTERCLASS_SALES_URL : target.renewUrl) ??
-    RENEWAL_URLS[target.product] ??
-    IMERSO_SALES_URL;
+/** Para onde vai o "Renovar" de um produto (o mesmo do convite): o checkout dele com a campanha de renovação. */
+export const renewUrlOf = (target: CtaTarget) => {
+    const key = accessKey(target.product);
+    if (key === 'masterclass') return MASTERCLASS_RENEW_URL; // o paymentCheckout do curso leva ao Imerso
+    if (key === 'ebook') return EBOOK_RENEW_URL;
+    return (key !== 'imerso' && target.renewUrl) || RENEWAL_URLS[target.product] || IMERSO_RENEW_URL;
+};
 
 /** Plataforma nova: o convite é um título e a ação, sem parágrafo; dentro do IMERSO (rotas /imerso), em inglês. */
 const useNewCopy = (target: CtaTarget) => {
@@ -88,9 +90,7 @@ const CtaContent: React.FC<{
     const week = target.product === IMERSO_PRODUCT && imerso?.week ? imerso.week : null;
     const newDesign = useNewDesign();
     const copy = useNewCopy(target);
-    const renewUrl = newDesign
-        ? renewUrlOf(target)
-        : (target.renewUrl ?? RENEWAL_URLS[target.product] ?? IMERSO_SALES_URL);
+    const renewUrl = renewUrlOf(target);
     const t = newDesign
         ? { ...copy, text: null }
         : {

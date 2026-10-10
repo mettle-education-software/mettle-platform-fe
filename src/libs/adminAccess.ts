@@ -105,13 +105,37 @@ export interface AccessBody {
     extendMonths?: number;
 }
 
+/** Hoje em Brasília (AAAA-MM-DD): os prazos são dias de Brasília. */
+export const brToday = (now = new Date()) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(now);
+
+const plusDays = (iso: string, days: number) =>
+    new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+
 /**
- * O PUT do rascunho, ou null se falta escolher (origem; prazo da Cortesia do Imerso quando ela começa agora). Sem
- * prazo escolhido e com a mesma origem, o servidor mantém a data; Compra sem data = "data a confirmar".
+ * Total com um prazo que já passou (o servidor recusaria com ALREADY_EXPIRED): a frase do que falta, ou null. Compra
+ * vale até a data + 14 dias de carência; Cortesia, até a data.
  */
-export const accessBody = (draft: Draft, row: AccessRow): AccessBody | null => {
+export const termProblem = (draft: Draft, row: AccessRow, today = brToday()) => {
     const { state, origin, term } = draft;
-    if (!origin) return null;
+    if (state !== 'ativo' || !origin || termKind(origin) === 'none') return null;
+    if (term.kind === 'date' && term.value) {
+        const until = origin === 'compra' ? plusDays(term.value, 14) : term.value;
+        return until < today ? 'Data já vencida: escolha uma data futura.' : null;
+    }
+    if (term.kind !== 'keep' || origin !== row.origin) return null;
+    const until = row.graceUntil ?? row.validUntil;
+    return until && until < today ? 'Prazo vencido: escolha um prazo novo.' : null;
+};
+
+/**
+ * O PUT do rascunho, ou null se falta escolher (origem; prazo da Cortesia do Imerso quando ela começa agora; prazo
+ * novo quando o atual já venceu). Sem prazo escolhido e com a mesma origem, o servidor mantém a data; Compra sem
+ * data = "data a confirmar".
+ */
+export const accessBody = (draft: Draft, row: AccessRow, today = brToday()): AccessBody | null => {
+    const { state, origin, term } = draft;
+    if (!origin || termProblem(draft, row, today)) return null;
     const body: AccessBody = { state, origin };
     const kind = termKind(origin);
     if (kind === 'none') return body;

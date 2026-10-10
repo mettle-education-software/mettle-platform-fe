@@ -110,6 +110,31 @@ const styles = css`
         opacity: 0.45;
         transition: opacity 0.2s;
     }
+    .db .combos {
+        margin-top: 28px;
+    }
+    .db .combo-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 40px;
+        margin: 8px 0 0;
+        padding: 0;
+        list-style: none;
+    }
+    .db .combo-list li {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 36px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--r-line);
+        font-size: 14px;
+    }
+    .db .combo-list b {
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+    }
     .db .line {
         margin: 6px 0 0;
         font-size: 13.5px;
@@ -230,7 +255,8 @@ const styles = css`
         .db .kp b {
             font-size: 26px;
         }
-        .db .two {
+        .db .two,
+        .db .combo-list {
             grid-template-columns: minmax(0, 1fr);
         }
     }
@@ -389,19 +415,23 @@ export const NewAdminDashboard: React.FC = () => {
     };
 
     const p = d?.periodo;
+    const contas = d?.base.contas;
     const base: Card[] = [
-        { label: 'Contas na Plataforma', value: count(d?.base.contas ?? null) },
+        {
+            label: 'Contas na Plataforma',
+            value: count(contas?.total ?? null),
+            // sem produto só aparece quando há
+            sub:
+                contas &&
+                `${splitLine(contas)}${contas.semProduto ? ` · Sem produto ${count(contas.semProduto)}` : ''}`,
+        },
         { label: 'Alunos Imerso', value: count(d?.base.imerso.total ?? null), sub: d && splitLine(d.base.imerso) },
         {
-            label: 'Masterclass sem Imerso',
-            value: count(d?.base.masterclassSemImerso.total ?? null),
-            sub: d && splitLine(d.base.masterclassSemImerso),
+            label: 'Masterclass',
+            value: count(d?.base.masterclass.total ?? null),
+            sub: d && splitLine(d.base.masterclass),
         },
-        {
-            label: 'E-book sem Imerso',
-            value: count(d?.base.ebookSemImerso.total ?? null),
-            sub: d && splitLine(d.base.ebookSemImerso),
-        },
+        { label: 'E-book', value: count(d?.base.ebook.total ?? null), sub: d && splitLine(d.base.ebook) },
     ];
     const recSeconds = p?.gravacoes.segundos ?? null;
     const period: Card[] = [
@@ -430,6 +460,22 @@ export const NewAdminDashboard: React.FC = () => {
                     <h2 id="db-base">Base</h2>
                 </div>
                 <Cards cards={base} label="Base" />
+                {/* combinações de produtos: uma lista calma, sem gráfico */}
+                <div className="combos">
+                    <h3>Combinações</h3>
+                    {d?.combinacoes ? (
+                        <ul className="combo-list">
+                            {d.combinacoes.map((row) => (
+                                <li key={row.label}>
+                                    <span>{row.label}</span>
+                                    <b>{count(row.alunos)}</b>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="hint">{none('—')}</p>
+                    )}
+                </div>
             </section>
 
             <section aria-labelledby="db-period" aria-busy={query.isPlaceholderData}>

@@ -16,10 +16,19 @@ import {
 
 const full = {
     base: {
-        contas: 5210,
+        contas: { total: 5210, ativo: 1700, leitura: 400, semProduto: 3110 },
         imerso: { total: 1500, ativo: 1250, leitura: 250 },
-        masterclassSemImerso: { total: 300, ativo: 280, leitura: 20 },
-        ebookSemImerso: { total: 40, ativo: 39, leitura: 1 },
+        masterclass: { total: 300, ativo: 280, leitura: 20 },
+        ebook: { total: 40, ativo: 39, leitura: 1 },
+    },
+    combinacoes: {
+        imerso: 900,
+        masterclass: 120,
+        ebook: 10,
+        'imerso+masterclass': 500,
+        'imerso+ebook': 60,
+        'masterclass+ebook': 15,
+        'imerso+masterclass+ebook': 40,
     },
     periodo: {
         from: '2026-09-11',
@@ -57,6 +66,7 @@ const full = {
         { uid: 'u2', name: 'Bia', product: 'outro', origin: 'compra', validUntil: null },
     ],
     vencendoTotal: 64,
+    vencendoPessoas: 41,
     semAcesso: [{ uid: 'u3', name: 'Caio', lastAccess: '2026-09-20T10:00:00Z', dias: 20, semana: 8 }],
     semAcessoTotal: 210,
     eventos: [
@@ -77,6 +87,17 @@ const full = {
 test('resposta conferida (linhas inválidas fora); a rota antiga no mesmo endereço não vale', () => {
     const d = readDashboard(full)!;
     expect(d.base.imerso).toEqual({ total: 1500, ativo: 1250, leitura: 250 });
+    expect(d.base.contas).toEqual({ total: 5210, ativo: 1700, leitura: 400, semProduto: 3110 });
+    expect(d.base.masterclass.total).toBe(300);
+    expect(d.combinacoes?.map((c) => c.label)).toEqual([
+        'Só Imerso',
+        'Só Masterclass',
+        'Só E-book',
+        'Imerso + Masterclass',
+        'Imerso + E-book',
+        'Masterclass + E-book',
+        'Imerso + Masterclass + E-book',
+    ]);
     expect(d.periodo.gravacoes).toEqual({ total: 812, segundos: 7384 });
     expect(d.periodo.compras).toEqual({ novas: 31, renovacoes: 12 });
     expect(d.estudoPorDia).toEqual([{ date: '2026-10-09', alunos: 40 }]);
@@ -104,7 +125,7 @@ test('resposta conferida (linhas inválidas fora); a rota antiga no mesmo endere
         { label: '24+ meses', alunos: 120 },
     ]);
     expect(d.vencendo.map((v) => v.uid)).toEqual(['u1']);
-    expect([d.vencendoTotal, d.semAcessoTotal, d.renovaramImerso]).toEqual([64, 210, 77]);
+    expect([d.vencendoTotal, d.vencendoPessoas, d.semAcessoTotal, d.renovaramImerso]).toEqual([64, 41, 210, 77]);
     expect(changeLabel(d.eventos[0])).toBe('Imerso: Leitura → Total');
     expect(readDashboard({ usersCount: 10, businessCount: 2 })).toBeNull();
     expect(readDashboard(undefined)).toBeNull();
@@ -113,7 +134,8 @@ test('resposta conferida (linhas inválidas fora); a rota antiga no mesmo endere
 test('campo que falta é null (a tela mostra "—"), nunca zero', () => {
     const d = readDashboard({ base: { imerso: { total: 5 } }, eventos: [] })!;
     expect(d.base.imerso).toEqual({ total: 5, ativo: null, leitura: null });
-    expect(d.base.contas).toBeNull();
+    expect(d.base.contas).toEqual({ total: null, ativo: null, leitura: null, semProduto: null });
+    expect(d.combinacoes).toBeNull();
     expect(d.periodo.estudoAtivoMin).toBeNull();
     expect(d.planosImerso).toBeNull();
     expect(d.tempoPrograma).toBeNull();
@@ -196,7 +218,9 @@ test('vencem: uma linha por pessoa (produtos juntos, data mais cedo, carência d
     expect(productList(['masterclass', 'ebook'])).toBe('Masterclass e E-book');
     expect(productList(['imerso', 'masterclass', 'ebook'])).toBe('Imerso, Masterclass e E-book');
     // lista inteira: pessoas exatas; lista cortada pelo servidor: "N+"
-    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 3 })).toBe('2');
-    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 64 })).toBe('2+');
-    expect(duePeopleCount({ vencendo: rows, vencendoTotal: null })).toBeNull();
+    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 3, vencendoPessoas: null })).toBe('2');
+    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 64, vencendoPessoas: null })).toBe('2+');
+    expect(duePeopleCount({ vencendo: rows, vencendoTotal: null, vencendoPessoas: null })).toBeNull();
+    // com o total de pessoas do servidor, exato
+    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 64, vencendoPessoas: 41 })).toBe('41');
 });

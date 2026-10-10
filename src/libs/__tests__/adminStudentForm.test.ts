@@ -152,7 +152,8 @@ beforeEach(() => {
 test('estender +6 grava uma vez; gravando, nada muda nem grava de novo', () => {
     const { host, root } = mount();
     const li = imerso(host);
-    expect(button(li, 'Salvar').disabled).toBe(true);
+    // sem mudança, o Salvar não aparece
+    expect(button(li, 'Salvar')).toBeUndefined();
     click(button(li, '+6'));
     expect(button(li, 'Salvar').disabled).toBe(false);
     click(button(li, 'Salvar'));
@@ -175,7 +176,7 @@ test('estender +6 grava uma vez; gravando, nada muda nem grava de novo', () => {
     );
     const after = imerso(host);
     expect(after.textContent).toContain('Salvo.');
-    expect(button(after, 'Salvar').disabled).toBe(true);
+    expect(button(after, 'Salvar')).toBeUndefined();
     expect([...after.querySelectorAll('[aria-pressed="true"]')].map((b) => b.textContent)).toEqual(['Total']);
     act(() => root.unmount());
 });
@@ -200,7 +201,7 @@ test('sem acesso: nada marcado; escolher a origem já concede (Total) e grava', 
         (li) => li.querySelector('.lab b')?.textContent === 'E-book',
     )!;
     expect(ebook.querySelectorAll('[aria-pressed="true"]')).toHaveLength(0);
-    expect(button(ebook, 'Salvar').disabled).toBe(true);
+    expect(button(ebook, 'Salvar')).toBeUndefined();
     const select = ebook.querySelector('select') as HTMLSelectElement;
     act(() => {
         select.value = 'parceiro';

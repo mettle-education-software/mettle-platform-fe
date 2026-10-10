@@ -153,8 +153,13 @@ const styles = css`
         gap: 8px;
     }
     .ui-new-page.drawer {
-        padding: 4px 0 32px;
+        padding: 4px 24px 32px;
         max-width: none;
+    }
+    @media (max-width: 860px) {
+        .ui-new-page.drawer {
+            padding: 4px 16px 32px;
+        }
     }
 `;
 

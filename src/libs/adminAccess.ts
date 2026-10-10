@@ -146,8 +146,11 @@ export const accessBody = (draft: Draft, row: AccessRow, today = brToday()): Acc
     return body;
 };
 
-export const isDirty = (draft: Draft, row: AccessRow) =>
-    row.state === 'none' || draft.state !== row.state || draft.origin !== row.origin || draft.term.kind !== 'keep';
+/** Algo mudou em relação ao que veio do servidor (sem acesso: nada escolhido ainda não é mudança). */
+export const isDirty = (draft: Draft, row: AccessRow) => {
+    const initial = draftOf(row);
+    return draft.state !== initial.state || draft.origin !== initial.origin || draft.term.kind !== 'keep';
+};
 
 /** Dia de Brasília (AAAA-MM-DD) como DD/MM/AAAA, sem fuso (é uma data civil). */
 export const brDay = (iso: string | null | undefined) =>

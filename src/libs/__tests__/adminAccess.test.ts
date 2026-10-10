@@ -62,7 +62,9 @@ describe('PUT do rascunho', () => {
             state: 'ativo',
             origin: 'parceiro',
         });
-        expect(isDirty(draftOf(none), none)).toBe(true);
+        // nada escolhido ainda não é mudança (o Salvar não aparece); escolher Total é
+        expect(isDirty(draftOf(none), none)).toBe(false);
+        expect(isDirty({ ...draftOf(none), state: 'ativo' }, none)).toBe(true);
     });
 
     it('igual ao servidor: nada a salvar; só o estado: estado e origem (o prazo fica)', () => {

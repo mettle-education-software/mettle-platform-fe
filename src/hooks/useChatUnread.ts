@@ -1,7 +1,6 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useAppContext } from 'providers';
 import { chatFetch } from 'services/chatService';
 import { useNewDesign } from './useNewDesign';
 
@@ -9,9 +8,7 @@ export const CHAT_UNREAD_KEY = ['chat-unread'];
 
 /** Respostas da equipe ainda não vistas (badge do Suporte no menu). Só na plataforma nova; 1 consulta por minuto. */
 export const useChatUnread = (): number => {
-    // impersonação: o Worker contaria as do administrador (token real), não as do aluno
-    const viewing = !!useAppContext().user?.impersonating;
-    const newDesign = useNewDesign() && !viewing;
+    const newDesign = useNewDesign();
     const { data } = useQuery({
         queryKey: CHAT_UNREAD_KEY,
         queryFn: () => chatFetch<{ unread: number }>('/unread'),

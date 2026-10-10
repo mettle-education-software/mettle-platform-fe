@@ -49,6 +49,7 @@ jest.mock(
                 isSuccess: false,
             }),
             useAdminHistory: () => ({ data: undefined }),
+            useAdminAccounts: () => ({ data: undefined }),
             useTrashAccount: () => ({ isSuccess: false, isPending: false, isError: false, reset: jest.fn() }),
             useSaveStudentAccess: () => {
                 const [state, setState] = React.useState({ isPending: false, isSuccess: false });

@@ -28,6 +28,9 @@ test('ligado: grava = barra; ler e sair da impersonação passam', () => {
     for (const method of ['get', 'HEAD', 'options', undefined]) expect(blocksWrite(method, '/x')).toBe(false);
     expect(blocksWrite('post', '/impersonate/remove')).toBe(false);
     expect(blocksWrite('post', '/impersonate/add/abc')).toBe(true);
+    // a exceção é exata: nada de "parecido" passa
+    expect(blocksWrite('post', '/impersonate/remove-x')).toBe(true);
+    expect(blocksWrite('post', '/x?next=/impersonate/remove')).toBe(true);
 });
 
 test('recusa no formato do servidor e aviso para a barra', () => {

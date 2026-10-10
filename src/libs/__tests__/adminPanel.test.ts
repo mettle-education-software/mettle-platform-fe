@@ -18,9 +18,23 @@ test('endereços: Contas, uma conta aberta e os filtros do Início', () => {
     expect(adminPanelPath('a b')).toBe('/admin/contas?conta=a%20b');
     expect(adminPanelPath(null)).toBe('/admin/contas');
     expect(contasPath({ product: 'imerso', state: 'ativo', sort: 'expiry', dir: 'asc' })).toBe(
-        '/admin/contas?product=imerso&state=ativo&sort=expiry&dir=asc',
+        '/admin/contas?product=imerso&state=ativo&sort=expiry',
     );
     expect(contasPath({})).toBe('/admin/contas');
+    // a conta aberta mantém os filtros; estado sem produto e ordem padrão ficam de fora; Lixeira descarta os filtros
+    expect(contasPath({ product: 'ebook', state: 'leitura', sort: 'name', dir: 'desc', conta: 'x' })).toBe(
+        '/admin/contas?product=ebook&state=leitura&dir=desc&conta=x',
+    );
+    expect(contasPath({ state: 'leitura', sort: 'name', dir: 'asc' })).toBe('/admin/contas');
+    expect(contasPath({ product: 'imerso', lixeira: true, conta: 'x' })).toBe('/admin/contas?lixeira=1&conta=x');
+    // ida e volta pelo endereço
+    const back = queryFromUrl(new URLSearchParams('product=imerso&state=ativo&sort=expiry'));
+    expect(back).toMatchObject({
+        product: 'imerso',
+        state: 'ativo',
+        sort: { key: 'expiry', dir: 'asc' },
+        trash: false,
+    });
 });
 
 test('menu do Admin: exatamente quatro, os dois últimos só do dono', () => {

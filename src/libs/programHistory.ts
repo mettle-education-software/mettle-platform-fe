@@ -1,12 +1,14 @@
-// Histórico do programa (perfil do aluno e /admin/historico): o registro de eventos do Imerso (melp_event, be #143/#147)
-// virado em linhas curtas. Puro: sem React, sem rede.
+// Histórico do programa (perfil do aluno e a conta no Painel de Contas): o registro de eventos do Imerso (melp_event,
+// be #143/#147/#158) virado em linhas curtas. Puro: sem React, sem rede.
 //
 // Regras (André, 08-Out-2026):
 // - início; cada pausa de–até (até = a segunda em que a LAMP voltou); cada reset com a data; LAMP retomada;
 // - "Pausa" só quando foi do aluno; intervalo do sistema nunca vira "Pausa" — a ponte do teto do passo 3
 //   (reason 'cap_bridge') aparece como "LAMP retomada na semana 105";
 // - linha da carga inicial sem data efetiva mostra só a data que se conhece (`at`);
-// - resets anteriores ao registro (o reset antigo apagava tudo) aparecem sem data, pela contagem gasta;
+// - resets anteriores ao registro (o reset antigo apagava tudo) aparecem sem data, pela contagem gasta:
+//   3 + resets a mais (`allowance`) − restantes − registrados, contados desde o último reset de fábrica;
+// - pausas/resets a mais: "2 pausas e 1 reset a mais"; reset de fábrica fecha a pausa aberta e recomeça a contagem;
 // - tipo de evento desconhecido, ou sem data válida, é ignorado (nunca quebra a tela).
 import type { ProgramEvent } from 'interfaces/melp';
 
@@ -49,6 +51,10 @@ const backLabel = (week?: number | null) =>
         ? `LAMP retomada na semana ${week}`
         : 'LAMP retomada';
 
+/** Quantidade dada pela equipe (inteiro positivo); o resto não conta. */
+const extra = (value: unknown) => (typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 0);
+const plural = (n: number, one: string, many: string) => (n ? `${n} ${n === 1 ? one : many}` : '');
+
 type Pause = { key: string; label: string; from: string; to: string | null; planned: string | null };
 type Item = HistoryRow | Pause;
 
@@ -76,8 +82,11 @@ export const programHistory = (
         .sort((a, b) => time(a.at) - time(b.at) || cmpId(a.id, b.id));
 
     const items: Item[] = [];
-    const used = typeof remainingResets === 'number' ? Math.max(0, allowance - remainingResets) : 0;
-    const undated = Math.max(0, used - list.filter((e) => e.kind === 'reset').length);
+    // a contagem vale desde o último reset de fábrica (era atual)
+    const era = list.slice(list.map((e) => e.kind).lastIndexOf('factory_reset') + 1);
+    const granted = allowance + era.reduce((sum, e) => sum + (e.kind === 'allowance' ? extra(e.addResets) : 0), 0);
+    const used = typeof remainingResets === 'number' ? Math.max(0, granted - remainingResets) : 0;
+    const undated = Math.max(0, used - era.filter((e) => e.kind === 'reset').length);
     for (let i = 0; i < undated; i++) items.push({ key: `reset-${i}`, label: 'Reset', when: 'data não registrada' });
 
     let open: Pause[] = [];
@@ -137,6 +146,19 @@ export const programHistory = (
                 closeAll(e.at);
                 bridge = false;
                 items.push({ key, label: 'LAMP recomeçou na semana 1', when: brDate(e.at) });
+                break;
+            case 'allowance': {
+                const parts = [
+                    plural(extra(e.addPauses), 'pausa', 'pausas'),
+                    plural(extra(e.addResets), 'reset', 'resets'),
+                ].filter(Boolean);
+                if (parts.length) items.push({ key, label: `${parts.join(' e ')} a mais`, when: brDate(e.at) });
+                break;
+            }
+            case 'factory_reset':
+                closeAll(e.at);
+                bridge = false;
+                items.push({ key, label: 'Reset de fábrica', when: brDate(e.at) });
                 break;
             default:
                 break; // tipo novo: ignorado

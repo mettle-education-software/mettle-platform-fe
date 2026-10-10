@@ -18,7 +18,12 @@ Object.assign(globalThis, {
 let mockUid = 'RBgG61nNKdgHUKCkxhR4vhaBLGU2';
 let mockSearch = '';
 let mockList: any;
-const mockPush = jest.fn();
+// o endereço é a fonte dos filtros: navegar troca o que useSearchParams devolve no próximo render
+const mockNav = (url: string) => {
+    mockSearch = url.split('?')[1] ?? '';
+};
+const mockPush = jest.fn(mockNav);
+const mockReplace = jest.fn(mockNav);
 const mockQueries: unknown[] = [];
 
 jest.mock(
@@ -46,7 +51,7 @@ jest.mock(
     { virtual: true },
 );
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push: mockPush }),
+    useRouter: () => ({ push: mockPush, replace: mockReplace }),
     useSearchParams: () => new URLSearchParams(mockSearch),
 }));
 jest.mock('themes/newDesign', () => ({ ICON: {}, UI_FONT_CLASS: '', UI_FONT_VAR: {} }), { virtual: true });
@@ -95,7 +100,7 @@ const mount = () => {
     document.body.appendChild(host);
     const root = createRoot(host);
     act(() => root.render(createElement(NewAdminContas)));
-    return { host, root };
+    return { host, root, rerender: () => act(() => root.render(createElement(NewAdminContas))) };
 };
 const button = (scope: Element, text: string) =>
     [...scope.querySelectorAll('button')].find((b) => b.textContent === text) as HTMLButtonElement | undefined;
@@ -108,6 +113,7 @@ beforeEach(() => {
     mockUid = 'RBgG61nNKdgHUKCkxhR4vhaBLGU2';
     mockSearch = '';
     mockPush.mockClear();
+    mockReplace.mockClear();
     mockQueries.length = 0;
     mockList = {
         isLoading: false,
@@ -134,16 +140,37 @@ test('a lista: nome e e-mail, os três selos, último acesso, programa e o que r
     act(() => root.unmount());
 });
 
-test('filtros: produto, depois estado; o Início abre já filtrado; Lixeira só do dono', () => {
+test('filtros no endereço: o Início abre já filtrado, a conta abre sem perder os filtros; Lixeira só do dono', () => {
     mockSearch = 'product=imerso&state=ativo&sort=expiry';
-    let { host, root } = mount();
+    let { host, root, rerender } = mount();
     expect(mockQueries.at(-1)).toMatchObject({
         product: 'imerso',
         state: 'ativo',
         sort: { key: 'expiry', dir: 'asc' },
     });
     expect(button(host, 'Total')!.getAttribute('aria-pressed')).toBe('true');
+    // ordem por vencimento: a data numa coluna
+    expect([...host.querySelectorAll('th')].map((th) => th.textContent)).toContain('Vence');
+    click(host.querySelector('tbody tr')!);
+    expect(mockPush).toHaveBeenLastCalledWith('/admin/contas?product=imerso&state=ativo&sort=expiry&conta=u1', {
+        scroll: false,
+    });
+    // estado: outro clique tira o filtro e mantém a conta aberta
+    rerender();
+    click(button(host, 'Total')!);
+    expect(mockReplace).toHaveBeenLastCalledWith('/admin/contas?product=imerso&sort=expiry&conta=u1', {
+        scroll: false,
+    });
+    // Lixeira (dono): os filtros saem; o link "Lixeira" de outra tela também abre a lista da lixeira
     click(button(host, 'Lixeira')!);
+    rerender();
+    expect(host.textContent).toContain('TRASH');
+    act(() => root.unmount());
+    mockSearch = '';
+    ({ host, root, rerender } = mount());
+    expect(host.textContent).not.toContain('TRASH');
+    mockNav('/admin/contas?lixeira=1');
+    rerender();
     expect(host.textContent).toContain('TRASH');
     act(() => root.unmount());
     mockUid = 'outro-admin';
@@ -151,6 +178,17 @@ test('filtros: produto, depois estado; o Início abre já filtrado; Lixeira só 
     ({ host, root } = mount());
     expect(button(host, 'Lixeira')).toBeUndefined();
     expect(host.textContent).not.toContain('TRASH');
+    act(() => root.unmount());
+});
+
+test('retrato da noite (rota nova ainda fora): produto e estado não valem e não aparecem marcados', () => {
+    mockSearch = 'product=imerso&state=ativo';
+    mockList.data.snapshot = true;
+    const { host, root } = mount();
+    expect(button(host, 'Todos')!.getAttribute('aria-pressed')).toBe('true');
+    expect(button(host, 'Imerso')!.getAttribute('aria-pressed')).toBe('false');
+    expect(button(host, 'Total')).toBeUndefined();
+    expect(host.textContent).toContain('Retrato da noite');
     act(() => root.unmount());
 });
 

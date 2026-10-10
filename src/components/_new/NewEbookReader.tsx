@@ -99,9 +99,11 @@ const fetchBook = async (): Promise<EbookBook> => {
     return res.json();
 };
 
-// modo visualização (impersonação): a posição e as marcas não saem do aparelho nem ficam na fila
-const sendPosition = (save: string, p: EbookPosition) =>
-    isViewOnly()
+// só leitura (impersonação: sem token de gravação ou modo visualização): a posição e as marcas não saem do aparelho
+// nem entram na fila (que é do aparelho, e pode guardar marcas da própria conta do administrador)
+const canSave = (save: string | null): save is string => !!save && !isViewOnly();
+const sendPosition = (save: string | null, p: EbookPosition) =>
+    !canSave(save)
         ? Promise.resolve(undefined)
         : fetch(EBOOK_POSITION_URL, {
               method: 'POST',
@@ -121,7 +123,6 @@ const outbox = {
     write: (ops: Op[]) => store.set(OUTBOX_KEY, ops.length ? JSON.stringify(ops.slice(-500)) : null),
 };
 const sendOp = async (save: string, op: Op) => {
-    if (isViewOnly()) return true;
     try {
         const r = await fetch(EBOOK_MARKS_URL, { method: 'POST', body: JSON.stringify({ t: save, ...op }) });
         return r.status < 500 && r.status !== 401; // 204, 400, 404, 429: nada a repetir
@@ -130,7 +131,8 @@ const sendOp = async (save: string, op: Op) => {
     }
 };
 let flushing: Promise<void> | null = null;
-const flushOutbox = (save: string) => {
+const flushOutbox = (save: string | null) => {
+    if (!canSave(save)) return Promise.resolve();
     flushing = (flushing ?? Promise.resolve()).then(async () => {
         const ops = outbox.read();
         if (!ops.length) return;
@@ -283,6 +285,8 @@ export const NewEbookReader: React.FC = () => {
     }, []);
 
     const book = load.state === 'ready' ? load.book : null;
+    // só leitura (impersonação): sem marcador, destaque nem nota
+    const readOnly = !!book && !canSave(book.save);
     const chapters = useMemo(() => book?.chapters ?? [], [book]);
     const htmls = useMemo(() => {
         if (!chapters.length) return [];
@@ -615,7 +619,7 @@ export const NewEbookReader: React.FC = () => {
     }, []);
 
     const send = (op: Op) => {
-        if (!book) return;
+        if (!book || !canSave(book.save)) return;
         outbox.write([...outbox.read(), op]);
         flushOutbox(book.save);
     };
@@ -872,15 +876,17 @@ export const NewEbookReader: React.FC = () => {
                                 <Search {...ICON} />
                             </button>
                         </span>
-                        <button
-                            type="button"
-                            className={`ib bmk${marked ? ' on' : ''}`}
-                            aria-label="Marcador desta página"
-                            aria-pressed={!!marked}
-                            onClick={toggleBookmark}
-                        >
-                            <Bookmark {...ICON} fill={marked ? 'currentColor' : 'none'} />
-                        </button>
+                        {!readOnly && (
+                            <button
+                                type="button"
+                                className={`ib bmk${marked ? ' on' : ''}`}
+                                aria-label="Marcador desta página"
+                                aria-pressed={!!marked}
+                                onClick={toggleBookmark}
+                            >
+                                <Bookmark {...ICON} fill={marked ? 'currentColor' : 'none'} />
+                            </button>
+                        )}
                     </div>
                 </header>
 
@@ -1091,7 +1097,7 @@ export const NewEbookReader: React.FC = () => {
                     )}
                 </footer>
 
-                {menu && (
+                {menu && !readOnly && (
                     <div
                         className="menu"
                         role="toolbar"
@@ -1143,7 +1149,7 @@ export const NewEbookReader: React.FC = () => {
                     </div>
                 )}
 
-                {note && (
+                {note && !readOnly && (
                     <div className="pop note" role="dialog" aria-label="Nota">
                         <p className="pop-h">Nota</p>
                         <textarea

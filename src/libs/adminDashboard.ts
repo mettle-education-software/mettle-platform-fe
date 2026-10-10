@@ -3,16 +3,19 @@
 // com números inventados. Testes: libs/__tests__/adminDashboard.test.ts.
 import { ORIGINS, PRODUCT_NAMES, type Origin, type Product } from './adminAccess';
 
+/** Contagem do servidor; null = não veio (a tela mostra "—", nunca um zero inventado). */
+type Count = number | null;
+
 export interface Dashboard {
     acessos: {
-        imerso: { ativo: number; leitura: number; carencia: number; aConfirmar: number };
-        masterclass: { ativo: number; leitura: number };
-        ebook: { ativo: number; leitura: number };
-        lixeira: number;
+        imerso: { ativo: Count; leitura: Count; carencia: Count; aConfirmar: Count };
+        masterclass: { ativo: Count; leitura: Count };
+        ebook: { ativo: Count; leitura: Count };
+        lixeira: Count;
     };
-    estudo: { hoje: number; d7: number; d30: number; base: number; pausados: number };
+    estudo: { hoje: Count; d7: Count; d30: Count; base: Count; pausados: Count };
     estudoPorDia: { date: string; alunos: number }[];
-    compras30d: number;
+    compras30d: Count;
     vencendo: {
         uid: string;
         name: string | null;
@@ -43,7 +46,6 @@ export interface Dashboard {
 type Raw = Record<string, unknown>;
 const obj = (value: unknown): Raw =>
     value && typeof value === 'object' && !Array.isArray(value) ? (value as Raw) : {};
-const n = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
 const nn = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
 const s = (value: unknown) => (typeof value === 'string' && value ? value : null);
 const list = (value: unknown): Raw[] => (Array.isArray(value) ? value.map(obj) : []);
@@ -61,20 +63,22 @@ export const readDashboard = (data: unknown): Dashboard | null => {
     return {
         acessos: {
             imerso: {
-                ativo: n(im.ativo),
-                leitura: n(im.leitura),
-                carencia: n(im.carencia),
-                aConfirmar: n(im.aConfirmar),
+                ativo: nn(im.ativo),
+                leitura: nn(im.leitura),
+                carencia: nn(im.carencia),
+                aConfirmar: nn(im.aConfirmar),
             },
-            masterclass: { ativo: n(obj(a.masterclass).ativo), leitura: n(obj(a.masterclass).leitura) },
-            ebook: { ativo: n(obj(a.ebook).ativo), leitura: n(obj(a.ebook).leitura) },
-            lixeira: n(a.lixeira),
+            masterclass: { ativo: nn(obj(a.masterclass).ativo), leitura: nn(obj(a.masterclass).leitura) },
+            ebook: { ativo: nn(obj(a.ebook).ativo), leitura: nn(obj(a.ebook).leitura) },
+            lixeira: nn(a.lixeira),
         },
-        estudo: { hoje: n(e.hoje), d7: n(e.d7), d30: n(e.d30), base: n(e.base), pausados: n(e.pausados) },
-        estudoPorDia: list(d.estudoPorDia)
-            .map((day) => ({ date: s(day.date) ?? '', alunos: n(day.alunos) }))
-            .filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day.date)),
-        compras30d: n(d.compras30d),
+        estudo: { hoje: nn(e.hoje), d7: nn(e.d7), d30: nn(e.d30), base: nn(e.base), pausados: nn(e.pausados) },
+        estudoPorDia: list(d.estudoPorDia).flatMap((day) => {
+            const date = s(day.date) ?? '';
+            const alunos = nn(day.alunos);
+            return /^\d{4}-\d{2}-\d{2}$/.test(date) && alunos !== null ? [{ date, alunos }] : [];
+        }),
+        compras30d: nn(d.compras30d),
         vencendo: list(d.vencendo).flatMap((v) => {
             const uid = s(v.uid);
             const p = product(v.product);

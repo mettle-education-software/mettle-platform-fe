@@ -65,6 +65,9 @@ export interface ProgramEvent {
     backfilled: boolean;
     reason?: string | null;
     lampWeek?: number | null;
+    /** `allowance`: pausas e resets a mais dados pela equipe */
+    addPauses?: number | null;
+    addResets?: number | null;
 }
 
 export interface IWeeklyStatistics {

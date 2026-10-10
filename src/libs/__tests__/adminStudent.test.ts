@@ -9,6 +9,8 @@ import type { AccessRow } from '../adminAccess';
 let mockAccess: any;
 let mockEvents: any;
 let mockHistory: any;
+let mockLookup: any;
+const mockLookupCalls: unknown[][] = [];
 const mockMutate = jest.fn();
 
 jest.mock(
@@ -45,6 +47,10 @@ jest.mock(
             isSuccess: false,
         }),
         useAdminHistory: () => mockHistory,
+        useAdminAccounts: (...args: unknown[]) => {
+            mockLookupCalls.push(args);
+            return mockLookup;
+        },
         useSaveStudentAccess: () => ({
             mutate: mockMutate,
             reset: jest.fn(),
@@ -122,6 +128,31 @@ beforeEach(() => {
         ],
     };
     mockHistory = { data: undefined };
+    mockLookup = { data: undefined };
+    mockLookupCalls.length = 0;
+});
+
+test('aberta fora da página da lista (Início, saída da impersonação): o programa vem da busca pelo e-mail', () => {
+    mockLookup = {
+        data: {
+            rows: [
+                {
+                    uid: 'outra',
+                    program: { melpStatus: 'DEDA_PAUSED', lampWeek: 9, remainingPauses: 0, remainingResets: 0 },
+                },
+                {
+                    uid: 'aluno',
+                    program: { melpStatus: 'DEDA_STARTED', lampWeek: 3, remainingPauses: 1, remainingResets: 2 },
+                },
+            ],
+        },
+    };
+    const d = render();
+    expect(mockLookupCalls.at(-1)).toEqual([
+        { q: 'aluna@example.test', sort: { key: 'name', dir: 'asc' }, page: 1 },
+        true,
+    ]);
+    expect(d.querySelector('section[aria-labelledby="as-program"]')?.textContent).toContain('Em andamento · sem. 3');
 });
 
 test('cabeçalho: nome, e-mail, inicial no lugar da foto e "Sem login"', () => {

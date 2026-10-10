@@ -87,11 +87,30 @@ test('com os números: seis cartões, gráfico, listas que abrem a conta e "ver 
     ]);
     expect(d.querySelector('.chart')).not.toBeNull();
     const links = [...d.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')]);
-    expect(links).toContainEqual(['ver todos', '/admin/contas?product=imerso&state=ativo&sort=expiry&dir=asc']);
-    expect(links).toContainEqual(['ver todos', '/admin/contas?sort=lastAccess&dir=asc']);
+    expect(links).toContainEqual(['ver todos', '/admin/contas?product=imerso&state=ativo&sort=expiry']);
+    expect(links).toContainEqual(['ver todos', '/admin/contas?sort=lastAccess']);
     expect(links.filter(([, href]) => href === '/admin/contas?conta=u1')).toHaveLength(2);
     expect(d.body.textContent).toContain('Ana · Imerso: Leitura → Total');
     expect(d.body.textContent).not.toContain('ver registro');
+});
+
+test('listas no teto do servidor (50 linhas): o número diz "50+"', () => {
+    const row = { uid: 'u', name: 'X', lastAccess: null, dias: 20, semana: 1 };
+    mockData = {
+        isLoading: false,
+        data: readDashboard({
+            acessos: { imerso: { ativo: 1 } },
+            estudo: { hoje: 1 },
+            semAcesso: Array.from({ length: 50 }, (_, i) => ({ ...row, uid: `u${i}` })),
+        }),
+    };
+    const d = render();
+    const cards = [...d.querySelectorAll('.kp li')].map((li) => li.textContent);
+    expect(cards).toContain('Sem acessar 14+ dias50+');
+    expect(cards).toContain('Imerso ativo1leitura —');
+    expect(cards).toContain('Compras 30 dias—');
+    // a lista mostra só 10
+    expect(d.querySelectorAll('section[aria-labelledby="db-idle"] li')).toHaveLength(10);
 });
 
 test('sem a rota nova (ou a antiga no mesmo endereço): rótulos com "—", nada inventado', () => {

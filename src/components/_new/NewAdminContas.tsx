@@ -5,12 +5,11 @@ import { Drawer, Input } from 'antd';
 import { auth } from 'config/firebase';
 import { useDeviceSize } from 'hooks';
 import { useAdminAccounts } from 'hooks/useAdmin';
-import { type AccessStateNew, isTrashOwner, PRODUCT_NAMES, type Product } from 'libs/adminAccess';
+import { type AccessStateNew, brDay, isTrashOwner, PRODUCT_NAMES, type Product } from 'libs/adminAccess';
 import {
     accessBadge,
-    ADMIN_PANEL_PATH,
-    adminPanelPath,
     type AccountRow,
+    contasPath,
     lastAccessLabel,
     PAGE_SIZE,
     programLabel,
@@ -219,42 +218,39 @@ export const NewAdminContas: React.FC = () => {
     const router = useRouter();
     const params = useSearchParams();
     const isMobile = useDeviceSize() === 'mobile';
-    const [initial] = useState(() => queryFromUrl(params));
-    const [product, setProduct] = useState(initial.product);
-    const [state, setState] = useState(initial.state);
-    const [term, setTerm] = useState(initial.q ?? '');
-    const [q, setQ] = useState(initial.q ?? '');
-    const [sort, setSort] = useState<Sort>(initial.sort);
-    const [page, setPage] = useState(1);
     const owner = isTrashOwner(auth.currentUser?.uid);
-    const [trash, setTrash] = useState(initial.trash && owner);
+    // filtros, ordem, Lixeira e a conta aberta vêm do endereço: recarregar mantém, e os links do Início e da Lixeira
+    // chegam já filtrados; a busca fica na tela
+    const url = queryFromUrl(params);
+    const trash = url.trash && owner;
+    const selected = params?.get('conta') ?? null;
+    const view = { product: url.product, state: url.state, sort: url.sort.key, dir: url.sort.dir, lixeira: trash };
+    const go = (patch: Partial<typeof view>) =>
+        router.replace(contasPath({ ...view, ...patch, conta: selected }), { scroll: false });
+    const [term, setTerm] = useState(url.q ?? '');
+    const [q, setQ] = useState(url.q ?? '');
     useEffect(() => {
-        const timer = window.setTimeout(() => {
-            setQ(term);
-            setPage(1);
-        }, 300);
+        const timer = window.setTimeout(() => setQ(term), 300);
         return () => window.clearTimeout(timer);
     }, [term]);
-    const list = useAdminAccounts({ product, state, q, sort, page });
+    // filtro novo (aqui, por um link ou voltando no navegador): de volta à primeira página
+    const filterKey = [url.product, url.state, url.sort.key, url.sort.dir, q].join('|');
+    const [paging, setPaging] = useState({ key: filterKey, page: 1 });
+    const page = paging.key === filterKey ? paging.page : 1;
+    const setPage = (next: number) => setPaging({ key: filterKey, page: next });
+    const list = useAdminAccounts({ product: url.product, state: url.state, q, sort: url.sort, page }, !trash);
     const rows = list.data?.rows ?? [];
     const total = list.data?.total ?? 0;
     const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    const selected = params?.get('conta') ?? null;
     const selectedRow = rows.find((row) => row.uid === selected);
     const snapshot = !!list.data?.snapshot;
+    // ordem por vencimento (o "ver todos" do Início): a data aparece numa coluna
+    const expiry = url.sort.key === 'expiry' && !snapshot;
 
-    const open = (uid: string) => router.push(adminPanelPath(uid), { scroll: false });
-    const close = () => router.push(ADMIN_PANEL_PATH, { scroll: false });
-    const onSort = (key: SortKey) => {
-        setSort((current) => ({ key, dir: current.key === key && current.dir === 'asc' ? 'desc' : 'asc' }));
-        setPage(1);
-    };
-    const pick =
-        <T,>(set: (value: T) => void) =>
-        (value: T) => {
-            set(value);
-            setPage(1);
-        };
+    const open = (uid: string) => router.push(contasPath({ ...view, conta: uid }), { scroll: false });
+    const close = () => router.push(contasPath({ ...view, conta: null }), { scroll: false });
+    const onSort = (key: SortKey) =>
+        go({ sort: key, dir: url.sort.key === key && url.sort.dir === 'asc' ? 'desc' : 'asc' });
 
     return (
         <NewPage className="xwide ct">
@@ -275,26 +271,22 @@ export const NewAdminContas: React.FC = () => {
                         <button
                             key={p ?? 'todos'}
                             type="button"
-                            aria-pressed={!trash && product === p}
+                            aria-pressed={!trash && (snapshot ? !p : url.product === p)}
                             disabled={snapshot && !!p}
-                            onClick={() => {
-                                setTrash(false);
-                                pick(setProduct)(p);
-                                if (!p) setState(undefined);
-                            }}
+                            onClick={() => go({ product: p, state: undefined, lixeira: false })}
                         >
                             {p ? PRODUCT_NAMES[p] : 'Todos'}
                         </button>
                     ))}
                 </div>
-                {product && !trash && (
-                    <div className="chips" role="group" aria-label={`Estado no ${PRODUCT_NAMES[product]}`}>
+                {url.product && !trash && !snapshot && (
+                    <div className="chips" role="group" aria-label={`Estado no ${PRODUCT_NAMES[url.product]}`}>
                         {STATES.map((s) => (
                             <button
                                 key={s.value}
                                 type="button"
-                                aria-pressed={state === s.value}
-                                onClick={() => pick(setState)(state === s.value ? undefined : s.value)}
+                                aria-pressed={url.state === s.value}
+                                onClick={() => go({ state: url.state === s.value ? undefined : s.value })}
                             >
                                 {s.label}
                             </button>
@@ -303,7 +295,7 @@ export const NewAdminContas: React.FC = () => {
                 )}
                 {owner && (
                     <div className="chips" role="group" aria-label="Lixeira">
-                        <button type="button" aria-pressed={trash} onClick={() => setTrash((on) => !on)}>
+                        <button type="button" aria-pressed={trash} onClick={() => go({ lixeira: !trash })}>
                             Lixeira
                         </button>
                     </div>
@@ -330,19 +322,22 @@ export const NewAdminContas: React.FC = () => {
                         <table>
                             <thead>
                                 <tr>
-                                    <SortHead label="Conta" field="name" sort={sort} onSort={onSort} />
+                                    <SortHead label="Conta" field="name" sort={url.sort} onSort={onSort} />
                                     {PRODUCTS.map((p) => (
                                         <th key={p} scope="col">
                                             {PRODUCT_NAMES[p]}
                                         </th>
                                     ))}
+                                    {expiry && (
+                                        <SortHead label="Vence" field="expiry" sort={url.sort} onSort={onSort} />
+                                    )}
                                     {snapshot ? (
                                         <th scope="col">Último acesso</th>
                                     ) : (
                                         <SortHead
                                             label="Último acesso"
                                             field="lastAccess"
-                                            sort={sort}
+                                            sort={url.sort}
                                             onSort={onSort}
                                         />
                                     )}
@@ -386,6 +381,7 @@ export const NewAdminContas: React.FC = () => {
                                                 <Badge row={row} product={p} />
                                             </td>
                                         ))}
+                                        {expiry && <td>{brDay(row.access?.[url.product ?? 'imerso'].validUntil)}</td>}
                                         <td>{lastAccessLabel(row.lastAccess)}</td>
                                         <td>{programLabel(row.program)}</td>
                                         <td className="num">{row.program?.remainingPauses ?? '—'}</td>
@@ -394,7 +390,7 @@ export const NewAdminContas: React.FC = () => {
                                 ))}
                                 {!rows.length && (
                                     <tr>
-                                        <td colSpan={8} className="hint">
+                                        <td colSpan={expiry ? 9 : 8} className="hint">
                                             Nenhuma conta encontrada.
                                         </td>
                                     </tr>
@@ -413,7 +409,7 @@ export const NewAdminContas: React.FC = () => {
                                 type="button"
                                 className="btn line"
                                 disabled={page <= 1}
-                                onClick={() => setPage((n) => n - 1)}
+                                onClick={() => setPage(page - 1)}
                             >
                                 Anterior
                             </button>
@@ -424,7 +420,7 @@ export const NewAdminContas: React.FC = () => {
                                 type="button"
                                 className="btn line"
                                 disabled={page >= pages}
-                                onClick={() => setPage((n) => n + 1)}
+                                onClick={() => setPage(page + 1)}
                             >
                                 Próxima
                             </button>

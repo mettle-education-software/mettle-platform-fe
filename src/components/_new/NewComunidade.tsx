@@ -16,16 +16,9 @@ import {
     nameHue,
     REACTIONS,
 } from 'libs/chat';
-import {
-    type CMember,
-    type CMessage,
-    type CState,
-    mentionParts,
-    mentionQuery,
-    mergeC,
-    toChat,
-} from 'libs/comunidade';
+import { type CMember, type CMessage, type CState, mentionParts, mentionQuery, mergeC, toChat } from 'libs/comunidade';
 import { pushRecentEmoji } from 'libs/emoji';
+import { isViewOnly } from 'libs/viewOnly';
 import {
     Ban,
     ChevronDown,
@@ -145,6 +138,8 @@ const NewComunidade: React.FC = () => {
     const live = useRef(false);
     const mentioned = useRef(new Map<string, string>());
     const me = st?.me;
+    // impersonação: só para ver (sem escrever, reagir, responder, marcar como visto nem notificações)
+    const readOnly = !!st?.readOnly || isViewOnly();
 
     const say = (s: string) => {
         setNotice(s);
@@ -152,6 +147,7 @@ const NewComunidade: React.FC = () => {
     };
 
     const setMenuFor = (id: number | null) => {
+        if (id != null && readOnly) return;
         if (id != null) {
             const el = list.current?.querySelector(`[data-id="${id}"]`);
             const t = list.current?.getBoundingClientRect().top ?? 0;
@@ -238,7 +234,14 @@ const NewComunidade: React.FC = () => {
     const seenSent = useRef(0);
     useEffect(() => {
         const last = [...msgs].reverse().find((m) => !m.pending);
-        if (!last || last.id <= seenSent.current || !stick.current || document.visibilityState !== 'visible') return;
+        if (
+            readOnly ||
+            !last ||
+            last.id <= seenSent.current ||
+            !stick.current ||
+            document.visibilityState !== 'visible'
+        )
+            return;
         const t = setTimeout(() => {
             seenSent.current = last.id;
             cpost('/seen', { id: last.id })
@@ -246,7 +249,7 @@ const NewComunidade: React.FC = () => {
                 .catch(() => {});
         }, 800);
         return () => clearTimeout(t);
-    }, [msgs, queryClient]);
+    }, [msgs, queryClient, readOnly]);
 
     // rolagem: fica no fim enquanto o aluno está no fim; histórico mantém o ponto de leitura
     useLayoutEffect(() => {
@@ -597,7 +600,7 @@ const NewComunidade: React.FC = () => {
         timer: ReturnType<typeof setTimeout>;
     } | null>(null);
     const touchHandlers = (m: CMessage) =>
-        m.pending || m.deleted
+        m.pending || m.deleted || readOnly
             ? {}
             : {
                   onTouchStart: (e: React.TouchEvent<HTMLElement>) => {
@@ -870,7 +873,7 @@ const NewComunidade: React.FC = () => {
                                                     <span className="gsp" aria-hidden />
                                                 ))}
                                             {body(c, r.m, r.first, r.last)}
-                                            {!c.pending && !c.deleted && (
+                                            {!c.pending && !c.deleted && !readOnly && (
                                                 <span className="acts">
                                                     <button
                                                         type="button"
@@ -1005,182 +1008,195 @@ const NewComunidade: React.FC = () => {
                     />
                 )}
 
-                <form
-                    className="composer"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        send();
-                    }}
-                >
-                    {suggestions.length > 0 && (
-                        <div className="mlist" role="listbox" aria-label="Mencionar">
-                            {suggestions.map((m) => (
+                {readOnly ? (
+                    <p className="ro" role="note">
+                        Só leitura (modo visualização)
+                    </p>
+                ) : (
+                    <form
+                        className="composer"
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            send();
+                        }}
+                    >
+                        {suggestions.length > 0 && (
+                            <div className="mlist" role="listbox" aria-label="Mencionar">
+                                {suggestions.map((m) => (
+                                    <button
+                                        key={m.uid}
+                                        type="button"
+                                        role="option"
+                                        aria-selected={false}
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        onClick={() => mention(m)}
+                                    >
+                                        <GAvatar name={m.name} size={26} />
+                                        <span>{m.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        {replyTo && me && (
+                            <div className="replying">
+                                <QuoteBlock q={quoteOf(replyTo, me.uid)} me="Você" />
                                 <button
-                                    key={m.uid}
                                     type="button"
-                                    role="option"
-                                    aria-selected={false}
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onClick={() => mention(m)}
+                                    className="ib"
+                                    aria-label="Cancelar resposta"
+                                    onClick={() => setReplyTo(null)}
                                 >
-                                    <GAvatar name={m.name} size={26} />
-                                    <span>{m.name}</span>
+                                    <X size={18} strokeWidth={1.7} />
                                 </button>
-                            ))}
-                        </div>
-                    )}
-                    {replyTo && me && (
-                        <div className="replying">
-                            <QuoteBlock q={quoteOf(replyTo, me.uid)} me="Você" />
-                            <button
-                                type="button"
-                                className="ib"
-                                aria-label="Cancelar resposta"
-                                onClick={() => setReplyTo(null)}
-                            >
-                                <X size={18} strokeWidth={1.7} />
-                            </button>
-                        </div>
-                    )}
-                    {(file || notice) && (
-                        <div className="chip">
-                            {file ? (
-                                <>
-                                    <FileText size={16} strokeWidth={1.6} aria-hidden />
-                                    <span className="nm">{file.name}</span>
-                                    <span className="sz">{formatSize(file.size)}</span>
-                                </>
-                            ) : (
-                                <span className="nm" role="status">
-                                    {notice}
-                                </span>
-                            )}
-                            <button
-                                type="button"
-                                className="ib"
-                                aria-label="Fechar"
-                                onClick={() => {
-                                    setFile(null);
-                                    setNotice('');
-                                }}
-                            >
-                                <X size={16} strokeWidth={1.6} />
-                            </button>
-                        </div>
-                    )}
-                    {muted ? (
-                        <div className="mutedbar">Você está silenciado.</div>
-                    ) : (
-                        <div className="cbar">
-                            {recorder.recording ? (
-                                <>
-                                    <button
-                                        type="button"
-                                        className="ib plus"
-                                        aria-label="Descartar áudio"
-                                        onClick={() => recorder.stop(true)}
-                                    >
-                                        <Trash2 size={21} strokeWidth={1.6} />
-                                    </button>
-                                    <div className="rec" role="status">
-                                        <span className="pulse" />
-                                        {`${Math.floor(recorder.secs / 60)}:${String(recorder.secs % 60).padStart(2, '0')}`}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        className="go"
-                                        aria-label="Enviar áudio"
-                                        onClick={() => recorder.stop()}
-                                    >
-                                        <SendHorizontal size={20} strokeWidth={2} />
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <button
-                                        type="button"
-                                        className="ib plus"
-                                        aria-label="Anexar"
-                                        onClick={() => fileInput.current?.click()}
-                                    >
-                                        <Plus size={24} strokeWidth={1.6} />
-                                    </button>
-                                    <input
-                                        ref={fileInput}
-                                        type="file"
-                                        accept={ACCEPT}
-                                        hidden
-                                        onChange={(e) => {
-                                            pick(e.target.files?.[0]);
-                                            e.target.value = '';
-                                        }}
-                                    />
-                                    <div className="pillin">
-                                        <textarea
-                                            ref={input}
-                                            rows={1}
-                                            value={text}
-                                            aria-label="Mensagem"
-                                            maxLength={4000}
-                                            onFocus={() => matchMedia('(pointer: coarse)').matches && setPicker(null)}
-                                            onChange={(e) => {
-                                                setText(e.target.value);
-                                                setCaret(e.target.selectionStart ?? e.target.value.length);
-                                            }}
-                                            onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
-                                            onPaste={(e) => {
-                                                const f = [...e.clipboardData.files][0];
-                                                if (f) {
-                                                    e.preventDefault();
-                                                    pick(f);
-                                                }
-                                            }}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' && !e.shiftKey && suggestions.length) {
-                                                    e.preventDefault();
-                                                    mention(suggestions[0]);
-                                                    return;
-                                                }
-                                                if (
-                                                    e.key === 'Enter' &&
-                                                    !e.shiftKey &&
-                                                    !e.nativeEvent.isComposing &&
-                                                    matchMedia('(pointer: fine)').matches
-                                                ) {
-                                                    e.preventDefault();
-                                                    send();
-                                                }
-                                            }}
-                                        />
+                            </div>
+                        )}
+                        {(file || notice) && (
+                            <div className="chip">
+                                {file ? (
+                                    <>
+                                        <FileText size={16} strokeWidth={1.6} aria-hidden />
+                                        <span className="nm">{file.name}</span>
+                                        <span className="sz">{formatSize(file.size)}</span>
+                                    </>
+                                ) : (
+                                    <span className="nm" role="status">
+                                        {notice}
+                                    </span>
+                                )}
+                                <button
+                                    type="button"
+                                    className="ib"
+                                    aria-label="Fechar"
+                                    onClick={() => {
+                                        setFile(null);
+                                        setNotice('');
+                                    }}
+                                >
+                                    <X size={16} strokeWidth={1.6} />
+                                </button>
+                            </div>
+                        )}
+                        {muted ? (
+                            <div className="mutedbar">Você está silenciado.</div>
+                        ) : (
+                            <div className="cbar">
+                                {recorder.recording ? (
+                                    <>
                                         <button
                                             type="button"
-                                            className="ib"
-                                            aria-label="Emojis"
-                                            aria-pressed={!!picker}
-                                            onClick={() => setPicker(picker ? null : 'emoji')}
+                                            className="ib plus"
+                                            aria-label="Descartar áudio"
+                                            onClick={() => recorder.stop(true)}
                                         >
-                                            <Smile size={21} strokeWidth={1.6} />
+                                            <Trash2 size={21} strokeWidth={1.6} />
                                         </button>
-                                    </div>
-                                    {canSend || !recorder.supported ? (
-                                        <button type="submit" className="go" aria-label="Enviar" disabled={!canSend}>
-                                            <SendHorizontal size={20} strokeWidth={2} />
-                                        </button>
-                                    ) : (
+                                        <div className="rec" role="status">
+                                            <span className="pulse" />
+                                            {`${Math.floor(recorder.secs / 60)}:${String(recorder.secs % 60).padStart(2, '0')}`}
+                                        </div>
                                         <button
                                             type="button"
                                             className="go"
-                                            aria-label="Gravar áudio"
-                                            onClick={recorder.start}
+                                            aria-label="Enviar áudio"
+                                            onClick={() => recorder.stop()}
                                         >
-                                            <Mic size={21} strokeWidth={2} />
+                                            <SendHorizontal size={20} strokeWidth={2} />
                                         </button>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    )}
-                </form>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="ib plus"
+                                            aria-label="Anexar"
+                                            onClick={() => fileInput.current?.click()}
+                                        >
+                                            <Plus size={24} strokeWidth={1.6} />
+                                        </button>
+                                        <input
+                                            ref={fileInput}
+                                            type="file"
+                                            accept={ACCEPT}
+                                            hidden
+                                            onChange={(e) => {
+                                                pick(e.target.files?.[0]);
+                                                e.target.value = '';
+                                            }}
+                                        />
+                                        <div className="pillin">
+                                            <textarea
+                                                ref={input}
+                                                rows={1}
+                                                value={text}
+                                                aria-label="Mensagem"
+                                                maxLength={4000}
+                                                onFocus={() =>
+                                                    matchMedia('(pointer: coarse)').matches && setPicker(null)
+                                                }
+                                                onChange={(e) => {
+                                                    setText(e.target.value);
+                                                    setCaret(e.target.selectionStart ?? e.target.value.length);
+                                                }}
+                                                onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
+                                                onPaste={(e) => {
+                                                    const f = [...e.clipboardData.files][0];
+                                                    if (f) {
+                                                        e.preventDefault();
+                                                        pick(f);
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && !e.shiftKey && suggestions.length) {
+                                                        e.preventDefault();
+                                                        mention(suggestions[0]);
+                                                        return;
+                                                    }
+                                                    if (
+                                                        e.key === 'Enter' &&
+                                                        !e.shiftKey &&
+                                                        !e.nativeEvent.isComposing &&
+                                                        matchMedia('(pointer: fine)').matches
+                                                    ) {
+                                                        e.preventDefault();
+                                                        send();
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="ib"
+                                                aria-label="Emojis"
+                                                aria-pressed={!!picker}
+                                                onClick={() => setPicker(picker ? null : 'emoji')}
+                                            >
+                                                <Smile size={21} strokeWidth={1.6} />
+                                            </button>
+                                        </div>
+                                        {canSend || !recorder.supported ? (
+                                            <button
+                                                type="submit"
+                                                className="go"
+                                                aria-label="Enviar"
+                                                disabled={!canSend}
+                                            >
+                                                <SendHorizontal size={20} strokeWidth={2} />
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="go"
+                                                aria-label="Gravar áudio"
+                                                onClick={recorder.start}
+                                            >
+                                                <Mic size={21} strokeWidth={2} />
+                                            </button>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </form>
+                )}
 
                 {sheet === 'info' && st && (
                     <aside className="sheet" aria-label="Dados do grupo">
@@ -1197,7 +1213,7 @@ const NewComunidade: React.FC = () => {
                                 <p>Grupo{me?.admin && ` · ${count} ${count === 1 ? 'membro' : 'membros'}`}</p>
                             </div>
                             <div className="sgroup">
-                                {pushSupported() && st.vapid && pushOn != null && (
+                                {pushSupported() && st.vapid && pushOn != null && !readOnly && (
                                     <button
                                         type="button"
                                         className="row"
@@ -1237,9 +1253,7 @@ const NewComunidade: React.FC = () => {
                                 </div>
                             )}
                             <div className="sgroup">
-                                <h4>
-                                    {me?.admin ? `${count} ${count === 1 ? 'membro' : 'membros'}` : 'Membros'}
-                                </h4>
+                                <h4>{me?.admin ? `${count} ${count === 1 ? 'membro' : 'membros'}` : 'Membros'}</h4>
                                 {members.map((m) => (
                                     <div key={m.uid} className={`mem${m.removed ? ' out' : ''}`}>
                                         <GAvatar name={m.name} size={40} />
@@ -1513,6 +1527,14 @@ const Root = styled(Wrap)`
     }
 
     /* menções: sugestões acima do campo */
+    .ro {
+        flex: none;
+        margin: 0;
+        padding: 12px 16px calc(var(--sab) + 14px);
+        text-align: center;
+        font-size: 13px;
+        color: var(--r-faint);
+    }
     .composer {
         position: relative;
     }

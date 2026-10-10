@@ -49,6 +49,17 @@ test('resposta nova conferida (linhas inválidas fora); a rota antiga no mesmo e
     expect(changeLabel(d.eventos[0])).toBe('Imerso: Leitura → Total');
     expect(readDashboard({ usersCount: 10, businessCount: 2 })).toBeNull();
     expect(readDashboard(undefined)).toBeNull();
+    // campo que falta é null (a tela mostra "—"), nunca zero; dia sem número fica fora do gráfico
+    const partial = readDashboard({
+        acessos: { imerso: { ativo: 5 } },
+        estudo: {},
+        estudoPorDia: [{ date: '2026-10-09' }],
+    })!;
+    expect(partial.acessos.imerso).toEqual({ ativo: 5, leitura: null, carencia: null, aConfirmar: null });
+    expect(partial.acessos.masterclass.ativo).toBeNull();
+    expect(partial.estudo.hoje).toBeNull();
+    expect(partial.compras30d).toBeNull();
+    expect(partial.estudoPorDia).toEqual([]);
 });
 
 test('rótulos curtos', () => {

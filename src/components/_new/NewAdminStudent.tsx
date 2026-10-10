@@ -4,6 +4,7 @@ import { css, Global } from '@emotion/react';
 import { Select } from 'antd';
 import { auth } from 'config/firebase';
 import {
+    useAdminAccounts,
     useAdminHistory,
     useFactoryReset,
     useImpersonateStudent,
@@ -570,16 +571,20 @@ export const StudentDetail: React.FC<{ uid: string; account?: AccountRow }> = ({
     const impersonate = useImpersonateStudent();
     const snapshot = history.data?.students.find((student) => student.uid === uid);
     const user = access.data?.user;
-    const name =
-        user?.name || account?.name || snapshot?.name || user?.email || account?.email || snapshot?.email || 'Conta';
-    const email = user?.email || account?.email || snapshot?.email;
-    const photo = user?.photoURL || account?.photoURL;
+    // aberta fora da página atual da lista (Início, saída da impersonação): a linha (programa, pausas, resets) vem da
+    // busca pelo e-mail
+    const lookupEmail = account ? '' : (user?.email ?? '');
+    const lookup = useAdminAccounts({ q: lookupEmail, sort: { key: 'name', dir: 'asc' }, page: 1 }, !!lookupEmail);
+    const row = account ?? lookup.data?.rows.find((candidate) => candidate.uid === uid);
+    const name = user?.name || row?.name || snapshot?.name || user?.email || row?.email || snapshot?.email || 'Conta';
+    const email = user?.email || row?.email || snapshot?.email;
+    const photo = user?.photoURL || row?.photoURL;
     const timeline = snapshot ? studentHistory(snapshot) : [];
     const realUid = auth.currentUser?.uid;
     const owner = isTrashOwner(realUid);
-    const noLogin = user ? user.disabled !== false : account?.hasLogin === false;
+    const noLogin = user ? user.disabled !== false : row?.hasLogin === false;
     const program =
-        account?.program ??
+        row?.program ??
         (snapshot
             ? {
                   melpStatus: snapshot.status,

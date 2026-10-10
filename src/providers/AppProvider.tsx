@@ -32,13 +32,27 @@ const studentRoles = async (uid?: string): Promise<string[] | null> => {
     }
 };
 
+/** Nome, e-mail e foto do aluno visto, do cadastro (GET /accounts/:uid/access): o token grande perde esses campos. */
+const studentProfile = async (uid?: string) => {
+    if (!uid) return null;
+    try {
+        const { data } = await accountService.get<{
+            user?: { name?: string | null; email?: string | null; photoURL?: string | null };
+        }>(`/${encodeURIComponent(uid)}/access`);
+        return data?.user ?? null;
+    } catch {
+        return null;
+    }
+};
+
 interface ProviderProps {
     children: React.ReactNode;
 }
 
 interface IProviderContext {
     theme: 'light' | 'dark';
-    user?: FireUser & { impersonating?: boolean };
+    /** viewAs: o token tem a impersonação (vencida ou não; o servidor recusa gravações até a saída) */
+    user?: FireUser & { impersonating?: boolean; viewAs?: { uid: string; expires: number } };
     isAppLoading: boolean;
 }
 
@@ -61,14 +75,28 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
         if (user) {
             const token = await user.getIdTokenResult(true);
             const { claims } = token;
+            const seen = (claims.impersonatedUser ?? {}) as {
+                uid?: string;
+                email?: string;
+                displayName?: string;
+                photoURL?: string | null;
+                profileImageSrc?: string | null;
+                businessUuid?: string;
+                roles?: unknown;
+                access?: unknown;
+            };
 
-            sendFirstLoginEvent({ email: claims.email });
-
-            // A claim fica no token depois que a impersonação vence; só vale enquanto não expirou.
-            const impersonating = !!claims.impersonating && (claims.expires as number) > Date.now();
+            // Impersonação = modo visualização, já (antes de qualquer espera): nada grava como o aluno, nem os eventos
+            // (login, vídeo), que o servidor não tem como barrar. A claim fica no token depois de vencer (1 h): o
+            // servidor recusa gravações até a saída, então o modo segue ligado e a barra oferece Sair.
+            const viewing = !!claims.impersonating;
+            const impersonating = viewing && (claims.expires as number) > Date.now();
+            setViewOnly(viewing);
+            if (!viewing) sendFirstLoginEvent({ email: claims.email });
 
             const contextUser = {
                 impersonating,
+                viewAs: viewing && seen.uid ? { uid: seen.uid, expires: Number(claims.expires) || 0 } : undefined,
                 email: claims.email,
                 // nome inteiro; cada tela escolhe o que mostrar (libs/newDesign: firstName, displayName)
                 name: String(claims?.name ?? '')
@@ -80,8 +108,7 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
                 profileImageSrc: user.photoURL ?? null,
                 // acesso por produto do modelo novo (libs/productAccess.readLevels); na impersonação, o do aluno, que vem no
                 // próprio token (impersonatedUser.access)
-                // @ts-ignore
-                access: impersonating ? claims.impersonatedUser?.access : claims.access,
+                access: impersonating ? seen.access : claims.access,
             };
 
             Sentry.setUser({
@@ -89,29 +116,23 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
             });
 
             if (impersonating) {
-                // @ts-ignore
-                contextUser.email = claims.impersonatedUser?.email as string;
-                // @ts-ignore
-                contextUser.name = String(claims.impersonatedUser?.displayName ?? '')
+                // uid e acesso sempre vêm no token; nome, e-mail e foto podem faltar (token grande): o cadastro completa
+                const profile =
+                    !seen.displayName || !seen.email || !('photoURL' in seen) ? await studentProfile(seen.uid) : null;
+                contextUser.email = (seen.email || profile?.email || '') as string;
+                contextUser.name = String(seen.displayName || profile?.name || '')
                     .trim()
                     .replace(/\s+/g, ' ');
-                // @ts-ignore
-                contextUser.uid = claims.impersonatedUser?.uid as string;
+                contextUser.uid = seen.uid as string;
                 contextUser.roles = claims.roles;
-                // @ts-ignore
-                contextUser.businessUuid = claims.impersonatedUser?.businessUuid as string;
-                // @ts-ignore
-                contextUser.profileImageSrc = (claims.impersonatedUser?.photoURL ??
-                    // @ts-ignore
-                    claims.impersonatedUser?.profileImageSrc ??
-                    null) as string;
+                contextUser.businessUuid = seen.businessUuid as string;
+                contextUser.profileImageSrc = seen.photoURL ?? seen.profileImageSrc ?? profile?.photoURL ?? null;
                 // plataforma nova: tudo como o aluno (roles e acesso dele; o menu e as chaves de equipe somem). As roles vêm
                 // no token (impersonatedUser.roles); token grande demais as perde, e então saem do acesso dele; sem nada
                 // disso (impersonação anterior ao deploy), do /accounts/me. A tela clássica segue com as do administrador,
                 // para não perder a saída da impersonação no painel antigo.
                 if (isNewDesignAccount(user.uid)) {
-                    // @ts-ignore
-                    const own = claims.impersonatedUser?.roles;
+                    const own = seen.roles;
                     contextUser.roles = Array.isArray(own)
                         ? own
                         : (rolesFromLevels(readLevels(contextUser.access)) ??
@@ -120,9 +141,9 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
                 }
             }
 
-            // impersonação = modo visualização: nada grava como o aluno (libs/viewOnly)
-            setViewOnly(impersonating);
             setUser(contextUser);
+        } else {
+            setViewOnly(false);
         }
         setIsAppLoading(false);
     };

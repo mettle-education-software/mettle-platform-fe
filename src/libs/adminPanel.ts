@@ -83,15 +83,27 @@ export const queryFromUrl = (params: URLSearchParams | null): Omit<AccountsQuery
     };
 };
 
-/** Endereço do Contas com filtros (para os "ver todos" do Início). */
-export const contasPath = (filters: {
+/**
+ * Endereço do Contas: filtros, ordem, Lixeira e a conta aberta ficam no endereço (recarregar mantém; os "ver todos" do
+ * Início e o link da Lixeira chegam já filtrados). O padrão (conta, crescente) fica de fora.
+ */
+export const contasPath = (view: {
     product?: Product;
     state?: AccessStateNew;
     sort?: SortKey;
     dir?: 'asc' | 'desc';
+    lixeira?: boolean;
+    conta?: string | null;
 }) => {
     const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(filters)) if (typeof value === 'string') params.set(key, value);
+    if (view.lixeira) params.set('lixeira', '1');
+    else {
+        if (view.product) params.set('product', view.product);
+        if (view.product && view.state) params.set('state', view.state);
+        if (view.sort && view.sort !== 'name') params.set('sort', view.sort);
+        if (view.dir === 'desc') params.set('dir', 'desc');
+    }
+    if (view.conta) params.set('conta', view.conta);
     const qs = params.toString();
     return qs ? `${ADMIN_PANEL_PATH}?${qs}` : ADMIN_PANEL_PATH;
 };

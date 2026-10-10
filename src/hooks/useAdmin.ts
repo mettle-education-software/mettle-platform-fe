@@ -12,7 +12,7 @@ import {
     accountsParams,
     snapshotPage,
 } from 'libs/adminPanel';
-import { ADMIN_SEGMENTS, AdminSegment, EBOOK_BUYERS_URL, onlyBuyers } from 'libs/adminSegments';
+import { EBOOK_BUYERS_URL } from 'libs/adminSegments';
 import { isLeituraOwner } from 'libs/leitura';
 import { useAppContext } from 'providers';
 import { accountService, adminService } from 'services';
@@ -64,34 +64,6 @@ export const useEbookBuyers = (enabled: boolean) =>
         staleTime: 5 * 60_000,
     });
 
-type UsersPage = { data: { user_uid: string; email: string }[]; pagination: { total: number } };
-
-/** Quantos alunos ativos em cada segmento (sem a busca). E-book: no_imerso ∩ compradores, contado aqui. */
-export const useSegmentCounts = (enabled: boolean) => {
-    const buyers = useEbookBuyers(enabled);
-    const q = useQuery({
-        queryKey: ['admin-segment-counts', buyers.data?.length ?? null],
-        queryFn: async () => {
-            const counts: Partial<Record<AdminSegment, number>> = {};
-            await Promise.all(
-                ADMIN_SEGMENTS.filter((s) => !s.ebook || buyers.data).map(async (s) => {
-                    const { data } = await adminService.get<UsersPage>('/v2/users', {
-                        params: { accountStatusIn: 'ACTIVE', segment: s.server, offset: 0, limit: s.ebook ? 1000 : 1 },
-                    });
-                    counts[s.key] = s.ebook
-                        ? onlyBuyers(data.data, buyers.data as string[]).length
-                        : data.pagination.total;
-                }),
-            );
-            return counts;
-        },
-        // Sem o Worker (erro), Imerso e Masterclass contam do mesmo jeito; o e-book fica sem número.
-        enabled: enabled && !buyers.isPending,
-        staleTime: 5 * 60_000,
-    });
-    return q;
-};
-
 // ---------- Histórico do programa (retrato do Worker, só o dono) ----------
 
 const getHistory = async (): Promise<HistorySnapshot> => {
@@ -107,12 +79,12 @@ const getHistory = async (): Promise<HistorySnapshot> => {
 };
 
 /** O retrato noturno do histórico (Worker, só o dono): reserva da lista de Contas e o histórico do programa de cada conta. */
-export const useAdminHistory = () => {
+export const useAdminHistory = (enabled = true) => {
     const uid = auth.currentUser?.uid;
     return useQuery({
         queryKey: ['admin-history', uid],
         queryFn: getHistory,
-        enabled: isLeituraOwner(uid),
+        enabled: enabled && isLeituraOwner(uid),
         staleTime: 5 * 60_000,
         retry: 1,
     });
@@ -164,6 +136,14 @@ export const useSaveStudentAccess = (uid: string, product: Product) => {
 
 // ---------- Lixeira (só o dono; o servidor confere) ----------
 
+/** Depois de mandar para a lixeira ou restaurar: a lixeira, a conta, a lista do Contas e o número da lixeira no Início. */
+const invalidateAccount = (queryClient: ReturnType<typeof useQueryClient>, uid: string) =>
+    Promise.all(
+        [['admin-trash'], ['admin-access', uid], ['admin-accounts'], ['admin-dashboard']].map((queryKey) =>
+            queryClient.invalidateQueries({ queryKey }),
+        ),
+    );
+
 export const useTrash = (enabled: boolean) =>
     useQuery({
         queryKey: ['admin-trash'],
@@ -184,11 +164,7 @@ export const useTrashAccount = (uid: string) => {
                     { data: { purgeAfter: string } }
                 >(`/${encodeURIComponent(uid)}/trash`, { confirmEmail })
                 .then(({ data }) => data.data),
-        onSettled: () =>
-            Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['admin-trash'] }),
-                queryClient.invalidateQueries({ queryKey: ['admin-access', uid] }),
-            ]),
+        onSettled: () => invalidateAccount(queryClient, uid),
     });
 };
 
@@ -197,11 +173,7 @@ export const useRestoreAccount = () => {
     return useMutation({
         mutationFn: (uid: string) =>
             accountService.post(`/${encodeURIComponent(uid)}/restore`).then(({ data }) => data),
-        onSettled: (_data, _error, uid) =>
-            Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['admin-trash'] }),
-                queryClient.invalidateQueries({ queryKey: ['admin-access', uid] }),
-            ]),
+        onSettled: (_data, _error, uid) => invalidateAccount(queryClient, uid),
     });
 };
 
@@ -211,7 +183,7 @@ export const useRestoreAccount = () => {
  * A lista do painel: GET /admin/accounts (filtros, ordem e página no servidor). Enquanto o servidor não publica a rota
  * (404 no gateway), o retrato noturno do histórico (só o dono), no mesmo formato.
  */
-export const useAdminAccounts = (query: AccountsQuery) => {
+export const useAdminAccounts = (query: AccountsQuery, enabled = true) => {
     const params = accountsParams(query);
     const live = useQuery({
         queryKey: ['admin-accounts', params],
@@ -222,12 +194,14 @@ export const useAdminAccounts = (query: AccountsQuery) => {
                     const rows = (data.data ?? []).map(accountRow).filter((row): row is AccountRow => !!row);
                     return { rows, total: typeof data.total === 'number' ? data.total : rows.length, snapshot: false };
                 }),
+        enabled,
         retry: false,
         staleTime: 30_000,
         placeholderData: keepPreviousData,
     });
     const missing = (live.error as { response?: { status?: number } } | null)?.response?.status === 404;
-    const snapshot = useAdminHistory();
+    // o retrato (todos os alunos) só desce quando a rota nova falta
+    const snapshot = useAdminHistory(enabled && missing);
     if (missing && snapshot.data)
         return {
             data: snapshotPage(snapshot.data.students, query),

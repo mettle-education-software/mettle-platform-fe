@@ -119,14 +119,22 @@ const styles = css`
 
 const originLabel = (origin: string | null) => ORIGINS.find((o) => o.value === origin)?.label ?? 'origem a confirmar';
 
-/** Os seis números do dia; sem a resposta, os rótulos com "—" (nunca números inventados). */
+// ponytail: o servidor manda no máximo 50 linhas de "vencem" e "sem acessar" (LIMIT 50) e não manda o total; com o
+// total no servidor, o número exato.
+const LIST_CAP = 50;
+const listCount = (rows?: unknown[]) => (rows && rows.length >= LIST_CAP ? `${LIST_CAP}+` : rows?.length);
+
+/** Os seis números do dia; sem a resposta (ou sem o campo), "—" (nunca números inventados). */
 const Cards: React.FC<{ d: Dashboard | null }> = ({ d }) => {
-    const v = (value?: number) => (d && typeof value === 'number' ? value.toLocaleString('pt-BR') : '—');
+    const v = (value?: number | string | null) =>
+        d && typeof value === 'number'
+            ? value.toLocaleString('pt-BR')
+            : (d && typeof value === 'string' && value) || '—';
     const cards: [string, string, string | null][] = [
         ['Imerso ativo', v(d?.acessos.imerso.ativo), d ? `leitura ${v(d.acessos.imerso.leitura)}` : null],
         ['Estudaram hoje', v(d?.estudo.hoje), d ? `${v(d.estudo.d7)} em 7 dias, de ${v(d.estudo.base)}` : null],
-        ['Vencem em 30 dias', v(d?.vencendo.length), d ? `em carência ${v(d.acessos.imerso.carencia)}` : null],
-        ['Sem acessar 14+ dias', v(d?.semAcesso.length), null],
+        ['Vencem em 30 dias', v(listCount(d?.vencendo)), d ? `em carência ${v(d.acessos.imerso.carencia)}` : null],
+        ['Sem acessar 14+ dias', v(listCount(d?.semAcesso)), null],
         ['Compras 30 dias', v(d?.compras30d), null],
         [
             'Masterclass / E-book ativos',

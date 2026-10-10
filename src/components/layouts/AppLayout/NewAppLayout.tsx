@@ -8,12 +8,13 @@ import { NewContentLoading } from 'components/_new/NewStatus';
 import { RunChip } from 'components/_new/RunGold';
 import { ThemeCycle, ThemeSwitch } from 'components/_new/ThemeSwitch';
 import { Logo } from 'components/atoms/Logo/Logo';
+import { auth } from 'config/firebase';
 import { useDeviceSize } from 'hooks';
 import { useDedaRun } from 'hooks/melp/lampDays';
 import { useProfile } from 'hooks/useProfile';
 import { useLogoTheme } from 'hooks/useTheme';
 import { saoPauloWeekday } from 'libs';
-import { adminPanelPath } from 'libs/adminPanel';
+import { ADMIN_PANEL_PATH, adminPanelPath } from 'libs/adminPanel';
 import { activeMenuKeys, displayName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, RENEWAL_URLS, renewalNotice, shellGate } from 'libs/productAccess';
 import { VIEW_ONLY_EVENT } from 'libs/viewOnly';
@@ -831,12 +832,17 @@ const AdminItem: React.FC = () => {
  */
 const ViewAsBar: React.FC = () => {
     const { user } = useAppContext();
+    const viewAs = user?.viewAs;
     const [blocked, setBlocked] = useState(false);
-    const [leaving, setLeaving] = useState(false);
+    // o servidor recusou por impersonação sem esta aba saber (começou em outra): a barra aparece para sair
+    const [stuck, setStuck] = useState(false);
+    const [leaving, setLeaving] = useState<'idle' | 'busy' | 'failed'>('idle');
+    const [expired, setExpired] = useState(false);
     useEffect(() => {
         let timer: number | undefined;
         const onBlocked = () => {
             setBlocked(true);
+            setStuck(true);
             window.clearTimeout(timer);
             timer = window.setTimeout(() => setBlocked(false), 4000);
         };
@@ -846,22 +852,44 @@ const ViewAsBar: React.FC = () => {
             window.clearTimeout(timer);
         };
     }, []);
-    if (!user?.impersonating) return null;
-    const leave = () => {
-        setLeaving(true);
-        accountService
-            .post('/impersonate/remove')
-            .then(() => window.location.assign(adminPanelPath(user.uid)))
-            .catch(() => setLeaving(false));
+    // a visualização vence em 1 h: a barra avisa na hora (o servidor segue recusando gravações até a saída)
+    const expires = viewAs?.expires ?? 0;
+    useEffect(() => {
+        if (!expires) return;
+        const left = expires - Date.now();
+        if (left <= 0) return setExpired(true);
+        const timer = window.setTimeout(() => setExpired(true), Math.min(left, 2 ** 31 - 1));
+        return () => window.clearTimeout(timer);
+    }, [expires]);
+    if (!viewAs && !stuck) return null;
+    const leave = async () => {
+        setLeaving('busy');
+        try {
+            await accountService.post('/impersonate/remove');
+            await auth.currentUser?.getIdToken(true);
+            window.location.assign(viewAs ? adminPanelPath(viewAs.uid) : ADMIN_PANEL_PATH);
+        } catch {
+            setLeaving('failed');
+        }
     };
+    const live = !!user?.impersonating && !expired;
     return (
         <div className={`viewas ${UI_FONT_CLASS}`} role="status">
             <Eye {...ICON} aria-hidden />
             <span>
-                Visualizando como <b>{displayName(user.name) || user.email}</b>
-                {blocked ? ' · nada foi gravado (modo visualização)' : ' · modo visualização'}
+                {live ? (
+                    <>
+                        Visualizando como <b>{displayName(user.name) || user.email}</b> · modo visualização
+                    </>
+                ) : viewAs ? (
+                    'A visualização como aluno terminou'
+                ) : (
+                    'Modo visualização ativo nesta conta'
+                )}
+                {blocked && ' · nada foi gravado'}
+                {leaving === 'failed' && ' · não deu para sair, tente de novo'}
             </span>
-            <button type="button" className="lnk gold" onClick={leave} disabled={leaving}>
+            <button type="button" className="lnk gold" onClick={leave} disabled={leaving === 'busy'}>
                 Sair
             </button>
         </div>

@@ -1,6 +1,7 @@
 // Impersonação = modo visualização (decisão de 10-Out-2026, para proteger os dados do aluno): o administrador vê
 // exatamente o que o aluno vê, e nada grava. O ApiClient e as chamadas aos Workers consultam este interruptor antes
-// de gravar; o servidor também recusa (403 IMPERSONATION_READ_ONLY). Ligado pelo AppProvider com a sessão.
+// de gravar; o servidor também recusa (403 IMPERSONATION_READ_ONLY). Ligado pelo AppProvider enquanto o token tem a
+// impersonação, vencida ou não (o servidor recusa até a saída).
 export const VIEW_ONLY_EVENT = 'mettle:view-only';
 export const VIEW_ONLY_CODE = 'IMPERSONATION_READ_ONLY';
 const MESSAGE = 'Modo visualização: nada é gravado.';
@@ -15,11 +16,19 @@ export const isViewOnly = () => on;
 export const blocksWrite = (method: string | undefined, url: string | undefined) =>
     on &&
     !['get', 'head', 'options'].includes((method ?? 'get').toLowerCase()) &&
-    !/\/impersonate\/remove\b/.test(url ?? '');
+    !/^\/impersonate\/remove\/?$/.test(url ?? '');
 
-/** Avisa a tela (barra "Visualizando como") e devolve o erro no formato das recusas do servidor ({ code, message }). */
+/** Gesto recente da pessoa (clique, tecla); sem a API no navegador, conta como gesto. */
+const byUser = () =>
+    typeof navigator === 'undefined' ||
+    ((navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation?.isActive ?? true);
+
+/**
+ * Devolve o erro no formato das recusas do servidor ({ code, message }) e avisa a barra "Visualizando como" quando a
+ * gravação veio de um gesto (as automáticas, como "visto" e progresso, ficam quietas).
+ */
 export const viewOnlyRefusal = () => {
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(VIEW_ONLY_EVENT));
+    if (typeof window !== 'undefined' && byUser()) window.dispatchEvent(new CustomEvent(VIEW_ONLY_EVENT));
     return Object.assign(new Error(MESSAGE), {
         code: VIEW_ONLY_CODE,
         response: { status: 403, data: { code: VIEW_ONLY_CODE, message: MESSAGE } },

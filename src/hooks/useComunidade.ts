@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
-import { useAppContext, useProductAccess } from 'providers';
+import { useProductAccess } from 'providers';
 import { cfetch } from 'services/comunidadeService';
 import { useNewDesign } from './useNewDesign';
 
@@ -13,11 +13,8 @@ export const COMUNIDADE_UNREAD_KEY = ['comunidade-unread'];
  * e nunca com o Imerso em leitura; 1 consulta a cada 2 min com a página à vista.
  */
 export const useComunidade = (): { member: boolean; unread: number } => {
-    const imerso = useProductAccess().access(IMERSO_PRODUCT).state;
-    // impersonação: o Worker responde pelo token real (o do administrador); vale o acesso do aluno (Comunidade = quem
-    // tem o Imerso ativo) — limite conhecido até o Worker aceitar o aluno visto nas leituras
-    const viewing = !!useAppContext().user?.impersonating;
-    const newDesign = useNewDesign() && imerso !== 'expired' && (!viewing || imerso === 'active' || imerso === 'grace');
+    const readOnly = useProductAccess().access(IMERSO_PRODUCT).state === 'expired';
+    const newDesign = useNewDesign() && !readOnly;
     const { data, isError } = useQuery({
         queryKey: COMUNIDADE_UNREAD_KEY,
         queryFn: () => cfetch<{ unread: number }>('/unread'),
@@ -27,5 +24,5 @@ export const useComunidade = (): { member: boolean; unread: number } => {
         retry: false,
         staleTime: 30_000,
     });
-    return { member: newDesign && !!data && !isError, unread: viewing ? 0 : (data?.unread ?? 0) };
+    return { member: newDesign && !!data && !isError, unread: data?.unread ?? 0 };
 };

@@ -28,6 +28,26 @@ class ApiClient implements HTTPClient {
                 baseURL: serviceName,
             });
         }
+        this.setViewOnlyInterceptor();
+    }
+
+    // Impersonação = modo visualização, em TODO cliente (inclusive os de endereço completo, como o hub de eventos): nada
+    // grava como o aluno (libs/viewOnly). Registrado por último, roda antes dos outros (o axios roda os pedidos de trás
+    // para frente) e não chega a pedir o token. A recusa do servidor (403 IMPERSONATION_READ_ONLY) avisa a barra.
+    setViewOnlyInterceptor() {
+        this.client.interceptors.request.use((config) => {
+            if (blocksWrite(config.method, config.url)) throw viewOnlyRefusal();
+            return config;
+        });
+        this.client.interceptors.response.use(undefined, (error) => {
+            if (
+                typeof window !== 'undefined' &&
+                error?.response?.status === 403 &&
+                error.response.data?.code === VIEW_ONLY_CODE
+            )
+                window.dispatchEvent(new CustomEvent(VIEW_ONLY_EVENT));
+            return Promise.reject(error);
+        });
     }
 
     // Espera a sessão do Firebase uma vez e lê o token da conta atual (antes, cada pedido deixava um
@@ -39,8 +59,6 @@ class ApiClient implements HTTPClient {
 
     setAuthInterceptor() {
         this.client.interceptors.request.use(async (config) => {
-            // impersonação = modo visualização: nada grava como o aluno (libs/viewOnly; o servidor também recusa)
-            if (blocksWrite(config.method, config.url)) throw viewOnlyRefusal();
             const token = await this.getAuthToken();
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
@@ -55,9 +73,7 @@ class ApiClient implements HTTPClient {
         this.client.interceptors.response.use(undefined, (error) => {
             const code = error?.response?.status === 403 ? error.response.data?.code : undefined;
             if (typeof window !== 'undefined') {
-                if (code === VIEW_ONLY_CODE) {
-                    window.dispatchEvent(new CustomEvent(VIEW_ONLY_EVENT));
-                } else if (code === 'ACCESS_EXPIRED' || code === 'ACCESS_READ_ONLY') {
+                if (code === 'ACCESS_EXPIRED' || code === 'ACCESS_READ_ONLY') {
                     // o AccessProvider decide: ACCESS_READ_ONLY (modelo novo) só abre o convite na plataforma nova
                     window.dispatchEvent(
                         new CustomEvent(ACCESS_DENIED_EVENT, { detail: { product: IMERSO_PRODUCT, code } }),

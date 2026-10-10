@@ -269,6 +269,24 @@ export const ui = css`
  * controles de 44 px. Envolve só as páginas novas (ConfigProvider local): a página do DEDA e as páginas atuais
  * dentro da casca continuam com o tema da Plataforma.
  */
+/**
+ * Balão (Tooltip) da plataforma nova, igual aos balões dos gráficos: fundo e texto do balão do tema, cantos de 10 px,
+ * 13 px na fonte da plataforma, 7×12 de respiro, altura mínima de 32 (não a dos controles, 44) e a sombra dos cartões.
+ * Vale nas páginas novas (NewPage) e na casca (raiz, com a plataforma nova).
+ */
+export const tooltipTokens = (c: Record<keyof typeof DARK, string>) => ({
+    colorBgSpotlight: c['--r-tip-bg'],
+    colorTextLightSolid: c['--r-tip-text'],
+    borderRadius: 10,
+    fontSize: 13,
+    lineHeight: 1.45,
+    fontFamily: uiFont.style.fontFamily,
+    controlHeight: 32,
+    paddingSM: 14,
+    paddingXS: 12,
+    boxShadowSecondary: `0 10px 30px ${c['--r-card-shadow']}`,
+});
+
 const antdFor = (c: Record<keyof typeof DARK, string>, light: boolean): ThemeConfig => ({
     algorithm: light ? theme.defaultAlgorithm : theme.darkAlgorithm,
     token: {
@@ -311,7 +329,7 @@ const antdFor = (c: Record<keyof typeof DARK, string>, light: boolean): ThemeCon
             fontWeightStrong: 500,
             ...(light ? { contentBg: c['--r-sheet'], headerBg: c['--r-sheet'] } : {}),
         },
-        Tooltip: { colorBgSpotlight: c['--r-tip-bg'], colorTextLightSolid: c['--r-tip-text'], borderRadius: 10 },
+        Tooltip: tooltipTokens(c),
         Rate: { starColor: c['--r-gold'], starBg: c['--r-track'], starSize: 18, marginXS: 6 },
         Form: { labelColor: c['--r-muted'], itemMarginBottom: 0 },
         Typography: { titleMarginBottom: 0, titleMarginTop: 0 },

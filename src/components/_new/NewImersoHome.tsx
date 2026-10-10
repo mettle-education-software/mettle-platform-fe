@@ -169,13 +169,13 @@ const Paused: React.FC = () => {
     return (
         <div className="notice">
             <div>
-                <b>DEDA is paused</b>
+                <b>LAMP is paused</b>
                 <p>
                     Next start: <strong>{formatImersoDate(nextMondayDate())}</strong>
                 </p>
             </div>
             <Button type="primary" onClick={() => resumeDeda.mutate()} loading={resumeDeda.isPending}>
-                Return to DEDA
+                Resume LAMP
             </Button>
         </div>
     );

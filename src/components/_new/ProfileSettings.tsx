@@ -150,16 +150,15 @@ const ProfilePhoto: React.FC<{ photo?: string | null; name?: string }> = ({ phot
                     <input
                         ref={input}
                         type="file"
-                        accept="image/jpeg,image/png,image/webp"
+                        accept="image/*"
                         hidden
                         aria-label="Escolher foto"
                         onChange={(event) => {
                             const selected = event.target.files?.[0];
                             event.target.value = '';
                             if (!selected) return;
-                            const invalid = validateProfileImage(selected);
-                            setError(invalid);
-                            if (invalid) return;
+                            // qualquer tamanho ou formato que o navegador abra: o recorte reduz para 1024 px em JPEG
+                            setError(undefined);
                             setZoom(1);
                             setLoaded(false);
                             setFile(selected);

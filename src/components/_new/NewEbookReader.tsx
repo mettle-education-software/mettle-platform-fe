@@ -29,6 +29,7 @@ import {
     searchBook,
     smartQuotes,
 } from 'libs/ebook';
+import { isViewOnly } from 'libs/viewOnly';
 import {
     ALargeSmall,
     Bookmark,
@@ -98,12 +99,15 @@ const fetchBook = async (): Promise<EbookBook> => {
     return res.json();
 };
 
+// modo visualização (impersonação): a posição e as marcas não saem do aparelho nem ficam na fila
 const sendPosition = (save: string, p: EbookPosition) =>
-    fetch(EBOOK_POSITION_URL, {
-        method: 'POST',
-        body: JSON.stringify({ t: save, c: p.c, y: p.y }),
-        keepalive: true,
-    }).catch(() => undefined);
+    isViewOnly()
+        ? Promise.resolve(undefined)
+        : fetch(EBOOK_POSITION_URL, {
+              method: 'POST',
+              body: JSON.stringify({ t: save, c: p.c, y: p.y }),
+              keepalive: true,
+          }).catch(() => undefined);
 
 /** Marcas: texto simples (sem preflight). Falha de rede ou do servidor fica na fila do aparelho e vai depois. */
 const outbox = {
@@ -117,6 +121,7 @@ const outbox = {
     write: (ops: Op[]) => store.set(OUTBOX_KEY, ops.length ? JSON.stringify(ops.slice(-500)) : null),
 };
 const sendOp = async (save: string, op: Op) => {
+    if (isViewOnly()) return true;
     try {
         const r = await fetch(EBOOK_MARKS_URL, { method: 'POST', body: JSON.stringify({ t: save, ...op }) });
         return r.status < 500 && r.status !== 401; // 204, 400, 404, 429: nada a repetir

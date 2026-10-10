@@ -8,20 +8,20 @@ import { notFound } from 'next/navigation';
 import { useAppContext } from 'providers';
 import React from 'react';
 
-// Página do aluno no Admin (acesso por produto, registro e histórico): dono e administradores, plataforma nova; fora
-// do bundle dos alunos. O servidor confere o administrador em cada rota (/accounts/:uid/access…).
-const NewAdminStudent = dynamic(() => import('components/_new/NewAdminStudent'), { ssr: false, loading: () => null });
+// Painel de Contas (Admin): administradores, plataforma nova; fora do bundle dos alunos. O servidor confere o
+// administrador (e o dono, nas ações dele) em cada rota.
+const NewAdminContas = dynamic(() => import('components/_new/NewAdminContas'), { ssr: false, loading: () => null });
 
-const AdminStudent = ({ params: { uid } }: { params: { uid: string } }) => {
+const Contas = () => {
     const { user } = useAppContext();
     const newDesign = useNewDesign();
     if (!user) return null; // as claims (roles) ainda carregando
     if (!newDesign || !user.roles?.includes('METTLE_ADMIN')) notFound();
     return (
         <AppLayout>
-            <NewAdminStudent uid={uid} />
+            <NewAdminContas />
         </AppLayout>
     );
 };
 
-export default withAuthentication(AdminStudent);
+export default withAuthentication(Contas);

@@ -17,6 +17,7 @@ Object.assign(globalThis, {
 });
 
 const mockCalls: unknown[] = [];
+const mockAllowances: unknown[] = [];
 let mockFinish: (() => void) | undefined;
 let mockRows: AccessRow[] = [];
 
@@ -27,6 +28,26 @@ jest.mock(
         return {
             useStudentAccess: () => ({ isLoading: false, isError: false, data: { data: mockRows } }),
             useStudentAccessEvents: () => ({ isLoading: false, isError: false, data: [] }),
+            useImpersonateStudent: () => ({
+                mutate: jest.fn(),
+                reset: jest.fn(),
+                isPending: false,
+                isError: false,
+                isSuccess: false,
+            }),
+            useProgramAllowances: () => ({
+                mutate: (body: unknown) => mockAllowances.push(body),
+                isPending: false,
+                isError: false,
+                isSuccess: false,
+            }),
+            useFactoryReset: () => ({
+                mutate: jest.fn(),
+                reset: jest.fn(),
+                isPending: false,
+                isError: false,
+                isSuccess: false,
+            }),
             useAdminHistory: () => ({ data: undefined }),
             useTrashAccount: () => ({ isSuccess: false, isPending: false, isError: false, reset: jest.fn() }),
             useSaveStudentAccess: () => {
@@ -52,6 +73,8 @@ jest.mock(
 );
 jest.mock('libs/adminAccess', () => jest.requireActual('../adminAccess'), { virtual: true });
 jest.mock('libs/adminHistory', () => jest.requireActual('../adminHistory'), { virtual: true });
+jest.mock('libs/adminPanel', () => jest.requireActual('../adminPanel'), { virtual: true });
+jest.mock('../../components/layouts/AdminActions/MercyMode', () => ({ MERCY_MODE_UIDS: [], MercyMode: () => null }));
 jest.mock('libs/leitura', () => ({ isLeituraOwner: () => false }), { virtual: true });
 jest.mock('config/firebase', () => ({ auth: { currentUser: { uid: 'admin' } } }), { virtual: true });
 jest.mock(
@@ -99,7 +122,7 @@ const { act, createElement } = jest.requireActual('react');
 const { createRoot } = jest.requireActual('react-dom/client');
 
 const mount = () => {
-    const { NewAdminStudent } = jest.requireActual('../../components/_new/NewAdminStudent');
+    const { StudentDetail: NewAdminStudent } = jest.requireActual('../../components/_new/NewAdminStudent');
     const host = document.createElement('div');
     document.body.appendChild(host);
     const root = createRoot(host);
@@ -144,7 +167,7 @@ test('estender +6 grava uma vez; gravando, nada muda nem grava de novo', () => {
     act(() => mockFinish!());
     act(() =>
         root.render(
-            createElement(jest.requireActual('../../components/_new/NewAdminStudent').NewAdminStudent, {
+            createElement(jest.requireActual('../../components/_new/NewAdminStudent').StudentDetail, {
                 uid: 'aluno',
             }),
         ),
@@ -186,5 +209,39 @@ test('sem acesso: nada marcado; escolher a origem já concede (Total) e grava', 
     expect(ebook.textContent).toContain('Sem prazo');
     click(button(ebook, 'Salvar'));
     expect(mockCalls).toEqual([{ state: 'ativo', origin: 'parceiro' }]);
+    act(() => root.unmount());
+});
+
+test('programa: +2 pausas grava na hora com addPauses; o que resta vem da linha da lista', () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    const { StudentDetail } = jest.requireActual('../../components/_new/NewAdminStudent');
+    act(() =>
+        root.render(
+            createElement(StudentDetail, {
+                uid: 'aluno',
+                account: {
+                    uid: 'aluno',
+                    name: 'Ana',
+                    email: 'ana@x.test',
+                    photoURL: null,
+                    access: null,
+                    program: { melpStatus: 'DEDA_STARTED', lampWeek: 3, remainingPauses: 1, remainingResets: 0 },
+                    lastAccess: null,
+                    hasLogin: true,
+                    inTrash: false,
+                },
+            }),
+        ),
+    );
+    const program = host.querySelector('section[aria-labelledby="as-program"]')!;
+    expect(program.textContent).toContain('Em andamento · sem. 3');
+    expect(program.textContent).toContain('Restam 1');
+    click(program.querySelector('button[aria-label="Dar 2 pausas a mais"]') as HTMLElement);
+    expect(mockAllowances).toEqual([{ addPauses: 2 }]);
+    // não é o dono: sem reset de fábrica nem exclusão
+    expect(host.textContent).not.toContain('Reset de fábrica');
+    expect(host.textContent).not.toContain('Excluir conta permanentemente');
     act(() => root.unmount());
 });

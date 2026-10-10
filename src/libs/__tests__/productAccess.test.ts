@@ -4,9 +4,11 @@ import {
     blockedWhenReadOnly,
     isImersoRouteAllowedWhenExpired,
     levelsFromMe,
+    MASTERCLASS_ROLE,
     readLevels,
     renewalNotice,
     resolveAccess,
+    rolesFromLevels,
     shellGate,
 } from '../productAccess';
 
@@ -167,11 +169,12 @@ describe('modelo novo (claims `access`: ativo | leitura | none)', () => {
             claim: undefined,
             me: true,
         });
-        // impersonação: as claims são do administrador; vale o /me (da conta vista)
-        expect(accessSource({ impersonating: true, roles: ['METTLE_ADMIN'], access })).toEqual({
-            claim: undefined,
-            me: true,
+        // impersonação: o acesso do aluno vem no token (impersonatedUser.access); sem ele, o /me (da conta vista)
+        expect(accessSource({ impersonating: true, roles: ['METTLE_STUDENT'], access })).toEqual({
+            claim: access,
+            me: false,
         });
+        expect(accessSource({ impersonating: true, roles: ['METTLE_ADMIN'] })).toEqual({ claim: undefined, me: true });
         expect(accessSource({ roles: ['METTLE_ADMIN'], access })).toEqual({ claim: undefined, me: false });
         expect(accessSource(undefined)).toEqual({ claim: undefined, me: false });
     });
@@ -192,6 +195,15 @@ describe('modelo novo (claims `access`: ativo | leitura | none)', () => {
         expect(shellGate('expired', false, '/imerso/lamp')).toBe('page');
         expect(shellGate('active', false, '/imerso/deda/london')).toBe('page');
         expect(shellGate('none', false, '/comunidade')).toBe('page');
+    });
+
+    it('rolesFromLevels: os produtos que o aluno tem (leitura conta), para a impersonação sem as roles no token', () => {
+        expect(rolesFromLevels({ imerso: 'leitura', masterclass: 'ativo', ebook: 'none' })).toEqual([
+            'METTLE_STUDENT',
+            MASTERCLASS_ROLE,
+        ]);
+        expect(rolesFromLevels({ ebook: 'ativo' })).toEqual(['EBOOK_GUIA_COMPLETO']);
+        expect(rolesFromLevels(undefined)).toBeUndefined();
     });
 
     it.each(['/imerso/deda/DEDA74', '/imerso/deda/london', '/comunidade', '/comunidade/'])(

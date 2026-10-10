@@ -91,11 +91,25 @@ export const levelsFromMe = (data: unknown, uid?: string): AccessLevels | undefi
  */
 export const accessSource = (user?: { impersonating?: boolean; roles?: unknown; access?: unknown } | null) => {
     if (!user) return { claim: undefined, me: false };
-    if (user.impersonating) return { claim: undefined, me: true };
-    if (Array.isArray(user.roles) && user.roles.includes('METTLE_ADMIN')) return { claim: undefined, me: false };
+    // impersonação: o acesso do aluno vem no próprio token (impersonatedUser.access); sem ele, o /accounts/me
+    if (!user.impersonating && Array.isArray(user.roles) && user.roles.includes('METTLE_ADMIN'))
+        return { claim: undefined, me: false };
     const claim = readLevels(user.access);
     return { claim, me: !claim };
 };
+
+/** Papel (role) de cada produto, como o servidor grava (mettle-common PRODUCT_ROLE). */
+export const MASTERCLASS_ROLE = 'MASTERCLASS_"AS_7_REGRAS"_9c466a35-2685-4d1e-8434-b29044628056';
+
+/** Roles de um aluno a partir do acesso (impersonação sem as roles no token): quem tem o produto, leitura ou não. */
+export const rolesFromLevels = (levels?: AccessLevels): string[] | undefined =>
+    levels
+        ? [
+              ...(levels.imerso && levels.imerso !== 'none' ? [IMERSO_PRODUCT] : []),
+              ...(levels.masterclass && levels.masterclass !== 'none' ? [MASTERCLASS_ROLE] : []),
+              ...(levels.ebook && levels.ebook !== 'none' ? [EBOOK_PRODUCT] : []),
+          ]
+        : undefined;
 
 /** Produto do front (role / coursePurchaseId) → chave do modelo novo. */
 export const accessKey = (product?: string): AccessKey | undefined => {

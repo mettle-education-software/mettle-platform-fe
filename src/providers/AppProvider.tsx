@@ -8,7 +8,29 @@ import { auth } from 'config/firebase';
 import { useFirstLoginEvent } from 'hooks/useEvents';
 import { FireUser } from 'interfaces';
 import { contentFetch } from 'libs/contentSource';
+import { isNewDesignAccount } from 'libs/newDesign';
+import { readLevels, rolesFromLevels } from 'libs/productAccess';
+import { setViewOnly } from 'libs/viewOnly';
 import React, { useContext, createContext, useState, useEffect, useMemo } from 'react';
+import { accountService } from 'services';
+
+/**
+ * Roles do aluno visto (o /accounts/me segue a impersonação do administrador): a plataforma nova mostra exatamente o que
+ * ele vê. null se a resposta não for dele (servidor antigo) ou falhar: valem as roles de antes.
+ */
+const studentRoles = async (uid?: string): Promise<string[] | null> => {
+    try {
+        const { data } = await accountService.get<{
+            data?: { fbData?: { uid?: string; customClaims?: { roles?: unknown } } };
+        }>('/me');
+        const fb = data?.data?.fbData;
+        if (!uid || fb?.uid !== uid) return null;
+        const roles = fb.customClaims?.roles;
+        return Array.isArray(roles) ? roles.filter((role): role is string => typeof role === 'string') : [];
+    } catch {
+        return null;
+    }
+};
 
 interface ProviderProps {
     children: React.ReactNode;
@@ -56,8 +78,10 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
                 uid: claims.user_id,
                 businessUuid: claims.businessUuid,
                 profileImageSrc: user.photoURL ?? null,
-                // acesso por produto do modelo novo (libs/productAccess.readLevels); na impersonação é do administrador
-                access: impersonating ? undefined : claims.access,
+                // acesso por produto do modelo novo (libs/productAccess.readLevels); na impersonação, o do aluno, que vem no
+                // próprio token (impersonatedUser.access)
+                // @ts-ignore
+                access: impersonating ? claims.impersonatedUser?.access : claims.access,
             };
 
             Sentry.setUser({
@@ -77,9 +101,27 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
                 // @ts-ignore
                 contextUser.businessUuid = claims.impersonatedUser?.businessUuid as string;
                 // @ts-ignore
-                contextUser.profileImageSrc = claims.impersonatedUser?.profileImageSrc as string;
+                contextUser.profileImageSrc = (claims.impersonatedUser?.photoURL ??
+                    // @ts-ignore
+                    claims.impersonatedUser?.profileImageSrc ??
+                    null) as string;
+                // plataforma nova: tudo como o aluno (roles e acesso dele; o menu e as chaves de equipe somem). As roles vêm
+                // no token (impersonatedUser.roles); token grande demais as perde, e então saem do acesso dele; sem nada
+                // disso (impersonação anterior ao deploy), do /accounts/me. A tela clássica segue com as do administrador,
+                // para não perder a saída da impersonação no painel antigo.
+                if (isNewDesignAccount(user.uid)) {
+                    // @ts-ignore
+                    const own = claims.impersonatedUser?.roles;
+                    contextUser.roles = Array.isArray(own)
+                        ? own
+                        : (rolesFromLevels(readLevels(contextUser.access)) ??
+                          (await studentRoles(contextUser.uid)) ??
+                          claims.roles);
+                }
             }
 
+            // impersonação = modo visualização: nada grava como o aluno (libs/viewOnly)
+            setViewOnly(impersonating);
             setUser(contextUser);
         }
         setIsAppLoading(false);

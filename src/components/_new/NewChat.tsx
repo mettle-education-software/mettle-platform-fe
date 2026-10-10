@@ -43,6 +43,7 @@ import {
     Copy,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useAppContext } from 'providers';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { chatAudio, chatFetch, reactChat, sendChat, sendSticker } from 'services/chatService';
 import { LIGHT_ROOT } from 'themes/newDesign';
@@ -417,7 +418,7 @@ function useCable(ws: ChatPage['ws'] | null, onEvent: (event: string, data: Reco
     return open;
 }
 
-const NewChat: React.FC = () => {
+const ChatPage: React.FC = () => {
     useNoNativeSelection();
     // a área segura (env(safe-area-inset-bottom)) só existe com viewport-fit=cover; liga só enquanto o chat está aberto
     useEffect(() => {
@@ -1266,6 +1267,23 @@ const NewChat: React.FC = () => {
         </NewPage>
     );
 };
+
+/**
+ * Impersonação: o Worker do chat lê pelo token real (o do administrador) e mostraria a conversa errada; até ele aceitar
+ * o aluno visto, uma linha calma no lugar da conversa (e nada é enviado).
+ */
+const NewChat: React.FC = () =>
+    useAppContext().user?.impersonating ? (
+        <NewPage className="narrow">
+            <div className="notice" role="status">
+                <div>
+                    <b>A conversa do aluno ainda não aparece no modo visualização</b>
+                </div>
+            </div>
+        </NewPage>
+    ) : (
+        <ChatPage />
+    );
 
 export default NewChat;
 

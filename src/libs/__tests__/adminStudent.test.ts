@@ -3,7 +3,7 @@
 import { JSDOM } from 'jsdom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { NewAdminStudent } from '../../components/_new/NewAdminStudent';
+import { StudentDetail } from '../../components/_new/NewAdminStudent';
 import type { AccessRow } from '../adminAccess';
 
 let mockAccess: any;
@@ -16,6 +16,34 @@ jest.mock(
     () => ({
         useStudentAccess: () => mockAccess,
         useStudentAccessEvents: () => mockEvents,
+        useImpersonateStudent: () => ({
+            mutate: jest.fn(),
+            reset: jest.fn(),
+            isPending: false,
+            isError: false,
+            isSuccess: false,
+        }),
+        useProgramAllowances: () => ({
+            mutate: jest.fn(),
+            reset: jest.fn(),
+            isPending: false,
+            isError: false,
+            isSuccess: false,
+        }),
+        useFactoryReset: () => ({
+            mutate: jest.fn(),
+            reset: jest.fn(),
+            isPending: false,
+            isError: false,
+            isSuccess: false,
+        }),
+        useTrashAccount: () => ({
+            mutate: jest.fn(),
+            reset: jest.fn(),
+            isPending: false,
+            isError: false,
+            isSuccess: false,
+        }),
         useAdminHistory: () => mockHistory,
         useSaveStudentAccess: () => ({
             mutate: mockMutate,
@@ -29,6 +57,8 @@ jest.mock(
 );
 jest.mock('libs/adminAccess', () => jest.requireActual('../adminAccess'), { virtual: true });
 jest.mock('libs/adminHistory', () => jest.requireActual('../adminHistory'), { virtual: true });
+jest.mock('libs/adminPanel', () => jest.requireActual('../adminPanel'), { virtual: true });
+jest.mock('../../components/layouts/AdminActions/MercyMode', () => ({ MERCY_MODE_UIDS: [], MercyMode: () => null }));
 jest.mock('libs/leitura', () => ({ isLeituraOwner: () => true }), { virtual: true });
 jest.mock('config/firebase', () => ({ auth: { currentUser: { uid: 'dono' } } }), { virtual: true });
 jest.mock(
@@ -56,7 +86,7 @@ const row = (patch: Partial<AccessRow>): AccessRow => ({
     ...patch,
 });
 
-const render = () => new JSDOM(renderToStaticMarkup(createElement(NewAdminStudent, { uid: 'aluno' }))).window.document;
+const render = () => new JSDOM(renderToStaticMarkup(createElement(StudentDetail, { uid: 'aluno' }))).window.document;
 const product = (d: Document, name: string) =>
     [...d.querySelectorAll('li.prod')].find((li) => li.querySelector('.lab b')?.textContent === name) as Element;
 const pressed = (el: Element) => [...el.querySelectorAll('button[aria-pressed="true"]')].map((b) => b.textContent);
@@ -150,7 +180,7 @@ test('servidor ainda sem a rota (404 no gateway): uma linha calma e "Tentar de n
     expect(d.querySelector('li.prod')).toBeNull();
 });
 
-test('aluno que não existe: "Aluno não encontrado."', () => {
+test('aluno que não existe: "Conta não encontrada."', () => {
     mockAccess = {
         isLoading: false,
         isError: true,
@@ -158,7 +188,7 @@ test('aluno que não existe: "Aluno não encontrado."', () => {
         refetch: jest.fn(),
     };
     const d = render();
-    expect(d.body.textContent).toContain('Aluno não encontrado.');
+    expect(d.body.textContent).toContain('Conta não encontrada.');
     expect(d.body.textContent).not.toContain('Tentar de novo');
 });
 

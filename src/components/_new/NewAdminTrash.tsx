@@ -6,8 +6,6 @@ import { useRestoreAccount, useTrash } from 'hooks/useAdmin';
 import { brInstantDay, isTrashOwner, serverProblem, studentPath, trashName } from 'libs/adminAccess';
 import Link from 'next/link';
 import React from 'react';
-import { NewPage } from './NewPage';
-import { PageHead } from './PageHead';
 
 const styles = css`
     .lx ol.rows {
@@ -46,15 +44,14 @@ const styles = css`
     }
 `;
 
-/** /admin/lixeira (só o dono): contas excluídas, a exclusão definitiva mais próxima primeiro, e a restauração. */
-export const NewAdminTrash: React.FC = () => {
+/** Filtro Lixeira do Contas (só o dono): contas excluídas, a exclusão definitiva mais próxima primeiro, e a restauração. */
+export const TrashList: React.FC = () => {
     const trash = useTrash(isTrashOwner(auth.currentUser?.uid));
     const restore = useRestoreAccount();
 
     return (
-        <NewPage className="narrow lx">
+        <div className="lx">
             <Global styles={styles} />
-            <PageHead title="Lixeira" />
             {trash.isLoading ? (
                 <p className="hint" role="status">
                     Carregando…
@@ -101,8 +98,8 @@ export const NewAdminTrash: React.FC = () => {
                     {serverProblem(restore.error)}
                 </p>
             )}
-        </NewPage>
+        </div>
     );
 };
 
-export default NewAdminTrash;
+export default TrashList;

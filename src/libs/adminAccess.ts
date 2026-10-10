@@ -51,8 +51,8 @@ export interface AccessEvent {
     after: EventFields | null;
 }
 
-/** Página do aluno no Admin (aberta pela linha de /admin/historico). */
-export const studentPath = (uid: string) => `/admin/aluno/${encodeURIComponent(uid)}`;
+/** A conta no Painel de Contas (detalhe aberto ao lado da lista). */
+export const studentPath = (uid: string) => `/admin/contas?conta=${encodeURIComponent(uid)}`;
 
 export const PRODUCT_NAMES: Record<Product, string> = { imerso: 'Imerso', masterclass: 'Masterclass', ebook: 'E-book' };
 

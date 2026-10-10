@@ -1,8 +1,17 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
 import { QueryParams } from 'interfaces';
 import type { AccessBody, AccessEvent, AccessRow, Product, StudentUser, TrashEntry } from 'libs/adminAccess';
+import { readDashboard } from 'libs/adminDashboard';
 import { ADMIN_HISTORY_URL, type HistorySnapshot } from 'libs/adminHistory';
+import {
+    accountRow,
+    type AccountRow,
+    type AccountsPage,
+    type AccountsQuery,
+    accountsParams,
+    snapshotPage,
+} from 'libs/adminPanel';
 import { ADMIN_SEGMENTS, AdminSegment, EBOOK_BUYERS_URL, onlyBuyers } from 'libs/adminSegments';
 import { isLeituraOwner } from 'libs/leitura';
 import { useAppContext } from 'providers';
@@ -97,7 +106,7 @@ const getHistory = async (): Promise<HistorySnapshot> => {
     return response.json();
 };
 
-/** O retrato de /admin/historico (mesma consulta e cache da tabela e da página do aluno). */
+/** O retrato noturno do histórico (Worker, só o dono): reserva da lista de Contas e o histórico do programa de cada conta. */
 export const useAdminHistory = () => {
     const uid = auth.currentUser?.uid;
     return useQuery({
@@ -195,3 +204,87 @@ export const useRestoreAccount = () => {
             ]),
     });
 };
+
+// ---------- Painel de Contas ----------
+
+/**
+ * A lista do painel: GET /admin/accounts (filtros, ordem e página no servidor). Enquanto o servidor não publica a rota
+ * (404 no gateway), o retrato noturno do histórico (só o dono), no mesmo formato.
+ */
+export const useAdminAccounts = (query: AccountsQuery) => {
+    const params = accountsParams(query);
+    const live = useQuery({
+        queryKey: ['admin-accounts', params],
+        queryFn: () =>
+            adminService
+                .get<{ data?: unknown[]; total?: number }>('/accounts', { params })
+                .then(({ data }): AccountsPage => {
+                    const rows = (data.data ?? []).map(accountRow).filter((row): row is AccountRow => !!row);
+                    return { rows, total: typeof data.total === 'number' ? data.total : rows.length, snapshot: false };
+                }),
+        retry: false,
+        staleTime: 30_000,
+        placeholderData: keepPreviousData,
+    });
+    const missing = (live.error as { response?: { status?: number } } | null)?.response?.status === 404;
+    const snapshot = useAdminHistory();
+    if (missing && snapshot.data)
+        return {
+            data: snapshotPage(snapshot.data.students, query),
+            isLoading: false,
+            isError: false,
+            refetch: live.refetch,
+        };
+    return {
+        data: live.data,
+        isLoading: live.isLoading || (missing && snapshot.isLoading),
+        isError: live.isError && !(missing && snapshot.isLoading),
+        refetch: live.refetch,
+    };
+};
+
+/** Entra como o aluno (modo visualização) e abre o Início dele. */
+export const useImpersonateStudent = () =>
+    useMutation({
+        mutationFn: (uid: string) => accountService.post(`/impersonate/add/${encodeURIComponent(uid)}`),
+        onSuccess: () => window.location.assign('/'),
+    });
+
+/** Pausas e/ou resets a mais no Programa Imerso (1 a 3 de cada), com registro. */
+export const useProgramAllowances = (uid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (body: { addPauses?: number; addResets?: number }) =>
+            accountService
+                .put<
+                    typeof body,
+                    { data: { remainingPauses: number; remainingResets: number } }
+                >(`/${encodeURIComponent(uid)}/program/allowances`, body)
+                .then(({ data }) => data.data),
+        onSettled: () => queryClient.invalidateQueries({ queryKey: ['admin-accounts'] }),
+    });
+};
+
+/** Reset de fábrica (só o dono): o programa volta ao primeiro acesso; a LAMP vai para o arquivo. 501 NOT_YET = em breve. */
+export const useFactoryReset = (uid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (confirmEmail: string) =>
+            accountService
+                .post<{ confirmEmail: string }, unknown>(`/${encodeURIComponent(uid)}/program/factory-reset`, {
+                    confirmEmail,
+                })
+                .then(({ data }) => data),
+        onSettled: () => queryClient.invalidateQueries({ queryKey: ['admin-accounts'] }),
+    });
+};
+
+/** Início do Admin: os números do dia numa chamada (null enquanto a rota nova não está publicada). */
+export const useAdminDashboard = () =>
+    useQuery({
+        queryKey: ['admin-dashboard'],
+        queryFn: () =>
+            adminService.get<{ data?: unknown }>('/dashboard').then(({ data }) => readDashboard(data?.data ?? data)),
+        retry: false,
+        staleTime: 60_000,
+    });

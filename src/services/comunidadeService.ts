@@ -1,6 +1,7 @@
 // Chamadas da Comunidade ao Worker mettle-comunidade, sempre com o ID token do Firebase da conta logada.
 import { auth } from 'config/firebase';
 import { COMUNIDADE_URL, type CMessage } from 'libs/comunidade';
+import { guardWrite } from 'libs/viewOnly';
 
 export class CError extends Error {
     status: number;
@@ -11,8 +12,9 @@ export class CError extends Error {
 }
 
 export async function cfetch<T>(sub: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
-    const token = await auth.currentUser?.getIdToken();
     const { json, ...rest } = init;
+    guardWrite(rest.method ?? (json !== undefined ? 'POST' : 'GET'), sub);
+    const token = await auth.currentUser?.getIdToken();
     const res = await fetch(COMUNIDADE_URL + sub, {
         ...rest,
         ...(json !== undefined ? { method: rest.method ?? 'POST', body: JSON.stringify(json) } : {}),

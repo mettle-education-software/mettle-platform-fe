@@ -3,10 +3,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
 import { clearWatched, DoneMap, HPEC_PROGRESS_URL, readWatched } from 'libs/hpecTrail';
+import { guardWrite } from 'libs/viewOnly';
 import { useAppContext } from 'providers';
 import { useRef } from 'react';
 
 const call = async (init?: RequestInit): Promise<DoneMap> => {
+    guardWrite(init?.method, HPEC_PROGRESS_URL);
     const token = await auth.currentUser?.getIdToken();
     const res = await fetch(HPEC_PROGRESS_URL, {
         ...init,

@@ -5,6 +5,9 @@ import { Select } from 'antd';
 import { auth } from 'config/firebase';
 import {
     useAdminHistory,
+    useFactoryReset,
+    useImpersonateStudent,
+    useProgramAllowances,
     useSaveStudentAccess,
     useStudentAccess,
     useStudentAccessEvents,
@@ -33,16 +36,28 @@ import {
     termProblem,
 } from 'libs/adminAccess';
 import { studentHistory } from 'libs/adminHistory';
+import { adminPanelPath, type AccountRow, programLabel } from 'libs/adminPanel';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
-import { NewPage } from './NewPage';
+import { MERCY_MODE_UIDS, MercyMode } from '../layouts/AdminActions/MercyMode';
 
 const styles = css`
     .as .as-head {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 16px;
-        margin: 0 0 36px;
+        gap: 12px 16px;
+        margin: 0 0 32px;
+    }
+    .as .as-id {
+        flex: 1 1 200px;
+        min-width: 0;
+    }
+    .as .as-act {
+        margin-top: 16px;
+    }
+    .as section + section {
+        margin-top: 36px;
     }
     .as .as-head .av {
         flex: none;
@@ -347,22 +362,47 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
     );
 };
 
-/** Só o dono: confirma digitando o e-mail; a conta vai para a lixeira por 30 dias (o servidor confere o dono de novo). */
-const DeleteAccount: React.FC<{ uid: string; email?: string | null }> = ({ uid, email }) => {
+type ConfirmMutation<T> = {
+    mutate: (email: string) => void;
+    reset: () => void;
+    isPending: boolean;
+    isError: boolean;
+    isSuccess: boolean;
+    error: unknown;
+    data?: T;
+};
+
+/**
+ * Ação do dono confirmada digitando o e-mail da conta (o servidor confere de novo): o botão abre o campo; a ação só liga
+ * com o e-mail certo; enquanto grava, nada muda (sem pedido em dobro, sem perder o retorno).
+ */
+function EmailConfirm<T>({
+    email,
+    open: openLabel,
+    action,
+    pending,
+    mutation,
+    done,
+}: {
+    email?: string | null;
+    open: string;
+    action: string;
+    pending: string;
+    mutation: ConfirmMutation<T>;
+    done: (data?: T) => React.ReactNode;
+}) {
     const [open, setOpen] = useState(false);
     const [typed, setTyped] = useState('');
-    const trash = useTrashAccount(uid);
-    if (trash.isSuccess)
+    if (mutation.isSuccess)
         return (
             <p className="msg" role="status">
-                A conta vai para a lixeira por 30 dias (exclusão definitiva em {brInstantDay(trash.data?.purgeAfter)}).{' '}
-                <Link href="/admin/lixeira">Lixeira</Link>
+                {done(mutation.data)}
             </p>
         );
     if (!open)
         return (
             <button type="button" className="btn line danger" onClick={() => setOpen(true)}>
-                Excluir conta permanentemente
+                {openLabel}
             </button>
         );
     const ok = emailMatches(typed, email);
@@ -371,46 +411,125 @@ const DeleteAccount: React.FC<{ uid: string; email?: string | null }> = ({ uid, 
             className="del"
             onSubmit={(event) => {
                 event.preventDefault();
-                if (ok && !trash.isPending) trash.mutate(typed.trim());
+                if (ok && !mutation.isPending) mutation.mutate(typed.trim());
             }}
         >
-            {/* excluindo: nada muda até a resposta (sem segundo pedido, sem perder o retorno) */}
             <input
                 type="email"
                 autoComplete="off"
                 aria-label="Digite o e-mail da conta para confirmar"
                 placeholder="Digite o e-mail da conta"
                 value={typed}
-                disabled={trash.isPending}
+                disabled={mutation.isPending}
                 onChange={(event) => {
-                    if (trash.isPending) return;
-                    trash.reset();
+                    if (mutation.isPending) return;
+                    mutation.reset();
                     setTyped(event.target.value);
                 }}
             />
-            <button type="submit" className="btn line danger" disabled={!ok || trash.isPending}>
-                {trash.isPending ? 'Excluindo…' : 'Excluir'}
+            <button type="submit" className="btn line danger" disabled={!ok || mutation.isPending}>
+                {mutation.isPending ? pending : action}
             </button>
             <button
                 type="button"
                 className="btn ghost"
-                disabled={trash.isPending}
+                disabled={mutation.isPending}
                 onClick={() => {
-                    if (trash.isPending) return;
+                    if (mutation.isPending) return;
                     setOpen(false);
                     setTyped('');
-                    trash.reset();
+                    mutation.reset();
                 }}
             >
                 Cancelar
             </button>
             {!email && <p className="msg">Conta sem e-mail conhecido: não dá para confirmar aqui.</p>}
-            {trash.isError && (
+            {mutation.isError && (
                 <p className="msg err" role="alert">
-                    {serverProblem(trash.error)}
+                    {serverProblem(mutation.error)}
                 </p>
             )}
         </form>
+    );
+}
+
+/** Só o dono: a conta vai para a lixeira por 30 dias (sem login, oculta, restaurável). */
+const DeleteAccount: React.FC<{ uid: string; email?: string | null }> = ({ uid, email }) => {
+    const trash = useTrashAccount(uid);
+    return (
+        <EmailConfirm
+            email={email}
+            open="Excluir conta permanentemente"
+            action="Excluir"
+            pending="Excluindo…"
+            mutation={trash}
+            done={(data) => (
+                <>
+                    A conta vai para a lixeira por 30 dias (exclusão definitiva em {brInstantDay(data?.purgeAfter)}).{' '}
+                    <Link href={adminPanelPath(null) + '?lixeira=1'}>Lixeira</Link>
+                </>
+            )}
+        />
+    );
+};
+
+/** Só o dono: o Programa Imerso volta ao primeiro acesso (a LAMP vai para o arquivo; nada é apagado). */
+const FactoryReset: React.FC<{ uid: string; email?: string | null }> = ({ uid, email }) => {
+    const reset = useFactoryReset(uid);
+    return (
+        <EmailConfirm
+            email={email}
+            open="Reset de fábrica"
+            action="Resetar"
+            pending="Resetando…"
+            mutation={reset}
+            done={() => 'O programa voltou ao primeiro acesso.'}
+        />
+    );
+};
+
+/** Pausas e resets a mais (+1, +2 ou +3 de cada), na hora; o que resta vem da resposta. */
+const ProgramAllowances: React.FC<{ uid: string; program: AccountRow['program'] }> = ({ uid, program }) => {
+    const add = useProgramAllowances(uid);
+    const left = {
+        addPauses: add.data?.remainingPauses ?? program?.remainingPauses ?? null,
+        addResets: add.data?.remainingResets ?? program?.remainingResets ?? null,
+    };
+    const line = (label: string, field: 'addPauses' | 'addResets', one: string) => (
+        <li className="row">
+            <span className="lab">
+                <b>{label}</b>
+                <span>Restam {left[field] ?? '—'}</span>
+            </span>
+            <span className="field">
+                <span className="tog" role="group" aria-label={`${label} a mais`}>
+                    {[1, 2, 3].map((n) => (
+                        <button
+                            key={n}
+                            type="button"
+                            disabled={add.isPending}
+                            aria-label={`Dar ${n} ${n === 1 ? one : label.toLowerCase()} a mais`}
+                            onClick={() => add.mutate({ [field]: n })}
+                        >
+                            +{n}
+                        </button>
+                    ))}
+                </span>
+            </span>
+        </li>
+    );
+    return (
+        <>
+            <ol className="rows">
+                {line('Pausas', 'addPauses', 'pausa')}
+                {line('Resets', 'addResets', 'reset')}
+            </ol>
+            {add.isError && (
+                <p className="msg err" role="alert">
+                    {serverProblem(add.error)}
+                </p>
+            )}
+        </>
     );
 };
 
@@ -441,39 +560,70 @@ const AccessEvents: React.FC<{ uid: string }> = ({ uid }) => {
 };
 
 /**
- * Página do aluno no Admin (/admin/aluno/[uid]): quem é, o acesso por produto (Total/Leitura, origem e prazo), o
- * registro de cada mudança e o histórico do programa (o mesmo retrato de /admin/historico, só para o dono).
+ * Uma conta no Painel de Contas (ao lado da lista): quem é, acessar como o aluno, o acesso por produto (Total/Leitura,
+ * origem e prazo), o programa (pausas/resets a mais; reset de fábrica, só o dono), Mercy Mode (só o dono), o registro
+ * de cada mudança, o histórico do programa (o retrato noturno, só o dono) e a exclusão (só o dono).
  */
-export const NewAdminStudent: React.FC<{ uid: string }> = ({ uid }) => {
+export const StudentDetail: React.FC<{ uid: string; account?: AccountRow }> = ({ uid, account }) => {
     const access = useStudentAccess(uid);
     const history = useAdminHistory();
+    const impersonate = useImpersonateStudent();
     const snapshot = history.data?.students.find((student) => student.uid === uid);
     const user = access.data?.user;
-    const name = user?.name || snapshot?.name || user?.email || snapshot?.email || 'Aluno';
-    const email = user?.email || snapshot?.email;
+    const name =
+        user?.name || account?.name || snapshot?.name || user?.email || account?.email || snapshot?.email || 'Conta';
+    const email = user?.email || account?.email || snapshot?.email;
+    const photo = user?.photoURL || account?.photoURL;
     const timeline = snapshot ? studentHistory(snapshot) : [];
+    const realUid = auth.currentUser?.uid;
+    const owner = isTrashOwner(realUid);
+    const noLogin = user ? user.disabled !== false : account?.hasLogin === false;
+    const program =
+        account?.program ??
+        (snapshot
+            ? {
+                  melpStatus: snapshot.status,
+                  lampWeek: snapshot.lampWeek,
+                  remainingPauses: snapshot.pausesLeft,
+                  remainingResets: snapshot.resetsLeft,
+              }
+            : null);
     const notFound =
         (access.error as { response?: { data?: { code?: string } } } | null)?.response?.data?.code === 'USER_NOT_FOUND';
 
     return (
-        <NewPage className="narrow as">
+        <div className="as">
             <Global styles={styles} />
             <header className="as-head">
                 <span className="av" aria-hidden>
-                    {user?.photoURL ? (
+                    {photo ? (
                         // eslint-disable-next-line @next/next/no-img-element -- foto do perfil (Firebase)
-                        <img src={user.photoURL} alt="" />
+                        <img src={photo} alt="" />
                     ) : (
                         name[0]?.toUpperCase()
                     )}
                 </span>
-                <div>
-                    <p className="eyebrow">Aluno</p>
+                <div className="as-id">
                     <h1>{name}</h1>
                     {email && <p>{email}</p>}
-                    {user && user.disabled !== false && <p>{user.disabled ? 'Login desligado' : 'Sem login'}</p>}
+                    {noLogin && <p>{user?.disabled ? 'Login desligado' : 'Sem login'}</p>}
                 </div>
+                {!noLogin && !notFound && (
+                    <button
+                        type="button"
+                        className="btn line"
+                        disabled={impersonate.isPending}
+                        onClick={() => impersonate.mutate(uid)}
+                    >
+                        Acessar como aluno
+                    </button>
+                )}
             </header>
+            {impersonate.isError && (
+                <p className="msg err" role="alert">
+                    {serverProblem(impersonate.error)}
+                </p>
+            )}
 
             <section aria-labelledby="as-access">
                 <div className="sh">
@@ -485,7 +635,7 @@ export const NewAdminStudent: React.FC<{ uid: string }> = ({ uid }) => {
                     </p>
                 ) : access.isError ? (
                     <p className="hint" role="status">
-                        {notFound ? 'Aluno não encontrado.' : 'Acessos indisponíveis no momento.'}{' '}
+                        {notFound ? 'Conta não encontrada.' : 'Acessos indisponíveis no momento.'}{' '}
                         {!notFound && (
                             <button type="button" className="btn line" onClick={() => access.refetch()}>
                                 Tentar de novo
@@ -500,6 +650,28 @@ export const NewAdminStudent: React.FC<{ uid: string }> = ({ uid }) => {
                     </ol>
                 )}
             </section>
+
+            {program && (
+                <section aria-labelledby="as-program">
+                    <div className="sh">
+                        <h2 id="as-program">
+                            Programa <span>{programLabel(program)}</span>
+                        </h2>
+                    </div>
+                    <ProgramAllowances uid={uid} program={program} />
+                    {owner && (
+                        <div className="as-act">
+                            <FactoryReset uid={uid} email={email} />
+                        </div>
+                    )}
+                </section>
+            )}
+
+            {!!realUid && MERCY_MODE_UIDS.includes(realUid) && (
+                <section aria-label="Gravações">
+                    <MercyMode studentUid={uid} studentLabel={name} />
+                </section>
+            )}
 
             <section aria-labelledby="as-log">
                 <div className="sh">
@@ -526,13 +698,13 @@ export const NewAdminStudent: React.FC<{ uid: string }> = ({ uid }) => {
                 </section>
             )}
 
-            {isTrashOwner(auth.currentUser?.uid) && !notFound && (
-                <section aria-label="Excluir conta">
+            {owner && !notFound && (
+                <section aria-label="Excluir conta" className="as-act">
                     <DeleteAccount uid={uid} email={email} />
                 </section>
             )}
-        </NewPage>
+        </div>
     );
 };
 
-export default NewAdminStudent;
+export default StudentDetail;

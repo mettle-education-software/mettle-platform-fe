@@ -203,6 +203,6 @@ describe('selos, registro e textos', () => {
         );
         expect(serverProblem({ response: { status: 403, data: {} } })).toBe('Sem permissão para esta ação.');
         expect(serverProblem(new Error('rede'))).toBe('Não foi possível gravar. Tente de novo.');
-        expect(studentPath('abc123')).toBe('/admin/aluno/abc123');
+        expect(studentPath('abc123')).toBe('/admin/contas?conta=abc123');
     });
 });

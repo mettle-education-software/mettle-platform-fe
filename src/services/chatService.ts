@@ -1,8 +1,10 @@
 // Chamadas do Mettle Chat ao Worker mettle-events (libs/chat), sempre com o ID token do Firebase da conta logada.
 import { auth } from 'config/firebase';
 import { CHAT_URL, type ChatMessage } from 'libs/chat';
+import { guardWrite } from 'libs/viewOnly';
 
 export async function chatFetch<T>(sub: string, init: RequestInit = {}): Promise<T> {
+    guardWrite(init.method, sub);
     const token = await auth.currentUser?.getIdToken();
     const res = await fetch(CHAT_URL + sub, {
         ...init,

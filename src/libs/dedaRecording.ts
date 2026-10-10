@@ -1,4 +1,5 @@
 // Gravador de voz do DEDA (Fase 1): regras puras, sem navegador — testadas em libs/__tests__/dedaRecording.test.ts.
+import { recentDedaIds } from './dedaClock';
 
 /** Versão do texto de consentimento mostrado em RecordingConsent; tem de ser igual a DEDA_RECORDING.CONSENT_VERSION do servidor (mettle-common). */
 export const CONSENT_VERSION = '2026-10';
@@ -379,6 +380,14 @@ export const pickMyReading = (recordings: DedaRecording[], today: string, isCurr
 
 /** Primeiro dia em que o gravador existiu para alguém (o piso da contagem): nada antes disso é "dia de gravar". */
 export const RECORDER_SINCE = '2026-10-05';
+
+/**
+ * Linhas da aba Recordings: EXATAMENTE os DEDAs liberados ao aluno, do mais recente para trás — a mesma lista e a mesma
+ * ordem da página de DEDAs (decisão do André, 07-Out-2026), nos dois relógios, desde o início (não desde o gravador).
+ * `blocked`: suspenso ou nos 2 primeiros dias (a página de DEDAs também não lista).
+ */
+export const recordingDedaIds = (summary: Parameters<typeof recentDedaIds>[0], blocked = false) =>
+    blocked ? [] : recentDedaIds(summary, Infinity);
 
 /** Semanas desde o gravador (+2 de folga para pausas): o teto das semanas que a LAMP pede (frente 4b, item 5). */
 export const weeksSinceRecorder = (now = Date.now()) =>

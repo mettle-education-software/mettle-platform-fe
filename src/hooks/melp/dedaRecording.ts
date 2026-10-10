@@ -86,6 +86,26 @@ export const useRecordingStats = () => {
     return { allowed: allowed && enabled, loading, stats, recordedIds };
 };
 
+/**
+ * Todas as gravações do aluno numa consulta só (desde que o gravador existe = todas): a aba Recordings distribui por
+ * DEDA, sem um pedido por linha. Mesma chave da consulta dos KPIs (relógio novo): o cache é um só.
+ */
+export const useAllRecordings = () => {
+    const { user } = useAppContext();
+    const uid = user?.uid;
+    return useQuery({
+        queryKey: ['deda-recordings', uid, 'since', RECORDER_SINCE],
+        queryFn: () =>
+            melpService
+                .get<DedaRecordingsResponse>(`${base(uid as string)}?since=${RECORDER_SINCE}`)
+                .then(({ data }) => data)
+                .catch(recordingsOrDisabled),
+        enabled: RECORDER_FLAG_ON && !!uid && !user?.impersonating,
+        staleTime: 60_000,
+        retry: false,
+    });
+};
+
 /** Lista as gravações do aluno no DEDA, o consentimento e se o recurso está ligado para ele. */
 export const useDedaRecordings = (dedaId: string, enabled = true) => {
     const { user } = useAppContext();

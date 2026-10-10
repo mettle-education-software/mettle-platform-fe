@@ -1,3 +1,4 @@
+import { recentDedaIds } from '../dedaClock';
 import {
     attemptsLabel,
     baseMimeType,
@@ -23,6 +24,7 @@ import {
     recordingsOrDisabled,
     spokenDuration,
     pausedIntervals,
+    recordingDedaIds,
 } from '../dedaRecording';
 import { flushQueue, QueuedRecording, QueueStore, queueKey } from '../recordingQueue';
 
@@ -428,5 +430,44 @@ describe('pausedIntervals', () => {
         expect(
             pausedIntervals(['2025-02-02T21:22:12.054Z'], ['2024-11-11T03:00:00.000Z', '2025-03-10T03:00:00.000Z']),
         ).toEqual([{ from: '2025-02-03', to: '2025-03-10' }]);
+    });
+});
+
+describe('aba Recordings', () => {
+    // a lista da página de DEDAs: os DEDAs liberados, do mais recente para trás (o que useDedasGrid mostra)
+    const dedaListIds = (summary: unknown) => recentDedaIds(summary as never, Infinity);
+
+    test('recordings lists exactly the released DEDAs (André 07-Out): legado e relógio novo, desde o início', () => {
+        // legado: 105 DEDAs liberados, a maior parte muito antes do gravador (5-Out-2026)
+        const legacy = {
+            melp_status: 'DEDA_STARTED',
+            current_deda_week: 105,
+            unlocked_dedas: Array.from({ length: 105 }, (_, i) => `DEDA${i + 1}`),
+        };
+        const ids = recordingDedaIds(legacy as never);
+        expect(ids).toEqual(dedaListIds(legacy));
+        expect(ids).toHaveLength(105);
+        expect(ids[0]).toBe('DEDA105');
+        expect(ids[104]).toBe('DEDA1');
+
+        // relógio novo: as semanas exibidas (deda_weeks), sem repetir, e o DEDA0 de treino no fim
+        const calendar = {
+            deda_clock: 'calendar',
+            melp_status: 'DEDA_STARTED',
+            unlocked_dedas: ['DEDA0', 'DEDA33', 'DEDA34', 'DEDA35'],
+            deda_weeks: [
+                { lamp_week: 1, deda_id: 'DEDA33' },
+                { lamp_week: 2, deda_id: 'DEDA34' },
+                { lamp_week: 3, deda_id: 'DEDA35' },
+                { lamp_week: 4, deda_id: 'DEDA33' },
+            ],
+        };
+        expect(recordingDedaIds(calendar as never)).toEqual(dedaListIds(calendar));
+        expect(recordingDedaIds(calendar as never)).toEqual(['DEDA33', 'DEDA35', 'DEDA34', 'DEDA0']);
+    });
+
+    test('bloqueada como a página de DEDAs (suspenso, 2 primeiros dias) e sem resumo: nenhuma linha', () => {
+        expect(recordingDedaIds({ unlocked_dedas: ['DEDA1'] } as never, true)).toEqual([]);
+        expect(recordingDedaIds(null)).toEqual([]);
     });
 });

@@ -4,20 +4,13 @@ import { css, Global } from '@emotion/react';
 import { Select } from 'antd';
 import { AudioPlayer } from 'components';
 import { useDedasGrid } from 'components/_melp/_deda/DedasGrid/DedasGrid';
-import { useDedaRecordings, useRecordingPlayUrl, useRecordingStats } from 'hooks/melp/dedaRecording';
+import { useAllRecordings, useRecordingPlayUrl, useRecordingStats } from 'hooks/melp/dedaRecording';
 import { dedaPath } from 'libs/cleanUrls';
 import { IMAGE_MIRROR_HOSTS } from 'libs/contentImage';
-import { dedaIdsSince, dedaLampWeek, isCalendarClock } from 'libs/dedaClock';
+import { isCalendarClock } from 'libs/dedaClock';
 import { contentfulImage } from 'libs/dedaHeader';
-import {
-    DedaRecording,
-    formatDuration,
-    formatRecordedOn,
-    RECORDER_SINCE,
-    spokenDuration,
-    weeksSinceRecorder,
-} from 'libs/dedaRecording';
-import { isoPlus, WEEK_DAYS } from 'libs/newDesign';
+import { DedaRecording, formatDuration, formatRecordedOn, recordingDedaIds, spokenDuration } from 'libs/dedaRecording';
+import { WEEK_DAYS } from 'libs/newDesign';
 import { ChevronDown, Play, X } from 'lucide-react';
 import Link from 'next/link';
 import { useMelpContext } from 'providers';
@@ -417,30 +410,26 @@ const RecRow: React.FC<{
     );
 
 /** Uma semana do gotejamento do aluno: cabeçalho sempre presente; os números chegam quando a linha fica perto da tela. */
+/** As gravações de uma linha: do DEDA dela; no legado, só as da semana da linha (o mesmo DEDA pode voltar). */
+const rowRecordings = (w: Week, list: DedaRecording[] | undefined) =>
+    (list ?? []).filter((r) => r.dedaId === w.dedaId && (!w.byWeek || r.week === `week${w.week}`));
+
 const WeekRow: React.FC<{
     w: Week;
+    /** as gravações do DEDA (todas as do aluno, de uma consulta só); undefined = ainda carregando */
+    recordings: DedaRecording[] | undefined;
+    known: boolean;
     open: boolean;
     onToggle(): void;
-    onRecs(key: string, recs: Rec[]): void;
     playing?: string;
     play(rec: Rec, queue?: Rec[]): void;
     onEnd(): void;
     stop(): void;
-}> = ({ w, open, onToggle, onRecs, playing, play, onEnd, stop }) => {
-    // só pede as gravações quando a linha chega perto da tela (o cabeçalho já está lá desde o começo)
-    const ref = useRef<HTMLLIElement>(null);
-    const [near, setNear] = useState(false);
-    useEffect(() => {
-        const el = ref.current;
-        if (!el || near) return;
-        const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && setNear(true), {
-            rootMargin: '600px',
-        });
-        io.observe(el);
-        return () => io.disconnect();
-    }, [near]);
-    const q = useDedaRecordings(w.dedaId, near);
-    const all = useMemo(() => (q.data?.recordings ?? []).map((r) => ({ ...r, title: w.title })), [q.data, w.title]);
+}> = ({ w, recordings, known, open, onToggle, playing, play, onEnd, stop }) => {
+    const all = useMemo(
+        () => (recordings ?? []).filter((r) => r.dedaId === w.dedaId).map((r) => ({ ...r, title: w.title })),
+        [recordings, w.dedaId, w.title],
+    );
     // uma gravação por dia (a última tomada): legado, por dia da semana daquela semana; relógio novo, por data (o mesmo
     // DEDA pode ter sido gravado em mais de uma semana — todas as datas aparecem)
     const byDay = new Map<string, Rec>();
@@ -451,11 +440,6 @@ const WeekRow: React.FC<{
         w.byWeek ? a.weekDay.localeCompare(b.weekDay) : a.recordedOn.localeCompare(b.recordedOn),
     );
     const onDay = (d: number) => mine.some((r) => r.weekDay === `day${d}`);
-    const known = !!q.data || q.isError;
-    useEffect(() => {
-        if (known) onRecs(w.key, mine);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [known, q.data, w.key]);
     // mesmo DEDA em mais de uma volta: a primeira gravação de todas e a mais recente
     const weeksWith = new Set(all.map((r) => r.week));
     const sorted = [...all].sort((a, b) => a.recordedOn.localeCompare(b.recordedOn));
@@ -467,7 +451,7 @@ const WeekRow: React.FC<{
     const wn = (r: Rec) => `W${Number(r.week.replace('week', ''))}`;
     const has = mine.length > 0;
     return (
-        <li ref={ref} id={`wk-${w.key}`} className={`wk${open && has ? ' open' : ''}`}>
+        <li id={`wk-${w.key}`} className={`wk${open && has ? ' open' : ''}`}>
             <button type="button" className="wh" aria-expanded={open && has} disabled={!has} onClick={onToggle}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- miniatura do espelho, pequena */}
                 {thumb ? <img className="th" src={thumb} alt="" loading="lazy" /> : <span className="th" />}
@@ -589,73 +573,78 @@ const timeText = (ms: number) => {
     return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}`;
 };
 
+/** Linhas desenhadas por vez: 100+ DEDAs continuam leves (as próximas entram ao rolar até o fim). */
+const PAGE = 30;
+
 export const LampRecordings: React.FC = () => {
     const { melpSummary } = useMelpContext();
-    // a MESMA lista da página de DEDAs: o gotejamento do aluno (unlocked_dedas na ordem, já com pausa e reinício),
-    // bloqueada como lá (suspenso ou nos 2 primeiros dias), semana = semana atual − posição a partir do mais recente
+    // a MESMA lista da página de DEDAs (decisão do André, 07-Out-2026): todos os DEDAs liberados, do mais recente para
+    // trás, nos dois relógios — bloqueada como lá (suspenso ou nos 2 primeiros dias); semana como lá (grid.weekOf)
     const blockedDEDAs = melpSummary?.melp_status === 'MELP_SUSPENDED' || melpSummary?.days_since_melp_start < 2;
     const grid = useDedasGrid('allDedas', blockedDEDAs);
-    const current = (grid.currentWeek as number) ?? 0;
     const calendar = isCalendarClock(melpSummary);
     const byId = useMemo(() => new Map((grid.allDedas ?? []).map((d) => [d.dedaId, d])), [grid.allDedas]);
-    // só os DEDAs desde que o gravador existe (+2 semanas de folga): antes disso não há gravação — nem pedido
-    // (frente 4b, item 5). Relógio novo: por DEDA exibido, rótulo pela semana da LAMP (deda_weeks); legado: por posição.
     const stats = useRecordingStats();
-    const allWeeks: Week[] = useMemo(() => {
-        const exhibited = calendar ? dedaIdsSince(melpSummary, isoPlus(RECORDER_SINCE, -14)) : [];
-        const rows: { id: string; week?: number }[] = calendar
-            ? [...exhibited, ...stats.recordedIds.filter((id) => !exhibited.includes(id))].map((id) => ({
-                  id,
-                  week: dedaLampWeek(melpSummary, id) ?? undefined,
-              }))
-            : grid.unlockedDEDAs
-                  .slice()
-                  .reverse()
-                  .slice(0, weeksSinceRecorder())
-                  .map((id, index) => ({ id, week: current - index }));
-        return rows.map(({ id, week }) => {
-            const deda = byId.get(id);
-            return {
-                key: calendar ? id : `w${week}`,
-                week,
-                dedaId: id,
-                title: deda?.dedaTitle ?? id,
-                slug: deda?.dedaSlug,
-                image: deda?.dedaFeaturedImage?.url,
-                byWeek: !calendar,
-            };
-        });
-    }, [calendar, melpSummary, stats.recordedIds, grid.unlockedDEDAs, current, byId]);
+    // todas as gravações numa consulta só: cada linha pega as do seu DEDA (nada de um pedido por linha)
+    const recordings = useAllRecordings();
+    const list = recordings.data?.recordings;
+    const known = !!recordings.data || recordings.isError;
+    const allWeeks: Week[] = useMemo(
+        () =>
+            recordingDedaIds(melpSummary, blockedDEDAs).map((id, index) => {
+                const week = grid.weekOf(id, index);
+                const deda = byId.get(id);
+                return {
+                    // relógio novo: um DEDA por linha (sem repetição); legado: a semana (o mesmo DEDA pode voltar)
+                    key: calendar ? id : `w${week}`,
+                    week,
+                    dedaId: id,
+                    title: deda?.dedaTitle ?? id,
+                    slug: deda?.dedaSlug,
+                    image: deda?.dedaFeaturedImage?.url,
+                    byWeek: !calendar,
+                };
+            }),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [melpSummary, blockedDEDAs, calendar, byId],
+    );
     const [open, setOpen] = useState<Record<string, boolean>>({});
-    const [recs, setRecs] = useState<Record<string, Rec[]>>({});
     const [queue, setQueue] = useState<Rec[]>([]);
     const [now, setNow] = useState<Rec>();
+    const [shown, setShown] = useState(PAGE);
+    const weeks = allWeeks.slice(0, shown);
+    // fim da parte desenhada à vista: desenha mais uma página
+    const more = useRef<HTMLLIElement>(null);
+    useEffect(() => {
+        const el = more.current;
+        if (!el || shown >= allWeeks.length) return;
+        const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && setShown((n) => n + PAGE), {
+            rootMargin: '400px',
+        });
+        io.observe(el);
+        return () => io.disconnect();
+    }, [shown, allWeeks.length]);
 
-    const weeks = allWeeks;
-    // ir a um DEDA: abre a linha e rola até ela
+    // ir a um DEDA (de toda a lista): desenha até ele, abre a linha e rola até ela
     const goTo = (key: string) => {
+        const index = allWeeks.findIndex((w) => w.key === key);
+        if (index >= shown) setShown(index + 1 + PAGE);
         setOpen((o) => ({ ...o, [key]: true }));
         requestAnimationFrame(() =>
-            document.getElementById(`wk-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+            requestAnimationFrame(() =>
+                document.getElementById(`wk-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+            ),
         );
     };
 
-    const onRecs = (key: string, mine: Rec[]) =>
-        setRecs((r) => (r[key]?.length === mine.length ? r : { ...r, [key]: mine }));
-    // a semana mais recente com gravações abre sozinha (uma vez), quando as mais novas já se sabe que estão vazias
+    // o DEDA mais recente com gravações abre sozinho (uma vez), quando as gravações chegam
     const autoOpened = useRef(false);
     useEffect(() => {
-        if (autoOpened.current) return;
-        for (const w of allWeeks) {
-            const known = recs[w.key];
-            if (known === undefined) return;
-            if (known.length) {
-                autoOpened.current = true;
-                setOpen((o) => ({ ...o, [w.key]: true }));
-                return;
-            }
-        }
-    }, [recs, allWeeks]);
+        if (autoOpened.current || !known) return;
+        autoOpened.current = true;
+        const first = allWeeks.find((w) => rowRecordings(w, list).length);
+        if (first) setOpen((o) => ({ ...o, [first.key]: true }));
+    }, [known, list, allWeeks]);
 
     const play = (rec: Rec, q: Rec[] = []) => {
         setQueue(q.slice(1));
@@ -673,11 +662,10 @@ export const LampRecordings: React.FC = () => {
         setQueue([]);
     };
 
-    const known = allWeeks.filter((w) => recs[w.key] !== undefined);
-    // nada ainda: nenhuma linha (relógio novo antes da primeira segunda) ou todas conhecidas e vazias
+    // nada ainda: nenhuma linha (relógio novo antes da primeira segunda) ou nenhuma gravação nos DEDAs liberados
     const none =
         (allWeeks.length === 0 && !stats.loading) ||
-        (allWeeks.length > 0 && known.length === allWeeks.length && known.every((w) => !recs[w.key].length));
+        (allWeeks.length > 0 && known && allWeeks.every((w) => !rowRecordings(w, list).length));
     const today = allWeeks[0];
 
     return (
@@ -746,15 +734,17 @@ export const LampRecordings: React.FC = () => {
                     <WeekRow
                         key={w.key}
                         w={w}
+                        recordings={list}
+                        known={known}
                         open={!!open[w.key]}
                         onToggle={() => setOpen((o) => ({ ...o, [w.key]: !o[w.key] }))}
-                        onRecs={onRecs}
                         playing={now?.id}
                         play={play}
                         onEnd={next}
                         stop={stop}
                     />
                 ))}
+                {shown < allWeeks.length && <li ref={more} className="more" aria-hidden />}
             </ul>
         </div>
     );

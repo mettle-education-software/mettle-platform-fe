@@ -254,7 +254,10 @@ test.each(['Reiniciar', 'Pausar'])('%s só executa após confirmação e absorve
     action(label).onClick();
     expect(mutation.mutateAsync).not.toHaveBeenCalled();
     const config = mockConfirm.mock.calls[0][0];
-    expect(config.content).toContain('Tem certeza');
+    // o texto da confirmação diz o que acontece com a LAMP (#209)
+    expect(renderToStaticMarkup(config.content)).toContain(
+        label === 'Reiniciar' ? 'A sua LAMP é zerada' : 'A LAMP para de contar',
+    );
     mutation.mutateAsync.mockRejectedValueOnce(new Error('offline'));
     await expect(config.onOk()).resolves.toBeUndefined();
     expect(mutation.mutateAsync).toHaveBeenCalledTimes(1);

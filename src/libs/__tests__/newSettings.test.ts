@@ -138,6 +138,9 @@ test('uma página com as quatro seções na ordem, perfil editável, senha e his
             (b) => b.textContent === 'Salvar',
         ),
     ).toHaveLength(1);
+    // e só esse na página: a senha troca com "Trocar senha"
+    expect([...doc.querySelectorAll('button')].filter((b) => b.textContent === 'Salvar')).toHaveLength(1);
+    expect(doc.body.textContent).toContain('Trocar senha');
     expect(doc.querySelector('#profile-phone')).not.toBeNull();
     expect(doc.querySelector('input[type="email"]')).toBeNull();
     expect(doc.body.textContent).toContain('Trocar foto');

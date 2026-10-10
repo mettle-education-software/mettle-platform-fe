@@ -118,8 +118,9 @@ const SecuritySettings: React.FC = () => {
                     </div>
                 </div>
                 <div className="actions">
+                    {/* "Salvar" é um só na página (o do perfil) */}
                     <Button loading={updatePassword.isPending} htmlType="submit" type="primary">
-                        Salvar
+                        Trocar senha
                     </Button>
                 </div>
             </Form>

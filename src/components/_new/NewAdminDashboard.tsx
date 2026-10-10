@@ -197,6 +197,7 @@ const styles = css`
     }
     .db ol.rows a {
         display: flex;
+        flex-wrap: wrap;
         align-items: baseline;
         justify-content: space-between;
         gap: 12px;
@@ -209,7 +210,9 @@ const styles = css`
     .db ol.rows a:hover b {
         color: var(--r-gold-hi);
     }
+    /* linha longa (vários produtos, carência): o nome inteiro em cima e os detalhes embaixo, à direita */
     .db ol.rows b {
+        flex: 1 1 6em;
         min-width: 0;
         overflow: hidden;
         font-weight: 500;
@@ -217,18 +220,17 @@ const styles = css`
         white-space: nowrap;
     }
     .db ol.rows span {
-        flex: none;
+        flex: 0 1 auto;
+        margin-left: auto;
+        text-align: right;
         font-size: 13px;
         color: var(--r-muted);
         font-variant-numeric: tabular-nums;
     }
     .db ol.rows em {
-        margin-left: 6px;
         font-style: normal;
         color: var(--r-gold-hi);
-    }
-    .db ol.rows span em {
-        margin-left: 0;
+        white-space: nowrap;
     }
     .db .sh a {
         font-size: 13.5px;
@@ -570,14 +572,17 @@ export const NewAdminDashboard: React.FC = () => {
                                             <Link href={adminPanelPath(person.uid)}>
                                                 <b>{person.name || 'Sem nome'}</b>
                                                 <span>
-                                                    {productList(person.products)} ·{' '}
-                                                    {person.inCarencia ? (
-                                                        <em>
-                                                            carência
-                                                            {person.graceUntil && ` até ${brDay(person.graceUntil)}`}
-                                                        </em>
-                                                    ) : (
-                                                        brDay(person.validUntil)
+                                                    {productList(person.products)}
+                                                    {person.validUntil && ` · ${brDay(person.validUntil)}`}
+                                                    {person.inCarencia && (
+                                                        <>
+                                                            {' · '}
+                                                            <em>
+                                                                carência
+                                                                {person.graceUntil &&
+                                                                    ` até ${brDay(person.graceUntil)}`}
+                                                            </em>
+                                                        </>
                                                     )}
                                                 </span>
                                             </Link>

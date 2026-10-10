@@ -200,7 +200,11 @@ test('vencem: uma linha por pessoa (produtos juntos, data mais cedo, carência a
         { ...row('b', 'Bia', 'imerso', '2024-05-12'), inCarencia: true, graceUntil: '2026-10-11' },
         row('a', 'Ana', 'ebook', '2026-10-25'),
         row('c', 'Cris', 'masterclass', '2026-10-12'),
-        { ...row('c', 'Cris', 'imerso', '2024-09-15'), inCarencia: true, graceUntil: '2026-10-13' },
+        // carência e outro produto: o fim mais cedo (o do outro produto) vale para a ordem e aparece
+        { ...row('c', 'Cris', 'imerso', '2024-09-15'), inCarencia: true, graceUntil: '2026-10-30' },
+        // duas carências: o fim mais cedo
+        { ...row('e', 'Eva', 'imerso', '2024-01-10'), inCarencia: true, graceUntil: '2026-10-20' },
+        { ...row('e', 'Eva', 'masterclass', '2024-02-10'), inCarencia: true, graceUntil: '2026-10-15' },
         // carência sem o fim (servidor antigo): sem data
         { ...row('d', 'Duda', 'imerso', '2024-01-01'), inCarencia: true },
     ];
@@ -213,7 +217,15 @@ test('vencem: uma linha por pessoa (produtos juntos, data mais cedo, carência a
             products: ['masterclass', 'imerso'],
             validUntil: '2026-10-12',
             inCarencia: true,
-            graceUntil: '2026-10-13',
+            graceUntil: '2026-10-30',
+        },
+        {
+            uid: 'e',
+            name: 'Eva',
+            products: ['imerso', 'masterclass'],
+            validUntil: null,
+            inCarencia: true,
+            graceUntil: '2026-10-15',
         },
         {
             uid: 'a',
@@ -227,8 +239,8 @@ test('vencem: uma linha por pessoa (produtos juntos, data mais cedo, carência a
     expect(productList(['masterclass', 'ebook'])).toBe('Masterclass e E-book');
     expect(productList(['imerso', 'masterclass', 'ebook'])).toBe('Imerso, Masterclass e E-book');
     // lista inteira: pessoas exatas; lista cortada pelo servidor: "N+"
-    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 6, vencendoPessoas: null })).toBe('4');
-    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 64, vencendoPessoas: null })).toBe('4+');
+    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 8, vencendoPessoas: null })).toBe('5');
+    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 64, vencendoPessoas: null })).toBe('5+');
     expect(duePeopleCount({ vencendo: rows, vencendoTotal: null, vencendoPessoas: null })).toBeNull();
     // com o total de pessoas do servidor, exato
     expect(duePeopleCount({ vencendo: rows, vencendoTotal: 64, vencendoPessoas: 41 })).toBe('41');

@@ -227,6 +227,9 @@ test('vencem em carência: "carência até" o fim da carência, nunca a data ant
                 // servidor sem o campo: só "carência"
                 due('Cris', {}),
                 due('Duda', { validUntil: '2026-10-20', inCarencia: false }),
+                // carência e outro produto: as duas datas (a mais cedo manda na ordem); carimbo vira o dia
+                due('Eva', { graceUntil: '2026-10-30T03:00:00.000Z' }),
+                due('Eva', { product: 'masterclass', validUntil: '2026-10-12', inCarencia: false }),
             ],
         }),
     };
@@ -236,6 +239,7 @@ test('vencem em carência: "carência até" o fim da carência, nunca a data ant
     expect(rows.map((li) => li.textContent)).toEqual([
         'CrisImerso · carência',
         'BiaImerso · carência até 11/10/2026',
+        'EvaImerso e Masterclass · 12/10/2026 · carência até 30/10/2026',
         'DudaImerso · 20/10/2026',
     ]);
 });

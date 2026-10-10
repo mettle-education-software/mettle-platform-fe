@@ -74,6 +74,11 @@ const PRODUCTS: readonly string[] = ['imerso', 'masterclass', 'ebook'];
 const product = (value: unknown) => (PRODUCTS.includes(value as string) ? (value as Product) : null);
 const origin = (value: unknown) => (ORIGINS.some((o) => o.value === value) ? (value as Origin) : null);
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+/** Dia civil AAAA-MM-DD (o começo de um carimbo também serve); outra coisa vira null. */
+const day = (value: unknown) => {
+    const text = typeof value === 'string' ? value.slice(0, 10) : '';
+    return ISO_DAY.test(text) ? text : null;
+};
 const split = (value: unknown): Split => {
     const v = obj(value);
     return { total: nn(v.total), ativo: nn(v.ativo), leitura: nn(v.leitura) };
@@ -169,7 +174,7 @@ export const readDashboard = (data: unknown): Dashboard | null => {
                           origin: origin(v.origin),
                           validUntil: s(v.validUntil),
                           inCarencia: v.inCarencia === true,
-                          graceUntil: s(v.graceUntil),
+                          graceUntil: day(v.graceUntil),
                       },
                   ]
                 : [];
@@ -238,8 +243,9 @@ export const duePeople = (rows: Dashboard['vencendo']): DuePerson[] => {
             person.graceUntil = earliest(row.graceUntil, person.graceUntil);
         } else person.validUntil = earliest(row.validUntil, person.validUntil);
     }
-    // a ordem do servidor é pelo fim do produto; com o fim que vale de cada pessoa (a carência, se houver), reordena
-    const due = (person: DuePerson) => (person.inCarencia ? person.graceUntil : person.validUntil) ?? '';
+    // a ordem do servidor é pelo fim do produto; reordena pelo fim mais cedo de cada pessoa (carência sem o fim, primeiro)
+    const due = (person: DuePerson) =>
+        person.inCarencia && !person.graceUntil ? '' : (earliest(person.graceUntil, person.validUntil) ?? '');
     return [...people.values()].sort((a, b) => due(a).localeCompare(due(b)));
 };
 

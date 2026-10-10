@@ -179,6 +179,51 @@ export const readDashboard = (data: unknown): Dashboard | null => {
     };
 };
 
+/** Quem vence, uma linha por pessoa (os produtos juntos, a data mais cedo, carência se algum estiver nela). */
+export interface DuePerson {
+    uid: string;
+    name: string | null;
+    products: Product[];
+    validUntil: string | null;
+    inCarencia: boolean;
+}
+export const duePeople = (rows: Dashboard['vencendo']): DuePerson[] => {
+    const people = new Map<string, DuePerson>();
+    for (const row of rows) {
+        const person = people.get(row.uid);
+        if (!person) {
+            people.set(row.uid, {
+                uid: row.uid,
+                name: row.name,
+                products: [row.product],
+                validUntil: row.validUntil,
+                inCarencia: row.inCarencia,
+            });
+            continue;
+        }
+        if (!person.products.includes(row.product)) person.products.push(row.product);
+        if (row.validUntil && (!person.validUntil || row.validUntil < person.validUntil))
+            person.validUntil = row.validUntil;
+        person.inCarencia ||= row.inCarencia;
+    }
+    // a ordem do servidor é por data; com a data mais cedo de cada pessoa, reordena
+    return [...people.values()].sort((a, b) => (a.validUntil ?? '').localeCompare(b.validUntil ?? ''));
+};
+
+/** "Masterclass e E-book"; "Imerso, Masterclass e E-book". */
+export const productList = (products: Product[]) =>
+    new Intl.ListFormat('pt-BR', { type: 'conjunction' }).format(products.map((p) => PRODUCT_NAMES[p]));
+
+/**
+ * Quantas pessoas vencem: exato quando a lista veio inteira (o total do servidor conta produtos, e cabe nela); com a
+ * lista cortada (50 linhas), "N+" pelas pessoas que vieram.
+ */
+export const duePeopleCount = (d: Pick<Dashboard, 'vencendo' | 'vencendoTotal'>) => {
+    const people = new Set(d.vencendo.map((row) => row.uid)).size;
+    if (d.vencendoTotal === null) return null;
+    return d.vencendoTotal <= d.vencendo.length ? count(people) : `${count(people)}+`;
+};
+
 const STATE: Record<string, string> = { ativo: 'Total', leitura: 'Leitura', none: 'Sem acesso' };
 export const stateLabel = (state: string | null) => (state && STATE[state]) || 'Sem acesso';
 

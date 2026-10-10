@@ -1006,7 +1006,8 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                 )}
                 <h1>{(switching ? current?.title : lesson?.lessonTitle) ?? current?.title ?? ' '}</h1>
             </div>
-            {!isMobile && tabs.length > 1 && <div className="hd-tabs">{tabsEl}</div>}
+            {/* aula trancada (leitura): sem as abas de um conteúdo que não aparece */}
+            {!isMobile && tabs.length > 1 && !lockedContent && <div className="hd-tabs">{tabsEl}</div>}
             {!single && (
                 <nav className="pn" aria-label={t.lessons}>
                     {previous ? (

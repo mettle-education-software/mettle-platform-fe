@@ -726,6 +726,7 @@ const ChatPage: React.FC = () => {
     };
 
     const react = (m: ChatMessage, emoji: string) => {
+        if (readOnly) return;
         const next = m.reaction === emoji ? null : emoji;
         setMenuFor(null);
         setMessages((cur) => cur.map((x) => (x.id === m.id ? { ...x, reaction: next } : x)));

@@ -42,7 +42,8 @@ class ApiClient implements HTTPClient {
         this.client.interceptors.response.use(undefined, (error) => {
             if (
                 typeof window !== 'undefined' &&
-                error?.response?.status === 403 &&
+                error?.isAxiosError && // a recusa do próprio aparelho já avisou (só com gesto)
+                error.response?.status === 403 &&
                 error.response.data?.code === VIEW_ONLY_CODE
             )
                 window.dispatchEvent(new CustomEvent(VIEW_ONLY_EVENT));

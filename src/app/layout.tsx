@@ -40,7 +40,8 @@ const App = ({ children }: { children: React.ReactNode }) => {
     // lá identificava o aluno a cada página e criava um segundo contato no Chatwoot. Decidido quando a sessão é conhecida.
     const chatWidget = !!user && !newDesign;
     useEffect(() => {
-        if (!user || newDesign) return;
+        // impersonação: nada identifica a sessão do administrador como o aluno (Chatwoot, Clarity)
+        if (!user || newDesign || user.viewAs) return;
         const identify = () =>
             window.$chatwoot?.setUser?.(user.uid, {
                 email: user.email,
@@ -54,7 +55,7 @@ const App = ({ children }: { children: React.ReactNode }) => {
     }, [user, newDesign]);
 
     useEffect(() => {
-        if (user) {
+        if (user && !user.viewAs) {
             if (window?.clarity) {
                 try {
                     window.clarity('identify', user.uid, user.email);

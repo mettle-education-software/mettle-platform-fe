@@ -248,7 +248,7 @@ export const NewAdminContas: React.FC = () => {
     const expiry = url.sort.key === 'expiry' && !snapshot;
 
     const open = (uid: string) => router.push(contasPath({ ...view, conta: uid }), { scroll: false });
-    const close = () => router.push(contasPath({ ...view, conta: null }), { scroll: false });
+    const close = () => router.replace(contasPath({ ...view, conta: null }), { scroll: false });
     const onSort = (key: SortKey) =>
         go({ sort: key, dir: url.sort.key === key && url.sort.dir === 'asc' ? 'desc' : 'asc' });
 

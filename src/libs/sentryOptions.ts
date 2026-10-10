@@ -1,6 +1,8 @@
 // Opções comuns do Sentry (navegador, servidor e edge). O plano é o gratuito (Developer: 5 mil erros/mês) e não
 // pode estourar: amostragem baixa, sem replay/profiling, ruído conhecido descartado e repetição cortada na origem.
-import type { Breadcrumb, ErrorEvent, EventHint } from '@sentry/nextjs';
+import type { Breadcrumb, ErrorEvent, EventHint, init } from '@sentry/nextjs';
+
+type SpanJSON = Parameters<NonNullable<Parameters<typeof init>[0]['beforeSendSpan']>>[0];
 
 const environment = process.env.VERCEL_ENV || 'development';
 
@@ -26,6 +28,20 @@ export const beforeBreadcrumb = (crumb: Breadcrumb): Breadcrumb => {
     return crumb;
 };
 
+/** Trechos amostrados (5% em produção) também sem a consulta dos endereços. */
+export const beforeSendSpan = (span: SpanJSON): SpanJSON => {
+    if (span.description) span.description = span.description.split('?')[0];
+    const data = span.data as Record<string, unknown> | undefined;
+    if (data) {
+        for (const key of ['url', 'http.url', 'url.full']) {
+            if (typeof data[key] === 'string') data[key] = (data[key] as string).split('?')[0];
+        }
+        delete data['http.query'];
+        delete data['url.query'];
+    }
+    return span;
+};
+
 export const sharedOptions = {
     dsn: process.env.SENTRY_DSN,
     environment,
@@ -44,5 +60,6 @@ export const sharedOptions = {
     denyUrls: [/^chrome(-extension)?:\/\//i, /^moz-extension:\/\//i, /^safari(-web)?-extension:\/\//i],
     beforeSend,
     beforeBreadcrumb,
+    beforeSendSpan,
     debug: false,
 };

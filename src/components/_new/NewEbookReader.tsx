@@ -310,11 +310,13 @@ export const NewEbookReader: React.FC = () => {
         fetchBook()
             .then((b) => {
                 const want = new URLSearchParams(window.location.search).get('c');
-                const resume = resumePosition(b.chapters, readLocalPosition(), b.position);
+                // só leitura: a posição do aparelho é da conta de quem está nele (não lê nem grava)
+                const local = canSave(b.save) ? readLocalPosition() : null;
+                const resume = resumePosition(b.chapters, local, b.position);
                 const asked = want ? b.chapters.findIndex((c) => c.slug === want) : -1;
                 const start = asked >= 0 && asked !== resume.index ? { index: asked, y: 0 } : resume;
                 // primeira vez (nada salvo, nem capítulo pedido): o livro abre na capa
-                if (asked >= 0 || readLocalPosition() || b.position) {
+                if (asked >= 0 || local || b.position) {
                     anchor.current = { ci: start.index, o: 0 };
                     fraction.current = start.y;
                 }
@@ -515,11 +517,11 @@ export const NewEbookReader: React.FC = () => {
                 y: Math.round((a.o / len) * 10000) / 10000,
                 at: new Date().toISOString(),
             };
-            saveLocalPosition(last.current);
+            if (book && canSave(book.save)) saveLocalPosition(last.current);
             if (Date.now() - sentAt.current > 15_000) flush();
         }, 340);
         return () => clearTimeout(id);
-    }, [page, shown, anchorNow, texts, chapters, flush]);
+    }, [page, shown, anchorNow, texts, chapters, flush, book]);
 
     useEffect(() => {
         const hide = () => document.visibilityState === 'hidden' && flush();

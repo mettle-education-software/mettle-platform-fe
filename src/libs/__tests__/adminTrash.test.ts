@@ -181,7 +181,8 @@ describe('/admin/lixeira', () => {
         expect(host.textContent).toContain('Aluna Teste');
         expect(host.textContent).toContain('aluna@example.test');
         expect(host.textContent).toContain('Exclusão definitiva em 09/11/2026');
-        expect(host.querySelector('a')?.getAttribute('href')).toBe('/admin/contas?conta=aluno');
+        // a conta abre sobre a própria lixeira (fechar volta a ela)
+        expect(host.querySelector('a')?.getAttribute('href')).toBe('/admin/contas?lixeira=1&conta=aluno');
         click(button(host, 'Restaurar')!);
         expect(mockRestore).toHaveBeenCalledWith('aluno');
         act(() => root.unmount());

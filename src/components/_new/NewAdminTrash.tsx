@@ -3,7 +3,8 @@
 import { css, Global } from '@emotion/react';
 import { auth } from 'config/firebase';
 import { useRestoreAccount, useTrash } from 'hooks/useAdmin';
-import { brInstantDay, isTrashOwner, serverProblem, studentPath, trashName } from 'libs/adminAccess';
+import { brInstantDay, isTrashOwner, serverProblem, trashName } from 'libs/adminAccess';
+import { contasPath } from 'libs/adminPanel';
 import Link from 'next/link';
 import React from 'react';
 
@@ -72,7 +73,7 @@ export const TrashList: React.FC = () => {
                         return (
                             <li className="row" key={entry.userUid}>
                                 <span className="lab">
-                                    <Link href={studentPath(entry.userUid)}>
+                                    <Link href={contasPath({ lixeira: true, conta: entry.userUid })}>
                                         <b>{trashName(entry)}</b>
                                         {entry.email && <span>{entry.email}</span>}
                                     </Link>

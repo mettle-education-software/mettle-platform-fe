@@ -190,7 +190,7 @@ const styles = css`
         background: var(--r-gold-tint);
         color: var(--r-gold-hi);
     }
-    .settings .pill.grace {
+    .settings .pill.warn {
         border-color: var(--r-gold);
         color: var(--r-gold-hi);
     }
@@ -295,7 +295,8 @@ const styles = css`
     }
 `;
 
-const PILL_TONE: Record<string, string> = { Ativo: ' on', Carência: ' grace', Leitura: '' };
+// "warn" (não "grace": a casca já tem uma faixa global .grace)
+const PILL_TONE: Record<string, string> = { Ativo: ' on', Carência: ' warn', Leitura: '' };
 
 /** "Meus produtos": um cartão com uma linha por produto, só do modelo de acesso (GET /accounts/me). */
 const ProductsCard: React.FC = () => {

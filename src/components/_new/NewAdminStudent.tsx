@@ -41,7 +41,7 @@ import {
     termProblem,
 } from 'libs/adminAccess';
 import { studentHistory } from 'libs/adminHistory';
-import { adminPanelPath, type AccountRow, brl, programLabel } from 'libs/adminPanel';
+import { adminPanelPath, type AccountRow, brl, programText } from 'libs/adminPanel';
 import type { Profile } from 'libs/profile';
 import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -746,7 +746,7 @@ export const StudentDetail: React.FC<{ uid: string; account?: AccountRow }> = ({
                 <section aria-labelledby="as-program">
                     <div className="sh">
                         <h2 id="as-program">
-                            Programa <span>{programLabel(program)}</span>
+                            Programa <span>{programText(program)}</span>
                         </h2>
                     </div>
                     <ProgramAllowances uid={uid} program={program} />

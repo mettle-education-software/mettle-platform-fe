@@ -116,11 +116,15 @@ const account = (patch: Partial<AccountRow>): AccountRow => ({
         masterclass: { ...none, state: 'leitura', origin: 'parceiro' },
         ebook: none,
     },
-    program: { melpStatus: 'DEDA_STARTED', lampWeek: 12, remainingPauses: 2, remainingResets: 3 },
+    program: { melpStatus: 'DEDA_STARTED', lampWeek: 12, remainingPauses: 2, remainingResets: 3, level: 'boost' },
     lastAccess: '2026-10-09T12:00:00Z',
     hasLogin: true,
+    loginRecriado: false,
     inTrash: false,
-    ltv: { total: 1994, compras: 2 },
+    ltv: { total: 1994, compras: 2, dias: 742 },
+    overall: 85.37,
+    dedaRun: 77,
+    leaderboardPos: 12,
     status: 'ACTIVE',
     lastPurchase: '2026-04-22',
     ...patch,
@@ -206,9 +210,13 @@ test('a lista: conta com selo Equipe, Ativo/Leitura com a linha miúda, programa
         'Imerso (vencimento)',
         'Masterclass',
         'E-book',
-        'Programa',
+        'Programa (em semanas)',
+        'Nível',
+        'Overall',
+        'DEDA Run',
+        'Leaderboard (posição geral)',
         'Último acesso',
-        'LTV',
+        'LTV (valor)dias com acesso',
     ]);
     const [first, second] = [...host.querySelectorAll('tbody tr')];
     const cells = [...first.querySelectorAll('td')].map((td) => td.textContent);
@@ -216,9 +224,14 @@ test('a lista: conta com selo Equipe, Ativo/Leitura com a linha miúda, programa
     expect(cells[1]).toBe('AtivoAnual · até 22/04/2027');
     expect(cells[2]).toBe('LeituraParceiro');
     expect(cells[3]).toBe('—');
-    expect(cells[4]).toBe('Sem. 12');
-    expect(cells[5]).toBe('09/10/2026');
-    expect(cells[6]).toMatch(/^R\$\s1\.994,002 compras$/);
+    // programa só com o número; nível como selo; métricas curtas; LTV em dinheiro e "compras · dias"
+    expect(cells[4]).toBe('12');
+    expect(cells[5]).toBe('Boost');
+    expect(cells[6]).toBe('85,4%');
+    expect(cells[7]).toBe('77');
+    expect(cells[8]).toBe('12º');
+    expect(cells[9]).toBe('09/10/2026');
+    expect(cells[10]).toMatch(/^R\$\s1\.994,002 compras · 742 dias$/);
     // nunca "Total"; sem colunas de pausas e resets
     expect(host.textContent).not.toContain('Total');
     expect(host.textContent).not.toContain('Pausas');

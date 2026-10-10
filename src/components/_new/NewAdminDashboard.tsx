@@ -22,7 +22,7 @@ import {
     type Split,
     validRange,
 } from 'libs/adminDashboard';
-import { adminPanelPath, contasPath, lastAccessLabel } from 'libs/adminPanel';
+import { adminPanelPath, brl, contasPath, lastAccessLabel } from 'libs/adminPanel';
 import { ChevronDown } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -552,6 +552,12 @@ export const NewAdminDashboard: React.FC = () => {
                 <div className="sh">
                     <h2 id="db-imerso">Imerso</h2>
                 </div>
+                {d?.ltvMedio && (
+                    <p className="line">
+                        LTV médio (Imerso): {brl(d.ltvMedio.valor)}
+                        {typeof d.ltvMedio.dias === 'number' && ` · ${count(d.ltvMedio.dias)} dias`}
+                    </p>
+                )}
                 <div className="two">
                     <div>
                         <h3>Planos (ativos)</h3>
@@ -651,9 +657,7 @@ export const NewAdminDashboard: React.FC = () => {
                                             <span>
                                                 {row.dias !== null
                                                     ? `${row.dias} dias`
-                                                    : row.lastAccess
-                                                      ? lastAccessLabel(row.lastAccess)
-                                                      : 'nunca entrou'}
+                                                    : lastAccessLabel(row.lastAccess, row.loginRecriado)}
                                                 {row.semana ? ` · sem. ${row.semana}` : ''}
                                             </span>
                                         </Link>

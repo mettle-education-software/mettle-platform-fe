@@ -29,7 +29,16 @@ export const ADMIN_NAV: readonly { key: string; label: string; href: string; own
 
 export const PAGE_SIZES = [25, 50, 100] as const;
 export type PageSize = (typeof PAGE_SIZES)[number];
-export type SortKey = 'name' | 'lastAccess' | 'expiry' | 'ltv';
+export type SortKey =
+    | 'name'
+    | 'lastAccess'
+    | 'expiry'
+    | 'ltv'
+    | 'ltvDias'
+    | 'overall'
+    | 'dedaRun'
+    | 'leaderboardPos'
+    | 'level';
 export type Sort = { key: SortKey; dir: 'asc' | 'desc' };
 export type OriginFilter = Origin | 'aconfirmar';
 export type Situacao =
@@ -61,6 +70,15 @@ export const SITUACOES: { value: Situacao; label: string }[] = [
     { value: 'semProduto', label: 'Sem produto' },
 ];
 
+/** Nível do programa (intensidade escolhida no início): Flow, Boost, Turbo — nomes, em inglês como no programa. */
+export type Level = 'flow' | 'boost' | 'turbo';
+export const LEVELS: { value: Level; label: string }[] = [
+    { value: 'flow', label: 'Flow' },
+    { value: 'boost', label: 'Boost' },
+    { value: 'turbo', label: 'Turbo' },
+];
+export const levelLabel = (level: Level | null | undefined) => LEVELS.find((l) => l.value === level)?.label ?? null;
+
 export interface ProductAccessSummary {
     state: AccessStateNew;
     origin: Origin | null;
@@ -84,12 +102,20 @@ export interface AccountRow {
         lampWeek: number | null;
         remainingPauses: number | null;
         remainingResets: number | null;
+        /** nível (Flow/Boost/Turbo); ausente nas contas montadas fora da lista */
+        level?: Level | null;
     } | null;
     lastAccess: string | null;
     hasLogin: boolean | null;
+    /** o login foi recriado (o histórico de acesso anterior se perdeu): sem data = "sem registro", não "nunca entrou" */
+    loginRecriado: boolean;
     inTrash: boolean;
-    /** LTV: total em R$ e quantas compras; null = não veio */
-    ltv: { total: number | null; compras: number | null } | null;
+    /** LTV: total em R$, quantas compras e dias com acesso ativo a algum produto; null = não veio */
+    ltv: { total: number | null; compras: number | null; dias?: number | null } | null;
+    /** Overall da LAMP (%), DEDA Run (dias) e posição no leaderboard geral; null = sem dado */
+    overall: number | null;
+    dedaRun: number | null;
+    leaderboardPos: number | null;
     status: string | null;
     lastPurchase: string | null;
 }
@@ -110,6 +136,9 @@ export interface AccountsPage {
     rows: AccountRow[];
     total: number;
     summary: AccountsSummary | null;
+    /** quando as métricas (Overall, Run, posição) e a foto da base (LTV) foram calculadas */
+    metricsAt: string | null;
+    snapshotAt: string | null;
 }
 
 export interface AccountsQuery {
@@ -117,6 +146,7 @@ export interface AccountsQuery {
     state?: AccessStateNew;
     origin?: OriginFilter;
     situacao?: Situacao;
+    level?: Level;
     /** incluir arquivadas (scope=todas) */
     todas?: boolean;
     q?: string;
@@ -127,7 +157,17 @@ export interface AccountsQuery {
 }
 
 const PRODUCTS: readonly Product[] = ['imerso', 'masterclass', 'ebook'];
-const SORT_KEYS: readonly SortKey[] = ['name', 'lastAccess', 'expiry', 'ltv'];
+const SORT_KEYS: readonly SortKey[] = [
+    'name',
+    'lastAccess',
+    'expiry',
+    'ltv',
+    'ltvDias',
+    'overall',
+    'dedaRun',
+    'leaderboardPos',
+    'level',
+];
 const STATES: readonly string[] = ['ativo', 'leitura', 'none'];
 
 /**
@@ -139,6 +179,7 @@ export interface ContasView {
     state?: AccessStateNew;
     origin?: OriginFilter;
     situacao?: Situacao;
+    level?: Level;
     todas?: boolean;
     sort?: SortKey;
     dir?: 'asc' | 'desc';
@@ -155,6 +196,7 @@ export const queryFromUrl = (
     const state = params?.get('state');
     const origin = params?.get('origin');
     const situacao = params?.get('situacao');
+    const level = params?.get('level');
     const sort = params?.get('sort') as SortKey | null;
     const size = Number(params?.get('pageSize'));
     const okProduct = product && PRODUCTS.includes(product) ? product : undefined;
@@ -163,6 +205,7 @@ export const queryFromUrl = (
         state: okProduct && state && STATES.includes(state) ? (state as AccessStateNew) : undefined,
         origin: ORIGIN_FILTERS.some((o) => o.value === origin) ? (origin as OriginFilter) : undefined,
         situacao: SITUACOES.some((s) => s.value === situacao) ? (situacao as Situacao) : undefined,
+        level: LEVELS.some((l) => l.value === level) ? (level as Level) : undefined,
         todas: params?.get('scope') === 'todas',
         sort: sort && SORT_KEYS.includes(sort) ? sort : 'name',
         dir: params?.get('dir') === 'desc' ? 'desc' : 'asc',
@@ -180,6 +223,7 @@ export const contasPath = (view: ContasView) => {
         if (view.product && view.state) params.set('state', view.state);
         if (view.origin) params.set('origin', view.origin);
         if (view.situacao) params.set('situacao', view.situacao);
+        if (view.level) params.set('level', view.level);
         if (view.todas) params.set('scope', 'todas');
         if (view.sort && view.sort !== 'name') params.set('sort', view.sort);
         if (view.dir === 'desc') params.set('dir', 'desc');
@@ -235,12 +279,17 @@ export const accountRow = (raw: unknown): AccountRow | null => {
                   lampWeek: num(p.lampWeek ?? p.lamp_week ?? p.current_deda_week),
                   remainingPauses: num(p.remainingPauses ?? p.remaining_pauses),
                   remainingResets: num(p.remainingResets ?? p.remaining_resets),
+                  level: LEVELS.some((l) => l.value === p.level) ? (p.level as Level) : null,
               }
             : null,
         lastAccess: text(r.lastAccess),
         hasLogin: typeof r.hasLogin === 'boolean' ? r.hasLogin : null,
+        loginRecriado: r.loginRecriado === true,
         inTrash: r.inTrash === true,
-        ltv: ltv ? { total: num(ltv.total), compras: num(ltv.compras) } : null,
+        ltv: ltv ? { total: num(ltv.total), compras: num(ltv.compras), dias: num(ltv.dias) } : null,
+        overall: num(r.overall),
+        dedaRun: num(r.dedaRun),
+        leaderboardPos: num(r.leaderboardPos),
         status: text(r.status),
         lastPurchase: text(r.lastPurchase),
     };
@@ -268,6 +317,7 @@ export const accountsParams = ({
     state,
     origin,
     situacao,
+    level,
     todas,
     q,
     sort,
@@ -278,6 +328,7 @@ export const accountsParams = ({
     ...(product && state ? { state } : {}),
     ...(origin ? { origin } : {}),
     ...(situacao ? { situacao } : {}),
+    ...(level ? { level } : {}),
     scope: todas ? 'todas' : 'contas',
     ...(q?.trim() ? { q: q.trim().slice(0, 100) } : {}),
     sort: sort.key,
@@ -286,22 +337,36 @@ export const accountsParams = ({
     pageSize,
 });
 
-/** Estado do programa: "Sem. 12", "Pausado", "Não começou", "Formado", "Suspenso" ou "—". */
+/** Programa (em semanas): só o número ("12"), ou "Pausado", "Não começou", "Formado", "Suspenso", "—". */
 export const programLabel = (program: AccountRow['program']) => {
     const status = program?.melpStatus;
     if (!status) return '—';
-    if (status === 'DEDA_STARTED') return program?.lampWeek ? `Sem. ${program.lampWeek}` : 'Em andamento';
+    if (status === 'DEDA_STARTED') return program?.lampWeek ? String(program.lampWeek) : 'Em andamento';
     if (status === 'DEDA_PAUSED') return 'Pausado';
     if (['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN', 'WEEK_ZERO'].includes(status)) return 'Não começou';
     return historyStatusLabel(status);
 };
 
-/** Último acesso em DD/MM/AAAA (Brasília); sem nenhum, "nunca entrou". */
-export const lastAccessLabel = (at: string | null) => {
+/** O programa por extenso (a conta aberta): "Semana 12 · Boost", "Pausado · Flow", "Não começou"… */
+export const programText = (program: AccountRow['program']) => {
+    const label = programLabel(program);
+    const started =
+        program?.melpStatus &&
+        !['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN', 'WEEK_ZERO'].includes(program.melpStatus);
+    return [/^\d+$/.test(label) ? `Semana ${label}` : label, started && levelLabel(program?.level)]
+        .filter(Boolean)
+        .join(' · ');
+};
+
+/**
+ * Último acesso em DD/MM/AAAA (Brasília); sem nenhum, "nunca entrou" — ou "sem registro" quando o login foi recriado
+ * (a pessoa entrou antes, mas o histórico de acesso se perdeu com o login novo).
+ */
+export const lastAccessLabel = (at: string | null, loginRecriado = false) => {
     const date = at ? new Date(at) : null;
-    return date && !Number.isNaN(date.getTime())
-        ? date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
-        : 'nunca entrou';
+    if (date && !Number.isNaN(date.getTime()))
+        return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    return loginRecriado ? 'sem registro' : 'nunca entrou';
 };
 
 /** Selo de cada produto na lista: Ativo, Leitura ou nada (nunca "Total"). */
@@ -310,19 +375,49 @@ export const accessBadge = (summary: ProductAccessSummary | undefined) =>
 
 /**
  * Linha miúda sob o selo: plano ou origem e o fim ("Anual · até 22/04/2027", "Parceiro", "Vitalício"); em carência, o
- * fim dela ("Anual · carência até 11/10/2026"), nunca o prazo antigo.
+ * fim dela ("Anual · carência até 11/10/2026"), nunca o prazo antigo. `plan: false` (Masterclass e E-book): sem a
+ * palavra do plano — compra mostra só "até 22/04/2027"; fora de compra, a origem (Cortesia, Parceiro, Equipe).
  */
-export const accessDetail = (summary: ProductAccessSummary | undefined, today = brToday()) => {
+export const accessDetail = (summary: ProductAccessSummary | undefined, today = brToday(), plan = true) => {
     if (!summary || summary.state === 'none') return null;
     // como o servidor: vitalício pela origem, ou compra com plano vitalício
     const vital = summary.origin === 'vitalicio' || (summary.origin === 'compra' && /vital/i.test(summary.plan ?? ''));
     const what = vital
         ? 'Vitalício'
-        : (summary.origin === 'compra' && summary.plan) || ORIGINS.find((o) => o.value === summary.origin)?.label;
+        : summary.origin === 'compra'
+          ? (plan && summary.plan) || null
+          : ORIGINS.find((o) => o.value === summary.origin)?.label;
     if (!vital && inGrace(summary, today))
         return [what, `carência até ${brDay(summary.graceUntil?.slice(0, 10))}`].filter(Boolean).join(' · ');
     const until = !vital && !summary.dateToConfirm ? brDay(summary.validUntil?.slice(0, 10)) : '—';
     return [what, until !== '—' && `até ${until}`].filter(Boolean).join(' · ') || null;
+};
+
+/**
+ * LTV em duas linhas: o dinheiro ("R$ 1.363,00") e "3 compras · 742 dias" (dias com acesso ativo a algum produto).
+ * Compra sem compra achada na conciliação: "—" no dinheiro, nunca "R$ 0,00"; R$ 0,00 só para cortesia, parceiro e
+ * equipe (quem não pagou de fato).
+ */
+export const ltvCell = (row: Pick<AccountRow, 'ltv' | 'access'>) => {
+    const ltv = row.ltv;
+    const days =
+        typeof ltv?.dias === 'number' ? `${ltv.dias.toLocaleString('pt-BR')} ${ltv.dias === 1 ? 'dia' : 'dias'}` : null;
+    if (!ltv) return { money: '—', line: null };
+    const paid = (ltv.compras ?? 0) > 0;
+    const origins = PRODUCTS.map((p) => row.access?.[p]?.origin).filter(Boolean);
+    const free =
+        !paid && origins.length > 0 && origins.every((o) => o === 'cortesia' || o === 'parceiro' || o === 'equipe');
+    const money = paid ? brl(ltv.total) : free ? brl(0) : '—';
+    const buys = paid ? `${ltv.compras} ${ltv.compras === 1 ? 'compra' : 'compras'}` : null;
+    return { money, line: [buys, days].filter(Boolean).join(' · ') || null };
+};
+
+/** Overall (%), DEDA Run (dias) e posição no leaderboard: número curto, "—" sem dado. */
+export const metricLabel = {
+    overall: (v: number | null) =>
+        typeof v === 'number' ? `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : '—',
+    dedaRun: (v: number | null) => (typeof v === 'number' ? v.toLocaleString('pt-BR') : '—'),
+    leaderboardPos: (v: number | null) => (typeof v === 'number' ? `${v.toLocaleString('pt-BR')}º` : '—'),
 };
 
 /** R$ 1.234,56 (ou "—"). */
@@ -346,10 +441,15 @@ const CSV_HEADER = [
     'masterclass_detalhe',
     'ebook',
     'ebook_detalhe',
-    'programa',
+    'programa_semanas',
+    'nivel',
+    'overall',
+    'deda_run',
+    'leaderboard',
     'ultimo_acesso',
     'ltv_total',
     'ltv_compras',
+    'ltv_dias',
     'na_lixeira',
 ];
 const cell = (value: unknown) => {
@@ -368,11 +468,19 @@ export const accountsCsv = (rows: AccountRow[]) =>
                 row.email,
                 row.phone,
                 row.team ? 'sim' : '',
-                ...PRODUCTS.flatMap((p) => [accessBadge(row.access?.[p]) ?? '', accessDetail(row.access?.[p]) ?? '']),
+                ...PRODUCTS.flatMap((p) => [
+                    accessBadge(row.access?.[p]) ?? '',
+                    accessDetail(row.access?.[p], undefined, p === 'imerso') ?? '',
+                ]),
                 programLabel(row.program),
-                lastAccessLabel(row.lastAccess),
+                levelLabel(row.program?.level) ?? '',
+                typeof row.overall === 'number' ? String(row.overall).replace('.', ',') : '',
+                row.dedaRun ?? '',
+                row.leaderboardPos ?? '',
+                lastAccessLabel(row.lastAccess, row.loginRecriado),
                 typeof row.ltv?.total === 'number' ? row.ltv.total.toFixed(2).replace('.', ',') : '',
                 row.ltv?.compras ?? '',
+                row.ltv?.dias ?? '',
                 row.inTrash ? 'sim' : '',
             ]
                 .map(cell)

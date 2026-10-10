@@ -238,13 +238,21 @@ export const useAdminAccounts = (query: AccountsQuery, enabled = true) => {
         queryKey: ['admin-accounts', params],
         queryFn: () =>
             adminService
-                .get<{ data?: unknown[]; total?: number; summary?: unknown }>('/accounts', { params })
+                .get<{
+                    data?: unknown[];
+                    total?: number;
+                    summary?: unknown;
+                    metricsAt?: unknown;
+                    snapshotAt?: unknown;
+                }>('/accounts', { params })
                 .then(({ data }): AccountsPage => {
                     const rows = (data.data ?? []).map(accountRow).filter((row): row is AccountRow => !!row);
                     return {
                         rows,
                         total: typeof data.total === 'number' ? data.total : rows.length,
                         summary: readSummary(data.summary),
+                        metricsAt: typeof data.metricsAt === 'string' ? data.metricsAt : null,
+                        snapshotAt: typeof data.snapshotAt === 'string' ? data.snapshotAt : null,
                     };
                 }),
         enabled,

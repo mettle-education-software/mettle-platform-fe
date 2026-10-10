@@ -25,6 +25,7 @@ import { Check, ChevronLeft, ChevronRight, Cloud, Info, LoaderCircle } from 'luc
 import { useMelpContext } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
+import { LevelChip, programLevelName } from './LevelChip';
 
 /*
  * Aba Input da plataforma nova, pensada a partir da LAMP: o dia contra a meta do nível do aluno (Active/Passive em
@@ -641,6 +642,7 @@ export const NewLampInput: React.FC<{ form: LampInputForm }> = ({ form }) => {
                     <h2>
                         {dayName}
                         <span>Week {weekNumber}</span>
+                        <LevelChip name={programLevelName(melpSummary)} />
                     </h2>
                 </div>
                 <div className="nav">

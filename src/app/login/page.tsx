@@ -4,11 +4,13 @@ import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 import { Button, Col, Flex, Form, Input, Row, Spin, Typography } from 'antd';
 import { useLoginDesign } from 'components/layouts/AuthenticationLayout/AuthenticationDesign';
+import type { MultiFactorResolver } from 'firebase/auth';
 // import { Google, Microsoft } from 'components';
 import { handleGoogleLogin, handleLogin, handleMicrosoftLogin, SMALL_VIEWPORT } from 'libs';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import React from 'react';
+import { MfaStep } from './MfaStep';
 
 const NewLoginForm = dynamic(() => import('components/_new/NewAuthentication').then((m) => m.NewLoginForm));
 
@@ -97,8 +99,25 @@ const LineDivider = styled.div`
 export default function Login() {
     const [loginError, setLoginError] = React.useState<null | string>(null);
     const [isSignInLoading, setIsSignInLoading] = React.useState<boolean>(false);
+    // conta com verificação em duas etapas: depois da senha, o código do app autenticador
+    const [mfa, setMfa] = React.useState<MultiFactorResolver | null>(null);
 
     const { enabled, preview } = useLoginDesign();
+
+    if (mfa)
+        return (
+            <LoginContainer>
+                <FormContainer>
+                    <MfaStep
+                        resolver={mfa}
+                        onBack={(message) => {
+                            setMfa(null);
+                            setLoginError(message ?? null);
+                        }}
+                    />
+                </FormContainer>
+            </LoginContainer>
+        );
 
     if (enabled) {
         return (
@@ -113,6 +132,7 @@ export default function Login() {
                         password: values.password,
                         setLoginErrorMessage: setLoginError,
                         setIsSignInLoading,
+                        onMfaRequired: setMfa,
                     });
                 }}
             />
@@ -135,6 +155,7 @@ export default function Login() {
                                 password: values.password,
                                 setLoginErrorMessage: setLoginError,
                                 setIsSignInLoading,
+                                onMfaRequired: setMfa,
                             });
                         }}
                     >

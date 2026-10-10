@@ -2,10 +2,22 @@
 
 import { css, Global } from '@emotion/react';
 import { useIsMutating } from '@tanstack/react-query';
-import { Button, Form, Input, Modal, Tooltip } from 'antd';
+import { Button, Form, Input, Modal, QRCode, Tooltip } from 'antd';
+import { auth } from 'config/firebase';
+import type { TotpSecret } from 'firebase/auth';
 import { useMelpSummary, usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { useProfile } from 'hooks/useProfile';
 import { passwordRules, saoPauloWeekday } from 'libs';
+import {
+    authCode,
+    cleanCode,
+    disableTotp,
+    finishTotpEnrollment,
+    groupedKey,
+    mfaErrorMessage,
+    startTotpEnrollment,
+    totpFactors,
+} from 'libs/authentication/mfa';
 import { lampLastDay, lampOpen } from 'libs/dedaClock';
 import { longDate, productLines } from 'libs/myProducts';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
@@ -235,6 +247,35 @@ const styles = css`
         flex: none;
         color: var(--r-muted);
         font-variant-numeric: tabular-nums;
+    }
+    /* verificação em duas etapas (modal: portal fora de .settings) */
+    .mfa p {
+        margin: 0 0 12px;
+    }
+    .mfa-qr {
+        display: grid;
+        place-items: center;
+        min-height: 200px;
+        margin: 0 0 12px;
+        padding: 8px;
+        border-radius: 12px;
+        background: #ffffff;
+    }
+    .mfa-key {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        user-select: all;
+        overflow-wrap: anywhere;
+    }
+    .mfa-code {
+        display: flex;
+        gap: 8px;
+    }
+    .mfa-code .ant-input {
+        max-width: 160px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.2em;
     }
     /* Dados pessoais (o formulário traz a grade): o respiro do card */
     .settings .pf {
@@ -563,6 +604,140 @@ const PasswordForm: React.FC = () => {
     );
 };
 
+/**
+ * Verificação em duas etapas (só administradores, na própria conta): app autenticador (TOTP). Ativar mostra o QR e a
+ * chave e confirma com o primeiro código; ativada, mostra desde quando e permite desativar.
+ */
+const TwoFactorRow: React.FC = () => {
+    const { user } = useAppContext();
+    const [, setVersion] = useState(0); // relê os fatores depois de ativar ou desativar
+    const [open, setOpen] = useState(false);
+    const [setup, setSetup] = useState<{ secret: TotpSecret; uri: string } | null>(null);
+    const [code, setCode] = useState('');
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [done, setDone] = useState<string | null>(null);
+    const [modal, modalHolder] = Modal.useModal();
+    const account = auth.currentUser;
+    if (!account || !user?.roles?.includes('METTLE_ADMIN') || user.impersonating || user.viewAs) return null;
+    const factor = totpFactors(account)[0];
+    const since = factor?.enrollmentTime ? longDate(new Date(factor.enrollmentTime).toISOString()) : null;
+
+    const begin = async () => {
+        setOpen(true);
+        setSetup(null);
+        setCode('');
+        setError(null);
+        setDone(null);
+        try {
+            setSetup(await startTotpEnrollment(account));
+        } catch (failure) {
+            setError(mfaErrorMessage(authCode(failure)));
+        }
+    };
+    const confirm = async () => {
+        if (!setup || busy || code.length !== 6) return;
+        setBusy(true);
+        setError(null);
+        try {
+            await finishTotpEnrollment(account, setup.secret, code);
+            setOpen(false);
+            setDone('Verificação em duas etapas ativada.');
+            setVersion((n) => n + 1);
+        } catch (failure) {
+            setCode('');
+            setError(mfaErrorMessage(authCode(failure)));
+        } finally {
+            setBusy(false);
+        }
+    };
+    const disable = () =>
+        factor &&
+        modal.confirm({
+            title: 'Desativar a verificação em duas etapas?',
+            content: 'Você passa a entrar só com a senha. Talvez seja preciso entrar de novo agora.',
+            okText: 'Desativar',
+            cancelText: 'Cancelar',
+            onOk: () =>
+                disableTotp(account, factor)
+                    .then(() => {
+                        setDone('Verificação em duas etapas desativada.');
+                        setVersion((n) => n + 1);
+                    })
+                    .catch((failure) => setDone(mfaErrorMessage(authCode(failure)))),
+        });
+
+    return (
+        <div className="cr">
+            {modalHolder}
+            <div className="cr-main">
+                <b className="cr-name">Verificação em duas etapas</b>
+                <span className="cr-sub">
+                    {factor ? `Ativada${since ? ` desde ${since}` : ''} · app autenticador` : 'Desativada'}
+                </span>
+                {done && (
+                    <span className="cr-sub" role="status">
+                        {done}
+                    </span>
+                )}
+            </div>
+            <div className="cr-side">
+                <button type="button" className="btn line sm" onClick={factor ? disable : begin}>
+                    {factor ? 'Desativar' : 'Ativar'}
+                </button>
+            </div>
+            <Modal
+                title="Ativar a verificação em duas etapas"
+                open={open}
+                onCancel={() => !busy && setOpen(false)}
+                footer={null}
+                destroyOnClose
+            >
+                <div className="mfa">
+                    <p>1. No app autenticador (Google Authenticator, 1Password, Authy…), leia o código QR.</p>
+                    <div className="mfa-qr">
+                        {setup ? (
+                            <QRCode value={setup.uri} size={184} color="#000000" bgColor="#ffffff" bordered={false} />
+                        ) : (
+                            !error && <span className="cr-sub">Preparando…</span>
+                        )}
+                    </div>
+                    {setup && (
+                        <p className="cr-sub">
+                            Ou digite a chave: <code className="mfa-key">{groupedKey(setup.secret.secretKey)}</code>
+                        </p>
+                    )}
+                    <p>2. Digite o código de 6 dígitos que o app mostra.</p>
+                    <div className="mfa-code">
+                        <Input
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            aria-label="Código de 6 dígitos"
+                            placeholder="000000"
+                            maxLength={7}
+                            value={code}
+                            disabled={!setup || busy}
+                            onChange={(event) => {
+                                setError(null);
+                                setCode(cleanCode(event.target.value));
+                            }}
+                            onPressEnter={confirm}
+                        />
+                        <Button type="primary" loading={busy} disabled={!setup || code.length !== 6} onClick={confirm}>
+                            Ativar
+                        </Button>
+                    </div>
+                    {error && (
+                        <p className="profile-error" role="alert">
+                            {error}
+                        </p>
+                    )}
+                </div>
+            </Modal>
+        </div>
+    );
+};
+
 /** "Acesso e segurança": o e-mail (só leitura) e a senha, que troca num modal. */
 const SecurityCard: React.FC = () => {
     const { user } = useAppContext();
@@ -591,6 +766,7 @@ const SecurityCard: React.FC = () => {
                     </button>
                 </div>
             </div>
+            <TwoFactorRow />
             <Modal title="Alterar senha" open={open} onCancel={() => setOpen(false)} footer={null} destroyOnClose>
                 <PasswordForm />
             </Modal>

@@ -18,6 +18,8 @@ const mockPassword = { mutate: jest.fn(), isPending: false };
 const mockConfirm = jest.fn();
 const mockSummaryHook = jest.fn((_uid?: string) => mockSummary);
 const mockButtons = new Map<string, any>();
+let mockFactors: any[] = [];
+const mockAccount = { uid: 'test', email: 'aluno@example.test' };
 
 jest.mock(
     'hooks',
@@ -50,6 +52,29 @@ jest.mock(
     { virtual: true },
 );
 jest.mock('libs/profile', () => jest.requireActual('../profile'), { virtual: true });
+jest.mock(
+    'config/firebase',
+    () => ({
+        auth: {
+            get currentUser() {
+                return mockAccount;
+            },
+        },
+    }),
+    { virtual: true },
+);
+jest.mock(
+    'libs/authentication/mfa',
+    () => ({
+        ...jest.requireActual('../authentication/mfa'),
+        totpFactors: () => mockFactors,
+        startTotpEnrollment: jest.fn(),
+        finishTotpEnrollment: jest.fn(),
+        disableTotp: jest.fn(),
+    }),
+    { virtual: true },
+);
+jest.mock('firebase/auth', () => ({ TotpMultiFactorGenerator: { FACTOR_ID: 'totp' } }));
 jest.mock('libs/myProducts', () => jest.requireActual('../myProducts'), { virtual: true });
 jest.mock('libs', () => ({ passwordRules: [], saoPauloWeekday: () => 3 }), { virtual: true });
 jest.mock('libs/productAccess', () => jest.requireActual('../productAccess'), { virtual: true });
@@ -99,6 +124,7 @@ beforeEach(() => {
     mockUser = { uid: 'test', name: 'Aluno de Teste', email: 'aluno@example.test', roles: ['METTLE_STUDENT'] };
     mockLevels = undefined;
     mockMutating = 0;
+    mockFactors = [];
     mockReset.isPending = false;
     mockPause.isPending = false;
     mockReset.mutateAsync.mockResolvedValue(undefined);
@@ -339,4 +365,31 @@ test('relógio novo aguardando a primeira segunda (sem dia contado): sem Reinici
     };
     render();
     expect(action('Reiniciar')).toBeUndefined();
+});
+
+describe('verificação em duas etapas (Acesso e segurança)', () => {
+    const security = (doc: Document) => section(doc, 'settings-security').textContent ?? '';
+
+    test('só administrador na própria conta', () => {
+        expect(security(render())).not.toContain('Verificação em duas etapas');
+        mockUser = { ...mockUser!, roles: ['METTLE_STUDENT', 'METTLE_ADMIN'] };
+        expect(security(render())).toContain('Verificação em duas etapasDesativada');
+        // vendo como o aluno: nada (o fator é da conta de quem entrou)
+        mockUser = { ...mockUser!, viewAs: { uid: 'aluno' } } as any;
+        expect(security(render())).not.toContain('Verificação em duas etapas');
+    });
+
+    test('ativada: desde quando e "Desativar"; desativada: "Ativar"', () => {
+        mockUser = { ...mockUser!, roles: ['METTLE_ADMIN'] };
+        const doc = render();
+        expect([...section(doc, 'settings-security').querySelectorAll('button')].map((b) => b.textContent)).toContain(
+            'Ativar',
+        );
+        mockFactors = [{ factorId: 'totp', uid: 'f1', enrollmentTime: 'Sat, 10 Oct 2026 18:00:00 GMT' }];
+        const on = render();
+        expect(security(on)).toContain('Ativada desde 10 de outubro de 2026 · app autenticador');
+        expect([...section(on, 'settings-security').querySelectorAll('button')].map((b) => b.textContent)).toContain(
+            'Desativar',
+        );
+    });
 });

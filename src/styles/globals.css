@@ -174,3 +174,52 @@ a {
         animation: none !important;
     }
 }
+
+/* Fontes da Plataforma (themes/font.ts, readerFonts.ts, NewEbookReader.tsx): latin → latin-ext → reserva. A reserva tem as
+   métricas que o Google Fonts usava (o texto não pula quando a fonte chega). */
+@font-face {
+    font-family: 'Jost Fallback';
+    src: local('Arial');
+    ascent-override: 111.45%;
+    descent-override: 39.06%;
+    line-gap-override: 0%;
+    size-adjust: 96.01%;
+}
+@font-face {
+    font-family: 'Manrope Fallback';
+    src: local('Arial');
+    ascent-override: 103.31%;
+    descent-override: 29.07%;
+    line-gap-override: 0%;
+    size-adjust: 103.19%;
+}
+@font-face {
+    font-family: 'Figtree Fallback';
+    src: local('Arial');
+    ascent-override: 94.32%;
+    descent-override: 24.82%;
+    line-gap-override: 0%;
+    size-adjust: 100.72%;
+}
+@font-face {
+    font-family: 'Literata Fallback';
+    src: local('Times New Roman');
+    ascent-override: 99.62%;
+    descent-override: 26.07%;
+    line-gap-override: 0%;
+    size-adjust: 118.15%;
+}
+.font-jost {
+    font-family: var(--font-jost), var(--font-jost-ext), 'Jost Fallback';
+    font-style: normal;
+}
+.font-manrope {
+    font-family: var(--font-manrope), var(--font-manrope-ext), 'Manrope Fallback';
+    font-style: normal;
+}
+.font-figtree {
+    font-family: var(--font-figtree), var(--font-figtree-ext), 'Figtree Fallback';
+}
+.font-literata {
+    font-family: var(--font-literata), var(--font-literata-ext), 'Literata Fallback';
+}

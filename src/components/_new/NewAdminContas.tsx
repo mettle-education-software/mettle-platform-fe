@@ -62,6 +62,9 @@ const styles = css`
         gap: 6px;
     }
     .ct .audit button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
         padding: 0;
         border: 0;
         background: none;
@@ -106,6 +109,7 @@ const styles = css`
         accent-color: var(--r-gold);
     }
     .ct .tools .link {
+        min-height: 32px;
         padding: 0;
         border: 0;
         background: none;
@@ -164,6 +168,18 @@ const styles = css`
     .ct tbody tr[aria-selected='true'] {
         background: var(--r-hover);
     }
+    /* a coluna da conta fica à vista ao rolar a tabela para o lado (celular) */
+    .ct th:first-child,
+    .ct td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: var(--r-bg);
+    }
+    .ct tbody tr:hover td:first-child,
+    .ct tbody tr[aria-selected='true'] td:first-child {
+        box-shadow: inset 0 0 0 999px var(--r-hover);
+    }
     .ct .who {
         display: block;
         max-width: 300px;
@@ -175,9 +191,16 @@ const styles = css`
         text-align: left;
         cursor: pointer;
     }
+    .ct .who .line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+    }
     .ct .who b,
     .ct .who small {
         display: block;
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
     }
@@ -192,7 +215,7 @@ const styles = css`
         color: var(--r-muted);
     }
     .ct .tag {
-        margin-left: 6px;
+        flex: none;
         font-size: 11.5px;
         font-weight: 400;
         color: var(--r-muted);
@@ -257,7 +280,9 @@ const SortHead: React.FC<{
     sort: Sort;
     onSort: (key: SortKey) => void;
     className?: string;
-}> = ({ label, field, sort, onSort, className }) => (
+    /** o que a coluna ordena, quando não é o rótulo (leitor de tela) */
+    by?: string;
+}> = ({ label, field, sort, onSort, className, by }) => (
     <th
         scope="col"
         className={className}
@@ -265,6 +290,7 @@ const SortHead: React.FC<{
     >
         <button type="button" onClick={() => onSort(field)}>
             {label}
+            {by && <span className="sr"> ({by})</span>}
             {sort.key === field ? (
                 sort.dir === 'asc' ? (
                     <ChevronUp size={14} aria-hidden />
@@ -284,42 +310,54 @@ const n = (value: number | null | undefined) => (typeof value === 'number' ? val
  * Resumo de auditoria: a base inteira (igual ao Início); cada número aplica o seu filtro na lista padrão (scope=contas:
  * quem tem produto é ativo e com login, sem lixeira e equipe), então a lista bate com o número.
  */
+const FILTERS = ['product', 'state', 'origin', 'situacao', 'todas', 'lixeira'] as const;
 const Audit: React.FC<{
     summary: AccountsSummary | null;
     view: ContasView;
+    searching: boolean;
     owner: boolean;
     go: (patch: Partial<ContasView>, reset?: boolean) => void;
-}> = ({ summary, view, owner, go }) => {
+}> = ({ summary, view, searching, owner, go }) => {
+    // marcado só quando a lista é exatamente a do número (nenhum outro filtro nem busca)
     const pressed = (patch: Partial<ContasView>) =>
-        Object.entries(patch).every(([key, value]) => view[key as keyof ContasView] === value);
-    const item = (label: string, value: number | null | undefined, patch: Partial<ContasView>) => (
-        <button type="button" aria-pressed={pressed(patch)} onClick={() => go(patch, true)}>
+        !searching && FILTERS.every((key) => (view[key] || undefined) === (patch[key] || undefined));
+    const item = (label: string, value: number | null | undefined, patch: Partial<ContasView>, name = label) => (
+        <button
+            type="button"
+            aria-pressed={pressed(patch)}
+            aria-label={`${name} ${n(value)}`}
+            onClick={() => go(patch, true)}
+        >
             {label} {n(value)}
         </button>
     );
     return (
         <div className="audit" role="group" aria-label="Resumo das contas">
-            <button
-                type="button"
-                className="big"
-                aria-pressed={
-                    !view.product && !view.situacao && !view.origin && !view.q && !view.todas && !view.lixeira
-                }
-                onClick={() => go({}, true)}
-            >
+            <button type="button" className="big" aria-pressed={pressed({})} onClick={() => go({}, true)}>
                 {n(summary?.contas)} contas
             </button>
             {PRODUCTS.map((p) => (
                 <span className="grp" key={p}>
-                    {PRODUCT_NAMES[p]}
-                    {item('Ativo', summary?.[p].ativo, { product: p, state: 'ativo' })}/
-                    {item('Leitura', summary?.[p].leitura, { product: p, state: 'leitura' })}
+                    <span aria-hidden>{PRODUCT_NAMES[p]}</span>
+                    {item('Ativo', summary?.[p].ativo, { product: p, state: 'ativo' }, `${PRODUCT_NAMES[p]} Ativo`)}/
+                    {item(
+                        'Leitura',
+                        summary?.[p].leitura,
+                        { product: p, state: 'leitura' },
+                        `${PRODUCT_NAMES[p]} Leitura`,
+                    )}
                 </span>
             ))}
             <span className="grp">{item('Sem produto', summary?.semProduto, { situacao: 'semProduto' })}</span>
             {owner && <span className="grp">{item('Lixeira', summary?.lixeira, { lixeira: true })}</span>}
         </div>
     );
+};
+
+/** Busca com cara de telefone ("(11) 91234-5678"): só os dígitos, para casar com o número salvo em E.164. */
+const searchTerm = (term: string) => {
+    const t = term.trim().slice(0, 100);
+    return /^[\d\s()+.-]+$/.test(t) && (t.match(/\d/g)?.length ?? 0) >= 4 ? t.replace(/\D/g, '') : t;
 };
 
 /** Download de um texto como arquivo (o CSV do filtro atual). */
@@ -350,35 +388,28 @@ export const NewAdminContas: React.FC = () => {
         origin: url.origin,
         situacao: url.situacao,
         todas: url.todas,
-        q: url.q,
         sort: url.sort,
         dir: url.dir,
         pageSize: url.pageSize,
         lixeira: trash,
     };
-    /** Muda o endereço (filtros e ordem); `reset` recomeça dos filtros padrão (os números do resumo). */
+    // a busca (nome, e-mail, telefone) fica fora do endereço: dado de aluno não vai para a telemetria (Sentry, GTM)
+    const [term, setTerm] = useState('');
+    const [q, setQ] = useState('');
+    useEffect(() => {
+        const timer = window.setTimeout(() => setQ(searchTerm(term)), 300);
+        return () => window.clearTimeout(timer);
+    }, [term]);
+    const clearSearch = () => {
+        setTerm('');
+        setQ('');
+    };
+    /** Muda o endereço (filtros e ordem); `reset` recomeça dos filtros padrão e sem busca (os números do resumo). */
     const go = (patch: Partial<ContasView>, reset = false) => {
+        if (reset) clearSearch();
         const base: ContasView = reset ? { sort: url.sort, dir: url.dir, pageSize: url.pageSize } : view;
         router.replace(contasPath({ ...base, ...patch, conta: selected }), { scroll: false });
     };
-    // a busca vai ao endereço depois de uma pausa na digitação; mudança de fora (limpar, voltar) volta ao campo
-    const [term, setTerm] = useState(url.q ?? '');
-    const pushed = useRef(url.q ?? '');
-    useEffect(() => {
-        if ((url.q ?? '') === pushed.current) return;
-        pushed.current = url.q ?? '';
-        setTerm(url.q ?? '');
-    }, [url.q]);
-    useEffect(() => {
-        const next = term.trim().slice(0, 100);
-        if (next === pushed.current) return;
-        const timer = window.setTimeout(() => {
-            pushed.current = next;
-            go({ q: next || undefined });
-        }, 300);
-        return () => window.clearTimeout(timer);
-    }, [term]); // eslint-disable-line react-hooks/exhaustive-deps
-    const q = url.q;
     const sort: Sort = { key: url.sort, dir: url.dir };
     // filtro novo (aqui, por um link ou voltando no navegador): de volta à primeira página
     const filterKey = [
@@ -406,7 +437,7 @@ export const NewAdminContas: React.FC = () => {
         page,
         pageSize: url.pageSize,
     };
-    const list = useAdminAccounts(query, !trash);
+    const list = useAdminAccounts(query);
     const rows = list.data?.rows ?? [];
     const total = list.data?.total ?? 0;
     const summary = list.data?.summary ?? null;
@@ -414,6 +445,7 @@ export const NewAdminContas: React.FC = () => {
     const selectedRow = rows.find((row) => row.uid === selected);
     const filtered = !!(url.product || url.origin || url.situacao || url.todas || q);
     const [exporting, setExporting] = useState<'idle' | 'busy' | 'failed'>('idle');
+    const [exported, setExported] = useState(false);
     const exportingRef = useRef(false);
 
     const open = (uid: string) => router.push(contasPath({ ...view, conta: uid }), { scroll: false });
@@ -423,10 +455,12 @@ export const NewAdminContas: React.FC = () => {
         if (exportingRef.current) return;
         exportingRef.current = true;
         setExporting('busy');
+        setExported(false);
         try {
             const all = await fetchAllAccounts(query);
             download(`contas-${new Date().toISOString().slice(0, 10)}.csv`, accountsCsv(all));
             setExporting('idle');
+            setExported(true);
         } catch {
             setExporting('failed');
         } finally {
@@ -438,7 +472,7 @@ export const NewAdminContas: React.FC = () => {
         <NewPage className="xwide ct">
             <Global styles={[styles, chipStyles]} />
             <AdminNav />
-            <Audit summary={summary} view={view} owner={owner} go={go} />
+            <Audit summary={summary} view={view} searching={!!q} owner={owner} go={go} />
             <div className="tools">
                 <Input
                     className="search"
@@ -481,6 +515,7 @@ export const NewAdminContas: React.FC = () => {
                     aria-label="Origem"
                     value={url.origin}
                     disabled={trash}
+                    popupMatchSelectWidth={false}
                     options={ORIGIN_FILTERS}
                     onChange={(origin) => go({ origin: origin ?? undefined })}
                 />
@@ -490,6 +525,7 @@ export const NewAdminContas: React.FC = () => {
                     aria-label="Situação"
                     value={url.situacao}
                     disabled={trash}
+                    popupMatchSelectWidth={false}
                     options={SITUACOES}
                     onChange={(situacao) => go({ situacao: situacao ?? undefined })}
                 />
@@ -500,7 +536,7 @@ export const NewAdminContas: React.FC = () => {
                         disabled={trash}
                         onChange={(event) => go({ todas: event.target.checked })}
                     />
-                    Incluir arquivadas{summary?.arquivadas ? ` (${n(summary.arquivadas)})` : ''}
+                    Incluir arquivadas
                 </label>
                 {owner && (
                     <div className="chips" role="group" aria-label="Lixeira">
@@ -513,7 +549,14 @@ export const NewAdminContas: React.FC = () => {
                     <button
                         type="button"
                         className="link"
-                        onClick={() => router.replace(contasPath({ conta: selected }), { scroll: false })}
+                        onClick={() => {
+                            clearSearch();
+                            // como os números do resumo: a ordem e o tamanho da página ficam
+                            router.replace(
+                                contasPath({ sort: url.sort, dir: url.dir, pageSize: url.pageSize, conta: selected }),
+                                { scroll: false },
+                            );
+                        }}
                     >
                         Limpar filtros
                     </button>
@@ -527,6 +570,15 @@ export const NewAdminContas: React.FC = () => {
                               : 'Exportar CSV'}
                     </button>
                 )}
+                <span className="sr" role="status">
+                    {exporting === 'busy'
+                        ? 'Exportando as contas.'
+                        : exporting === 'failed'
+                          ? 'A exportação falhou.'
+                          : exported
+                            ? 'Contas exportadas.'
+                            : ''}
+                </span>
             </div>
 
             {trash ? (
@@ -555,6 +607,7 @@ export const NewAdminContas: React.FC = () => {
                                             <SortHead
                                                 key={p}
                                                 label={PRODUCT_NAMES[p]}
+                                                by="vencimento"
                                                 field="expiry"
                                                 sort={sort}
                                                 onSort={onSort}
@@ -661,12 +714,12 @@ const AccountLine: React.FC<{ row: AccountRow; selected: boolean; onOpen: (uid: 
                     onOpen(row.uid);
                 }}
             >
-                <b>
-                    {row.name || row.email || 'Sem nome'}
+                <span className="line">
+                    <b>{row.name || row.email || 'Sem nome'}</b>
                     {row.team && <span className="tag team">Equipe</span>}
                     {row.inTrash && <span className="tag">na lixeira</span>}
                     {row.hasLogin === false && !row.inTrash && <span className="tag">sem login</span>}
-                </b>
+                </span>
                 {row.email && <small>{row.email}</small>}
             </button>
         </td>

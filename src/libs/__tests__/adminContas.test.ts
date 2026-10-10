@@ -155,6 +155,18 @@ const choose = (scope: Element, label: string, value: string) =>
         select.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
     });
 const lastUrl = () => mockReplace.mock.calls.at(-1)?.[0];
+// digitar na busca (o valor pelo setter nativo, como o navegador) e esperar a pausa da digitação
+const search = async (host: Element, value: string) => {
+    const input = host.querySelector('input[placeholder^="Buscar"]') as HTMLInputElement;
+    act(() => {
+        Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value')!.set!.call(input, value);
+        input.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    });
+    await act(async () => {
+        await new Promise((done) => setTimeout(done, 350));
+    });
+    return input;
+};
 
 beforeEach(() => {
     mockUid = OWNER;
@@ -191,7 +203,7 @@ test('a lista: conta com selo Equipe, Ativo/Leitura com a linha miúda, programa
     const { host, root } = mount();
     expect([...host.querySelectorAll('th')].map((th) => th.textContent)).toEqual([
         'Conta',
-        'Imerso',
+        'Imerso (vencimento)',
         'Masterclass',
         'E-book',
         'Programa',
@@ -217,23 +229,26 @@ test('a lista: conta com selo Equipe, Ativo/Leitura com a linha miúda, programa
     act(() => root.unmount());
 });
 
-test('resumo de auditoria: os números da base; cada um aplica o seu filtro (do zero, mantendo a ordem)', () => {
-    mockSearch = 'origin=parceiro&q=ana&sort=ltv&dir=desc';
+test('resumo de auditoria: os números da base; cada um aplica o seu filtro (do zero, sem busca, mantendo a ordem)', async () => {
+    mockSearch = 'origin=parceiro&sort=ltv&dir=desc';
     const { host, root, rerender } = mount();
     const audit = host.querySelector('[aria-label="Resumo das contas"]')!;
+    const input = await search(host, 'ana');
+    expect(mockQueries.at(-1)).toMatchObject({ origin: 'parceiro', q: 'ana' });
+    // cada número diz de que produto é (leitor de tela)
+    expect([...audit.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toContain(
+        'Imerso Leitura 146',
+    );
     expect(audit.textContent).toBe(
         '424 contasImersoAtivo 76/Leitura 146MasterclassAtivo 45/Leitura 205E-bookAtivo 18/Leitura 3Sem produto 1Lixeira 2',
     );
     click([...audit.querySelectorAll('button')].find((b) => b.textContent === 'Leitura 146')!);
     expect(lastUrl()).toBe('/admin/contas?product=imerso&state=leitura&sort=ltv&dir=desc');
     rerender();
-    expect(mockQueries.at(-1)).toMatchObject({
-        product: 'imerso',
-        state: 'leitura',
-        todas: false,
-        origin: undefined,
-        q: undefined,
-    });
+    expect(mockQueries.at(-1)).toMatchObject({ product: 'imerso', state: 'leitura', todas: false, origin: undefined });
+    // a busca sai junto: a lista é a do número
+    expect(mockQueries.at(-1).q).toBeFalsy();
+    expect(input.value).toBe('');
     expect(
         [...audit.querySelectorAll('button')]
             .find((b) => b.textContent === 'Leitura 146')!
@@ -264,7 +279,7 @@ test('filtros no endereço: produto e estado, origem, situação, arquivadas, ta
     const states = host.querySelector('[aria-label="Estado no Imerso"]')!;
     expect(button(states, 'Ativo')!.getAttribute('aria-pressed')).toBe('true');
     // vencimento: a coluna do produto filtrado ordena
-    expect(host.querySelector('th[aria-sort="ascending"]')?.textContent).toBe('Imerso');
+    expect(host.querySelector('th[aria-sort="ascending"]')?.textContent).toBe('Imerso (vencimento)');
     // a conta abre sem perder os filtros
     click(host.querySelector('tbody tr')!);
     expect(mockPush).toHaveBeenLastCalledWith('/admin/contas?product=imerso&state=ativo&sort=expiry&conta=u1', {
@@ -287,9 +302,10 @@ test('filtros no endereço: produto e estado, origem, situação, arquivadas, ta
     );
     rerender();
     expect(mockQueries.at(-1)).toMatchObject({ origin: 'aconfirmar', situacao: 'vence30', todas: true, pageSize: 100 });
-    expect(host.textContent).toContain('Incluir arquivadas (7)');
+    expect(host.textContent).toContain('Incluir arquivadas');
+    // limpar: como os números do resumo, a ordem e o tamanho da página ficam
     click(button(host, 'Limpar filtros')!);
-    expect(lastUrl()).toBe('/admin/contas?conta=u1');
+    expect(lastUrl()).toBe('/admin/contas?sort=expiry&pageSize=100&conta=u1');
     act(() => root.unmount());
 });
 
@@ -334,7 +350,7 @@ test('Exportar CSV (só o dono): todas as páginas do filtro atual num arquivo',
     expect(clicks).toEqual([expect.stringMatching(/^contas-\d{4}-\d{2}-\d{2}\.csv$/)]);
     const text = await blobs[0].text();
     expect(text.split('\r\n')).toHaveLength(2);
-    expect(text).toContain('u1,Ana Souza,ana@x.test');
+    expect(text).toContain('u1;Ana Souza;ana@x.test');
     act(() => root.unmount());
     // outro administrador: sem o botão
     mockUid = 'outro-admin';
@@ -357,5 +373,18 @@ test('lista indisponível: uma linha calma com nova tentativa', () => {
     expect(host.textContent).toContain('Lista indisponível no momento.');
     click(button(host, 'Tentar de novo')!);
     expect(mockList.refetch).toHaveBeenCalled();
+    act(() => root.unmount());
+});
+
+test('busca fora do endereço (dado de aluno não vai para a telemetria); telefone formatado vira dígitos', async () => {
+    const { host, root } = mount();
+    await search(host, 'Ana Souza');
+    expect(mockQueries.at(-1).q).toBe('Ana Souza');
+    await search(host, '(11) 91234-5678');
+    expect(mockQueries.at(-1).q).toBe('11912345678');
+    // nada da busca no endereço
+    expect(mockReplace.mock.calls.concat(mockPush.mock.calls).some(([url]) => /[?&]q=/.test(url))).toBe(false);
+    // com busca, nenhum número do resumo aparece marcado
+    expect(host.querySelectorAll('.audit [aria-pressed="true"]')).toHaveLength(0);
     act(() => root.unmount());
 });

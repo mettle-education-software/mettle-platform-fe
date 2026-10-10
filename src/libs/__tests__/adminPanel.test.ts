@@ -54,7 +54,7 @@ test('menu do Admin: exatamente quatro, os dois últimos só do dono', () => {
     ]);
 });
 
-test('filtros do endereço: só valores conhecidos; estado só com produto; arquivadas; tamanho; lixeira', () => {
+test('filtros do endereço: só valores conhecidos; estado só com produto; arquivadas; tamanho; lixeira; busca não', () => {
     const q = (s: string) => queryFromUrl(new URLSearchParams(s));
     expect(
         q(
@@ -66,7 +66,6 @@ test('filtros do endereço: só valores conhecidos; estado só com produto; arqu
         origin: 'parceiro',
         situacao: 'nuncaEntrou',
         todas: true,
-        q: 'ana',
         sort: 'lastAccess',
         dir: 'desc',
         pageSize: 50,
@@ -78,7 +77,6 @@ test('filtros do endereço: só valores conhecidos; estado só com produto; arqu
         origin: undefined,
         situacao: undefined,
         todas: false,
-        q: undefined,
         sort: 'name',
         dir: 'asc',
         pageSize: 25,
@@ -192,6 +190,10 @@ test('rótulos: programa, último acesso, selo (nunca "Total") e a linha miúda 
     expect(accessDetail(access({ origin: 'parceiro' }))).toBe('Parceiro');
     expect(accessDetail(access({ origin: 'compra', plan: 'Vitalício', validUntil: '2099-01-01' }))).toBe('Vitalício');
     expect(accessDetail(access({ origin: 'vitalicio' }))).toBe('Vitalício');
+    // plano "vitalício" só vale na compra (como o servidor); cortesia mostra o prazo
+    expect(accessDetail(access({ origin: 'cortesia', plan: 'Vitalício', validUntil: '2026-11-01' }))).toBe(
+        'Cortesia · até 01/11/2026',
+    );
     expect(accessDetail(access({ origin: 'cortesia', validUntil: '2026-11-01' }))).toBe('Cortesia · até 01/11/2026');
     // data a confirmar: sem "até"; sem origem e sem prazo: nada
     expect(
@@ -231,7 +233,7 @@ test('resumo de auditoria: números conferidos; ausente vira null', () => {
     expect(readSummary({ contas: '424' })).toMatchObject({ contas: null, imerso: { ativo: null, leitura: null } });
 });
 
-test('CSV: cabeçalho, uma linha por conta, aspas e nada de fórmula vinda de dado', () => {
+test('CSV: ";" e vírgula decimal (Excel em português), aspas e nada de fórmula vinda de dado', () => {
     const row = accountRow({
         uid: 'u1',
         name: '=HYPERLINK("x")',
@@ -243,8 +245,11 @@ test('CSV: cabeçalho, uma linha por conta, aspas e nada de fórmula vinda de da
     })!;
     const [header, line, ...rest] = accountsCsv([row]).split('\r\n');
     expect(rest).toEqual([]);
-    expect(header.split(',')[0]).toBe('uid');
+    expect(header.split(';')[0]).toBe('uid');
+    // tab e CR no começo também são gatilho de fórmula (OWASP)
+    const tab = accountRow({ uid: 'u2', name: '\t=1+1', email: '\r@x' })!;
+    expect(accountsCsv([tab]).split('\r\n')[1].split(';').slice(0, 3)).toEqual(['u2', "'\t=1+1", `"'\r@x"`]);
     expect(line).toBe(
-        `u1,"'=HYPERLINK(""x"")",ana@x.test,'+5511912345678,,Ativo,Anual · até 22/04/2027,,,,,—,nunca entrou,997.5,1,`,
+        `u1;"'=HYPERLINK(""x"")";ana@x.test;'+5511912345678;;Ativo;Anual · até 22/04/2027;;;;;—;nunca entrou;997,50;1;`,
     );
 });

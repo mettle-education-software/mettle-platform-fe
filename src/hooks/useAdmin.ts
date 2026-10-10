@@ -139,11 +139,11 @@ export const useSaveStudentProfile = (uid: string) => {
             if (saved.birth_date) saved.birth_date = saved.birth_date.slice(0, 10);
             return { saved };
         },
-        onSettled: () =>
-            Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['admin-access', uid] }),
-                queryClient.invalidateQueries({ queryKey: ['admin-accounts'] }),
-            ]),
+        // sem esperar: o "Salvo" vem do PATCH (a lista é uma varredura inteira no servidor)
+        onSettled: () => {
+            void queryClient.invalidateQueries({ queryKey: ['admin-access', uid] });
+            void queryClient.invalidateQueries({ queryKey: ['admin-accounts'] });
+        },
     });
 };
 
@@ -169,11 +169,15 @@ export const useSaveStudentAccess = (uid: string, product: Product) => {
                     { data: AccessRow & { claimsSynced?: boolean } }
                 >(`/${encodeURIComponent(uid)}/access/${product}`, body)
                 .then(({ data }) => data.data),
-        onSettled: () =>
-            Promise.all([
+        onSettled: () => {
+            // a lista do Contas e o Início (selos, resumo) relêem sem segurar o "Salvo"
+            void queryClient.invalidateQueries({ queryKey: ['admin-accounts'] });
+            void queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+            return Promise.all([
                 queryClient.invalidateQueries({ queryKey: ['admin-access', uid] }),
                 queryClient.invalidateQueries({ queryKey: ['admin-access-events', uid] }),
-            ]),
+            ]);
+        },
     });
 };
 
@@ -245,17 +249,18 @@ export const useAdminAccounts = (query: AccountsQuery, enabled = true) => {
     });
 };
 
-/** CSV do filtro atual (só o dono): todas as páginas, de 100 em 100. */
-export const fetchAllAccounts = async (query: AccountsQuery, maxPages = 200) => {
-    const rows: AccountRow[] = [];
+/** CSV do filtro atual (só o dono): todas as páginas, de 200 em 200 (o máximo do servidor), sem repetir conta. */
+export const fetchAllAccounts = async (query: AccountsQuery, maxPages = 100) => {
+    const rows = new Map<string, AccountRow>();
     for (let page = 1; page <= maxPages; page++) {
-        const params = accountsParams({ ...query, page, pageSize: 100 });
+        const params = accountsParams({ ...query, page, pageSize: 200 });
         const { data } = await adminService.get<{ data?: unknown[]; total?: number }>('/accounts', { params });
-        const batch = (data.data ?? []).map(accountRow).filter((row): row is AccountRow => !!row);
-        rows.push(...batch);
-        if (batch.length < 100 || (typeof data.total === 'number' && rows.length >= data.total)) break;
+        const raw = data.data ?? [];
+        for (const row of raw.map(accountRow)) if (row) rows.set(row.uid, row);
+        if (raw.length < 200 || (typeof data.total === 'number' && page * 200 >= data.total)) return [...rows.values()];
     }
-    return rows;
+    // ponytail: 100 páginas = 20 mil contas; a base tem centenas. Passou disso, falha em vez de cortar calado.
+    throw new Error('Lista grande demais para exportar.');
 };
 
 /** Entra como o aluno (modo visualização) e abre o Início dele. */

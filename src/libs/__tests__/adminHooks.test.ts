@@ -1,6 +1,6 @@
 /** @jest-environment node */
 // Contas v2: os dados do aluno gravados pelo administrador (PATCH na conta dele) e o CSV (todas as páginas do filtro).
-import { fetchAllAccounts, useSaveStudentProfile } from '../../hooks/useAdmin';
+import { fetchAllAccounts, useSaveStudentAccess, useSaveStudentProfile } from '../../hooks/useAdmin';
 
 const mockPatch = jest.fn();
 const mockAdminGet = jest.fn();
@@ -14,7 +14,7 @@ jest.mock('@tanstack/react-query', () => ({
 jest.mock(
     'services',
     () => ({
-        accountService: { patch: (...args: unknown[]) => mockPatch(...args) },
+        accountService: { patch: (...args: unknown[]) => mockPatch(...args), put: jest.fn() },
         adminService: { get: (...args: unknown[]) => mockAdminGet(...args) },
     }),
     { virtual: true },
@@ -46,11 +46,14 @@ test('dados do aluno pelo administrador: PATCH na conta dele, telefone em E.164,
     expect(mockInvalidate).toHaveBeenCalledWith({ queryKey: ['admin-accounts'] });
 });
 
-test('CSV: o filtro atual, todas as páginas de 100 em 100, até o total', async () => {
-    const page = (prefix: string, length: number) => ({
-        data: { data: Array.from({ length }, (_, i) => ({ uid: `${prefix}${i}` })), total: 150 },
+test('CSV: o filtro atual, todas as páginas de 200 em 200, até o total, sem repetir conta', async () => {
+    const page = (prefix: string, length: number, from = 0) => ({
+        data: { data: Array.from({ length }, (_, i) => ({ uid: `${prefix}${i + from}` })), total: 250 },
     });
-    mockAdminGet.mockResolvedValueOnce(page('a', 100)).mockResolvedValueOnce(page('b', 50));
+    // a lista mudou entre as páginas: a conta a199 volta na segunda (fica uma vez só)
+    mockAdminGet.mockResolvedValueOnce(page('a', 200)).mockResolvedValueOnce({
+        data: { data: [{ uid: 'a199' }, ...page('b', 50).data.data], total: 250 },
+    });
     const rows = await fetchAllAccounts({
         product: 'imerso',
         situacao: 'vence30',
@@ -58,11 +61,22 @@ test('CSV: o filtro atual, todas as páginas de 100 em 100, até o total', async
         page: 3,
         pageSize: 25,
     });
-    expect(rows).toHaveLength(150);
+    expect(rows).toHaveLength(250);
     expect(mockAdminGet).toHaveBeenCalledTimes(2);
     expect(mockAdminGet.mock.calls.map(([path, { params }]) => [path, params.page, params.pageSize])).toEqual([
-        ['/accounts', 1, 100],
-        ['/accounts', 2, 100],
+        ['/accounts', 1, 200],
+        ['/accounts', 2, 200],
     ]);
     expect(mockAdminGet.mock.calls[1][1].params).toMatchObject({ product: 'imerso', situacao: 'vence30' });
+});
+
+test('acesso salvo na conta: relê a conta e o registro (esperando) e marca a lista e o Início para reler (sem esperar)', async () => {
+    const mutation = useSaveStudentAccess('aluno', 'imerso') as any;
+    await mutation.onSettled();
+    expect(mockInvalidate.mock.calls.map(([{ queryKey }]) => queryKey)).toEqual([
+        ['admin-accounts'],
+        ['admin-dashboard'],
+        ['admin-access', 'aluno'],
+        ['admin-access-events', 'aluno'],
+    ]);
 });

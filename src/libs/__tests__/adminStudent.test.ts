@@ -279,17 +279,20 @@ test('carência: o selo diz até quando ela vai (o prazo antigo fica no campo de
     expect(product(render(), 'Imerso').textContent).toContain('carência até 11/10/2099');
 });
 
-test('compras: a mais recente primeiro, estornada com selo; o LTV no título', () => {
+test('compras: a mais recente primeiro (sem data no fim), estornada com selo; o LTV no título', () => {
     mockAccess.data.purchases = [
         { date: '2025-04-22', product: 'imerso', plan: 'Anual', value: 997, channel: 'HeroSpark', refunded: false },
         { date: '2026-04-22', product: 'masterclass', plan: null, value: 497, channel: 'Guru', refunded: true },
+        { date: null, product: 'ebook', plan: null, value: 47, channel: null, refunded: false },
     ];
     mockAccess.data.ltv = { total: 997, compras: 1 };
     const section = render().querySelector('section[aria-labelledby="as-buys"]')!;
-    expect(section.querySelector('h2')?.textContent).toMatch(/^ComprasLTV R\$\s997,00 · 1 compra$/);
+    expect(section.querySelector('h2')?.textContent).toMatch(/^Compras LTV R\$\s997,00 · 1 compra$/);
     const items = [...section.querySelectorAll('li')].map((li) => li.textContent);
     expect(items[0]).toMatch(/^Masterclass22\/04\/2026 · GuruR\$\s497,00Estornada$/);
     expect(items[1]).toMatch(/^Imerso · Anual22\/04\/2025 · HeroSparkR\$\s997,00$/);
+    // sem data: no fim
+    expect(items[2]).toMatch(/^E-book—R\$\s47,00$/);
 });
 
 test('sem compras: uma linha calma; sem acesso carregado, nem compras nem dados', () => {

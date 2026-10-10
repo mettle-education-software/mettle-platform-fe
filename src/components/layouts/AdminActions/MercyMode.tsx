@@ -1,7 +1,7 @@
 'use client';
 
 import { useResetRecordingAttempts } from 'hooks/melp/dedaRecording';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 /** Só o dono vê o botão (decisão de André, 7-Out-2026). Não é segredo: o servidor exige METTLE_ADMIN. */
 export const MERCY_MODE_UIDS: readonly string[] = ['RBgG61nNKdgHUKCkxhR4vhaBLGU2'];
@@ -13,6 +13,13 @@ export const MERCY_MODE_UIDS: readonly string[] = ['RBgG61nNKdgHUKCkxhR4vhaBLGU2
 export const MercyMode: React.FC<{ studentUid?: string; studentLabel?: string }> = ({ studentUid, studentLabel }) => {
     const reset = useResetRecordingAttempts();
     const [confirming, setConfirming] = useState(false);
+    // depois de confirmar ou cancelar, o foco volta ao botão (a linha da confirmação some)
+    const main = useRef<HTMLButtonElement>(null);
+    const back = useRef(false);
+    useEffect(() => {
+        if (!confirming && back.current) main.current?.focus();
+        back.current = confirming;
+    }, [confirming]);
 
     // Outro aluno escolhido: começa do zero (sem confirmação nem resultado do anterior).
     useEffect(() => {
@@ -54,6 +61,7 @@ export const MercyMode: React.FC<{ studentUid?: string; studentLabel?: string }>
             ) : (
                 <div className="ctl">
                     <button
+                        ref={main}
                         type="button"
                         className="btn line"
                         onClick={() => setConfirming(true)}

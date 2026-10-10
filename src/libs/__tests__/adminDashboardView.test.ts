@@ -151,7 +151,7 @@ test('com os números: base, período, Imerso e atenção; listas abrem a conta;
     expect(attention.textContent).toContain('Sem acessar há 14+ dias · 210');
     const links = [...d.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')]);
     // "ver todos": a mesma situação do painel, em todas as contas (os números batem)
-    expect(links).toContainEqual(['ver todos', '/admin/contas?situacao=vence30&scope=todas&sort=expiry']);
+    expect(links).toContainEqual(['ver todos', '/admin/contas?situacao=vence30&scope=todas']);
     expect(links).toContainEqual(['ver todos', '/admin/contas?situacao=semAcesso14&scope=todas&sort=lastAccess']);
     expect(links.filter(([, href]) => href === '/admin/contas?conta=u1')).toHaveLength(2);
     expect(d.body.textContent).toContain('Ana · Imerso: Leitura → Ativo');

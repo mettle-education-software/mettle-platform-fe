@@ -560,9 +560,7 @@ export const NewAdminDashboard: React.FC = () => {
                                 {d && duePeopleCount(d) !== null && ` · ${duePeopleCount(d)}`}
                             </h3>
                             {/* a mesma situação do painel, em todas as contas (como o servidor conta) */}
-                            <Link href={contasPath({ situacao: 'vence30', todas: true, sort: 'expiry' })}>
-                                ver todos
-                            </Link>
+                            <Link href={contasPath({ situacao: 'vence30', todas: true })}>ver todos</Link>
                         </div>
                         {d?.vencendo.length ? (
                             <ol className="rows">

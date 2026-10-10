@@ -569,7 +569,7 @@ const Purchases: React.FC<{
     <section aria-labelledby="as-buys">
         <div className="sh">
             <h2 id="as-buys">
-                Compras
+                Compras{' '}
                 {typeof ltv?.total === 'number' && (
                     <span>
                         LTV {brl(ltv.total)}
@@ -581,22 +581,25 @@ const Purchases: React.FC<{
         </div>
         {purchases.length ? (
             <ol className="rows buys">
-                {[...purchases].reverse().map((buy, index) => (
-                    <li className="row" key={index}>
-                        <span className="lab">
-                            <b>
-                                {[PRODUCT_NAMES[buy.product as Product] ?? buy.product ?? 'Produto', buy.plan]
-                                    .filter(Boolean)
-                                    .join(' · ')}
-                            </b>
-                            <span>{[brDay(buy.date?.slice(0, 10)), buy.channel].filter(Boolean).join(' · ')}</span>
-                        </span>
-                        <span className="field">
-                            {brl(buy.value)}
-                            {buy.refunded && <span className="badge">Estornada</span>}
-                        </span>
-                    </li>
-                ))}
+                {/* a mais recente primeiro; sem data, no fim */}
+                {[...purchases]
+                    .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+                    .map((buy, index) => (
+                        <li className="row" key={index}>
+                            <span className="lab">
+                                <b>
+                                    {[PRODUCT_NAMES[buy.product as Product] ?? buy.product ?? 'Produto', buy.plan]
+                                        .filter(Boolean)
+                                        .join(' · ')}
+                                </b>
+                                <span>{[brDay(buy.date?.slice(0, 10)), buy.channel].filter(Boolean).join(' · ')}</span>
+                            </span>
+                            <span className="field">
+                                {brl(buy.value)}
+                                {buy.refunded && <span className="badge">Estornada</span>}
+                            </span>
+                        </li>
+                    ))}
             </ol>
         ) : (
             <p className="hint">Nenhuma compra registrada.</p>

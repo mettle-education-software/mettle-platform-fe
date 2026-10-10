@@ -122,22 +122,24 @@ export interface AccountsQuery {
     q?: string;
     sort: Sort;
     page: number;
-    pageSize: PageSize;
+    /** 25, 50 ou 100 na tela; o CSV pede 200 (o máximo do servidor) */
+    pageSize: number;
 }
 
 const PRODUCTS: readonly Product[] = ['imerso', 'masterclass', 'ebook'];
 const SORT_KEYS: readonly SortKey[] = ['name', 'lastAccess', 'expiry', 'ltv'];
 const STATES: readonly string[] = ['ativo', 'leitura', 'none'];
 
-/** O que fica no endereço (recarregar mantém; links do Início e da Lixeira chegam filtrados). */
+/**
+ * O que fica no endereço (recarregar mantém; links do Início e da Lixeira chegam filtrados). A busca não: nome, e-mail
+ * e telefone de aluno não vão para o endereço (que a telemetria registra).
+ */
 export interface ContasView {
     product?: Product;
     state?: AccessStateNew;
     origin?: OriginFilter;
     situacao?: Situacao;
     todas?: boolean;
-    /** busca (nome, e-mail, telefone ou uid) */
-    q?: string;
     sort?: SortKey;
     dir?: 'asc' | 'desc';
     pageSize?: PageSize;
@@ -162,7 +164,6 @@ export const queryFromUrl = (
         origin: ORIGIN_FILTERS.some((o) => o.value === origin) ? (origin as OriginFilter) : undefined,
         situacao: SITUACOES.some((s) => s.value === situacao) ? (situacao as Situacao) : undefined,
         todas: params?.get('scope') === 'todas',
-        q: params?.get('q')?.slice(0, 100) || undefined,
         sort: sort && SORT_KEYS.includes(sort) ? sort : 'name',
         dir: params?.get('dir') === 'desc' ? 'desc' : 'asc',
         pageSize: (PAGE_SIZES as readonly number[]).includes(size) ? (size as PageSize) : 25,
@@ -180,7 +181,6 @@ export const contasPath = (view: ContasView) => {
         if (view.origin) params.set('origin', view.origin);
         if (view.situacao) params.set('situacao', view.situacao);
         if (view.todas) params.set('scope', 'todas');
-        if (view.q?.trim()) params.set('q', view.q.trim().slice(0, 100));
         if (view.sort && view.sort !== 'name') params.set('sort', view.sort);
         if (view.dir === 'desc') params.set('dir', 'desc');
         if (view.pageSize && view.pageSize !== 25) params.set('pageSize', String(view.pageSize));
@@ -314,7 +314,8 @@ export const accessBadge = (summary: ProductAccessSummary | undefined) =>
  */
 export const accessDetail = (summary: ProductAccessSummary | undefined, today = brToday()) => {
     if (!summary || summary.state === 'none') return null;
-    const vital = summary.origin === 'vitalicio' || /vital/i.test(summary.plan ?? '');
+    // como o servidor: vitalício pela origem, ou compra com plano vitalício
+    const vital = summary.origin === 'vitalicio' || (summary.origin === 'compra' && /vital/i.test(summary.plan ?? ''));
     const what = vital
         ? 'Vitalício'
         : (summary.origin === 'compra' && summary.plan) || ORIGINS.find((o) => o.value === summary.origin)?.label;
@@ -330,9 +331,8 @@ export const brl = (value: number | null | undefined) =>
         ? value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 })
         : '—';
 
-export const productName = (product: Product) => PRODUCT_NAMES[product];
-
 // ---------- CSV (só o dono): a lista do filtro atual, página por página ----------
+// Separador ";" e vírgula decimal: o Excel em português abre em colunas (o Google Planilhas detecta sozinho).
 
 const CSV_HEADER = [
     'uid',
@@ -354,13 +354,13 @@ const CSV_HEADER = [
 ];
 const cell = (value: unknown) => {
     const s = value === null || value === undefined ? '' : String(value);
-    // planilha não executa fórmula vinda de dado (=, +, -, @); aspas duplicadas
-    const safe = /^[=+\-@]/.test(s) ? `'${s}` : s;
-    return /[",;\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+    // planilha não executa fórmula vinda de dado (=, +, -, @, tab, CR: lista da OWASP); aspas duplicadas
+    const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+    return /[";\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 };
 export const accountsCsv = (rows: AccountRow[]) =>
     [
-        CSV_HEADER.join(','),
+        CSV_HEADER.join(';'),
         ...rows.map((row) =>
             [
                 row.uid,
@@ -370,12 +370,12 @@ export const accountsCsv = (rows: AccountRow[]) =>
                 row.team ? 'sim' : '',
                 ...PRODUCTS.flatMap((p) => [accessBadge(row.access?.[p]) ?? '', accessDetail(row.access?.[p]) ?? '']),
                 programLabel(row.program),
-                row.lastAccess ? lastAccessLabel(row.lastAccess) : 'nunca entrou',
-                row.ltv?.total ?? '',
+                lastAccessLabel(row.lastAccess),
+                typeof row.ltv?.total === 'number' ? row.ltv.total.toFixed(2).replace('.', ',') : '',
                 row.ltv?.compras ?? '',
                 row.inTrash ? 'sim' : '',
             ]
                 .map(cell)
-                .join(','),
+                .join(';'),
         ),
     ].join('\r\n');

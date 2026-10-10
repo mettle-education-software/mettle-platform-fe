@@ -87,7 +87,11 @@ const Bar = styled.section`
     /* uma linha por estado; o detalhe, quando existe, fica no ⓘ (abre para cima: a barra está no pé da tela) */
     &.docked .headline {
         position: relative;
+        flex-wrap: wrap;
+        row-gap: 0;
         font-weight: 400;
+        /* sem espaço, quebra por palavra (as tentativas descem), nunca letra por letra (era o "anywhere" da base) */
+        overflow-wrap: normal;
     }
     &.docked .headline.error {
         color: var(--r-error);

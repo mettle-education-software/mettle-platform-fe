@@ -217,6 +217,11 @@ export const fileSizeLabel = (size: number) =>
 // ---------- miniaturas de vídeo (cards do HPEC) ----------
 
 /** Id numérico do Vimeo de um endereço de embed ("https://player.vimeo.com/video/678384632?" → "678384632"). */
+/** Texto de apresentação do Contentful com marcas de ênfase do markdown (___assim___, **assim**): só o texto. */
+export const plainEmphasis = (text: string) =>
+    // a marca abre e fecha fora de palavra (snake_case fica como está), como no markdown
+    text.replace(/(^|[^\w*])(\*{1,3}|_{1,3})(?=\S)([^*_]*?\S)\2(?![\w*])/g, '$1$3');
+
 export const vimeoIdOf = (embedUrl?: string | null) => /vimeo\.com\/(?:video\/)?(\d+)/.exec(embedUrl ?? '')?.[1];
 
 /**

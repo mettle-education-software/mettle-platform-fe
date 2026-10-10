@@ -1306,6 +1306,13 @@ export const Shell = styled.div`
         align-items: center;
         min-height: 52px;
     }
+    /* computador estreito (861–1279 px): o rótulo do passo sai (o passo está no conteúdo e nas bolinhas) e o espaço vai
+       para o gravador/player; abaixo de 861 px a barra é a do celular */
+    @media (min-width: 861px) and (max-width: 1279px) {
+        .dock .in > .stl {
+            display: none;
+        }
+    }
     .mid > * {
         flex: 1;
         min-width: 0;

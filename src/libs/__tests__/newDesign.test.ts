@@ -54,6 +54,7 @@ import {
     vimeoIdOf,
     softChart,
     weekDayOptions,
+    plainEmphasis,
 } from '../newDesign';
 
 describe('chave da plataforma nova', () => {
@@ -519,4 +520,12 @@ describe('pontos semana → valor', () => {
         expect(pts.find((p) => p.x === 98)?.y).toBe(100);
         expect(weekPoints([7, 'W?'], [null, 1])).toEqual([{ x: 7, y: 0 }]);
     });
+});
+
+test('texto de apresentação: marcas de ênfase do markdown saem, sublinhado dentro da palavra fica', () => {
+    expect(plainEmphasis('Bem-vindo(a) ao ___Programa IMERSO___! Esta é ___sua última parada___.')).toBe(
+        'Bem-vindo(a) ao Programa IMERSO! Esta é sua última parada.',
+    );
+    expect(plainEmphasis('**a** e _b_; snake_case_name')).toBe('a e b; snake_case_name');
+    expect(plainEmphasis('sem marcas')).toBe('sem marcas');
 });

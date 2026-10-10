@@ -610,12 +610,15 @@ export const NowRow: React.FC<{ withDeda: boolean; trail?: Trail; error?: boolea
 
 /** Leitura sem programa: no lugar dos números, a LAMP pausada (a página da LAMP mostra o calendário vazio). */
 export const LampPaused: React.FC = () => (
-    <Link href="/imerso/lamp" className="lampoff" aria-label="LAMP paused — open LAMP">
-        <span className="chip">LAMP paused</span>
-        <span className="go">
-            LAMP <ArrowRight {...ICON} size={16} aria-hidden />
-        </span>
-    </Link>
+    // seção, como os números: o mesmo respiro entre os blocos da home (section + section)
+    <section aria-label="LAMP">
+        <Link href="/imerso/lamp" className="lampoff" aria-label="LAMP paused — open LAMP">
+            <span className="chip">LAMP paused</span>
+            <span className="go">
+                LAMP <ArrowRight {...ICON} size={16} aria-hidden />
+            </span>
+        </Link>
+    </section>
 );
 
 /* ---------- KPIs ---------- */

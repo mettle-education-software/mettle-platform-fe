@@ -153,7 +153,7 @@ test('Leitura: "encerrado em" só pela validade já passada (nunca a data de ent
         today,
     );
     expect(anchored.alert).toBe('Acesso em Leitura. Você ainda pode navegar.');
-    expect(mc.alert).toBe('Acesso encerrado. Renove para voltar a assistir.');
+    expect(mc.alert).toBe('Acesso em Leitura. Renove para voltar a assistir.');
     const [lapsed] = productLines(
         [{ product: 'masterclass', state: 'ativo', origin: 'compra', validUntil: '2026-10-09' }],
         today,

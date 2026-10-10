@@ -16,7 +16,6 @@ import {
     accessSource,
     IMERSO_PRODUCT,
     IMERSO_RENEW_URL,
-    IMERSO_SALES_URL,
     levelsFromMe,
     MyAccessResponse,
     ProductAccess,
@@ -91,9 +90,7 @@ const CtaContent: React.FC<{
     const week = target.product === IMERSO_PRODUCT && imerso?.week ? imerso.week : null;
     const newDesign = useNewDesign();
     const copy = useNewCopy(target);
-    const renewUrl = newDesign
-        ? renewUrlOf(target)
-        : (target.renewUrl ?? RENEWAL_URLS[target.product] ?? IMERSO_SALES_URL);
+    const renewUrl = renewUrlOf(target);
     const t = newDesign
         ? { ...copy, text: null }
         : {

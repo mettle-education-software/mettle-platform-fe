@@ -48,11 +48,17 @@ test('ciclo completo: início pela 1ª segunda, pausa de–até (até = segunda 
         ],
         2,
     );
-    expect(lines(rows)).toEqual(['Início | 12/10/2026', 'Pausa | 22/10/2026\u00a0– 02/11/2026', 'Reinício | 18/11/2026']);
+    expect(lines(rows)).toEqual([
+        'Início | 12/10/2026',
+        'Pausa | 22/10/2026\u00a0– 02/11/2026',
+        'Reinício | 18/11/2026',
+    ]);
 });
 
 test('pausa em andamento: "desde"; voltou e espera a segunda: a segunda agendada', () => {
-    expect(lines(programHistory([ev('pause', '2026-10-22T12:00:00.000Z')], 3))).toEqual(['Pausa | desde\u00a022/10/2026']);
+    expect(lines(programHistory([ev('pause', '2026-10-22T12:00:00.000Z')], 3))).toEqual([
+        'Pausa | desde\u00a022/10/2026',
+    ]);
     expect(
         lines(
             programHistory(

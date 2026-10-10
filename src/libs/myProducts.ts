@@ -103,7 +103,7 @@ export const productLines = (rows: MyAccessRow[] | null | undefined, today = brT
             const alert =
                 key === 'imerso'
                     ? `${ended ? `Acesso encerrado em ${ended}.` : 'Acesso em Leitura.'} Você ainda pode navegar.`
-                    : `Acesso encerrado${ended ? ` em ${ended}` : ''}. Renove para voltar a ${
+                    : `${ended ? `Acesso encerrado em ${ended}.` : 'Acesso em Leitura.'} Renove para voltar a ${
                           key === 'ebook' ? 'ler' : 'assistir'
                       }.`;
             return [{ ...base, pill: 'Leitura', details: line(), alert, renew: RENEW[key] }];

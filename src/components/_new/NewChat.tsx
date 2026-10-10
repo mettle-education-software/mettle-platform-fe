@@ -2230,7 +2230,7 @@ export const Wrap = styled.div`
     }
     /* seletor de emoji/figurinha aberto: o campo volta para o fluxo, logo abaixo dele (nada fica por cima) */
     .picker ~ .composer {
-        position: static;
+        position: relative;
         pointer-events: auto;
     }
     .ro {
@@ -2430,11 +2430,8 @@ export const Wrap = styled.div`
             overflow: hidden;
         }
         .ib.plus {
-            width: 36px;
+            width: 40px;
             height: 40px;
-            background: none;
-            border: 0;
-            box-shadow: none;
         }
         .pillin {
             margin-bottom: 0;
@@ -2468,9 +2465,11 @@ export const Wrap = styled.div`
     /* a conversa rola por trás do campo: o respiro embaixo é a altura dele (useComposerInset) + folga */
     .list {
         padding-bottom: calc(var(--cmp-h, 0px) + 10px);
+        scroll-padding-bottom: calc(var(--cmp-h, 0px) + 10px);
     }
     /* com o seletor de emoji/figurinha aberto o campo está no fluxo: sem o respiro */
     .list:has(~ .picker) {
         padding-bottom: 10px;
+        scroll-padding-bottom: 10px;
     }
 `;

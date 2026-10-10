@@ -51,8 +51,12 @@ jest.mock('antd', () => {
             return React.createElement('input', { id: props.id, value: props.value, onChange: props.onChange, ref });
         }),
         Button: ({ children, onClick }: any) => React.createElement('button', { type: 'button', onClick }, children),
-        Modal: ({ open, children, okText, onOk, okButtonProps }: any) =>
-            open
+        Modal: function Modal({ open, children, okText, onOk, okButtonProps, afterOpenChange }: any) {
+            // como o antd: avisa quando terminou de abrir (o recorte só monta depois)
+            React.useEffect(() => {
+                if (open) afterOpenChange?.(true);
+            }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+            return open
                 ? React.createElement(
                       'div',
                       { role: 'dialog' },
@@ -63,7 +67,8 @@ jest.mock('antd', () => {
                           okText,
                       ),
                   )
-                : null,
+                : null;
+        },
     };
 });
 jest.mock('../../components/_new/ThemeSwitch', () => ({ ThemeSwitch: () => null }));
@@ -86,6 +91,7 @@ test('recorte redondo com arrastar e teclado; "Usar foto" grava a área escolhid
     expect(host.querySelector('[role="dialog"]')).not.toBeNull();
     expect(mockCropper).toMatchObject({ image: 'blob:foto', aspect: 1, cropShape: 'round', minZoom: 1, maxZoom: 3 });
     expect(mockCropper.keyboardStep).toBeGreaterThan(1);
+    expect(mockCropper.cropperProps).toMatchObject({ role: 'group', 'aria-label': expect.stringContaining('arraste') });
     const usar = [...host.querySelectorAll('button')].find((b) => b.textContent === 'Usar foto') as HTMLButtonElement;
     // antes da área calculada, o botão espera
     expect(usar.disabled).toBe(true);

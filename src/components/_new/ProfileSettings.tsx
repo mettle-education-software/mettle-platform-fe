@@ -200,6 +200,8 @@ const ProfilePhoto: React.FC<{ photo?: string | null; name?: string }> = ({ phot
     const [area, setArea] = useState<CropArea | null>(null);
     const [error, setError] = useState<string>();
     const [busy, setBusy] = useState(false);
+    // o recorte mede a caixa ao carregar: só depois de o modal terminar de abrir (a animação encolhe a caixa)
+    const [shown, setShown] = useState(false);
     const input = useRef<HTMLInputElement>(null);
     const mutation = useSaveProfilePhoto();
     useEffect(() => {
@@ -282,10 +284,11 @@ const ProfilePhoto: React.FC<{ photo?: string | null; name?: string }> = ({ phot
                     cancelButtonProps={{ disabled: busy }}
                     closable={!busy}
                     maskClosable={!busy}
+                    afterOpenChange={setShown}
                 >
                     {/* altura fixa: nada pula quando a foto carrega; o recorte não deixa a página rolar ao arrastar */}
                     <div className="profile-crop" style={CROP_BOX}>
-                        {source && (
+                        {source && shown && (
                             <Cropper
                                 image={source}
                                 crop={crop}
@@ -307,6 +310,7 @@ const ProfilePhoto: React.FC<{ photo?: string | null; name?: string }> = ({ phot
                                     },
                                 }}
                                 cropperProps={{
+                                    role: 'group',
                                     'aria-label': 'Recorte: arraste para posicionar; setas ajustam',
                                 }}
                             />

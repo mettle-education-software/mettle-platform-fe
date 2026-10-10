@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { auth } from 'config/firebase';
 import { QueryParams } from 'interfaces';
 import type { AccessBody, AccessEvent, AccessRow, Product, StudentUser, TrashEntry } from 'libs/adminAccess';
-import { readDashboard } from 'libs/adminDashboard';
+import { type Range, readDashboard } from 'libs/adminDashboard';
 import { ADMIN_HISTORY_URL, type HistorySnapshot } from 'libs/adminHistory';
 import {
     accountRow,
@@ -253,12 +253,15 @@ export const useFactoryReset = (uid: string) => {
     });
 };
 
-/** Início do Admin: os números do dia numa chamada (null enquanto a rota nova não está publicada). */
-export const useAdminDashboard = () =>
+/** Início do Admin numa chamada; o período (datas de Brasília) só muda o bloco "No período". null sem a rota nova. */
+export const useAdminDashboard = (range: Range) =>
     useQuery({
-        queryKey: ['admin-dashboard'],
+        queryKey: ['admin-dashboard', range.from, range.to],
         queryFn: () =>
-            adminService.get<{ data?: unknown }>('/dashboard').then(({ data }) => readDashboard(data?.data ?? data)),
+            adminService
+                .get<{ data?: unknown }>('/dashboard', { params: range })
+                .then(({ data }) => readDashboard(data?.data ?? data)),
         retry: false,
         staleTime: 60_000,
+        placeholderData: keepPreviousData,
     });

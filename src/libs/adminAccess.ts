@@ -107,7 +107,8 @@ export interface AccessBody {
 export const brToday = (now = new Date()) =>
     new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(now);
 
-const plusDays = (iso: string, days: number) =>
+/** Dia civil AAAA-MM-DD somado de N dias (negativo volta). */
+export const plusDays = (iso: string, days: number) =>
     new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 
 /**

@@ -35,6 +35,18 @@ export const brDate = (iso: string | null | undefined) => {
     });
 };
 
+/** "14 de outubro de 2024" no horário de Brasília (Configurações do aluno). */
+export const brLongDate = (iso: string | null | undefined) => {
+    const ok = validDate(iso);
+    if (!ok) return '';
+    return new Date(ok).toLocaleDateString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    });
+};
+
 /** Ids são bigint do Postgres (texto): compara pelo valor exato, sem passar por Number. */
 const cmpId = (a: unknown, b: unknown) => {
     const x = String(a);
@@ -58,9 +70,9 @@ const plural = (n: number, one: string, many: string) => (n ? `${n} ${n === 1 ? 
 type Pause = { key: string; label: string; from: string; to: string | null; planned: string | null };
 type Item = HistoryRow | Pause;
 
-const pauseText = (p: Pause) => {
+const pauseText = (p: Pause, format: (iso: string | null | undefined) => string) => {
     const until = p.to ?? p.planned;
-    return until ? `${brDate(p.from)} – ${brDate(until)}` : `desde ${brDate(p.from)}`;
+    return until ? `${format(p.from)} – ${format(until)}` : `desde ${format(p.from)}`;
 };
 
 /**
@@ -76,6 +88,8 @@ export const programHistory = (
     events: ProgramEvent[] | null | undefined,
     remainingResets?: number | null,
     allowance = RESET_ALLOWANCE,
+    /** formato das datas: dd/mm/aaaa (padrão) ou brLongDate */
+    format: (iso: string | null | undefined) => string = brDate,
 ): HistoryRow[] => {
     const list = (Array.isArray(events) ? events : [])
         .filter((e): e is ProgramEvent => !!e && typeof e.kind === 'string' && !!validDate(e.at))
@@ -100,7 +114,7 @@ export const programHistory = (
         const key = `${e.kind}-${e.id}`;
         switch (e.kind) {
             case 'start':
-                items.push({ key, label: 'Início', when: brDate(validDate(e.effectiveAt) ?? e.at) });
+                items.push({ key, label: 'Início', when: format(validDate(e.effectiveAt) ?? e.at) });
                 break;
             case 'pause': {
                 // agendamento anterior: já passou → a LAMP voltou nele; ainda não → cancelado por esta pausa
@@ -134,36 +148,36 @@ export const programHistory = (
             }
             case 'lamp_reactivated':
                 if (bridge || e.reason === BRIDGE || !open.length) {
-                    items.push({ key, label: backLabel(e.lampWeek), when: brDate(e.at) });
+                    items.push({ key, label: backLabel(e.lampWeek), when: format(e.at) });
                 }
                 closeAll(e.at);
                 bridge = false;
                 break;
             case 'reset':
-                items.push({ key, label: 'Reset', when: brDate(e.at) });
+                items.push({ key, label: 'Reset', when: format(e.at) });
                 break;
             case 'lamp_restarted':
                 closeAll(e.at);
                 bridge = false;
-                items.push({ key, label: 'LAMP recomeçou na semana 1', when: brDate(e.at) });
+                items.push({ key, label: 'LAMP recomeçou na semana 1', when: format(e.at) });
                 break;
             case 'allowance': {
                 const parts = [
                     plural(extra(e.addPauses), 'pausa', 'pausas'),
                     plural(extra(e.addResets), 'reset', 'resets'),
                 ].filter(Boolean);
-                if (parts.length) items.push({ key, label: `${parts.join(' e ')} a mais`, when: brDate(e.at) });
+                if (parts.length) items.push({ key, label: `${parts.join(' e ')} a mais`, when: format(e.at) });
                 break;
             }
             case 'factory_reset':
                 closeAll(e.at);
                 bridge = false;
-                items.push({ key, label: 'Reset de fábrica', when: brDate(e.at) });
+                items.push({ key, label: 'Reset de fábrica', when: format(e.at) });
                 break;
             default:
                 break; // tipo novo: ignorado
         }
     }
 
-    return items.map((it) => ('from' in it ? { key: it.key, label: it.label, when: pauseText(it) } : it));
+    return items.map((it) => ('from' in it ? { key: it.key, label: it.label, when: pauseText(it, format) } : it));
 };

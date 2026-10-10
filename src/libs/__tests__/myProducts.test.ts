@@ -26,7 +26,7 @@ test('linha 2 pela origem: plano da compra (MELP avulso = 3 anos), vitalício, c
     expect(planLabel('compra', null)).toBeNull();
 });
 
-test('ativo com data: válido até; faltando até 60 dias, o aviso; sem prazo; data a confirmar não aparece', () => {
+test('linha 2 numa só: plano/origem · desde · válido até (ou sem prazo); aviso só quando faltam até 60 dias', () => {
     const lines = productLines(
         [
             {
@@ -47,32 +47,36 @@ test('ativo com data: válido até; faltando até 60 dias, o aviso; sem prazo; d
             key: 'imerso',
             name: 'Programa Imerso',
             pill: 'Ativo',
-            plan: 'Plano anual · desde 12 de março de 2024',
-            term: 'Válido até 12 de março de 2027',
-            soon: null,
+            details: 'Plano anual · desde 12 de março de 2024 · válido até 12 de março de 2027',
+            alert: null,
+            soon: false,
             renew: null,
         },
         {
             key: 'masterclass',
             name: 'Masterclass',
             pill: 'Ativo',
-            plan: 'Plano mensal',
-            term: 'Válido até 9 de novembro de 2026',
-            soon: ' · faltam 30 dias',
+            details: 'Plano mensal · válido até 9 de novembro de 2026',
+            alert: 'Faltam 30 dias',
+            soon: true,
             renew: null,
         },
-        { key: 'ebook', name: 'E-book', pill: 'Ativo', plan: null, term: null, soon: null, renew: null },
+        // data a confirmar: nada de prazo (nem "a confirmar") para o aluno
+        { key: 'ebook', name: 'E-book', pill: 'Ativo', details: null, alert: null, soon: false, renew: null },
     ]);
-    const forever = productLines([{ product: 'imerso', state: 'ativo', origin: 'vitalicio' }], today)[0];
-    expect([forever.plan, forever.term]).toEqual(['Vitalício', 'Sem prazo']);
-    expect(productLines([{ product: 'imerso', state: 'ativo', origin: 'equipe' }], today)[0].term).toBe('Sem prazo');
+    expect(productLines([{ product: 'imerso', state: 'ativo', origin: 'vitalicio' }], today)[0].details).toBe(
+        'Vitalício · sem prazo',
+    );
+    expect(productLines([{ product: 'imerso', state: 'ativo', origin: 'equipe' }], today)[0].details).toBe(
+        'Equipe · sem prazo',
+    );
     expect(
         productLines([{ product: 'imerso', state: 'ativo', origin: 'compra', validUntil: '2026-10-11' }], today)[0]
-            .soon,
-    ).toBe(' · falta 1 dia');
+            .alert,
+    ).toBe('Falta 1 dia');
 });
 
-test('carência: venceu, acesso total até o fim da carência, com Renovar', () => {
+test('carência: selo Carência, aviso e Renovar', () => {
     const [row] = productLines(
         [
             {
@@ -86,12 +90,13 @@ test('carência: venceu, acesso total até o fim da carência, com Renovar', () 
         ],
         today,
     );
-    expect(row.term).toBe('Seu plano venceu em 5 de outubro de 2026. Acesso total até 19 de outubro de 2026.');
-    expect(row.pill).toBe('Ativo');
+    expect(row.pill).toBe('Carência');
+    expect(row.details).toBe('Plano anual');
+    expect(row.alert).toBe('Seu plano venceu em 5 de outubro de 2026. Acesso total até 19 de outubro de 2026.');
     expect(row.renew).toContain('programa-imerso');
 });
 
-test('leitura: acesso encerrado, ainda navega, Renovar; sem acesso não aparece; nada fora do modelo', () => {
+test('leitura: aviso de encerramento e Renovar; sem acesso não aparece; nada fora do modelo', () => {
     const lines = productLines(
         [
             { product: 'imerso', state: 'leitura', origin: 'cortesia', validUntil: '2026-09-30' },
@@ -107,9 +112,14 @@ test('leitura: acesso encerrado, ainda navega, Renovar; sem acesso não aparece;
         ],
         today,
     );
-    expect(lines.map((l) => [l.name, l.pill, l.term])).toEqual([
-        ['Programa Imerso', 'Leitura', 'Acesso encerrado em 30 de setembro de 2026. Você ainda pode navegar.'],
-        ['E-book', 'Leitura', 'Acesso encerrado em 15 de agosto de 2026. Você ainda pode navegar.'],
+    expect(lines.map((l) => [l.name, l.pill, l.details, l.alert])).toEqual([
+        [
+            'Programa Imerso',
+            'Leitura',
+            'Cortesia',
+            'Acesso encerrado em 30 de setembro de 2026. Você ainda pode navegar.',
+        ],
+        ['E-book', 'Leitura', null, 'Acesso encerrado em 15 de agosto de 2026. Você ainda pode navegar.'],
     ]);
     expect(lines[1].renew).toContain('masterclass');
     expect(productLines(undefined, today)).toEqual([]);
@@ -128,11 +138,11 @@ test('Leitura antes do prazo não anuncia data futura; venceu e ainda Ativo: avi
         ],
         today,
     );
-    expect(early.term).toBe('Acesso encerrado em 8 de outubro de 2026. Você ainda pode navegar.');
+    expect(early.alert).toBe('Acesso encerrado em 8 de outubro de 2026. Você ainda pode navegar.');
     const [lapsed] = productLines(
         [{ product: 'masterclass', state: 'ativo', origin: 'compra', validUntil: '2026-10-09' }],
         today,
     );
-    expect(lapsed.term).toBe('Seu plano venceu em 9 de outubro de 2026.');
+    expect(lapsed.alert).toBe('Seu plano venceu em 9 de outubro de 2026.');
     expect(lapsed.renew).toContain('masterclass');
 });

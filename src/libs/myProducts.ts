@@ -21,12 +21,14 @@ export interface MyAccessRow {
 export interface ProductLine {
     key: string;
     name: string;
-    /** Ativo (destaque) ou Leitura (neutro) */
-    pill: 'Ativo' | 'Leitura';
-    plan: string | null;
-    term: string | null;
-    /** " · faltam N dias" (≤ 60 dias), no tom de destaque */
-    soon: string | null;
+    /** Ativo (destaque), Carência (âmbar) ou Leitura (neutro) */
+    pill: 'Ativo' | 'Carência' | 'Leitura';
+    /** uma linha: plano/origem · desde … · válido até … (ou sem prazo); só as partes que existem */
+    details: string | null;
+    /** linha extra só para avisos: faltam N dias (destaque), carência, leitura, venceu */
+    alert: string | null;
+    /** o aviso no tom de destaque (faltam N dias) */
+    soon: boolean;
     renew: string | null;
 }
 
@@ -88,20 +90,22 @@ export const productLines = (rows: MyAccessRow[] | null | undefined, today = brT
     Object.keys(NAMES).flatMap((key): ProductLine[] => {
         const row = (rows ?? []).find((candidate) => candidate?.product === key);
         if (!row || (row.state !== 'ativo' && row.state !== 'leitura')) return [];
-        const label = planLabel(row.origin, row.plan);
         const since = longDate(row.firstPurchase);
-        const plan = label ? (since ? `${label} · desde ${since}` : label) : null;
-        const base = { key, name: NAMES[key], plan, soon: null as string | null, renew: null as string | null };
+        const head = [planLabel(row.origin, row.plan), since && `desde ${since}`];
+        const line = (...parts: (string | null | false | undefined)[]) =>
+            [...head, ...parts].filter(Boolean).join(' · ') || null;
         const valid = day(row.validUntil);
         const grace = day(row.graceUntil);
+        const base = { key, name: NAMES[key], soon: false, renew: null as string | null };
         if (row.state === 'leitura') {
             // o último dia de acesso que já passou (Leitura posta antes do prazo não anuncia uma data futura)
             const ended = longDate([grace, valid].find((d) => d && d <= today) ?? row.leituraSince);
             return [
                 {
                     ...base,
-                    pill: 'Leitura' as const,
-                    term: ended
+                    pill: 'Leitura',
+                    details: line(),
+                    alert: ended
                         ? `Acesso encerrado em ${ended}. Você ainda pode navegar.`
                         : 'Acesso encerrado. Você ainda pode navegar.',
                     renew: RENEW[key],
@@ -113,28 +117,29 @@ export const productLines = (rows: MyAccessRow[] | null | undefined, today = brT
             return [
                 {
                     ...base,
-                    pill: 'Ativo' as const,
-                    term: `Seu plano venceu em ${longDate(valid)}. Acesso total até ${longDate(grace)}.`,
+                    pill: 'Carência',
+                    details: line(),
+                    alert: `Seu plano venceu em ${longDate(valid)}. Acesso total até ${longDate(grace)}.`,
                     renew: RENEW[key],
                 },
             ];
         // venceu e ainda está Ativo (a rotina da noite não passou): o aviso e o Renovar
         if (valid && valid < today && !row.dateToConfirm)
             return [
-                { ...base, pill: 'Ativo' as const, term: `Seu plano venceu em ${longDate(valid)}.`, renew: RENEW[key] },
+                {
+                    ...base,
+                    pill: 'Ativo',
+                    details: line(),
+                    alert: `Seu plano venceu em ${longDate(valid)}.`,
+                    renew: RENEW[key],
+                },
             ];
-        if (row.dateToConfirm) return [{ ...base, pill: 'Ativo' as const, term: null }];
+        if (row.dateToConfirm) return [{ ...base, pill: 'Ativo', details: line(), alert: null }];
         if (valid) {
             const left = daysBetween(today, valid);
-            const soon =
-                left > 60 || left < 0
-                    ? null
-                    : left === 0
-                      ? ' · vence hoje'
-                      : left === 1
-                        ? ' · falta 1 dia'
-                        : ` · faltam ${left} dias`;
-            return [{ ...base, pill: 'Ativo' as const, term: `Válido até ${longDate(valid)}`, soon }];
+            const alert =
+                left > 60 ? null : left === 0 ? 'Vence hoje' : left === 1 ? 'Falta 1 dia' : `Faltam ${left} dias`;
+            return [{ ...base, pill: 'Ativo', details: line(`válido até ${longDate(valid)}`), alert, soon: !!alert }];
         }
-        return [{ ...base, pill: 'Ativo' as const, term: noTerm(row) ? 'Sem prazo' : null }];
+        return [{ ...base, pill: 'Ativo', details: line(noTerm(row) && 'sem prazo'), alert: null }];
     });

@@ -8,7 +8,7 @@ import { useProfile } from 'hooks/useProfile';
 import { passwordRules, saoPauloWeekday } from 'libs';
 import { longDate, productLines } from 'libs/myProducts';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
-import { programHistory } from 'libs/programHistory';
+import { brLongDate, programHistory } from 'libs/programHistory';
 import { Info } from 'lucide-react';
 import { useAppContext, useProductAccess } from 'providers';
 import React, { useEffect, useState } from 'react';
@@ -140,8 +140,20 @@ const styles = css`
         color: var(--r-muted);
         overflow-wrap: anywhere;
     }
-    .settings .cr-sub em {
-        font-style: normal;
+    .settings .prod-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 10px;
+    }
+    .settings .cr-alert {
+        display: block;
+        margin-top: 4px;
+        font-size: 13.5px;
+        line-height: 1.45;
+        color: var(--r-text);
+    }
+    .settings .cr-alert.soon {
         color: var(--r-gold-hi);
     }
     .settings .cr-side {
@@ -178,13 +190,14 @@ const styles = css`
         background: var(--r-gold-tint);
         color: var(--r-gold-hi);
     }
+    .settings .pill.grace {
+        border-color: var(--r-gold);
+        color: var(--r-gold-hi);
+    }
     .settings .btn.sm {
         min-height: 36px;
         padding: 0 16px;
         font-size: 13.5px;
-    }
-    .settings .renew {
-        margin-top: 10px;
     }
     .settings .cr-info {
         display: inline-flex;
@@ -282,6 +295,8 @@ const styles = css`
     }
 `;
 
+const PILL_TONE: Record<string, string> = { Ativo: ' on', Carência: ' grace', Leitura: '' };
+
 /** "Meus produtos": um cartão com uma linha por produto, só do modelo de acesso (GET /accounts/me). */
 const ProductsCard: React.FC = () => {
     const profile = useProfile();
@@ -303,30 +318,22 @@ const ProductsCard: React.FC = () => {
     return (
         <ul className="card" aria-label="Meus produtos">
             {lines.map((line) => (
-                <li className="cr" key={line.key}>
+                <li className={`cr${line.renew ? ' stack' : ''}`} key={line.key}>
                     <div className="cr-main">
-                        <b className="cr-name">{line.name}</b>
-                        {line.plan && <span className="cr-sub">{line.plan}</span>}
-                        {line.term && (
-                            <span className="cr-sub">
-                                {line.term}
-                                {line.soon && <em>{line.soon}</em>}
-                            </span>
-                        )}
-                        {line.renew && (
-                            <a
-                                className="btn line sm renew"
-                                href={line.renew}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
+                        <div className="prod-head">
+                            <b className="cr-name">{line.name}</b>
+                            <span className={`pill${PILL_TONE[line.pill]}`}>{line.pill}</span>
+                        </div>
+                        {line.details && <span className="cr-sub">{line.details}</span>}
+                        {line.alert && <span className={`cr-alert${line.soon ? ' soon' : ''}`}>{line.alert}</span>}
+                    </div>
+                    {line.renew && (
+                        <div className="cr-side">
+                            <a className="btn line sm" href={line.renew} target="_blank" rel="noopener noreferrer">
                                 Renovar
                             </a>
-                        )}
-                    </div>
-                    <div className="cr-side">
-                        <span className={`pill${line.pill === 'Ativo' ? ' on' : ''}`}>{line.pill}</span>
-                    </div>
+                        </div>
+                    )}
                 </li>
             ))}
         </ul>
@@ -338,8 +345,11 @@ const ProgramCard: React.FC = () => {
     const programReset = useResetMelp();
     const pauseDeda = usePauseDeda();
     const { user } = useAppContext();
-    // leitura: sem reiniciar nem pausar (gravam); o histórico fica
-    const readOnly = useProductAccess().access(IMERSO_PRODUCT).state === 'expired';
+    // leitura (pela claim ou pelo modelo de acesso, como em Meus produtos): sem pausar nem reiniciar (o servidor
+    // recusaria); a LAMP fica pausada pelo sistema. A semana e o histórico ficam.
+    const claimReadOnly = useProductAccess().access(IMERSO_PRODUCT).state === 'expired';
+    const imersoRow = useProfile().data?.accessDetails?.find((row) => row?.product === 'imerso');
+    const readOnly = claimReadOnly || imersoRow?.state === 'leitura';
     // a mesma consulta (e o mesmo cache) do MelpProvider, com o estado completo: dados, carregando, erro, nova tentativa
     const summary = useMelpSummary(user?.uid);
     const melpSummary = summary.data;
@@ -372,7 +382,7 @@ const ProgramCard: React.FC = () => {
     // uma ação por vez e nunca sobre um resumo velho (se a atualização falhou, as ações esperam nova tentativa)
     const stale = summary.isError;
     const busy = mutating || programReset.isPending || pauseDeda.isPending || stale;
-    const history = programHistory(melpSummary.program_events, melpSummary.remaining_resets);
+    const history = programHistory(melpSummary.program_events, melpSummary.remaining_resets, undefined, brLongDate);
     const started = longDate(melpSummary.deda_first_monday ?? melpSummary.melp_start_date);
 
     return (
@@ -386,6 +396,11 @@ const ProgramCard: React.FC = () => {
                     {started && <span className="cr-sub">Início em {started}</span>}
                 </div>
             </div>
+            {readOnly && (
+                <div className="cr">
+                    <p className="cr-sub">A LAMP fica pausada enquanto o seu acesso estiver em Leitura.</p>
+                </div>
+            )}
             {stale && (
                 <div className="cr">
                     <p className="cr-sub">Não foi possível atualizar o programa IMERSO. {retry}</p>

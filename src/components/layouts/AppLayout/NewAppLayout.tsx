@@ -13,6 +13,7 @@ import { auth } from 'config/firebase';
 import { useDeviceSize } from 'hooks';
 import { useDedaRun } from 'hooks/melp/lampDays';
 import { useSegmentCounts } from 'hooks/useAdmin';
+import { useProfile } from 'hooks/useProfile';
 import { useLogoTheme, useNewAntdTheme } from 'hooks/useTheme';
 import { saoPauloWeekday } from 'libs';
 import { ADMIN_SEGMENTS, SEGMENT_OWNERS } from 'libs/adminSegments';
@@ -937,12 +938,15 @@ const AdminItem: React.FC<{ host?: boolean }> = ({ host }) => {
 
 const User: React.FC = () => {
     const { user } = useAppContext();
-    const name = displayName(user?.name);
+    const { data: profile } = useProfile();
+    const fullName = profile ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') : user?.name;
+    const name = displayName(fullName);
+    const photo = profile?.photoURL ?? user?.profileImageSrc;
     return (
-        <div className="user" title={user?.name || undefined}>
+        <div className="user" title={fullName || undefined}>
             <span className="av" aria-hidden>
                 {/* eslint-disable-next-line @next/next/no-img-element -- foto do perfil (Firebase) */}
-                {user?.profileImageSrc ? <img src={user.profileImageSrc} alt="" /> : name[0]}
+                {photo ? <img src={photo} alt="" /> : name[0]}
             </span>
             <span className="lbl">{name}</span>
         </div>

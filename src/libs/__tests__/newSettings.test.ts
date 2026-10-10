@@ -52,6 +52,24 @@ jest.mock(
     }),
     { virtual: true },
 );
+jest.mock(
+    'hooks/useProfile',
+    () => ({
+        useProfile: () => ({
+            data: {
+                first_name: 'Aluno',
+                last_name: 'de Teste',
+                username: 'aluno.teste',
+                email: 'aluno@example.test',
+                phone: '+5511999999999',
+            },
+        }),
+        useSaveProfile: () => ({ mutateAsync: jest.fn(), isPending: false }),
+        useSaveProfilePhoto: () => ({ mutateAsync: jest.fn(), isPending: false }),
+    }),
+    { virtual: true },
+);
+jest.mock('libs/profile', () => jest.requireActual('../profile'), { virtual: true });
 jest.mock('libs', () => ({ passwordRules: [] }), { virtual: true });
 jest.mock('libs/ebook', () => ({ EBOOK_PRODUCT: 'EBOOK_GUIA_COMPLETO' }), { virtual: true });
 jest.mock('libs/masterclass', () => ({ MASTERCLASS_COURSE: 'masterclass-as-7-regras' }), { virtual: true });
@@ -71,7 +89,10 @@ jest.mock('antd', () => {
             mockButtons.set(props.children, props);
             return createElement(actual.Button, props);
         },
-        Modal: { ...actual.Modal, useModal: () => [{ confirm: mockConfirm }, null] },
+        Modal: Object.assign((props: any) => createElement(actual.Modal, props), {
+            ...actual.Modal,
+            useModal: () => [{ confirm: mockConfirm }, null],
+        }),
     };
 });
 
@@ -104,12 +125,15 @@ beforeEach(() => {
     };
 });
 
-test('uma página com as quatro seções na ordem, perfil só leitura, senha e histórico juntos', () => {
+test('uma página com as quatro seções na ordem, perfil editável, senha e histórico juntos', () => {
     const doc = render();
     expect([...doc.querySelectorAll('h2')].map((h) => h.textContent)).toEqual(['Perfil', 'Conta', 'Senha', 'IMERSO']);
     expect(doc.querySelector('[role="tablist"]')).toBeNull();
-    expect(doc.querySelector('section[aria-labelledby="settings-profile"] input')).toBeNull();
-    expect(doc.body.textContent).toContain('Aluno de Teste');
+    expect(doc.querySelector('#profile-first_name')?.getAttribute('value')).toBe('Aluno');
+    expect(doc.querySelector('#profile-last_name')?.getAttribute('value')).toBe('de Teste');
+    expect(doc.querySelectorAll('section[aria-labelledby="settings-profile"] form')).toHaveLength(8);
+    expect(doc.querySelector('input[type="email"], input[type="tel"]')).toBeNull();
+    expect(doc.body.textContent).toContain('Trocar foto');
     expect(doc.body.textContent).toContain('aluno@example.test');
     expect(doc.body.textContent).toContain('Telefone');
     expect(doc.body.textContent).toContain('Histórico do programa');

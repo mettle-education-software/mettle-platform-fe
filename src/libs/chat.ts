@@ -40,7 +40,10 @@ export type ChatPage = {
     more: boolean;
     teamSeenAt: number;
     unread: number;
-    ws: { url: string; token: string };
+    /** null quando só leitura (impersonação) */
+    ws: { url: string; token: string } | null;
+    /** impersonação: a conversa do aluno, só para ver (o Worker recusa gravações com 403 IMPERSONATION_READ_ONLY) */
+    readOnly?: boolean;
 };
 
 /** Junta mensagens novas às que já estão na tela: por id, em ordem de envio; as pendentes ficam no fim. */

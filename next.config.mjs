@@ -48,6 +48,15 @@ const nextConfig = {
         // Página nova do DEDA (libs/dedaReader): só "off" muda algo — desliga para todos (teste).
         DEDA_READER: process.env.DEDA_READER,
     },
+    // Admin (10-Out-2026): as contas numa página só (Contas); os endereços antigos levam a ela.
+    async redirects() {
+        return [
+            { source: '/admin/historico', destination: '/admin/contas', permanent: false },
+            { source: '/admin/aluno/:uid', destination: '/admin/contas?conta=:uid', permanent: false },
+            { source: '/admin/lixeira', destination: '/admin/contas?lixeira=1', permanent: false },
+            { source: '/admin/alunos', destination: '/admin/contas', permanent: false },
+        ];
+    },
     // Microfone só para a própria Plataforma (nenhum iframe de terceiro pede o microfone).
     async headers() {
         return [{ source: '/:path*', headers: [{ key: 'Permissions-Policy', value: 'microphone=(self)' }] }];

@@ -1,9 +1,18 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
 import { QueryParams } from 'interfaces';
 import type { AccessBody, AccessEvent, AccessRow, Product, StudentUser, TrashEntry } from 'libs/adminAccess';
+import { readDashboard } from 'libs/adminDashboard';
 import { ADMIN_HISTORY_URL, type HistorySnapshot } from 'libs/adminHistory';
-import { ADMIN_SEGMENTS, AdminSegment, EBOOK_BUYERS_URL, onlyBuyers } from 'libs/adminSegments';
+import {
+    accountRow,
+    type AccountRow,
+    type AccountsPage,
+    type AccountsQuery,
+    accountsParams,
+    snapshotPage,
+} from 'libs/adminPanel';
+import { EBOOK_BUYERS_URL } from 'libs/adminSegments';
 import { isLeituraOwner } from 'libs/leitura';
 import { useAppContext } from 'providers';
 import { accountService, adminService } from 'services';
@@ -55,34 +64,6 @@ export const useEbookBuyers = (enabled: boolean) =>
         staleTime: 5 * 60_000,
     });
 
-type UsersPage = { data: { user_uid: string; email: string }[]; pagination: { total: number } };
-
-/** Quantos alunos ativos em cada segmento (sem a busca). E-book: no_imerso ∩ compradores, contado aqui. */
-export const useSegmentCounts = (enabled: boolean) => {
-    const buyers = useEbookBuyers(enabled);
-    const q = useQuery({
-        queryKey: ['admin-segment-counts', buyers.data?.length ?? null],
-        queryFn: async () => {
-            const counts: Partial<Record<AdminSegment, number>> = {};
-            await Promise.all(
-                ADMIN_SEGMENTS.filter((s) => !s.ebook || buyers.data).map(async (s) => {
-                    const { data } = await adminService.get<UsersPage>('/v2/users', {
-                        params: { accountStatusIn: 'ACTIVE', segment: s.server, offset: 0, limit: s.ebook ? 1000 : 1 },
-                    });
-                    counts[s.key] = s.ebook
-                        ? onlyBuyers(data.data, buyers.data as string[]).length
-                        : data.pagination.total;
-                }),
-            );
-            return counts;
-        },
-        // Sem o Worker (erro), Imerso e Masterclass contam do mesmo jeito; o e-book fica sem número.
-        enabled: enabled && !buyers.isPending,
-        staleTime: 5 * 60_000,
-    });
-    return q;
-};
-
 // ---------- Histórico do programa (retrato do Worker, só o dono) ----------
 
 const getHistory = async (): Promise<HistorySnapshot> => {
@@ -97,13 +78,13 @@ const getHistory = async (): Promise<HistorySnapshot> => {
     return response.json();
 };
 
-/** O retrato de /admin/historico (mesma consulta e cache da tabela e da página do aluno). */
-export const useAdminHistory = () => {
+/** O retrato noturno do histórico (Worker, só o dono): reserva da lista de Contas e o histórico do programa de cada conta. */
+export const useAdminHistory = (enabled = true) => {
     const uid = auth.currentUser?.uid;
     return useQuery({
         queryKey: ['admin-history', uid],
         queryFn: getHistory,
-        enabled: isLeituraOwner(uid),
+        enabled: enabled && isLeituraOwner(uid),
         staleTime: 5 * 60_000,
         retry: 1,
     });
@@ -155,6 +136,14 @@ export const useSaveStudentAccess = (uid: string, product: Product) => {
 
 // ---------- Lixeira (só o dono; o servidor confere) ----------
 
+/** Depois de mandar para a lixeira ou restaurar: a lixeira, a conta, a lista do Contas e o número da lixeira no Início. */
+const invalidateAccount = (queryClient: ReturnType<typeof useQueryClient>, uid: string) =>
+    Promise.all(
+        [['admin-trash'], ['admin-access', uid], ['admin-accounts'], ['admin-dashboard']].map((queryKey) =>
+            queryClient.invalidateQueries({ queryKey }),
+        ),
+    );
+
 export const useTrash = (enabled: boolean) =>
     useQuery({
         queryKey: ['admin-trash'],
@@ -175,11 +164,7 @@ export const useTrashAccount = (uid: string) => {
                     { data: { purgeAfter: string } }
                 >(`/${encodeURIComponent(uid)}/trash`, { confirmEmail })
                 .then(({ data }) => data.data),
-        onSettled: () =>
-            Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['admin-trash'] }),
-                queryClient.invalidateQueries({ queryKey: ['admin-access', uid] }),
-            ]),
+        onSettled: () => invalidateAccount(queryClient, uid),
     });
 };
 
@@ -188,10 +173,92 @@ export const useRestoreAccount = () => {
     return useMutation({
         mutationFn: (uid: string) =>
             accountService.post(`/${encodeURIComponent(uid)}/restore`).then(({ data }) => data),
-        onSettled: (_data, _error, uid) =>
-            Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['admin-trash'] }),
-                queryClient.invalidateQueries({ queryKey: ['admin-access', uid] }),
-            ]),
+        onSettled: (_data, _error, uid) => invalidateAccount(queryClient, uid),
     });
 };
+
+// ---------- Painel de Contas ----------
+
+/**
+ * A lista do painel: GET /admin/accounts (filtros, ordem e página no servidor). Enquanto o servidor não publica a rota
+ * (404 no gateway), o retrato noturno do histórico (só o dono), no mesmo formato.
+ */
+export const useAdminAccounts = (query: AccountsQuery, enabled = true) => {
+    const params = accountsParams(query);
+    const live = useQuery({
+        queryKey: ['admin-accounts', params],
+        queryFn: () =>
+            adminService
+                .get<{ data?: unknown[]; total?: number }>('/accounts', { params })
+                .then(({ data }): AccountsPage => {
+                    const rows = (data.data ?? []).map(accountRow).filter((row): row is AccountRow => !!row);
+                    return { rows, total: typeof data.total === 'number' ? data.total : rows.length, snapshot: false };
+                }),
+        enabled,
+        retry: false,
+        staleTime: 30_000,
+        placeholderData: keepPreviousData,
+    });
+    const missing = (live.error as { response?: { status?: number } } | null)?.response?.status === 404;
+    // o retrato (todos os alunos) só desce quando a rota nova falta
+    const snapshot = useAdminHistory(enabled && missing);
+    if (missing && snapshot.data)
+        return {
+            data: snapshotPage(snapshot.data.students, query),
+            isLoading: false,
+            isError: false,
+            refetch: live.refetch,
+        };
+    return {
+        data: live.data,
+        isLoading: live.isLoading || (missing && snapshot.isLoading),
+        isError: live.isError && !(missing && snapshot.isLoading),
+        refetch: live.refetch,
+    };
+};
+
+/** Entra como o aluno (modo visualização) e abre o Início dele. */
+export const useImpersonateStudent = () =>
+    useMutation({
+        mutationFn: (uid: string) => accountService.post(`/impersonate/add/${encodeURIComponent(uid)}`),
+        onSuccess: () => window.location.assign('/'),
+    });
+
+/** Pausas e/ou resets a mais no Programa Imerso (1 a 3 de cada), com registro. */
+export const useProgramAllowances = (uid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (body: { addPauses?: number; addResets?: number }) =>
+            accountService
+                .put<
+                    typeof body,
+                    { data: { remainingPauses: number; remainingResets: number } }
+                >(`/${encodeURIComponent(uid)}/program/allowances`, body)
+                .then(({ data }) => data.data),
+        onSettled: () => queryClient.invalidateQueries({ queryKey: ['admin-accounts'] }),
+    });
+};
+
+/** Reset de fábrica (só o dono): o programa volta ao primeiro acesso; a LAMP vai para o arquivo. 501 NOT_YET = em breve. */
+export const useFactoryReset = (uid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (confirmEmail: string) =>
+            accountService
+                .post<{ confirmEmail: string }, unknown>(`/${encodeURIComponent(uid)}/program/factory-reset`, {
+                    confirmEmail,
+                })
+                .then(({ data }) => data),
+        onSettled: () => queryClient.invalidateQueries({ queryKey: ['admin-accounts'] }),
+    });
+};
+
+/** Início do Admin: os números do dia numa chamada (null enquanto a rota nova não está publicada). */
+export const useAdminDashboard = () =>
+    useQuery({
+        queryKey: ['admin-dashboard'],
+        queryFn: () =>
+            adminService.get<{ data?: unknown }>('/dashboard').then(({ data }) => readDashboard(data?.data ?? data)),
+        retry: false,
+        staleTime: 60_000,
+    });

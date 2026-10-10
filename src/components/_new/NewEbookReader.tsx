@@ -29,6 +29,7 @@ import {
     searchBook,
     smartQuotes,
 } from 'libs/ebook';
+import { isViewOnly } from 'libs/viewOnly';
 import {
     ALargeSmall,
     Bookmark,
@@ -98,12 +99,17 @@ const fetchBook = async (): Promise<EbookBook> => {
     return res.json();
 };
 
-const sendPosition = (save: string, p: EbookPosition) =>
-    fetch(EBOOK_POSITION_URL, {
-        method: 'POST',
-        body: JSON.stringify({ t: save, c: p.c, y: p.y }),
-        keepalive: true,
-    }).catch(() => undefined);
+// só leitura (impersonação: sem token de gravação ou modo visualização): a posição e as marcas não saem do aparelho
+// nem entram na fila (que é do aparelho, e pode guardar marcas da própria conta do administrador)
+const canSave = (save: string | null): save is string => !!save && !isViewOnly();
+const sendPosition = (save: string | null, p: EbookPosition) =>
+    !canSave(save)
+        ? Promise.resolve(undefined)
+        : fetch(EBOOK_POSITION_URL, {
+              method: 'POST',
+              body: JSON.stringify({ t: save, c: p.c, y: p.y }),
+              keepalive: true,
+          }).catch(() => undefined);
 
 /** Marcas: texto simples (sem preflight). Falha de rede ou do servidor fica na fila do aparelho e vai depois. */
 const outbox = {
@@ -125,7 +131,8 @@ const sendOp = async (save: string, op: Op) => {
     }
 };
 let flushing: Promise<void> | null = null;
-const flushOutbox = (save: string) => {
+const flushOutbox = (save: string | null) => {
+    if (!canSave(save)) return Promise.resolve();
     flushing = (flushing ?? Promise.resolve()).then(async () => {
         const ops = outbox.read();
         if (!ops.length) return;
@@ -278,6 +285,8 @@ export const NewEbookReader: React.FC = () => {
     }, []);
 
     const book = load.state === 'ready' ? load.book : null;
+    // só leitura (impersonação): sem marcador, destaque nem nota
+    const readOnly = !!book && !canSave(book.save);
     const chapters = useMemo(() => book?.chapters ?? [], [book]);
     const htmls = useMemo(() => {
         if (!chapters.length) return [];
@@ -301,11 +310,13 @@ export const NewEbookReader: React.FC = () => {
         fetchBook()
             .then((b) => {
                 const want = new URLSearchParams(window.location.search).get('c');
-                const resume = resumePosition(b.chapters, readLocalPosition(), b.position);
+                // só leitura: a posição do aparelho é da conta de quem está nele (não lê nem grava)
+                const local = canSave(b.save) ? readLocalPosition() : null;
+                const resume = resumePosition(b.chapters, local, b.position);
                 const asked = want ? b.chapters.findIndex((c) => c.slug === want) : -1;
                 const start = asked >= 0 && asked !== resume.index ? { index: asked, y: 0 } : resume;
                 // primeira vez (nada salvo, nem capítulo pedido): o livro abre na capa
-                if (asked >= 0 || readLocalPosition() || b.position) {
+                if (asked >= 0 || local || b.position) {
                     anchor.current = { ci: start.index, o: 0 };
                     fraction.current = start.y;
                 }
@@ -506,11 +517,11 @@ export const NewEbookReader: React.FC = () => {
                 y: Math.round((a.o / len) * 10000) / 10000,
                 at: new Date().toISOString(),
             };
-            saveLocalPosition(last.current);
+            if (book && canSave(book.save)) saveLocalPosition(last.current);
             if (Date.now() - sentAt.current > 15_000) flush();
         }, 340);
         return () => clearTimeout(id);
-    }, [page, shown, anchorNow, texts, chapters, flush]);
+    }, [page, shown, anchorNow, texts, chapters, flush, book]);
 
     useEffect(() => {
         const hide = () => document.visibilityState === 'hidden' && flush();
@@ -610,7 +621,7 @@ export const NewEbookReader: React.FC = () => {
     }, []);
 
     const send = (op: Op) => {
-        if (!book) return;
+        if (!book || !canSave(book.save)) return;
         outbox.write([...outbox.read(), op]);
         flushOutbox(book.save);
     };
@@ -867,15 +878,17 @@ export const NewEbookReader: React.FC = () => {
                                 <Search {...ICON} />
                             </button>
                         </span>
-                        <button
-                            type="button"
-                            className={`ib bmk${marked ? ' on' : ''}`}
-                            aria-label="Marcador desta página"
-                            aria-pressed={!!marked}
-                            onClick={toggleBookmark}
-                        >
-                            <Bookmark {...ICON} fill={marked ? 'currentColor' : 'none'} />
-                        </button>
+                        {!readOnly && (
+                            <button
+                                type="button"
+                                className={`ib bmk${marked ? ' on' : ''}`}
+                                aria-label="Marcador desta página"
+                                aria-pressed={!!marked}
+                                onClick={toggleBookmark}
+                            >
+                                <Bookmark {...ICON} fill={marked ? 'currentColor' : 'none'} />
+                            </button>
+                        )}
                     </div>
                 </header>
 
@@ -1086,7 +1099,7 @@ export const NewEbookReader: React.FC = () => {
                     )}
                 </footer>
 
-                {menu && (
+                {menu && !readOnly && (
                     <div
                         className="menu"
                         role="toolbar"
@@ -1138,7 +1151,7 @@ export const NewEbookReader: React.FC = () => {
                     </div>
                 )}
 
-                {note && (
+                {note && !readOnly && (
                     <div className="pop note" role="dialog" aria-label="Nota">
                         <p className="pop-h">Nota</p>
                         <textarea

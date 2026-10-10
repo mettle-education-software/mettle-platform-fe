@@ -26,6 +26,7 @@ import {
     waveform,
 } from 'libs/chat';
 import { pushRecentEmoji } from 'libs/emoji';
+import { isViewOnly } from 'libs/viewOnly';
 import {
     CheckCheck,
     Clock,
@@ -43,6 +44,7 @@ import {
     Copy,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useAppContext } from 'providers';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { chatAudio, chatFetch, reactChat, sendChat, sendSticker } from 'services/chatService';
 import { LIGHT_ROOT } from 'themes/newDesign';
@@ -417,7 +419,7 @@ function useCable(ws: ChatPage['ws'] | null, onEvent: (event: string, data: Reco
     return open;
 }
 
-const NewChat: React.FC = () => {
+const ChatPage: React.FC = () => {
     useNoNativeSelection();
     // a área segura (env(safe-area-inset-bottom)) só existe com viewport-fit=cover; liga só enquanto o chat está aberto
     useEffect(() => {
@@ -431,8 +433,12 @@ const NewChat: React.FC = () => {
     }, []);
     const queryClient = useQueryClient();
     const params = useSearchParams();
-    // a conversa é da conta REALMENTE logada (o Worker usa o token dela), não do aluno que um administrador está vendo
-    const me = { name: auth.currentUser?.displayName || 'Você', avatar: auth.currentUser?.photoURL || null };
+    // a conversa é a da conta vista: na impersonação, a do aluno (o Worker segue a impersonação e responde só leitura)
+    const { user } = useAppContext();
+    const me = user?.impersonating
+        ? { name: user.name || 'Aluno', avatar: user.profileImageSrc || null }
+        : { name: auth.currentUser?.displayName || 'Você', avatar: auth.currentUser?.photoURL || null };
+    const [readOnly, setReadOnly] = useState(isViewOnly());
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [more, setMore] = useState(false);
     const [teamSeenAt, setTeamSeenAt] = useState(0);
@@ -448,6 +454,7 @@ const NewChat: React.FC = () => {
     const [menuBelow, setMenuBelow] = useState(false);
     /** Abre as reações acima do balão; perto do topo da conversa, abaixo (senão some sob o cabeçalho). */
     const setMenuFor = (id: number | null) => {
+        if (id != null && readOnly) return; // só leitura: sem reagir nem responder
         if (id != null) {
             const el = list.current?.querySelector(`[data-id="${id}"]`);
             const top = list.current?.getBoundingClientRect().top ?? 0;
@@ -467,7 +474,7 @@ const NewChat: React.FC = () => {
     const idle = useRef(0);
 
     const markSeen = useCallback(() => {
-        if (document.visibilityState !== 'visible') return;
+        if (document.visibilityState !== 'visible' || isViewOnly()) return;
         chatFetch('/seen', { method: 'POST' })
             .then(() => queryClient.setQueryData(CHAT_UNREAD_KEY, { unread: 0 }))
             .catch(() => {});
@@ -489,11 +496,12 @@ const NewChat: React.FC = () => {
                 if (first) {
                     setMore(page.more);
                     setWs(page.ws);
+                    setReadOnly(!!page.readOnly || isViewOnly());
                     const at = unreadStart(page.messages, page.unread);
                     if (at != null) setUnreadAt({ id: at, n: page.unread });
                     setState('ready');
                 }
-                if (page.unread > 0) markSeen();
+                if (page.unread > 0 && !page.readOnly) markSeen();
                 return changed;
             } catch {
                 if (first) setState('error');
@@ -718,6 +726,7 @@ const NewChat: React.FC = () => {
     };
 
     const react = (m: ChatMessage, emoji: string) => {
+        if (readOnly) return;
         const next = m.reaction === emoji ? null : emoji;
         setMenuFor(null);
         setMessages((cur) => cur.map((x) => (x.id === m.id ? { ...x, reaction: next } : x)));
@@ -1115,157 +1124,173 @@ const NewChat: React.FC = () => {
                     />
                 )}
 
-                <form
-                    className="composer"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        send();
-                    }}
-                >
-                    <fieldset disabled={state !== 'ready'}>
-                        {replyTo && (
-                            <div className="replying">
-                                <QuoteBlock q={replyTo} me="Você" />
-                                <button
-                                    type="button"
-                                    className="ib"
-                                    aria-label="Cancelar resposta"
-                                    onClick={() => setReplyTo(null)}
-                                >
-                                    <X size={18} strokeWidth={1.7} />
-                                </button>
-                            </div>
-                        )}
-                        {(file || fileError) && (
-                            <div className="chip">
-                                {file ? (
-                                    <>
-                                        <FileText size={16} strokeWidth={1.6} aria-hidden />
-                                        <span className="nm">{file.name}</span>
-                                        <span className="sz">{formatSize(file.size)}</span>
-                                    </>
-                                ) : (
-                                    <span className="nm err">{fileError}</span>
-                                )}
-                                <button
-                                    type="button"
-                                    className="ib"
-                                    aria-label="Remover anexo"
-                                    onClick={() => {
-                                        setFile(null);
-                                        setFileError('');
-                                    }}
-                                >
-                                    <X size={16} strokeWidth={1.6} />
-                                </button>
-                            </div>
-                        )}
-                        <div className="cbar">
-                            {recorder.recording ? (
-                                <>
+                {readOnly ? (
+                    <p className="ro" role="note">
+                        Só leitura (modo visualização)
+                    </p>
+                ) : (
+                    <form
+                        className="composer"
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            send();
+                        }}
+                    >
+                        <fieldset disabled={state !== 'ready'}>
+                            {replyTo && (
+                                <div className="replying">
+                                    <QuoteBlock q={replyTo} me="Você" />
                                     <button
                                         type="button"
-                                        className="ib plus"
-                                        aria-label="Descartar áudio"
-                                        onClick={() => recorder.stop(true)}
+                                        className="ib"
+                                        aria-label="Cancelar resposta"
+                                        onClick={() => setReplyTo(null)}
                                     >
-                                        <Trash2 size={21} strokeWidth={1.6} />
+                                        <X size={18} strokeWidth={1.7} />
                                     </button>
-                                    <div className="rec" role="status">
-                                        <span className="pulse" />
-                                        {durationLabel(recorder.secs)}
-                                    </div>
+                                </div>
+                            )}
+                            {(file || fileError) && (
+                                <div className="chip">
+                                    {file ? (
+                                        <>
+                                            <FileText size={16} strokeWidth={1.6} aria-hidden />
+                                            <span className="nm">{file.name}</span>
+                                            <span className="sz">{formatSize(file.size)}</span>
+                                        </>
+                                    ) : (
+                                        <span className="nm err">{fileError}</span>
+                                    )}
                                     <button
                                         type="button"
-                                        className="go"
-                                        aria-label="Enviar áudio"
-                                        onClick={() => recorder.stop()}
-                                    >
-                                        <SendHorizontal size={20} strokeWidth={2} />
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <button
-                                        type="button"
-                                        className="ib plus"
-                                        aria-label="Anexar"
-                                        onClick={() => fileInput.current?.click()}
-                                    >
-                                        <Plus size={24} strokeWidth={1.6} />
-                                    </button>
-                                    <input
-                                        ref={fileInput}
-                                        type="file"
-                                        accept={ACCEPT}
-                                        hidden
-                                        onChange={(e) => {
-                                            pick(e.target.files?.[0]);
-                                            e.target.value = '';
+                                        className="ib"
+                                        aria-label="Remover anexo"
+                                        onClick={() => {
+                                            setFile(null);
+                                            setFileError('');
                                         }}
-                                    />
-                                    <div className="pillin">
-                                        <textarea
-                                            ref={input}
-                                            rows={1}
-                                            value={text}
-                                            aria-label="Mensagem"
-                                            maxLength={4000}
-                                            onFocus={() => matchMedia('(pointer: coarse)').matches && setPicker(null)}
-                                            onChange={(e) => onType(e.target.value)}
-                                            onPaste={(e) => {
-                                                const f = [...e.clipboardData.files][0];
-                                                if (f) {
-                                                    e.preventDefault();
-                                                    pick(f);
-                                                }
-                                            }}
-                                            onKeyDown={(e) => {
-                                                // Enter envia no computador; no celular o Enter quebra a linha (o botão envia)
-                                                if (
-                                                    e.key === 'Enter' &&
-                                                    !e.shiftKey &&
-                                                    !e.nativeEvent.isComposing &&
-                                                    matchMedia('(pointer: fine)').matches
-                                                ) {
-                                                    e.preventDefault();
-                                                    send();
-                                                }
-                                            }}
-                                        />
+                                    >
+                                        <X size={16} strokeWidth={1.6} />
+                                    </button>
+                                </div>
+                            )}
+                            <div className="cbar">
+                                {recorder.recording ? (
+                                    <>
                                         <button
                                             type="button"
-                                            className="ib"
-                                            aria-label="Emojis"
-                                            aria-pressed={!!picker}
-                                            onClick={() => setPicker(picker ? null : 'emoji')}
+                                            className="ib plus"
+                                            aria-label="Descartar áudio"
+                                            onClick={() => recorder.stop(true)}
                                         >
-                                            <Smile size={21} strokeWidth={1.6} />
+                                            <Trash2 size={21} strokeWidth={1.6} />
                                         </button>
-                                    </div>
-                                    {canSend || !recorder.supported ? (
-                                        <button type="submit" className="go" aria-label="Enviar" disabled={!canSend}>
-                                            <SendHorizontal size={20} strokeWidth={2} />
-                                        </button>
-                                    ) : (
+                                        <div className="rec" role="status">
+                                            <span className="pulse" />
+                                            {durationLabel(recorder.secs)}
+                                        </div>
                                         <button
                                             type="button"
                                             className="go"
-                                            aria-label="Gravar áudio"
-                                            onClick={recorder.start}
+                                            aria-label="Enviar áudio"
+                                            onClick={() => recorder.stop()}
                                         >
-                                            <Mic size={21} strokeWidth={2} />
+                                            <SendHorizontal size={20} strokeWidth={2} />
                                         </button>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    </fieldset>
-                </form>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="ib plus"
+                                            aria-label="Anexar"
+                                            onClick={() => fileInput.current?.click()}
+                                        >
+                                            <Plus size={24} strokeWidth={1.6} />
+                                        </button>
+                                        <input
+                                            ref={fileInput}
+                                            type="file"
+                                            accept={ACCEPT}
+                                            hidden
+                                            onChange={(e) => {
+                                                pick(e.target.files?.[0]);
+                                                e.target.value = '';
+                                            }}
+                                        />
+                                        <div className="pillin">
+                                            <textarea
+                                                ref={input}
+                                                rows={1}
+                                                value={text}
+                                                aria-label="Mensagem"
+                                                maxLength={4000}
+                                                onFocus={() =>
+                                                    matchMedia('(pointer: coarse)').matches && setPicker(null)
+                                                }
+                                                onChange={(e) => onType(e.target.value)}
+                                                onPaste={(e) => {
+                                                    const f = [...e.clipboardData.files][0];
+                                                    if (f) {
+                                                        e.preventDefault();
+                                                        pick(f);
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    // Enter envia no computador; no celular o Enter quebra a linha (o botão envia)
+                                                    if (
+                                                        e.key === 'Enter' &&
+                                                        !e.shiftKey &&
+                                                        !e.nativeEvent.isComposing &&
+                                                        matchMedia('(pointer: fine)').matches
+                                                    ) {
+                                                        e.preventDefault();
+                                                        send();
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="ib"
+                                                aria-label="Emojis"
+                                                aria-pressed={!!picker}
+                                                onClick={() => setPicker(picker ? null : 'emoji')}
+                                            >
+                                                <Smile size={21} strokeWidth={1.6} />
+                                            </button>
+                                        </div>
+                                        {canSend || !recorder.supported ? (
+                                            <button
+                                                type="submit"
+                                                className="go"
+                                                aria-label="Enviar"
+                                                disabled={!canSend}
+                                            >
+                                                <SendHorizontal size={20} strokeWidth={2} />
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="go"
+                                                aria-label="Gravar áudio"
+                                                onClick={recorder.start}
+                                            >
+                                                <Mic size={21} strokeWidth={2} />
+                                            </button>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </fieldset>
+                    </form>
+                )}
             </Wrap>
         </NewPage>
     );
 };
+
+/** Suporte (Mettle Chat). Na impersonação, a conversa do aluno só para ver (o Worker responde readOnly). */
+const NewChat: React.FC = () => <ChatPage />;
 
 export default NewChat;
 
@@ -2153,6 +2178,14 @@ export const Wrap = styled.div`
         /* área segura de baixo (indicador de início do iPhone) + folga, como no WhatsApp */
         padding: 6px 7px calc(var(--sab) + 8px) 9px;
         background: none;
+    }
+    .ro {
+        flex: none;
+        margin: 0;
+        padding: 12px 16px calc(var(--sab) + 14px);
+        text-align: center;
+        font-size: 13px;
+        color: var(--r-faint);
     }
     .replying {
         display: flex;

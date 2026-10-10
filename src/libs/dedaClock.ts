@@ -176,6 +176,8 @@ export const lampSaveProblem = (error: unknown): { text: string; retry: boolean 
             return { text: 'LAMP under maintenance. The team has been notified.', retry: false };
         case 'ACCESS_READ_ONLY':
             return { text: 'Read-only access. Not saved.', retry: false };
+        case 'IMPERSONATION_READ_ONLY':
+            return { text: 'View-only mode. Not saved.', retry: false };
         case 'LAMP_DAY_REPLACED':
         case 'EXPECTED_ROW_ID_REQUIRED':
             return { text: 'This LAMP day was updated. Please try again.', retry: true };

@@ -51,9 +51,6 @@ export interface AccessEvent {
     after: EventFields | null;
 }
 
-/** Página do aluno no Admin (aberta pela linha de /admin/historico). */
-export const studentPath = (uid: string) => `/admin/aluno/${encodeURIComponent(uid)}`;
-
 export const PRODUCT_NAMES: Record<Product, string> = { imerso: 'Imerso', masterclass: 'Masterclass', ebook: 'E-book' };
 
 export const ORIGINS: { value: Origin; label: string }[] = [
@@ -204,6 +201,9 @@ export const eventWhen = (at: string) => {
 export const serverProblem = (error: unknown) => {
     const data = (error as { response?: { status?: number; data?: { code?: string; message?: string } } } | null)
         ?.response;
+    // impersonação: o token do administrador não comporta os dados do aluno (o servidor não começa)
+    if (data?.data?.code === 'CLAIMS_TOO_LARGE')
+        return 'Não dá para ver como este aluno: os dados dele não cabem no login. Nada foi alterado.';
     if (data?.data?.message) return data.data.message;
     if (data?.status === 403) return 'Sem permissão para esta ação.';
     return 'Não foi possível gravar. Tente de novo.';

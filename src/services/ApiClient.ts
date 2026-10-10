@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { auth } from 'config/firebase';
 import { HTTPOptions, HTTPResponse, HTTPClient } from 'interfaces';
 import { ACCESS_DENIED_EVENT, IMERSO_PRODUCT, IMERSO_SALES_URL } from 'libs/productAccess';
+import { blocksWrite, VIEW_ONLY_CODE, VIEW_ONLY_EVENT, viewOnlyRefusal } from 'libs/viewOnly';
 
 const mettleApiUrl = process.env.METTLE_API_URL;
 
@@ -27,6 +28,27 @@ class ApiClient implements HTTPClient {
                 baseURL: serviceName,
             });
         }
+        this.setViewOnlyInterceptor();
+    }
+
+    // Impersonação = modo visualização, em TODO cliente (inclusive os de endereço completo, como o hub de eventos): nada
+    // grava como o aluno (libs/viewOnly). Registrado por último, roda antes dos outros (o axios roda os pedidos de trás
+    // para frente) e não chega a pedir o token. A recusa do servidor (403 IMPERSONATION_READ_ONLY) avisa a barra.
+    setViewOnlyInterceptor() {
+        this.client.interceptors.request.use((config) => {
+            if (blocksWrite(config.method, config.url)) throw viewOnlyRefusal();
+            return config;
+        });
+        this.client.interceptors.response.use(undefined, (error) => {
+            if (
+                typeof window !== 'undefined' &&
+                error?.isAxiosError && // a recusa do próprio aparelho já avisou (só com gesto)
+                error.response?.status === 403 &&
+                error.response.data?.code === VIEW_ONLY_CODE
+            )
+                window.dispatchEvent(new CustomEvent(VIEW_ONLY_EVENT));
+            return Promise.reject(error);
+        });
     }
 
     // Espera a sessão do Firebase uma vez e lê o token da conta atual (antes, cada pedido deixava um

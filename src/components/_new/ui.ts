@@ -813,7 +813,7 @@ export const Page = styled.div`
         justify-content: flex-end;
         padding: 20px 0 0;
     }
-    /* Histórico do programa (Configurações → IMERSO e /admin/historico): título + a mesma lista de linhas */
+    /* Histórico do programa (Configurações → IMERSO): título + a mesma lista de linhas */
     .history {
         margin-top: 36px;
     }

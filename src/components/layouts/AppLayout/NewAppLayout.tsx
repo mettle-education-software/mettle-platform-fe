@@ -2,27 +2,25 @@
 
 import { css, Global, keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
-import { Button, ConfigProvider, Drawer, Flex, Modal, Select } from 'antd';
+import { Drawer } from 'antd';
 import { NewPage } from 'components/_new/NewPage';
 import { NewContentLoading } from 'components/_new/NewStatus';
 import { RunChip } from 'components/_new/RunGold';
 import { ThemeCycle, ThemeSwitch } from 'components/_new/ThemeSwitch';
-import { popupStyles } from 'components/_new/ui';
 import { Logo } from 'components/atoms/Logo/Logo';
 import { auth } from 'config/firebase';
 import { useDeviceSize } from 'hooks';
 import { useDedaRun } from 'hooks/melp/lampDays';
-import { useSegmentCounts } from 'hooks/useAdmin';
 import { useProfile } from 'hooks/useProfile';
-import { useLogoTheme, useNewAntdTheme } from 'hooks/useTheme';
+import { useLogoTheme } from 'hooks/useTheme';
 import { saoPauloWeekday } from 'libs';
-import { ADMIN_SEGMENTS, SEGMENT_OWNERS } from 'libs/adminSegments';
-import { ADMIN_PANEL_EVENT } from 'libs/adminTools';
-import { isLeituraOwner } from 'libs/leitura';
+import { ADMIN_PANEL_PATH, adminPanelPath } from 'libs/adminPanel';
 import { activeMenuKeys, displayName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, RENEWAL_URLS, renewalNotice, shellGate } from 'libs/productAccess';
+import { VIEW_ONLY_EVENT } from 'libs/viewOnly';
 import {
     GraduationCap,
+    Eye,
     Headset,
     House,
     LogOut,
@@ -39,9 +37,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { forwardRef, useEffect, useMemo, useState } from 'react';
+import { accountService } from 'services';
 import { ICON, platformTokens, UI_FONT_CLASS, UI_FONT_VAR, ui } from 'themes/newDesign';
-import { useAdminImpersonation } from '../AdminActions/AdminActions';
-import { MERCY_MODE_UIDS, MercyMode } from '../AdminActions/MercyMode';
 import { useAppMenu } from './appMenu';
 
 /* ---------- estilos ---------- */
@@ -519,6 +516,38 @@ const Frame = styled.div`
     }
 
     /* ---------- avisos da casca ---------- */
+    /* impersonação: a linha fina "Visualizando como …", sempre à vista no alto da área de conteúdo */
+    .viewas {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 12px;
+        padding: 8px 20px;
+        border-bottom: 1px solid var(--r-line);
+        background: var(--r-surf);
+        font-size: 13.5px;
+        line-height: 1.4;
+        color: var(--r-muted);
+    }
+    .viewas b {
+        font-weight: 500;
+        color: var(--r-text);
+    }
+    .viewas svg {
+        flex: none;
+        color: var(--r-gold-hi);
+    }
+    .viewas span {
+        flex: 1;
+        min-width: 200px;
+    }
+    .viewas .lnk {
+        min-height: 36px;
+        margin-right: -8px;
+    }
     .grace {
         display: flex;
         flex-wrap: wrap;
@@ -782,157 +811,88 @@ const MelpMini: React.FC<{ bar?: boolean }> = ({ bar }) => {
 };
 
 /**
- * Painel de administração (impersonar alunos): as mesmas funções do AdminActions atual (useAdminImpersonation), na
- * linguagem nova — escuro, Manrope, campo e botão finos, sem moldura de card e sem "Cancelar" (X, Esc e fora fecham).
+ * Admin na casca: leva ao Início do Admin (/admin). Some na impersonação (a visão é a do aluno; a saída fica na barra
+ * "Visualizando como").
  */
-/** `host`: só o painel, sem o item (no celular o menu é uma gaveta; o cartão de /admin abre o painel por aqui). */
-const AdminItem: React.FC<{ host?: boolean }> = ({ host }) => {
-    const admin = useAdminImpersonation();
-    const onAdmin = (usePathname() ?? '').startsWith('/admin');
-    const antdTheme = useNewAntdTheme();
+const AdminItem: React.FC = () => {
     const { user } = useAppContext();
-    const router = useRouter();
-    // Impersonando, o contexto traz o uid do aluno; as chaves do dono olham a conta que fez o login.
-    const realUid = auth.currentUser?.uid;
-    const segmentsOn = admin.isAdmin && !!realUid && SEGMENT_OWNERS.includes(realUid) && !admin.impersonating;
-    const counts = useSegmentCounts(segmentsOn && admin.visible);
-    // o painel também abre pela página /admin (cartão "Painel de alunos"); um só painel responde
-    useEffect(() => {
-        const open = (e: Event) => {
-            const d = (e as CustomEvent<{ done: boolean }>).detail;
-            if (d?.done) return;
-            if (d) d.done = true;
-            admin.setVisible(true);
-        };
-        window.addEventListener(ADMIN_PANEL_EVENT, open);
-        return () => window.removeEventListener(ADMIN_PANEL_EVENT, open);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-    const owner = isLeituraOwner(realUid);
-    if (!admin.isAdmin) return null;
-    const mercyUid = admin.impersonating ? user?.uid : admin.selectedUserToImpersonate;
-    const mercyLabel = admin.impersonating
-        ? user?.name
-        : admin.options?.find((o) => o.value === admin.selectedUserToImpersonate)?.label.split(' - ')[0];
+    const onAdmin = (usePathname() ?? '').startsWith('/admin');
+    if (!user?.roles?.includes('METTLE_ADMIN') || user.impersonating) return null;
     return (
-        <>
-            {host ? null : owner ? (
-                // o dono: "Admin" leva às ferramentas internas (/admin); o painel de alunos abre de lá
-                <Link className="it" href="/admin" title="Admin" aria-current={onAdmin ? 'page' : undefined}>
-                    <ShieldCheck {...ICON} aria-hidden />
-                    <span className="lbl">Admin</span>
-                </Link>
-            ) : (
-                <button type="button" className="it" onClick={() => admin.setVisible(true)} title="Admin panel">
-                    <ShieldCheck {...ICON} aria-hidden />
-                    <span className="lbl">Admin panel</span>
-                </button>
-            )}
-            <ConfigProvider theme={antdTheme}>
-                <Global styles={popupStyles} />
-                <Modal
-                    open={admin.visible}
-                    onCancel={admin.handleClose}
-                    footer={null}
-                    title="Painel de administração"
-                    className={`ui-new-modal ${UI_FONT_CLASS}`}
-                    width={520}
-                >
-                    <div className="modal-body">
-                        <p className="eyebrow" id="admin-impersonate">
-                            Impersonar alunos
-                        </p>
-                        {admin.impersonating ? (
-                            <Flex gap={12} align="center" justify="space-between" wrap>
-                                <p>Você está impersonando.</p>
-                                <Button
-                                    type="primary"
-                                    onClick={admin.handleStopImpersonating}
-                                    loading={admin.stopImpersonate.isPending}
-                                >
-                                    Retornar à conta normal
-                                </Button>
-                            </Flex>
-                        ) : (
-                            <>
-                                {segmentsOn && (
-                                    <div className="seg" role="group" aria-label="Segmento de alunos">
-                                        {ADMIN_SEGMENTS.map((s) => (
-                                            <button
-                                                key={s.key}
-                                                type="button"
-                                                aria-pressed={admin.segment === s.key}
-                                                onClick={() => {
-                                                    admin.setSegment(admin.segment === s.key ? null : s.key);
-                                                    admin.setSelectedUserToImpersonate(undefined);
-                                                }}
-                                            >
-                                                {s.label}
-                                                <span className="n">{counts.data?.[s.key] ?? '–'}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                                <Flex gap={8} wrap style={{ width: '100%' }}>
-                                    <Select
-                                        aria-labelledby="admin-impersonate"
-                                        loading={admin.isMettleUsersLoading}
-                                        showSearch
-                                        allowClear
-                                        onClear={admin.handleClear}
-                                        onSearch={admin.handleSearch}
-                                        filterOption={false}
-                                        onSelect={(value) => admin.setSelectedUserToImpersonate(value)}
-                                        value={admin.selectedUserToImpersonate}
-                                        style={{ flex: '1 1 220px', minWidth: 0 }}
-                                        popupMatchSelectWidth={false}
-                                        dropdownStyle={{ maxWidth: 'min(520px, 92vw)' }}
-                                        placeholder="Nome ou e-mail do aluno"
-                                        options={admin.options}
-                                    />
-                                    <Button
-                                        style={{ flex: 'none' }}
-                                        type="primary"
-                                        loading={admin.impersonate.isPending}
-                                        onClick={admin.handleImpersonate}
-                                        disabled={!admin.selectedUserToImpersonate}
-                                    >
-                                        Acessar
-                                    </Button>
-                                </Flex>
-                            </>
-                        )}
-                        {!!realUid && MERCY_MODE_UIDS.includes(realUid) && (
-                            <MercyMode studentUid={mercyUid} studentLabel={mercyLabel} />
-                        )}
-                        {isLeituraOwner(realUid) && (
-                            <>
-                                <p className="eyebrow" style={{ marginTop: 20 }}>
-                                    Ferramentas
-                                </p>
-                                <Button
-                                    onClick={() => {
-                                        admin.handleClose();
-                                        router.push('/admin/leitura');
-                                    }}
-                                >
-                                    Análise de leitura
-                                </Button>
-                                <Button
-                                    style={{ marginLeft: 8 }}
-                                    onClick={() => {
-                                        admin.handleClose();
-                                        router.push('/admin/leaderboard');
-                                    }}
-                                >
-                                    Leaderboard
-                                </Button>
-                            </>
-                        )}
-                    </div>
-                </Modal>
-            </ConfigProvider>
-        </>
+        <Link className="it" href="/admin" title="Admin" aria-current={onAdmin ? 'page' : undefined}>
+            <ShieldCheck {...ICON} aria-hidden />
+            <span className="lbl">Admin</span>
+        </Link>
+    );
+};
+
+/**
+ * Impersonação (plataforma nova): uma linha fina — de quem é a visão, o modo visualização (nada grava) e a saída, que
+ * volta ao Painel de Contas na própria conta. Uma gravação recusada aparece aqui, sem janela.
+ */
+const ViewAsBar: React.FC = () => {
+    const { user } = useAppContext();
+    const viewAs = user?.viewAs;
+    const [blocked, setBlocked] = useState(false);
+    // o servidor recusou por impersonação sem esta aba saber (começou em outra): a barra aparece para sair
+    const [stuck, setStuck] = useState(false);
+    const [leaving, setLeaving] = useState<'idle' | 'busy' | 'failed'>('idle');
+    const [expired, setExpired] = useState(false);
+    useEffect(() => {
+        let timer: number | undefined;
+        const onBlocked = () => {
+            setBlocked(true);
+            setStuck(true);
+            window.clearTimeout(timer);
+            timer = window.setTimeout(() => setBlocked(false), 4000);
+        };
+        window.addEventListener(VIEW_ONLY_EVENT, onBlocked);
+        return () => {
+            window.removeEventListener(VIEW_ONLY_EVENT, onBlocked);
+            window.clearTimeout(timer);
+        };
+    }, []);
+    // a visualização vence em 1 h: a barra avisa na hora (o servidor segue recusando gravações até a saída)
+    const expires = viewAs?.expires ?? 0;
+    useEffect(() => {
+        if (!expires) return;
+        const left = expires - Date.now();
+        if (left <= 0) return setExpired(true);
+        const timer = window.setTimeout(() => setExpired(true), Math.min(left, 2 ** 31 - 1));
+        return () => window.clearTimeout(timer);
+    }, [expires]);
+    if (!viewAs && !stuck) return null;
+    const leave = async () => {
+        setLeaving('busy');
+        try {
+            await accountService.post('/impersonate/remove');
+            await auth.currentUser?.getIdToken(true);
+            window.location.assign(viewAs ? adminPanelPath(viewAs.uid) : ADMIN_PANEL_PATH);
+        } catch {
+            setLeaving('failed');
+        }
+    };
+    const live = !!user?.impersonating && !expired;
+    return (
+        <div className={`viewas ${UI_FONT_CLASS}`} role="status">
+            <Eye {...ICON} aria-hidden />
+            <span>
+                {live ? (
+                    <>
+                        Visualizando como <b>{displayName(user.name) || user.email}</b> · modo visualização
+                    </>
+                ) : viewAs ? (
+                    'A visualização como aluno terminou'
+                ) : (
+                    'Modo visualização ativo nesta conta'
+                )}
+                {blocked && ' · nada foi gravado'}
+                {leaving === 'failed' && ' · não deu para sair, tente de novo'}
+            </span>
+            <button type="button" className="lnk gold" onClick={leave} disabled={leaving === 'busy'}>
+                Sair
+            </button>
+        </div>
     );
 };
 
@@ -1109,6 +1069,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                 <Frame className="ui-new immersive" style={UI_FONT_VAR}>
                     <Global styles={[platformTokens, drawerStyles]} />
                     <div className="main" ref={ref}>
+                        <ViewAsBar />
                         {content}
                     </div>
                 </Frame>
@@ -1130,7 +1091,6 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                             {withMelpSummary && <MelpMini bar />}
                         </header>
                         {drawer}
-                        <AdminItem host />
                     </>
                 ) : (
                     <aside className={`sb ${UI_FONT_CLASS}`}>
@@ -1152,6 +1112,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                 )}
                 {!isMobile && drawer}
                 <div className="main" ref={ref}>
+                    <ViewAsBar />
                     {graceBanner}
                     {content}
                 </div>

@@ -3,12 +3,14 @@
 import { JSDOM } from 'jsdom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { NewAdminStudent } from '../../components/_new/NewAdminStudent';
+import { StudentDetail } from '../../components/_new/NewAdminStudent';
 import type { AccessRow } from '../adminAccess';
 
 let mockAccess: any;
 let mockEvents: any;
 let mockHistory: any;
+let mockLookup: any;
+const mockLookupCalls: unknown[][] = [];
 const mockMutate = jest.fn();
 
 jest.mock(
@@ -16,7 +18,39 @@ jest.mock(
     () => ({
         useStudentAccess: () => mockAccess,
         useStudentAccessEvents: () => mockEvents,
+        useImpersonateStudent: () => ({
+            mutate: jest.fn(),
+            reset: jest.fn(),
+            isPending: false,
+            isError: false,
+            isSuccess: false,
+        }),
+        useProgramAllowances: () => ({
+            mutate: jest.fn(),
+            reset: jest.fn(),
+            isPending: false,
+            isError: false,
+            isSuccess: false,
+        }),
+        useFactoryReset: () => ({
+            mutate: jest.fn(),
+            reset: jest.fn(),
+            isPending: false,
+            isError: false,
+            isSuccess: false,
+        }),
+        useTrashAccount: () => ({
+            mutate: jest.fn(),
+            reset: jest.fn(),
+            isPending: false,
+            isError: false,
+            isSuccess: false,
+        }),
         useAdminHistory: () => mockHistory,
+        useAdminAccounts: (...args: unknown[]) => {
+            mockLookupCalls.push(args);
+            return mockLookup;
+        },
         useSaveStudentAccess: () => ({
             mutate: mockMutate,
             reset: jest.fn(),
@@ -29,6 +63,8 @@ jest.mock(
 );
 jest.mock('libs/adminAccess', () => jest.requireActual('../adminAccess'), { virtual: true });
 jest.mock('libs/adminHistory', () => jest.requireActual('../adminHistory'), { virtual: true });
+jest.mock('libs/adminPanel', () => jest.requireActual('../adminPanel'), { virtual: true });
+jest.mock('../../components/layouts/AdminActions/MercyMode', () => ({ MERCY_MODE_UIDS: [], MercyMode: () => null }));
 jest.mock('libs/leitura', () => ({ isLeituraOwner: () => true }), { virtual: true });
 jest.mock('config/firebase', () => ({ auth: { currentUser: { uid: 'dono' } } }), { virtual: true });
 jest.mock(
@@ -56,7 +92,7 @@ const row = (patch: Partial<AccessRow>): AccessRow => ({
     ...patch,
 });
 
-const render = () => new JSDOM(renderToStaticMarkup(createElement(NewAdminStudent, { uid: 'aluno' }))).window.document;
+const render = () => new JSDOM(renderToStaticMarkup(createElement(StudentDetail, { uid: 'aluno' }))).window.document;
 const product = (d: Document, name: string) =>
     [...d.querySelectorAll('li.prod')].find((li) => li.querySelector('.lab b')?.textContent === name) as Element;
 const pressed = (el: Element) => [...el.querySelectorAll('button[aria-pressed="true"]')].map((b) => b.textContent);
@@ -92,6 +128,31 @@ beforeEach(() => {
         ],
     };
     mockHistory = { data: undefined };
+    mockLookup = { data: undefined };
+    mockLookupCalls.length = 0;
+});
+
+test('aberta fora da página da lista (Início, saída da impersonação): o programa vem da busca pelo e-mail', () => {
+    mockLookup = {
+        data: {
+            rows: [
+                {
+                    uid: 'outra',
+                    program: { melpStatus: 'DEDA_PAUSED', lampWeek: 9, remainingPauses: 0, remainingResets: 0 },
+                },
+                {
+                    uid: 'aluno',
+                    program: { melpStatus: 'DEDA_STARTED', lampWeek: 3, remainingPauses: 1, remainingResets: 2 },
+                },
+            ],
+        },
+    };
+    const d = render();
+    expect(mockLookupCalls.at(-1)).toEqual([
+        { q: 'aluna@example.test', sort: { key: 'name', dir: 'asc' }, page: 1 },
+        true,
+    ]);
+    expect(d.querySelector('section[aria-labelledby="as-program"]')?.textContent).toContain('Em andamento · sem. 3');
 });
 
 test('cabeçalho: nome, e-mail, inicial no lugar da foto e "Sem login"', () => {
@@ -150,7 +211,7 @@ test('servidor ainda sem a rota (404 no gateway): uma linha calma e "Tentar de n
     expect(d.querySelector('li.prod')).toBeNull();
 });
 
-test('aluno que não existe: "Aluno não encontrado."', () => {
+test('aluno que não existe: "Conta não encontrada."', () => {
     mockAccess = {
         isLoading: false,
         isError: true,
@@ -158,7 +219,7 @@ test('aluno que não existe: "Aluno não encontrado."', () => {
         refetch: jest.fn(),
     };
     const d = render();
-    expect(d.body.textContent).toContain('Aluno não encontrado.');
+    expect(d.body.textContent).toContain('Conta não encontrada.');
     expect(d.body.textContent).not.toContain('Tentar de novo');
 });
 

@@ -222,3 +222,37 @@ test('tolerante: ordem pela data (empate pelo id), tipo desconhecido e evento ma
     expect(programHistory(null, 3)).toEqual([]);
     expect(programHistory(undefined, undefined)).toEqual([]);
 });
+
+test('pausas/resets a mais e reset de fábrica: linhas próprias; a contagem sem data soma os resets a mais e recomeça na era nova', () => {
+    // 3 + 2 a mais − 1 restante − 1 registrado = 3 sem data
+    const rows = programHistory(
+        [
+            ev('allowance', '2026-10-10T15:00:00.000Z', { actor: 'admin', addPauses: 2, addResets: 2 }),
+            ev('allowance', '2026-10-11T15:00:00.000Z', { actor: 'admin', addPauses: 1, addResets: 0 }),
+            ev('reset', '2026-10-12T15:00:00.000Z'),
+        ],
+        1,
+    );
+    expect(lines(rows)).toEqual([
+        'Reset | data não registrada',
+        'Reset | data não registrada',
+        'Reset | data não registrada',
+        '2 pausas e 2 resets a mais | 10/10/2026',
+        '1 pausa a mais | 11/10/2026',
+        'Reset | 12/10/2026',
+    ]);
+    // reset de fábrica: fecha a pausa aberta; antes dele nada conta (3 restantes, nada sem data)
+    const fresh = programHistory(
+        [
+            ev('reset', '2026-09-01T15:00:00.000Z'),
+            ev('pause', '2026-09-20T12:00:00.000Z'),
+            ev('factory_reset', '2026-10-10T15:00:00.000Z', { actor: 'admin' }),
+        ],
+        3,
+    );
+    expect(lines(fresh)).toEqual([
+        'Reset | 01/09/2026',
+        'Pausa | 20/09/2026 – 10/10/2026',
+        'Reset de fábrica | 10/10/2026',
+    ]);
+});

@@ -97,8 +97,8 @@ export interface EbookBook {
     chapters: EbookChapter[];
     position: EbookPosition | null;
     marks?: { bookmarks: EbookBookmark[]; highlights: EbookHighlight[] };
-    /** token curto para gravar a posição no Worker (sincroniza aparelhos) */
-    save: string;
+    /** token curto para gravar a posição e as marcas no Worker (sincroniza aparelhos); null = só leitura (impersonação) */
+    save: string | null;
 }
 
 export const EBOOK_POSITION_KEY = 'ebookPosition';

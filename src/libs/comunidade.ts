@@ -31,8 +31,11 @@ export type CState = {
     members: number;
     lastRead: number;
     unread: number;
-    ws: string;
+    /** null quando só leitura (impersonação) */
+    ws: string | null;
     vapid: string | null;
+    /** impersonação: o grupo como o aluno vê, só para ver (gravações: 403 IMPERSONATION_READ_ONLY) */
+    readOnly?: boolean;
 };
 
 /** No formato do Mettle Chat (para os mesmos balões, grupos e separadores de dia). */

@@ -21,6 +21,7 @@ import {
 } from 'libs/leitura';
 import React, { useState } from 'react';
 import { adminService } from 'services';
+import { AdminNav } from './AdminNav';
 import { NewPage } from './NewPage';
 import { PageHead } from './PageHead';
 
@@ -576,6 +577,7 @@ const NewLeitura: React.FC = () => {
     return (
         <NewPage className="narrow lei">
             <Global styles={styles} />
+            <AdminNav />
             <PageHead
                 eyebrow="Interno · só você vê"
                 title="Leitura do DEDA"

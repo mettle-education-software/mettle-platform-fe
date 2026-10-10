@@ -37,7 +37,29 @@ jest.mock(
                 },
             }),
             useStudentAccessEvents: () => ({ isLoading: false, isError: false, data: [] }),
+            useImpersonateStudent: () => ({
+                mutate: jest.fn(),
+                reset: jest.fn(),
+                isPending: false,
+                isError: false,
+                isSuccess: false,
+            }),
+            useProgramAllowances: () => ({
+                mutate: jest.fn(),
+                reset: jest.fn(),
+                isPending: false,
+                isError: false,
+                isSuccess: false,
+            }),
+            useFactoryReset: () => ({
+                mutate: jest.fn(),
+                reset: jest.fn(),
+                isPending: false,
+                isError: false,
+                isSuccess: false,
+            }),
             useAdminHistory: () => ({ data: undefined }),
+            useAdminAccounts: () => ({ data: undefined }),
             useSaveStudentAccess: () => ({ isPending: false, isError: false, isSuccess: false, reset: jest.fn() }),
             useTrashAccount: () => {
                 const [state, setState] = React.useState({ isPending: false, isSuccess: false, data: undefined });
@@ -63,6 +85,8 @@ jest.mock(
 );
 jest.mock('libs/adminAccess', () => jest.requireActual('../adminAccess'), { virtual: true });
 jest.mock('libs/adminHistory', () => jest.requireActual('../adminHistory'), { virtual: true });
+jest.mock('libs/adminPanel', () => jest.requireActual('../adminPanel'), { virtual: true });
+jest.mock('../../components/layouts/AdminActions/MercyMode', () => ({ MERCY_MODE_UIDS: [], MercyMode: () => null }));
 jest.mock('libs/leitura', () => ({ isLeituraOwner: () => false }), { virtual: true });
 jest.mock(
     'config/firebase',
@@ -94,8 +118,9 @@ const { act, createElement } = jest.requireActual('react');
 const { createRoot } = jest.requireActual('react-dom/client');
 const { emailMatches, isTrashOwner, trashName, brInstantDay } = jest.requireActual('../adminAccess');
 
+const EXPORTS: Record<string, string> = { NewAdminTrash: 'TrashList', NewAdminStudent: 'StudentDetail' };
 const mount = (component: string, props = {}) => {
-    const Component = jest.requireActual(`../../components/_new/${component}`)[component];
+    const Component = jest.requireActual(`../../components/_new/${component}`)[EXPORTS[component]];
     const host = document.createElement('div');
     document.body.appendChild(host);
     const root = createRoot(host);
@@ -156,7 +181,8 @@ describe('/admin/lixeira', () => {
         expect(host.textContent).toContain('Aluna Teste');
         expect(host.textContent).toContain('aluna@example.test');
         expect(host.textContent).toContain('Exclusão definitiva em 09/11/2026');
-        expect(host.querySelector('a')?.getAttribute('href')).toBe('/admin/aluno/aluno');
+        // a conta abre sobre a própria lixeira (fechar volta a ela)
+        expect(host.querySelector('a')?.getAttribute('href')).toBe('/admin/contas?lixeira=1&conta=aluno');
         click(button(host, 'Restaurar')!);
         expect(mockRestore).toHaveBeenCalledWith('aluno');
         act(() => root.unmount());

@@ -10,9 +10,6 @@ export const ADMIN_SEGMENTS: { key: AdminSegment; label: string; server: string;
     { key: 'ebook_no_imerso', label: 'E-book sem Imerso', server: 'no_imerso', ebook: true },
 ];
 
-/** Não é segredo: o servidor exige METTLE_ADMIN em tudo. */
-export const SEGMENT_OWNERS: readonly string[] = ['RBgG61nNKdgHUKCkxhR4vhaBLGU2'];
-
 export const EBOOK_BUYERS_URL = 'https://events.mettle.com.br/plataforma/admin/ebook-buyers';
 
 const norm = (email?: string | null) => (email ?? '').trim().toLowerCase();

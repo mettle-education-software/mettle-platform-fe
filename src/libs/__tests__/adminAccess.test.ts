@@ -10,7 +10,6 @@ import {
     grantOptions,
     isDirty,
     serverProblem,
-    studentPath,
     termKind,
     termProblem,
 } from '../adminAccess';
@@ -203,6 +202,8 @@ describe('selos, registro e textos', () => {
         );
         expect(serverProblem({ response: { status: 403, data: {} } })).toBe('Sem permissão para esta ação.');
         expect(serverProblem(new Error('rede'))).toBe('Não foi possível gravar. Tente de novo.');
-        expect(studentPath('abc123')).toBe('/admin/aluno/abc123');
+        expect(
+            serverProblem({ response: { status: 409, data: { code: 'CLAIMS_TOO_LARGE', message: 'x' } } }),
+        ).toContain('Não dá para ver como este aluno');
     });
 });

@@ -14,7 +14,8 @@ const { Title } = Typography;
 export const useAdminImpersonation = () => {
     const { user } = useAppContext();
 
-    const impersonating = user?.impersonating;
+    // vencida (1 h), a impersonação segue no token e o servidor recusa gravações até a saída: "Retornar" continua
+    const impersonating = user?.impersonating || !!user?.viewAs;
 
     const [visible, setVisible] = useState(false);
     const [selectedUserToImpersonate, setSelectedUserToImpersonate] = useState<string>();

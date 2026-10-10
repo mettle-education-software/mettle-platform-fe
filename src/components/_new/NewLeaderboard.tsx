@@ -20,6 +20,7 @@ import {
 } from 'libs/leaderboard';
 import React, { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { AdminNav } from './AdminNav';
 import { NewPage } from './NewPage';
 import { PageHead } from './PageHead';
 import { RunChip } from './RunGold';
@@ -536,6 +537,7 @@ const NewLeaderboard: React.FC = () => {
     return (
         <NewPage className="lb">
             <Global styles={styles} />
+            <AdminNav />
             <PageHead
                 eyebrow="Interno · só você vê"
                 title="Leaderboard"

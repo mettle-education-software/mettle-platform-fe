@@ -1,23 +1,27 @@
 'use client';
 
 import { AppLayout } from 'components';
-import { auth } from 'config/firebase';
+import { useNewDesign } from 'hooks/useNewDesign';
 import { withAuthentication } from 'libs';
-import { isLeituraOwner } from 'libs/leitura';
 import dynamic from 'next/dynamic';
 import { notFound } from 'next/navigation';
 import { useAppContext } from 'providers';
 import React from 'react';
 
-// Ferramentas internas (só o dono, plataforma nova): o mesmo filtro da Análise de leitura. Fora do bundle dos alunos.
-const NewAdminHub = dynamic(() => import('components/_new/NewAdminHub'), { ssr: false, loading: () => null });
+// Início do Admin (painel com os números do dia): administradores, plataforma nova; fora do bundle dos alunos.
+const NewAdminDashboard = dynamic(() => import('components/_new/NewAdminDashboard'), {
+    ssr: false,
+    loading: () => null,
+});
 
 const Admin = () => {
-    useAppContext(); // reavalia quando a sessão carrega; a decisão usa a conta realmente logada
-    if (!isLeituraOwner(auth.currentUser?.uid)) notFound();
+    const { user } = useAppContext();
+    const newDesign = useNewDesign();
+    if (!user) return null; // as claims (roles) ainda carregando
+    if (!newDesign || !user.roles?.includes('METTLE_ADMIN')) notFound();
     return (
         <AppLayout>
-            <NewAdminHub />
+            <NewAdminDashboard />
         </AppLayout>
     );
 };

@@ -55,10 +55,21 @@ export const readLevels = (raw: unknown): AccessLevels | undefined => {
     return Object.keys(levels).length ? levels : undefined;
 };
 
-/** `access` de GET /accounts/me, só se a resposta for da conta vista (servidor sem a impersonação devolve o admin). */
+/**
+ * `access` de GET /accounts/me, só se a resposta for da conta vista (servidor sem a impersonação devolve o admin). Conta
+ * ainda sem nenhuma linha de acesso (`accessDetails` sem `updatedAt`: antes da carga inicial) não decide nada: o
+ * servidor responde "none" para tudo, e a conta seguiria pelas roles de antes, sem trancar quem tem o produto.
+ */
 export const levelsFromMe = (data: unknown, uid?: string): AccessLevels | undefined => {
-    const me = data as { access?: unknown; fbData?: { uid?: string; customClaims?: { access?: unknown } } } | undefined;
+    const me = data as
+        | {
+              access?: unknown;
+              accessDetails?: { updatedAt?: unknown }[];
+              fbData?: { uid?: string; customClaims?: { access?: unknown } };
+          }
+        | undefined;
     if (!uid || me?.fbData?.uid !== uid) return undefined;
+    if (Array.isArray(me.accessDetails) && !me.accessDetails.some((row) => row?.updatedAt)) return undefined;
     return readLevels(me.access ?? me.fbData.customClaims?.access);
 };
 

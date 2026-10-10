@@ -119,6 +119,27 @@ describe('modelo novo (claims `access`: ativo | leitura | none)', () => {
         expect(levelsFromMe(me, undefined)).toBeUndefined();
     });
 
+    it('levelsFromMe: conta sem nenhuma linha de acesso (antes da carga) não decide; com uma linha, decide', () => {
+        const none = { access: { imerso: 'none', masterclass: 'none', ebook: 'none' } };
+        const rows = (updatedAt: string | null) =>
+            ['imerso', 'masterclass', 'ebook'].map((product) => ({ product, state: 'none', updatedAt }));
+        expect(levelsFromMe({ ...none, fbData: { uid: 'aluno' }, accessDetails: rows(null) }, 'aluno')).toBeUndefined();
+        const loaded = [
+            { product: 'imerso', state: 'leitura', updatedAt: '2026-10-11T03:00:00Z' },
+            ...rows(null).slice(1),
+        ];
+        expect(
+            levelsFromMe(
+                {
+                    access: { imerso: 'leitura', masterclass: 'none', ebook: 'none' },
+                    fbData: { uid: 'aluno' },
+                    accessDetails: loaded,
+                },
+                'aluno',
+            ),
+        ).toEqual({ imerso: 'leitura', masterclass: 'none', ebook: 'none' });
+    });
+
     it('accessSource: claim da própria conta; /me na impersonação ou sem claim; nada para o admin na própria conta', () => {
         const access = { imerso: 'leitura' };
         expect(accessSource({ roles: ['METTLE_STUDENT'], access })).toEqual({ claim: access, me: false });

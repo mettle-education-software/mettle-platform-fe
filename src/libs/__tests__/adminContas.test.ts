@@ -227,7 +227,7 @@ test('a lista: conta com selo Equipe, Ativo/Leitura com a linha miúda, programa
     // programa só com o número; nível como selo; métricas curtas; LTV em dinheiro e "compras · dias"
     expect(cells[4]).toBe('12');
     expect(cells[5]).toBe('Boost');
-    expect(cells[6]).toBe('85,4%');
+    expect(cells[6]).toBe('85,37%');
     expect(cells[7]).toBe('77');
     expect(cells[8]).toBe('12º');
     expect(cells[9]).toBe('09/10/2026');

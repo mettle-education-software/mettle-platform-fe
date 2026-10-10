@@ -528,4 +528,9 @@ test('texto de apresentação: marcas de ênfase do markdown saem, sublinhado de
     );
     expect(plainEmphasis('**a** e _b_; snake_case_name')).toBe('a e b; snake_case_name');
     expect(plainEmphasis('sem marcas')).toBe('sem marcas');
+    // aninhada sai inteira; letras acentuadas contam como palavra; marcadores de lista e linhas separadas ficam
+    expect(plainEmphasis('**bold _it_ x**')).toBe('bold it x');
+    expect(plainEmphasis('café_com_ leite')).toBe('café_com_ leite');
+    expect(plainEmphasis('* item\n* outro')).toBe('* item\n* outro');
+    expect(plainEmphasis('_um\n\ndois_')).toBe('_um\n\ndois_');
 });

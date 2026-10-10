@@ -752,7 +752,12 @@ export const RecentDedas: React.FC<{
         .filter((x, index) => !(skipCurrent && index === 0 && x.deda?.dedaId === grid.currentDeda))
         .filter((x): x is { deda: NonNullable<typeof x.deda>; week: number | undefined } => !!x.deda)
         .slice(0, 5);
-    if (!items.length && !grid.showSkeleton) return aside ? <div className="sh">{aside}</div> : null;
+    if (!items.length && !grid.showSkeleton)
+        return aside ? (
+            <section aria-label={title}>
+                <div className="sh">{aside}</div>
+            </section>
+        ) : null;
     return (
         <section aria-label={title} className="rd">
             <div className="sh">

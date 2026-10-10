@@ -214,14 +214,20 @@ export const fileSizeLabel = (size: number) =>
           ? `${(size / 1024).toFixed(2)} KB`
           : `${(size / (1024 * 1024)).toFixed(2)} MB`;
 
+// a marca abre e fecha fora de palavra (snake_case e "café_com_leite" ficam como estão), numa linha só
+const EMPHASIS = /(^|[^\p{L}\p{N}_*])(\*{1,3}|_{1,3})(?=\S)([^*_\n]*?\S)\2(?![\p{L}\p{N}_*])/gu;
+/**
+ * Texto de apresentação do Contentful com marcas de ênfase do markdown (___assim___, **assim**): só o texto. Aninhada
+ * (**a _b_ c**) sai em mais de uma passada.
+ */
+export const plainEmphasis = (text: string): string => {
+    const next = text.replace(EMPHASIS, '$1$3');
+    return next === text ? text : plainEmphasis(next);
+};
+
 // ---------- miniaturas de vídeo (cards do HPEC) ----------
 
 /** Id numérico do Vimeo de um endereço de embed ("https://player.vimeo.com/video/678384632?" → "678384632"). */
-/** Texto de apresentação do Contentful com marcas de ênfase do markdown (___assim___, **assim**): só o texto. */
-export const plainEmphasis = (text: string) =>
-    // a marca abre e fecha fora de palavra (snake_case fica como está), como no markdown
-    text.replace(/(^|[^\w*])(\*{1,3}|_{1,3})(?=\S)([^*_]*?\S)\2(?![\w*])/g, '$1$3');
-
 export const vimeoIdOf = (embedUrl?: string | null) => /vimeo\.com\/(?:video\/)?(\d+)/.exec(embedUrl ?? '')?.[1];
 
 /**

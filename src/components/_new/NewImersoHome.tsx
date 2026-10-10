@@ -270,8 +270,10 @@ export const NewImersoHome: React.FC = () => {
                 )}
                 <HpecSection trail={trail} loading={loading} error={error} renew={IMERSO_RENEW_URL} />
                 {noMelpProgram ? (
-                    <section aria-label="DEDAs" className="sh">
-                        <ExploreAll />
+                    <section aria-label="DEDAs">
+                        <div className="sh">
+                            <ExploreAll />
+                        </div>
                     </section>
                 ) : (
                     <RecentDedas aside={<ExploreAll />} renew={IMERSO_RENEW_URL} />

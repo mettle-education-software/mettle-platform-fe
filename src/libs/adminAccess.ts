@@ -85,14 +85,15 @@ export type Term =
     | { kind: 'extend'; months: number };
 
 export interface Draft {
-    state: 'ativo' | 'leitura';
+    /** null: produto sem acesso, nada escolhido ainda (a origem escolhida liga Total) */
+    state: 'ativo' | 'leitura' | null;
     origin: Origin | null;
     term: Term;
 }
 
 /** O rascunho começa igual ao servidor (sem acesso: Total, a origem por escolher). */
 export const draftOf = (row: AccessRow): Draft => ({
-    state: row.state === 'leitura' ? 'leitura' : 'ativo',
+    state: row.state === 'none' ? null : row.state,
     origin: row.origin,
     term: { kind: 'keep' },
 });
@@ -135,7 +136,7 @@ export const termProblem = (draft: Draft, row: AccessRow, today = brToday()) => 
  */
 export const accessBody = (draft: Draft, row: AccessRow, today = brToday()): AccessBody | null => {
     const { state, origin, term } = draft;
-    if (!origin || termProblem(draft, row, today)) return null;
+    if (!state || !origin || termProblem(draft, row, today)) return null;
     const body: AccessBody = { state, origin };
     const kind = termKind(origin);
     if (kind === 'none') return body;
@@ -206,4 +207,36 @@ export const serverProblem = (error: unknown) => {
     if (data?.data?.message) return data.data.message;
     if (data?.status === 403) return 'Sem permissão para esta ação.';
     return 'Não foi possível gravar. Tente de novo.';
+};
+
+// ---------- lixeira (só o dono; o servidor confere de novo: 403 OWNER_ONLY para qualquer outro) ----------
+
+/** Só esta conta exclui e restaura (POST /accounts/:uid/trash e /restore, GET /admin/trash). */
+export const TRASH_OWNER_UID = 'RBgG61nNKdgHUKCkxhR4vhaBLGU2';
+export const isTrashOwner = (uid?: string | null) => uid === TRASH_OWNER_UID;
+
+export interface TrashEntry {
+    userUid: string;
+    email: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    priorStatus: string | null;
+    trashedAt: string;
+    purgeAfter: string;
+    trashedBy: string | null;
+}
+
+/** O e-mail digitado confere com o da conta (sem diferença de maiúsculas e espaços nas pontas). */
+export const emailMatches = (typed: string, email?: string | null) =>
+    !!email && typed.trim().toLowerCase() === email.trim().toLowerCase();
+
+export const trashName = (entry: TrashEntry) =>
+    [entry.firstName, entry.lastName].filter(Boolean).join(' ').trim() || entry.email || entry.userUid;
+
+/** Dia de um instante, no relógio de Brasília (DD/MM/AAAA). */
+export const brInstantDay = (at: string | null | undefined) => {
+    const date = at ? new Date(at) : null;
+    return date && !Number.isNaN(date.getTime())
+        ? date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+        : '—';
 };

@@ -169,3 +169,22 @@ test('Leitura → Total com prazo vencido: não grava até escolher um prazo nov
     expect(mockCalls).toEqual([{ state: 'ativo', origin: 'cortesia', grantMonths: 3 }]);
     act(() => root.unmount());
 });
+
+test('sem acesso: nada marcado; escolher a origem já concede (Total) e grava', () => {
+    const { host, root } = mount();
+    const ebook = [...host.querySelectorAll('li.prod')].find(
+        (li) => li.querySelector('.lab b')?.textContent === 'E-book',
+    )!;
+    expect(ebook.querySelectorAll('[aria-pressed="true"]')).toHaveLength(0);
+    expect(button(ebook, 'Salvar').disabled).toBe(true);
+    const select = ebook.querySelector('select') as HTMLSelectElement;
+    act(() => {
+        select.value = 'parceiro';
+        select.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+    });
+    expect([...ebook.querySelectorAll('[aria-pressed="true"]')].map((b) => b.textContent)).toEqual(['Total']);
+    expect(ebook.textContent).toContain('Sem prazo');
+    click(button(ebook, 'Salvar'));
+    expect(mockCalls).toEqual([{ state: 'ativo', origin: 'parceiro' }]);
+    act(() => root.unmount());
+});

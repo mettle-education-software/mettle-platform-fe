@@ -54,9 +54,15 @@ describe('prazo por origem', () => {
 });
 
 describe('PUT do rascunho', () => {
-    it('sem origem não grava', () => {
+    it('sem acesso: nada escolhido (nem Total nem Leitura) e sem origem não grava', () => {
         const none = row({ state: 'none', origin: null, validUntil: null });
+        expect(draftOf(none).state).toBeNull();
         expect(accessBody(draftOf(none), none)).toBeNull();
+        expect(accessBody({ ...draftOf(none), origin: 'parceiro' }, none)).toBeNull();
+        expect(accessBody({ state: 'ativo', origin: 'parceiro', term: { kind: 'keep' } }, none)).toEqual({
+            state: 'ativo',
+            origin: 'parceiro',
+        });
         expect(isDirty(draftOf(none), none)).toBe(true);
     });
 

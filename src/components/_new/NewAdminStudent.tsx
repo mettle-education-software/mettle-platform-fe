@@ -3,19 +3,28 @@
 import { css, Global } from '@emotion/react';
 import { Select } from 'antd';
 import { auth } from 'config/firebase';
-import { useAdminHistory, useSaveStudentAccess, useStudentAccess, useStudentAccessEvents } from 'hooks/useAdmin';
+import {
+    useAdminHistory,
+    useSaveStudentAccess,
+    useStudentAccess,
+    useStudentAccessEvents,
+    useTrashAccount,
+} from 'hooks/useAdmin';
 import {
     AccessRow,
     accessBadges,
     accessBody,
     accessLabel,
     actorLabel,
+    brInstantDay,
     canExtend,
     Draft,
     draftOf,
+    emailMatches,
     eventWhen,
     grantOptions,
     isDirty,
+    isTrashOwner,
     MONTHS,
     ORIGINS,
     PRODUCT_NAMES,
@@ -24,7 +33,6 @@ import {
     termProblem,
 } from 'libs/adminAccess';
 import { studentHistory } from 'libs/adminHistory';
-import { isLeituraOwner } from 'libs/leitura';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { NewPage } from './NewPage';
@@ -66,27 +74,30 @@ const styles = css`
         color: var(--r-muted);
         overflow-wrap: anywhere;
     }
-    .as .as-head .eyebrow a {
-        color: inherit;
-        text-decoration: none;
-    }
     .as .prod .lab b {
         font-size: 15px;
         font-weight: 500;
     }
-    .as .badges {
+    /* selos: pílulas do tamanho do texto (vencem o "span em bloco" de .row .lab) */
+    .as .row .lab .badges {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
         margin-top: 6px;
     }
-    .as .badge {
-        padding: 2px 8px;
+    .as .row .lab .badge {
+        display: inline-block;
+        margin: 0;
+        padding: 2px 9px;
+        border: 1px solid var(--r-gold);
         border-radius: 999px;
         background: var(--r-gold-tint);
-        color: var(--r-gold-hi);
+        color: var(--r-text);
         font-size: 12px;
         white-space: nowrap;
+    }
+    .as .ctl .ant-select-selection-placeholder {
+        color: var(--r-muted);
     }
     .as .ctl {
         display: flex;
@@ -144,6 +155,26 @@ const styles = css`
         margin: 0;
         padding: 0;
         list-style: none;
+    }
+    .as .btn.danger {
+        border-color: var(--r-danger);
+        color: var(--r-danger);
+    }
+    .as .del {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 12px;
+    }
+    .as .del input {
+        flex: 1 1 260px;
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid var(--r-line-strong);
+        border-radius: 999px;
+        background: var(--r-bg);
+        color: var(--r-text);
+        font: inherit;
     }
     .as .log .lab b {
         flex-wrap: wrap;
@@ -256,7 +287,8 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
                         disabled={busy}
                         options={ORIGINS}
                         popupMatchSelectWidth={false}
-                        onChange={(origin) => set({ origin, term: { kind: 'keep' } })}
+                        // produto sem acesso: escolher a origem já é conceder (Total)
+                        onChange={(origin) => set({ origin, term: { kind: 'keep' }, state: draft.state ?? 'ativo' })}
                     />
                     {kind === 'date' && (
                         <input
@@ -315,6 +347,73 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
     );
 };
 
+/** Só o dono: confirma digitando o e-mail; a conta vai para a lixeira por 30 dias (o servidor confere o dono de novo). */
+const DeleteAccount: React.FC<{ uid: string; email?: string | null }> = ({ uid, email }) => {
+    const [open, setOpen] = useState(false);
+    const [typed, setTyped] = useState('');
+    const trash = useTrashAccount(uid);
+    if (trash.isSuccess)
+        return (
+            <p className="msg" role="status">
+                A conta vai para a lixeira por 30 dias (exclusão definitiva em {brInstantDay(trash.data?.purgeAfter)}).{' '}
+                <Link href="/admin/lixeira">Lixeira</Link>
+            </p>
+        );
+    if (!open)
+        return (
+            <button type="button" className="btn line danger" onClick={() => setOpen(true)}>
+                Excluir conta permanentemente
+            </button>
+        );
+    const ok = emailMatches(typed, email);
+    return (
+        <form
+            className="del"
+            onSubmit={(event) => {
+                event.preventDefault();
+                if (ok && !trash.isPending) trash.mutate(typed.trim());
+            }}
+        >
+            {/* excluindo: nada muda até a resposta (sem segundo pedido, sem perder o retorno) */}
+            <input
+                type="email"
+                autoComplete="off"
+                aria-label="Digite o e-mail da conta para confirmar"
+                placeholder="Digite o e-mail da conta"
+                value={typed}
+                disabled={trash.isPending}
+                onChange={(event) => {
+                    if (trash.isPending) return;
+                    trash.reset();
+                    setTyped(event.target.value);
+                }}
+            />
+            <button type="submit" className="btn line danger" disabled={!ok || trash.isPending}>
+                {trash.isPending ? 'Excluindo…' : 'Excluir'}
+            </button>
+            <button
+                type="button"
+                className="btn ghost"
+                disabled={trash.isPending}
+                onClick={() => {
+                    if (trash.isPending) return;
+                    setOpen(false);
+                    setTyped('');
+                    trash.reset();
+                }}
+            >
+                Cancelar
+            </button>
+            {!email && <p className="msg">Conta sem e-mail conhecido: não dá para confirmar aqui.</p>}
+            {trash.isError && (
+                <p className="msg err" role="alert">
+                    {serverProblem(trash.error)}
+                </p>
+            )}
+        </form>
+    );
+};
+
 const AccessEvents: React.FC<{ uid: string }> = ({ uid }) => {
     const events = useStudentAccessEvents(uid);
     if (events.isLoading) return null;
@@ -369,14 +468,7 @@ export const NewAdminStudent: React.FC<{ uid: string }> = ({ uid }) => {
                     )}
                 </span>
                 <div>
-                    <p className="eyebrow">
-                        {/* o histórico do programa é só do dono */}
-                        {isLeituraOwner(auth.currentUser?.uid) ? (
-                            <Link href="/admin/historico">Histórico do programa</Link>
-                        ) : (
-                            'Admin'
-                        )}
-                    </p>
+                    <p className="eyebrow">Aluno</p>
                     <h1>{name}</h1>
                     {email && <p>{email}</p>}
                     {user && user.disabled !== false && <p>{user.disabled ? 'Login desligado' : 'Sem login'}</p>}
@@ -431,6 +523,12 @@ export const NewAdminStudent: React.FC<{ uid: string }> = ({ uid }) => {
                             </li>
                         ))}
                     </ol>
+                </section>
+            )}
+
+            {isTrashOwner(auth.currentUser?.uid) && !notFound && (
+                <section aria-label="Excluir conta">
+                    <DeleteAccount uid={uid} email={email} />
                 </section>
             )}
         </NewPage>

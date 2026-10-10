@@ -55,10 +55,32 @@ export const readLevels = (raw: unknown): AccessLevels | undefined => {
     return Object.keys(levels).length ? levels : undefined;
 };
 
-/** `access` de GET /accounts/me, só se a resposta for da conta vista (servidor sem a impersonação devolve o admin). */
+/** Produtos pelas roles antigas da conta (o que o front fazia antes do modelo novo). */
+const levelsFromRoles = (roles: unknown): AccessLevels => {
+    const list: unknown[] = Array.isArray(roles) ? roles : [];
+    return {
+        imerso: list.includes(IMERSO_PRODUCT) ? 'ativo' : 'none',
+        masterclass: list.some((role) => typeof role === 'string' && role.startsWith('MASTERCLASS')) ? 'ativo' : 'none',
+        ebook: list.includes(EBOOK_PRODUCT) ? 'ativo' : 'none',
+    };
+};
+
+/**
+ * `access` de GET /accounts/me, só se a resposta for da conta vista (servidor sem a impersonação devolve o admin). Conta
+ * ainda sem nenhuma linha de acesso (`accessDetails` sem `updatedAt`: antes da carga inicial) recebe "none" para tudo
+ * do servidor: vale então o que as roles DELA dão (na impersonação, as roles do contexto são as do administrador).
+ */
 export const levelsFromMe = (data: unknown, uid?: string): AccessLevels | undefined => {
-    const me = data as { access?: unknown; fbData?: { uid?: string; customClaims?: { access?: unknown } } } | undefined;
+    const me = data as
+        | {
+              access?: unknown;
+              accessDetails?: { updatedAt?: unknown }[];
+              fbData?: { uid?: string; customClaims?: { access?: unknown; roles?: unknown } };
+          }
+        | undefined;
     if (!uid || me?.fbData?.uid !== uid) return undefined;
+    if (Array.isArray(me.accessDetails) && !me.accessDetails.some((row) => row?.updatedAt))
+        return levelsFromRoles(me.fbData.customClaims?.roles);
     return readLevels(me.access ?? me.fbData.customClaims?.access);
 };
 

@@ -119,11 +119,30 @@ describe('modelo novo (claims `access`: ativo | leitura | none)', () => {
         expect(levelsFromMe(me, undefined)).toBeUndefined();
     });
 
-    it('levelsFromMe: conta sem nenhuma linha de acesso (antes da carga) não decide; com uma linha, decide', () => {
+    it('levelsFromMe: conta sem nenhuma linha (antes da carga) vale pelas roles DELA; com uma linha, o /me decide', () => {
         const none = { access: { imerso: 'none', masterclass: 'none', ebook: 'none' } };
         const rows = (updatedAt: string | null) =>
             ['imerso', 'masterclass', 'ebook'].map((product) => ({ product, state: 'none', updatedAt }));
-        expect(levelsFromMe({ ...none, fbData: { uid: 'aluno' }, accessDetails: rows(null) }, 'aluno')).toBeUndefined();
+        const unloaded = (roles?: string[]) => ({
+            ...none,
+            fbData: { uid: 'aluno', customClaims: roles ? { roles } : undefined },
+            accessDetails: rows(null),
+        });
+        expect(levelsFromMe(unloaded(['METTLE_STUDENT', 'MASTERCLASS_X']), 'aluno')).toEqual({
+            imerso: 'ativo',
+            masterclass: 'ativo',
+            ebook: 'none',
+        });
+        // sem produto nenhum (nem role): nada abre — inclusive para o administrador que navega como o aluno
+        expect(levelsFromMe(unloaded([]), 'aluno')).toEqual({ imerso: 'none', masterclass: 'none', ebook: 'none' });
+        expect(levelsFromMe(unloaded(), 'aluno')).toEqual({ imerso: 'none', masterclass: 'none', ebook: 'none' });
+        const admin = resolveAccess(
+            'METTLE_STUDENT',
+            ['METTLE_ADMIN'],
+            { products: {}, imerso: null },
+            levelsFromMe(unloaded(['EBOOK_GUIA_COMPLETO']), 'aluno'),
+        );
+        expect(admin).toEqual({ state: 'none', final: true });
         const loaded = [
             { product: 'imerso', state: 'leitura', updatedAt: '2026-10-11T03:00:00Z' },
             ...rows(null).slice(1),

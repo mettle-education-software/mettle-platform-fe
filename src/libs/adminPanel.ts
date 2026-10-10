@@ -417,8 +417,11 @@ export const ltvCell = (row: Pick<AccountRow, 'ltv' | 'access'>) => {
 
 /** Overall (%), DEDA Run (dias) e posição no leaderboard: número curto, "—" sem dado. */
 export const metricLabel = {
+    // como a home do aluno (toFixed(2)), com vírgula: "0,12%"; a ordem é a do valor bruto (no servidor)
     overall: (v: number | null) =>
-        typeof v === 'number' ? `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : '—',
+        typeof v === 'number'
+            ? `${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+            : '—',
     dedaRun: (v: number | null) => (typeof v === 'number' ? v.toLocaleString('pt-BR') : '—'),
     leaderboardPos: (v: number | null) => (typeof v === 'number' ? `${v.toLocaleString('pt-BR')}º` : '—'),
 };

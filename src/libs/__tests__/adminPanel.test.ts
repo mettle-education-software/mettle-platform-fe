@@ -376,7 +376,9 @@ test('LTV: dinheiro e "compras · dias"; compra sem compra achada = "—", R$ 0,
 });
 
 test('métricas, nível e o programa por extenso', () => {
-    expect(metricLabel.overall(85.37)).toBe('85,4%');
+    expect(metricLabel.overall(85.37)).toBe('85,37%');
+    expect(metricLabel.overall(0.12)).toBe('0,12%');
+    expect(metricLabel.overall(1234.5)).toBe('1.234,50%');
     expect(metricLabel.overall(null)).toBe('—');
     expect(metricLabel.dedaRun(77)).toBe('77');
     expect(metricLabel.leaderboardPos(12)).toBe('12º');

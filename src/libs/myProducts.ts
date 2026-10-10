@@ -99,8 +99,8 @@ export const productLines = (rows: MyAccessRow[] | null | undefined, today = brT
         const base = { key, name: NAMES[key], soon: false, renew: null as string | null };
         if (row.state === 'leitura') {
             // o último dia de acesso que já passou; data futura nunca no passado (a âncora da carga é segunda — PF2-04)
-            const since = day(row.leituraSince);
-            const ended = longDate([grace, valid, since].find((d) => d && d <= today));
+            const anchor = day(row.leituraSince);
+            const ended = longDate([grace, valid, anchor].find((d) => d && d <= today));
             // navegar é só do Imerso; Masterclass e E-book em Leitura ficam trancados (PF2-05)
             const alert =
                 key === 'imerso'
@@ -171,5 +171,5 @@ export const graceNotices = (
         // mais de um produto (só no Início): o nome na frente
         const named =
             row.product === 'imerso' || only ? text : `${NAMES[row.product]}: ${text[0].toLowerCase()}${text.slice(1)}`;
-        return [{ key: row.product, text: named, renew: RENEW[row.product] }];
+        return [{ key: row.product, name: NAMES[row.product], text: named, renew: RENEW[row.product] }];
     });

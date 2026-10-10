@@ -124,6 +124,7 @@ beforeEach(() => {
         data: {
             melp_status: 'DEDA_STARTED',
             current_deda_week: 12,
+            current_deda_day: 82,
             deda_first_monday: '2026-07-20',
             remaining_resets: 2,
             remaining_pauses: 3,
@@ -326,4 +327,16 @@ test('antes do primeiro DEDA (MELP_BEGIN): sem Reiniciar nem Pausar (PF2-10)', (
     render();
     expect(action('Reiniciar')).toBeUndefined();
     expect(action('Pausar')).toBeUndefined();
+});
+
+test('relógio novo aguardando a primeira segunda (sem dia contado): sem Reiniciar', () => {
+    mockSummary.data = {
+        ...mockSummary.data,
+        deda_clock: 'calendar',
+        deda_first_monday: '2026-10-12',
+        current_deda_day: 0,
+        current_deda_week: 0,
+    };
+    render();
+    expect(action('Reiniciar')).toBeUndefined();
 });

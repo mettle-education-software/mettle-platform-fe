@@ -6,7 +6,7 @@ import { Button, Form, Input, Modal, Tooltip } from 'antd';
 import { useMelpSummary, usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { useProfile } from 'hooks/useProfile';
 import { passwordRules, saoPauloWeekday } from 'libs';
-import { lampOpen } from 'libs/dedaClock';
+import { lampLastDay, lampOpen } from 'libs/dedaClock';
 import { longDate, productLines } from 'libs/myProducts';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { brLongDate, programHistory } from 'libs/programHistory';
@@ -365,7 +365,9 @@ const ProgramCard: React.FC = () => {
     // DEDA (MELP_BEGIN) não há o que zerar (PF2-10)
     const noPauses = !(melpSummary.remaining_pauses > 0);
     const noResets = !(melpSummary.remaining_resets > 0);
-    const canReset = !readOnly && lampOpen(melpSummary);
+    // relógio novo: a LAMP "abre" antes da primeira segunda (e depois de um reinício, até a segunda) sem dia contado —
+    // a mesma regra da página da LAMP (aguardando a segunda: nada a zerar)
+    const canReset = !readOnly && lampOpen(melpSummary) && !!lampLastDay(melpSummary);
     const supportLine = (
         <>
             {' · '}

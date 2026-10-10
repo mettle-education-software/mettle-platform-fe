@@ -37,7 +37,8 @@ export const MelpProvider: React.FC<ProviderProps> = ({ children }) => {
         () => ({
             melpSummary: melpSummary as MelpSummaryResponse['data'],
             isMelpSummaryLoading,
-            isMelpSummaryError: isError && !melpSummary,
+            // sem programa (null) é resposta: uma nova leitura que falhar não troca o estado vazio por "Try again"
+            isMelpSummaryError: isError && melpSummary === undefined,
             noMelpProgram: melpSummary === null,
             retryMelpSummary: () => void refetch(),
             isTodaysDedaCompleted: currentDayDedaActivityStatus?.isDedaCompleted,

@@ -176,10 +176,12 @@ test('carência (aviso do Início e do /imerso): só Ativo com o prazo vencido e
         {
             key: 'imerso',
             text: 'Seu plano venceu em 12 de maio de 2024. Acesso total até 11 de outubro de 2026.',
+            name: 'Programa Imerso',
             renew: expect.stringContaining('http'),
         },
         {
             key: 'masterclass',
+            name: 'Masterclass',
             text: 'Masterclass: seu plano venceu em 1 de outubro de 2026. Acesso total até 15 de outubro de 2026.',
             renew: expect.stringContaining('masterclass'),
         },

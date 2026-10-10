@@ -45,7 +45,7 @@ const NewHpecLesson: React.FC<{ lessonId: string }> = ({ lessonId }) => {
         })),
     ].map((module) =>
         // Leitura: todo módulo com cadeado (o modelo de acesso); a aula aberta mostra o convite de renovação (PF2-02)
-        imersoLocked ? { ...module, locked: 'Read-only · Renew to watch' } : module,
+        imersoLocked ? { ...module, locked: 'Read-only' } : module,
     );
 
     return (

@@ -43,3 +43,9 @@ test('com programa: o resumo', async () => {
     mockGet.mockResolvedValueOnce({ data: { data: { melp_status: 'DEDA_STARTED' } } });
     await expect(useSummaryQuery().queryFn()).resolves.toEqual({ melp_status: 'DEDA_STARTED' });
 });
+
+test('404 de rota inexistente ("Not Found" do gateway) continua falha: não vira "sem programa" para todo mundo', async () => {
+    const failure = { response: { status: 404, data: 'Not Found' } };
+    mockGet.mockRejectedValueOnce(failure);
+    await expect(useSummaryQuery().queryFn()).rejects.toBe(failure);
+});

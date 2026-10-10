@@ -20,7 +20,9 @@ export const useMelpSummary = (userUid?: string) => {
                 .get<MelpSummaryResponse>(`/v2/${userUid as string}/summary`)
                 .then(({ data }): MelpSummaryResponse['data'] | null => data.data)
                 .catch((error) => {
-                    if ((error as { response?: { status?: number } })?.response?.status === 404) return null;
+                    const response = (error as { response?: { status?: number; data?: unknown } })?.response;
+                    // o 404 do serviço (sem programa), não o de rota inexistente ("Not Found" do gateway/express)
+                    if (response?.status === 404 && response.data !== 'Not Found') return null;
                     throw error;
                 }),
         enabled:

@@ -1016,14 +1016,18 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                 : [];
         const lines = graces.length
             ? graces
-            : [{ key: 'imerso', text: renewalNotice(access(IMERSO_PRODUCT), en), renew: undefined }];
+            : [{ key: 'imerso', name: 'Imerso', text: renewalNotice(access(IMERSO_PRODUCT), en), renew: undefined }];
         const graceBanner = lines.map(
             (line) =>
                 line.text && (
                     <div key={line.key} className={`grace ${UI_FONT_CLASS}`} role="status" lang={en ? 'en' : 'pt-BR'}>
                         <TriangleAlert {...ICON} aria-hidden />
                         <span>{line.text}</span>
-                        <a className="lnk gold" href={line.renew ?? RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL}>
+                        <a
+                            className="lnk gold"
+                            href={line.renew ?? RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL}
+                            aria-label={`${en ? 'Renew' : 'Renovar'} ${line.name}`}
+                        >
                             {en ? 'Renew' : 'Renovar'}
                         </a>
                     </div>

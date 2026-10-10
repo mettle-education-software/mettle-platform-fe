@@ -509,7 +509,11 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean; renew?: string }> = ({
     // tudo liberado e visto: rever a partir do começo
     const first = trail.modules[0].lessons[0];
     return (
-        <Link className="cc today" href={renew ?? hpecLessonPath(first.id)}>
+        <Link
+            className="cc today"
+            href={renew ?? hpecLessonPath(first.id)}
+            aria-label={renew ? `Renew to watch HPEC again: ${first.title}` : `Watch HPEC again: ${first.title}`}
+        >
             <span className="img">
                 <Thumb embedUrl={first.embedUrl} />
             </span>

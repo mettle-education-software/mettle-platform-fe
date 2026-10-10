@@ -126,7 +126,7 @@ test('resposta conferida (linhas inválidas fora); a rota antiga no mesmo endere
     ]);
     expect(d.vencendo.map((v) => v.uid)).toEqual(['u1']);
     expect([d.vencendoTotal, d.vencendoPessoas, d.semAcessoTotal, d.renovaramImerso]).toEqual([64, 41, 210, 77]);
-    expect(changeLabel(d.eventos[0])).toBe('Imerso: Leitura → Total');
+    expect(changeLabel(d.eventos[0])).toBe('Imerso: Leitura → Ativo');
     expect(readDashboard({ usersCount: 10, businessCount: 2 })).toBeNull();
     expect(readDashboard(undefined)).toBeNull();
 });
@@ -155,7 +155,7 @@ test('formatos: milhar, "Xh Ym", faixas do tempo de programa, eixo', () => {
     expect(programTimeLabel(null, null)).toBe('Não começou');
     expect(programTimeLabel(4, 6)).toBe('4–6 meses');
     expect(programTimeLabel(24, null)).toBe('24+ meses');
-    expect(stateLabel('ativo')).toBe('Total');
+    expect(stateLabel('ativo')).toBe('Ativo');
     expect(stateLabel(null)).toBe('Sem acesso');
     expect(dayMonth('2026-10-09')).toBe('09/10');
 });
@@ -184,42 +184,63 @@ test('período: prontos contam hoje (Brasília); De/Até só valem em ordem e at
     ).toEqual([{ date: '2026-10-10', alunos: 2 }]);
 });
 
-test('vencem: uma linha por pessoa (produtos juntos, data mais cedo, carência de qualquer um); contagem de pessoas', () => {
+test('vencem: uma linha por pessoa (produtos juntos, data mais cedo, carência até quando); contagem de pessoas', () => {
+    const row = (uid: string, name: string, product: 'imerso' | 'masterclass' | 'ebook', validUntil: string) => ({
+        uid,
+        name,
+        product,
+        origin: 'compra' as const,
+        validUntil,
+        inCarencia: false,
+        graceUntil: null as string | null,
+    });
     const rows = [
-        {
-            uid: 'a',
-            name: 'Ana',
-            product: 'masterclass' as const,
-            origin: 'compra' as const,
-            validUntil: '2026-10-26',
-            inCarencia: false,
-        },
-        {
-            uid: 'b',
-            name: 'Bia',
-            product: 'imerso' as const,
-            origin: 'compra' as const,
-            validUntil: '2026-10-23',
-            inCarencia: true,
-        },
-        {
-            uid: 'a',
-            name: 'Ana',
-            product: 'ebook' as const,
-            origin: 'compra' as const,
-            validUntil: '2026-10-25',
-            inCarencia: false,
-        },
+        row('a', 'Ana', 'masterclass', '2026-10-26'),
+        // carência: o fim antigo do produto (2024) não vale; vale até quando vai a carência
+        { ...row('b', 'Bia', 'imerso', '2024-05-12'), inCarencia: true, graceUntil: '2026-10-11' },
+        row('a', 'Ana', 'ebook', '2026-10-25'),
+        row('c', 'Cris', 'masterclass', '2026-10-12'),
+        // carência e outro produto: o fim mais cedo (o do outro produto) vale para a ordem e aparece
+        { ...row('c', 'Cris', 'imerso', '2024-09-15'), inCarencia: true, graceUntil: '2026-10-30' },
+        // duas carências: o fim mais cedo
+        { ...row('e', 'Eva', 'imerso', '2024-01-10'), inCarencia: true, graceUntil: '2026-10-15' },
+        { ...row('e', 'Eva', 'masterclass', '2024-02-10'), inCarencia: true, graceUntil: '2026-10-20' },
+        // carência sem o fim (servidor antigo): sem data
+        { ...row('d', 'Duda', 'imerso', '2024-01-01'), inCarencia: true },
     ];
     expect(duePeople(rows)).toEqual([
-        { uid: 'b', name: 'Bia', products: ['imerso'], validUntil: '2026-10-23', inCarencia: true },
-        { uid: 'a', name: 'Ana', products: ['masterclass', 'ebook'], validUntil: '2026-10-25', inCarencia: false },
+        { uid: 'd', name: 'Duda', products: ['imerso'], validUntil: null, inCarencia: true, graceUntil: null },
+        { uid: 'b', name: 'Bia', products: ['imerso'], validUntil: null, inCarencia: true, graceUntil: '2026-10-11' },
+        {
+            uid: 'c',
+            name: 'Cris',
+            products: ['masterclass', 'imerso'],
+            validUntil: '2026-10-12',
+            inCarencia: true,
+            graceUntil: '2026-10-30',
+        },
+        {
+            uid: 'e',
+            name: 'Eva',
+            products: ['imerso', 'masterclass'],
+            validUntil: null,
+            inCarencia: true,
+            graceUntil: '2026-10-15',
+        },
+        {
+            uid: 'a',
+            name: 'Ana',
+            products: ['masterclass', 'ebook'],
+            validUntil: '2026-10-25',
+            inCarencia: false,
+            graceUntil: null,
+        },
     ]);
     expect(productList(['masterclass', 'ebook'])).toBe('Masterclass e E-book');
     expect(productList(['imerso', 'masterclass', 'ebook'])).toBe('Imerso, Masterclass e E-book');
     // lista inteira: pessoas exatas; lista cortada pelo servidor: "N+"
-    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 3, vencendoPessoas: null })).toBe('2');
-    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 64, vencendoPessoas: null })).toBe('2+');
+    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 8, vencendoPessoas: null })).toBe('5');
+    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 64, vencendoPessoas: null })).toBe('5+');
     expect(duePeopleCount({ vencendo: rows, vencendoTotal: null, vencendoPessoas: null })).toBeNull();
     // com o total de pessoas do servidor, exato
     expect(duePeopleCount({ vencendo: rows, vencendoTotal: 64, vencendoPessoas: 41 })).toBe('41');

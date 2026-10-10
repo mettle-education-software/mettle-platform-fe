@@ -153,7 +153,7 @@ test('com os números: base, período, Imerso e atenção; listas abrem a conta;
     expect(links).toContainEqual(['ver todos', '/admin/contas?product=imerso&state=ativo&sort=expiry']);
     expect(links).toContainEqual(['ver todos', '/admin/contas?sort=lastAccess']);
     expect(links.filter(([, href]) => href === '/admin/contas?conta=u1')).toHaveLength(2);
-    expect(d.body.textContent).toContain('Ana · Imerso: Leitura → Total');
+    expect(d.body.textContent).toContain('Ana · Imerso: Leitura → Ativo');
     expect(d.body.textContent).not.toContain('ver registro');
 });
 
@@ -177,7 +177,7 @@ test('resposta de hoje (be #158, sem os campos novos): "—" onde falta, listas 
     const imerso = d.querySelector('section[aria-labelledby="db-imerso"]')!;
     expect(imerso.textContent).not.toContain('Sem planos ativos');
     expect(imerso.textContent).not.toContain('Sem dados');
-    expect(d.body.textContent).toContain('Ana · Imerso: Leitura → Total');
+    expect(d.body.textContent).toContain('Ana · Imerso: Leitura → Ativo');
     // sem o total do servidor, só o título
     expect(d.body.textContent).toContain('Vencem em 30 dias');
     expect(d.body.textContent).not.toContain('Vencem em 30 dias ·');
@@ -205,4 +205,41 @@ test('um dia só: sem curva (fica a linha do número); quem nunca entrou diz "nu
     expect(d.querySelector('section[aria-labelledby="db-period"] .chart')).toBeNull();
     expect(d.body.textContent).toContain('990 alunos estudaram');
     expect(d.body.textContent).toContain('nunca entrou');
+});
+
+test('vencem em carência: "carência até" o fim da carência, nunca a data antiga do produto', () => {
+    const due = (uid: string, extra: object) => ({
+        uid,
+        name: uid,
+        product: 'imerso',
+        origin: 'compra',
+        validUntil: '2024-05-12',
+        inCarencia: true,
+        ...extra,
+    });
+    mockData = {
+        isLoading: false,
+        isPlaceholderData: false,
+        data: readDashboard({
+            ...full,
+            vencendo: [
+                due('Bia', { graceUntil: '2026-10-11' }),
+                // servidor sem o campo: só "carência"
+                due('Cris', {}),
+                due('Duda', { validUntil: '2026-10-20', inCarencia: false }),
+                // carência e outro produto: as duas datas (a mais cedo manda na ordem); carimbo vira o dia
+                due('Eva', { graceUntil: '2026-10-30T03:00:00.000Z' }),
+                due('Eva', { product: 'masterclass', validUntil: '2026-10-12', inCarencia: false }),
+            ],
+        }),
+    };
+    const rows = [
+        ...render().querySelectorAll('section[aria-labelledby="db-attention"] ol.rows')[0].querySelectorAll('li'),
+    ];
+    expect(rows.map((li) => li.textContent)).toEqual([
+        'CrisImerso · carência',
+        'BiaImerso · carência até 11/10/2026',
+        'EvaImerso e Masterclass · 12/10/2026 · carência até 30/10/2026',
+        'DudaImerso · 20/10/2026',
+    ]);
 });

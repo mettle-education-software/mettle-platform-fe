@@ -5,16 +5,16 @@ import { useHpecProgress } from 'hooks/useHpecProgress';
 import { hpecLessonPath } from 'libs/cleanUrls';
 import { opensLabel } from 'libs/hpecTrail';
 import { CourseModule } from 'libs/newDesign';
-import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { IMERSO_PRODUCT, IMERSO_RENEW_URL } from 'libs/productAccess';
 import { Check } from 'lucide-react';
-import { AccessCtaBlock, useMelpContext, useProductAccess } from 'providers';
+import { useMelpContext, useProductAccess } from 'providers';
 import React from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewLesson } from './NewLesson';
 
 /**
  * HPEC no molde de cursos: os mesmos módulos liberados/trancados (e as mesmas datas) de useGetHpecsModules, na
- * mesma ordem da lista atual (liberados, depois trancados). Imerso expirado: o conteúdo dá lugar ao convite.
+ * mesma ordem da lista atual (liberados, depois trancados). Imerso em Leitura: a prévia da aula com a renovação.
  */
 const NewHpecLesson: React.FC<{ lessonId: string }> = ({ lessonId }) => {
     const { melpSummary } = useMelpContext();
@@ -44,7 +44,7 @@ const NewHpecLesson: React.FC<{ lessonId: string }> = ({ lessonId }) => {
             locked: opensLabel(hpec.unlockDate) || 'Not open yet',
         })),
     ].map((module) =>
-        // Leitura: todo módulo com cadeado (o modelo de acesso); a aula aberta mostra o convite de renovação (PF2-02)
+        // Leitura: todo módulo com cadeado (o modelo de acesso); a aula aberta mostra a prévia com a renovação
         imersoLocked ? { ...module, locked: 'Read-only' } : module,
     );
 
@@ -56,7 +56,8 @@ const NewHpecLesson: React.FC<{ lessonId: string }> = ({ lessonId }) => {
             lessonId={lessonId}
             progress={imersoLocked ? undefined : { unlocked: unlockedLessons, total: totalLessons }}
             lang="en"
-            lockedContent={imersoLocked ? <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} /> : undefined}
+            // Leitura: a aula à vista (miniatura, apresentação) com cadeado; o clique e o botão levam à renovação
+            preview={imersoLocked ? { renew: IMERSO_RENEW_URL, note: 'Your IMERSO is read-only' } : undefined}
             onWatched={progress.markDone}
             doneToggle={(id) => {
                 const done = progress.isDone(id);

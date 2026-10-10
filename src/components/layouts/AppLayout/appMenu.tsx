@@ -75,10 +75,11 @@ export const useAppMenu = (onNavigate: () => void = () => {}) => {
                           {
                               key: 'melpLamp',
                               label: 'LAMP',
-                              // relógio novo na plataforma nova: aberta em todo estado depois do start (§4.3); a tela
-                              // atual mantém a regra de sempre (em andamento, pausada, concluída)
+                              // relógio novo na plataforma nova: aberta em todo estado depois do start (§4.3) e sempre
+                              // em Leitura (com programa, o histórico; sem, a LAMP pausada); a tela atual mantém a
+                              // regra de sempre (em andamento, pausada, concluída)
                               disabled: newDesign
-                                  ? !lampOpen(melpSummary)
+                                  ? imersoState !== 'expired' && !lampOpen(melpSummary)
                                   : !['DEDA_STARTED', 'DEDA_FINISHED', 'DEDA_PAUSED'].includes(
                                         melpSummary?.melp_status,
                                     ),

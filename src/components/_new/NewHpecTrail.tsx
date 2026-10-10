@@ -4,7 +4,7 @@ import { keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
 import { hpecLessonPath } from 'libs/cleanUrls';
 import { opensLabel, TrailLesson, TrailModule } from 'libs/hpecTrail';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import Link from 'next/link';
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { ICON } from 'themes/newDesign';
@@ -222,6 +222,13 @@ const Box = styled.div`
     .locked .t {
         color: var(--r-muted);
     }
+    /* Leitura: cadeado antes do título (o clique leva à renovação) */
+    .t .pl {
+        display: inline;
+        margin-right: 4px;
+        vertical-align: -1px;
+        color: var(--r-muted);
+    }
     .now {
         display: block;
         margin-top: 3px;
@@ -347,7 +354,7 @@ const Box = styled.div`
     }
 `;
 
-const Node: React.FC<{ lesson: TrailLesson; module: TrailModule }> = ({ lesson, module }) => {
+const Node: React.FC<{ lesson: TrailLesson; module: TrailModule; renew?: string }> = ({ lesson, module, renew }) => {
     const label = `${lesson.title}, ${STATE_LABEL[lesson.state]}${
         lesson.state === 'locked' && module.unlockDate ? `, ${opensLabel(module.unlockDate)}` : ''
     }`;
@@ -355,14 +362,22 @@ const Node: React.FC<{ lesson: TrailLesson; module: TrailModule }> = ({ lesson, 
         <>
             <span className="dot" aria-hidden />
             <span className="tx">
-                <span className="t">{lesson.title}</span>
+                <span className="t">
+                    {renew && <Lock {...ICON} size={11} className="pl" aria-hidden />}
+                    {lesson.title}
+                </span>
                 {lesson.state === 'here' && <span className="now">Up next</span>}
             </span>
         </>
     );
     return (
         <li className={`l ${lesson.state}`}>
-            {lesson.state === 'locked' ? (
+            {renew ? (
+                // Leitura: a aula à vista com cadeado; o clique é a renovação
+                <a className="n" href={renew} aria-label={`${lesson.title}, read-only, renew`}>
+                    {body}
+                </a>
+            ) : lesson.state === 'locked' ? (
                 <span className="n" aria-label={label} title={label}>
                     {body}
                 </span>
@@ -408,7 +423,12 @@ const LEGEND: { state: TrailLesson['state']; label: string }[] = [
  * do módulo; "você está aqui" = ponto com halo. Ao entrar na tela, a linha dourada corre até "aqui" e o ponto
  * pulsa duas vezes (sem movimento com prefers-reduced-motion). A legenda mostra só os estados presentes.
  */
-export const NewHpecTrail: React.FC<{ modules: TrailModule[]; title: React.ReactNode }> = ({ modules, title }) => {
+export const NewHpecTrail: React.FC<{
+    modules: TrailModule[];
+    title: React.ReactNode;
+    /** Leitura: cadeados, sem datas de liberação, e cada aula leva à renovação */
+    renew?: string;
+}> = ({ modules, title, renew }) => {
     const boxRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
     const [motion, setMotion] = useState<'' | 'armed' | 'armed go'>('');
@@ -516,7 +536,7 @@ export const NewHpecTrail: React.FC<{ modules: TrailModule[]; title: React.React
                 <h2>{title}</h2>
                 <div className="tools">
                     <ul className="legend" aria-hidden>
-                        {LEGEND.filter((x) => states.has(x.state)).map((x) => (
+                        {LEGEND.filter((x) => !renew && states.has(x.state)).map((x) => (
                             <li key={x.state} className={x.state}>
                                 <span className="dot" /> {x.label}
                             </li>
@@ -551,14 +571,15 @@ export const NewHpecTrail: React.FC<{ modules: TrailModule[]; title: React.React
                                     <span className="dot mdot" aria-hidden />
                                     <b>{module.title}</b>
                                     {/* a data/regra de liberação só quando muda (nunca a mesma frase módulo a módulo) */}
-                                    {module.unlockDate &&
+                                    {!renew &&
+                                        module.unlockDate &&
                                         opensLabel(module.unlockDate) !== opensLabel(modules[i - 1]?.unlockDate) && (
                                             <small>{opensLabel(module.unlockDate)}</small>
                                         )}
                                 </div>
                                 <ol className="ls" aria-label={module.title}>
                                     {module.lessons.map((lesson) => (
-                                        <Node key={lesson.id} lesson={lesson} module={module} />
+                                        <Node key={lesson.id} lesson={lesson} module={module} renew={renew} />
                                     ))}
                                 </ol>
                             </li>

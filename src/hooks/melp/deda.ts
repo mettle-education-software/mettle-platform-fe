@@ -64,9 +64,11 @@ export const useSubmitDedaRecordingAudio = () => {
     });
 };
 
-export const useGetCurrentDeda = () => {
+/** O DEDA da semana na rotação (o mesmo para todos; vale também para quem não tem programa). */
+export const useGetCurrentDeda = (enabled = true) => {
     return useQuery({
         queryKey: ['get-current-deda'],
         queryFn: () => melpService.get<CurrentDedaResponse>('/deda/current').then(({ data }) => data),
+        enabled,
     });
 };

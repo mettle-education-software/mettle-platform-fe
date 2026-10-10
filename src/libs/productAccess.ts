@@ -34,6 +34,8 @@ export const RENEWAL_URLS: Record<string, string> = {
 export const imersoSalesUrl = (surface: string) =>
     `https://mettle.com.br/programa-imerso/?utm_source=plataforma&utm_medium=${encodeURIComponent(surface)}&utm_campaign=imerso`;
 export const IMERSO_SALES_URL = imersoSalesUrl('organic');
+/** Destino de todo "Renew" do Imerso em Leitura (a fonte é RENEWAL_URLS). */
+export const IMERSO_RENEW_URL = RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL;
 
 // ---------- modelo novo: claims `access` do Firebase (GET /accounts/me como reserva) ----------
 

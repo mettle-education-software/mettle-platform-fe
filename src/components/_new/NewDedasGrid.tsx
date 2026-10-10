@@ -16,6 +16,8 @@ interface Props {
     aside?: React.ReactNode;
     /** o DEDA atual já está no destaque da página: "Most recent" começa no anterior (sem repetir) */
     skipCurrent?: boolean;
+    /** Leitura: todos os cards trancados, o clique leva à renovação */
+    renew?: string;
 }
 
 const TITLES: Record<Props['type'], string> = { lastDedas: 'Most recent', nextDedas: 'Next', allDedas: 'All' };
@@ -32,6 +34,7 @@ export const NewDedasGrid: React.FC<Props> = ({
     blockedDEDAs,
     aside,
     skipCurrent,
+    renew,
 }) => {
     // passar o mouse/focar num card adianta a rota do DEDA (produção): o clique abre sem esperar o servidor
     const router = useRouter();
@@ -92,6 +95,7 @@ export const NewDedasGrid: React.FC<Props> = ({
                               state={stateOf(deda.dedaId)}
                               onClick={() => onSelectedDeda(deda.dedaSlug)}
                               onIntent={() => router.prefetch(dedaPath(deda.dedaSlug))}
+                              renew={renew}
                           />
                       ))}
             </div>

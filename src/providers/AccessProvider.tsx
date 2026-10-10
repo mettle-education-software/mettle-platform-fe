@@ -57,7 +57,8 @@ const Context = createContext<AccessContext>({
 
 const PRODUCT_NAMES: Record<string, string> = { [IMERSO_PRODUCT]: 'Programa Imerso' };
 
-const renewUrlOf = (target: CtaTarget) =>
+/** Para onde vai o "Renovar" de um produto (o mesmo do convite). */
+export const renewUrlOf = (target: CtaTarget) =>
     // Masterclass: a página de vendas dela (o paymentCheckout do curso leva ao Imerso)
     (accessKey(target.product) === 'masterclass' ? MASTERCLASS_SALES_URL : target.renewUrl) ??
     RENEWAL_URLS[target.product] ??

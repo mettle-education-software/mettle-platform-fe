@@ -9,17 +9,18 @@ import { statisticsColors } from 'libs';
 import { lampLastDay, lampOpen, todaysDedaId } from 'libs/dedaClock';
 import { formatImersoDate, nextMondayDate } from 'libs/helpers';
 import { axisWords, minutesText } from 'libs/newDesign';
-import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { IMERSO_PRODUCT, IMERSO_RENEW_URL } from 'libs/productAccess';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useAppContext, useMelpContext, useProductAccess } from 'providers';
+import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { useEffect, useState } from 'react';
+import { LampCalendar } from './LampCalendar';
 import { LampGoals } from './LampGoals';
 import { LampMirror } from './LampMirror';
 import { LampOverallStats, LampStatsSort } from './LampOverallStats';
 import { LampRecordings } from './LampRecordings';
-import { NoProgram, SummaryError, SuspendedNotice } from './NewImersoDash';
+import { SummaryError, SuspendedNotice } from './NewImersoDash';
 import { NewLampInput } from './NewLampInput';
 import { NewPage } from './NewPage';
 import { PageHead } from './PageHead';
@@ -637,6 +638,23 @@ const LampClosed: React.FC<{ status?: string }> = ({ status }) =>
         </div>
     );
 
+/** Leitura sem a LAMP contando (sem programa, ou ainda sem dia): a nota, a renovação e o calendário vazio. */
+const LampReadOnly: React.FC = () => (
+    <>
+        <div className="notice" role="status">
+            <div>
+                <b>LAMP is paused while your access is read-only.</b>
+            </div>
+            <a className="btn gold" href={IMERSO_RENEW_URL}>
+                Renew
+            </a>
+        </div>
+        <div style={{ marginTop: 28 }}>
+            <LampCalendar newestFirst={[]} title="Imerso Calendar" />
+        </div>
+    </>
+);
+
 /**
  * LAMP na plataforma nova: as mesmas três abas (Performance, Input, Goals), os mesmos hooks e as mesmas chamadas
  * da página atual; textos de instrução viram ⓘ; tabela larga rola no próprio container.
@@ -668,14 +686,11 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
                 <PageHead eyebrow="IMERSO" title="LAMP" />
                 {isMelpSummaryError ? (
                     <SummaryError onRetry={retryMelpSummary} />
-                ) : noMelpProgram ? (
-                    // sem programa (PF2-01): em Leitura, a renovação; senão, a LAMP começa com o primeiro DEDA
-                    readOnly ? (
-                        <NoProgram />
-                    ) : (
-                        <LampClosed />
-                    )
+                ) : readOnly && melpSummary?.melp_status !== 'MELP_SUSPENDED' ? (
+                    // Leitura (sem programa ou sem dia): a LAMP pausada, com o calendário e a renovação
+                    <LampReadOnly />
                 ) : (
+                    // sem programa: a LAMP começa com o primeiro DEDA (PF2-01)
                     <LampClosed status={melpSummary?.melp_status} />
                 )}
             </NewPage>
@@ -714,6 +729,8 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
                     </div>
                 }
             />
+            {/* Leitura: o histórico e os gráficos só para ver; a linha leva à renovação */}
+            {readOnly && <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />}
             {shown === 'performance' && <Performance />}
             {shown === 'input' && <NewLampInput form={inputForm} />}
             {shown === 'goal' && <LampGoals help={GOALS_HELP} />}

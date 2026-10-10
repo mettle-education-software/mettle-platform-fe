@@ -1,134 +1,336 @@
 'use client';
 
+import { css, Global } from '@emotion/react';
 import { useIsMutating } from '@tanstack/react-query';
 import { Button, Form, Input, Modal, Tooltip } from 'antd';
 import { useMelpSummary, usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
-import { useCachedCourses } from 'hooks/queries/useCourses';
-import { passwordRules } from 'libs';
-import { EBOOK_PRODUCT } from 'libs/ebook';
-import { MASTERCLASS_COURSE } from 'libs/masterclass';
+import { useProfile } from 'hooks/useProfile';
+import { passwordRules, saoPauloWeekday } from 'libs';
+import { longDate, productLines } from 'libs/myProducts';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { programHistory } from 'libs/programHistory';
 import { Info } from 'lucide-react';
 import { useAppContext, useProductAccess } from 'providers';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewPage } from './NewPage';
-import { PageHead } from './PageHead';
-import { ProfileSettings } from './ProfileSettings';
-import { ProgramHistory } from './ProgramHistory';
+import { ProfileDataCard, ProfileIdentity } from './ProfileSettings';
+import { ThemeSwitch } from './ThemeSwitch';
 
-const AccountSettings: React.FC = () => {
-    const { access, accessLoading } = useProductAccess();
-    // Só observa o catálogo que a home já carregou: abrir Configurações não inicia outra chamada.
-    const { data } = useCachedCourses();
-    const masterclass = data?.courseCollection?.items?.find((course) => course.courseSlug === MASTERCLASS_COURSE);
-    const products = [
-        { id: IMERSO_PRODUCT, name: 'Imerso' },
-        ...(masterclass ? [{ id: masterclass.coursePurchaseId, name: 'Masterclass' }] : []),
-        { id: EBOOK_PRODUCT, name: 'E-book' },
-    ]
-        .map((product) => ({ ...product, state: access(product.id).state }))
-        .filter((product) => product.state !== 'none');
-    const labels = { active: 'Ativo', grace: 'Em carência', expired: 'Leitura', none: '' };
+// Configurações no desenho de 10-Out-2026 (página "Apple ID"): leve, arejada, conteúdo primeiro. Cartões agrupados
+// (cantos 16 px, superfície, divisórias finas por dentro), títulos pequenos, ~32 px entre cartões, sem linhas entre
+// seções; até 720 px, alinhado à esquerda. Os tokens são os de ui.ts (dois temas).
+const styles = css`
+    .ui-new-page.settings {
+        max-width: 720px;
+        margin-left: 0;
+    }
+    .settings .idh {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin: 8px 0 36px;
+        min-width: 0;
+    }
+    .settings .idh-av {
+        position: relative;
+        flex: none;
+        display: grid;
+        place-items: center;
+        width: 92px;
+        height: 92px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: var(--r-surf);
+        color: var(--r-text);
+        font: inherit;
+        font-size: 34px;
+        font-weight: 300;
+        cursor: pointer;
+    }
+    .settings .idh-av img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    .settings .idh-av:focus-visible {
+        outline: 2px solid var(--r-gold);
+        outline-offset: 3px;
+    }
+    .settings .idh-cam {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border: 2px solid var(--r-bg);
+        border-radius: 50%;
+        background: var(--r-gold);
+        color: var(--r-on-gold);
+    }
+    .settings .idh-text {
+        min-width: 0;
+    }
+    .settings .idh-name {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 400;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .settings .idh-sub {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: var(--r-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .settings .idh-error {
+        flex-basis: 100%;
+    }
+    .settings > section + section {
+        margin-top: 32px;
+    }
+    .settings .st {
+        margin: 0 0 10px 4px;
+        font-size: 15px;
+        font-weight: 500;
+        letter-spacing: 0.005em;
+        color: var(--r-text);
+    }
+    .settings .card {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border-radius: 16px;
+        background: var(--r-surf);
+    }
+    .settings .cr {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px 16px;
+        min-height: 56px;
+        padding: 14px 18px;
+    }
+    .settings .cr + .cr {
+        border-top: 1px solid var(--r-line);
+    }
+    .settings .cr-main {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+    .settings .cr-name {
+        display: block;
+        font-size: 15px;
+        font-weight: 500;
+    }
+    .settings .cr-sub {
+        display: block;
+        margin-top: 3px;
+        font-size: 13.5px;
+        line-height: 1.45;
+        color: var(--r-muted);
+        overflow-wrap: anywhere;
+    }
+    .settings .cr-sub em {
+        font-style: normal;
+        color: var(--r-gold-hi);
+    }
+    .settings .cr-side {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .settings .cr-value {
+        min-width: 0;
+        font-size: 14.5px;
+        text-align: right;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .settings .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 10px;
+        border-radius: 999px;
+        border: 1px solid var(--r-line-strong);
+        font-size: 12.5px;
+        color: var(--r-muted);
+        white-space: nowrap;
+    }
+    .settings .pill.on {
+        border-color: transparent;
+        background: var(--r-gold-tint);
+        color: var(--r-gold-hi);
+    }
+    .settings .btn.sm {
+        min-height: 36px;
+        padding: 0 16px;
+        font-size: 13.5px;
+    }
+    .settings .renew {
+        margin-top: 10px;
+    }
+    .settings .cr-info {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .settings .cr-info svg {
+        color: var(--r-faint);
+    }
+    .settings .tl {
+        padding: 6px 18px 14px;
+        border-top: 1px solid var(--r-line);
+    }
+    .settings .tl ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .settings .tl h3 {
+        margin: 10px 0 6px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--r-muted);
+    }
+    .settings .tl li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 7px 0;
+        font-size: 14px;
+    }
+    .settings .tl li span {
+        flex: none;
+        color: var(--r-muted);
+        font-variant-numeric: tabular-nums;
+    }
+    /* Dados pessoais: rótulos acima dos campos; duas colunas no computador, uma no celular */
+    .settings .pf {
+        padding: 18px;
+    }
+    .settings .pf-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px 18px;
+    }
+    .settings .pf-field {
+        min-width: 0;
+    }
+    .settings .pf-field label {
+        display: block;
+        margin: 0 0 6px 2px;
+        font-size: 13px;
+        color: var(--r-muted);
+    }
+    .settings .pf-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px 16px;
+        margin-top: 20px;
+    }
+    .settings .pf-actions .profile-error {
+        margin: 0;
+    }
+    .settings .card .hint {
+        margin: 0;
+        padding: 16px 18px;
+    }
+    @media (max-width: 860px) {
+        .settings .idh {
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .settings .idh-av {
+            width: 84px;
+            height: 84px;
+        }
+        .settings .idh-name {
+            font-size: 22px;
+        }
+        .settings .pf-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+        .settings .cr {
+            padding: 14px 16px;
+        }
+        .settings .cr.stack {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .settings .cr.stack .cr-side {
+            max-width: 100%;
+        }
+    }
+`;
 
-    return (
-        <div className="panel" aria-busy={accessLoading}>
-            {accessLoading ? (
+/** "Meus produtos": um cartão com uma linha por produto, só do modelo de acesso (GET /accounts/me). */
+const ProductsCard: React.FC = () => {
+    const profile = useProfile();
+    if (!profile.data)
+        return (
+            <div className="card">
                 <p className="hint" role="status">
-                    Carregando…
+                    {profile.isError ? 'Não foi possível carregar os seus produtos.' : 'Carregando…'}
                 </p>
-            ) : products.length ? (
-                <dl className="rows settings-data">
-                    {products.map((product) => (
-                        <div className="row" key={product.id}>
-                            <dt className="lab">{product.name}</dt>
-                            <dd className="field">{labels[product.state]}</dd>
-                        </div>
-                    ))}
-                </dl>
-            ) : (
-                <p className="hint">Nenhum produto disponível.</p>
-            )}
-        </div>
-    );
-};
-
-const SecuritySettings: React.FC = () => {
-    const [form] = Form.useForm();
-    const newPassword = Form.useWatch('newPassword', form);
-    useEffect(() => {
-        if (!newPassword) form.resetFields(['newPasswordRepeat']);
-    }, [newPassword, form]);
-
-    const updatePassword = useUpdatePassword();
-
+            </div>
+        );
+    const lines = productLines(profile.data.accessDetails);
+    if (!lines.length)
+        return (
+            <div className="card">
+                <p className="hint">Nenhum produto nesta conta.</p>
+            </div>
+        );
     return (
-        <div className="panel">
-            <Form
-                form={form}
-                colon={false}
-                onFinish={({ newPasswordRepeat }: { newPasswordRepeat: string }) =>
-                    updatePassword.mutate(newPasswordRepeat)
-                }
-            >
-                <div className="rows">
-                    <div className="row">
-                        <label htmlFor="s-pass">Alterar a senha</label>
-                        <div className="field">
-                            <Form.Item name="newPassword" rules={passwordRules}>
-                                <Input.Password id="s-pass" placeholder="Nova senha" />
-                            </Form.Item>
-                        </div>
-                    </div>
-                    <div className="row">
-                        <label htmlFor="s-pass2">Insira a nova senha novamente</label>
-                        <div className="field">
-                            <Form.Item
-                                name="newPasswordRepeat"
-                                rules={[
-                                    { required: true, message: 'Por favor insira uma nova senha' },
-                                    { min: 8, message: 'A senha deve ter pelo menos 8 caracteres' },
-                                    {
-                                        validator: async (_, value) => {
-                                            if (value !== newPassword) {
-                                                return Promise.reject(new Error('As senhas não coincidem'));
-                                            }
-                                            const validationRegex = new RegExp(
-                                                /^(?!.*\s)(?=.*[a-zA-Z])(?=.*\d)(?=.*\W).{8,}$/,
-                                                'g',
-                                            );
-                                            if (!validationRegex.test(value)) {
-                                                return Promise.reject(
-                                                    new Error(
-                                                        'A senha deve ter pelo menos 8 caracteres, 1 letra maiúscula, 1 letra minúscula, 1 número e 1 caractere especial',
-                                                    ),
-                                                );
-                                            }
-                                        },
-                                    },
-                                ]}
+        <ul className="card" aria-label="Meus produtos">
+            {lines.map((line) => (
+                <li className="cr" key={line.key}>
+                    <div className="cr-main">
+                        <b className="cr-name">{line.name}</b>
+                        {line.plan && <span className="cr-sub">{line.plan}</span>}
+                        {line.term && (
+                            <span className="cr-sub">
+                                {line.term}
+                                {line.soon && <em>{line.soon}</em>}
+                            </span>
+                        )}
+                        {line.renew && (
+                            <a
+                                className="btn line sm renew"
+                                href={line.renew}
+                                target="_blank"
+                                rel="noopener noreferrer"
                             >
-                                <Input.Password
-                                    id="s-pass2"
-                                    disabled={!newPassword}
-                                    placeholder="Insira a senha novamente"
-                                />
-                            </Form.Item>
-                        </div>
+                                Renovar
+                            </a>
+                        )}
                     </div>
-                </div>
-                <div className="actions">
-                    {/* "Salvar" é um só na página (o do perfil) */}
-                    <Button loading={updatePassword.isPending} htmlType="submit" type="primary">
-                        Trocar senha
-                    </Button>
-                </div>
-            </Form>
-        </div>
+                    <div className="cr-side">
+                        <span className={`pill${line.pill === 'Ativo' ? ' on' : ''}`}>{line.pill}</span>
+                    </div>
+                </li>
+            ))}
+        </ul>
     );
 };
 
-const ImersoSettings: React.FC = () => {
+/** "Programa Imerso": semana e início, pausar e reiniciar a LAMP, e o histórico. */
+const ProgramCard: React.FC = () => {
     const programReset = useResetMelp();
     const pauseDeda = usePauseDeda();
     const { user } = useAppContext();
@@ -147,11 +349,10 @@ const ImersoSettings: React.FC = () => {
         </Button>
     );
 
-    // sem resumo: carregando (nada ainda); conta sem programa ou sem acesso (404/403, consulta desligada): uma linha;
-    // outra falha (rede, 500) ou consulta parada sem conexão: mensagem com nova tentativa. Nunca quebra a página.
+    // sem resumo: carregando; conta sem programa ou sem acesso (404/403): uma linha; outra falha: nova tentativa
     if (!melpSummary)
         return (
-            <div className="panel">
+            <div className="card">
                 {summary.isLoading ? (
                     <p className="hint" role="status">
                         Carregando…
@@ -164,115 +365,222 @@ const ImersoSettings: React.FC = () => {
             </div>
         );
 
-    // uma ação por vez (reiniciar e pausar se excluem enquanto uma está em curso) e nunca sobre um resumo velho: se a
-    // atualização depois de uma ação falhou, as ações esperam uma nova tentativa
+    // uma ação por vez e nunca sobre um resumo velho (se a atualização falhou, as ações esperam nova tentativa)
     const stale = summary.isError;
     const busy = mutating || programReset.isPending || pauseDeda.isPending || stale;
+    const history = programHistory(melpSummary.program_events, melpSummary.remaining_resets);
+    const started = longDate(melpSummary.deda_first_monday ?? melpSummary.melp_start_date);
 
     return (
-        <div className="panel">
+        <div className="card">
             {modalHolder}
-            {stale && <p className="hint">Não foi possível atualizar o programa IMERSO. {retry}</p>}
-            {!readOnly && (
-                <div className="rows">
-                    <div className="row">
-                        <div className="lab">
-                            <b>
-                                Reiniciar a LAMP
-                                <Tooltip title="Zera a sua LAMP. Os seus DEDAs e o HPEC continuam como estão.">
-                                    <Info {...ICON} size={16} aria-label="Sobre reiniciar a LAMP" />
-                                </Tooltip>
-                            </b>
-                            <span>
-                                Reinícios restantes: <strong>{melpSummary.remaining_resets}</strong>
-                            </span>
-                        </div>
-                        <div className="field">
-                            <Button
-                                loading={programReset.isPending}
-                                disabled={busy}
-                                onClick={() =>
-                                    modal.confirm({
-                                        title: 'Reiniciar a LAMP?',
-                                        content: (
-                                            <>
-                                                <p>
-                                                    A sua LAMP é zerada e volta a contar na próxima segunda-feira (no
-                                                    mesmo dia, se hoje for segunda).
-                                                </p>
-                                                <p>
-                                                    Os seus DEDAs e o HPEC não mudam: você continua exatamente de onde
-                                                    está.
-                                                </p>
-                                                <p>
-                                                    Se você estiver em pausa, a pausa termina junto, sem gastar outra
-                                                    pausa.
-                                                </p>
-                                                <p>
-                                                    Você usa 1 dos seus {melpSummary.remaining_resets} reinícios. Não dá
-                                                    para desfazer.
-                                                </p>
-                                            </>
-                                        ),
-                                        okText: 'Reiniciar a LAMP',
-                                        cancelText: 'Cancelar',
-                                        onOk: () => programReset.mutateAsync().catch(() => undefined),
-                                    })
-                                }
-                            >
-                                Reiniciar
-                            </Button>
-                        </div>
-                    </div>
-                    {melpSummary.melp_status === 'DEDA_STARTED' && (
-                        <div className="row">
-                            <div className="lab">
-                                <b>
-                                    Pausar a LAMP
-                                    <Tooltip title="Para a contagem da LAMP enquanto você estiver fora. Os DEDAs e o HPEC continuam sendo liberados.">
-                                        <Info {...ICON} size={16} aria-label="Sobre pausar a LAMP" />
-                                    </Tooltip>
-                                </b>
-                                <span>
-                                    Pausas restantes: <strong>{melpSummary.remaining_pauses}</strong>
-                                </span>
-                            </div>
-                            <div className="field">
-                                <Button
-                                    loading={pauseDeda.isPending}
-                                    disabled={busy}
-                                    onClick={() =>
-                                        modal.confirm({
-                                            title: 'Pausar a LAMP?',
-                                            content: (
-                                                <>
-                                                    <p>
-                                                        A LAMP para de contar a partir de agora. A semana em andamento é
-                                                        zerada: a LAMP fica parada no fim da semana passada.
-                                                    </p>
-                                                    <p>Os DEDAs e o HPEC continuam sendo liberados toda semana.</p>
-                                                    <p>
-                                                        Para voltar, toque em “Resume LAMP” na página do Imerso. A LAMP
-                                                        volta a contar na segunda-feira seguinte (no mesmo dia, se for
-                                                        segunda), de onde parou e com as mesmas metas.
-                                                    </p>
-                                                    <p>Você usa 1 das suas {melpSummary.remaining_pauses} pausas.</p>
-                                                </>
-                                            ),
-                                            okText: 'Pausar a LAMP',
-                                            cancelText: 'Cancelar',
-                                            onOk: () => pauseDeda.mutateAsync().catch(() => undefined),
-                                        })
-                                    }
-                                >
-                                    Pausar
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+            <div className="cr">
+                <div className="cr-main">
+                    <b className="cr-name">
+                        Semana {melpSummary.current_deda_week} · Dia {saoPauloWeekday()}
+                    </b>
+                    {started && <span className="cr-sub">Início em {started}</span>}
+                </div>
+            </div>
+            {stale && (
+                <div className="cr">
+                    <p className="cr-sub">Não foi possível atualizar o programa IMERSO. {retry}</p>
                 </div>
             )}
-            <ProgramHistory events={melpSummary.program_events} remainingResets={melpSummary.remaining_resets} />
+            {!readOnly && melpSummary.melp_status === 'DEDA_STARTED' && (
+                <div className="cr">
+                    <div className="cr-main">
+                        <b className="cr-name cr-info">
+                            Pausar a LAMP
+                            <Tooltip title="Para a contagem da LAMP enquanto você estiver fora. Os DEDAs e o HPEC continuam sendo liberados.">
+                                <Info {...ICON} size={15} aria-label="Sobre pausar a LAMP" />
+                            </Tooltip>
+                        </b>
+                        <span className="cr-sub">Pausas restantes: {melpSummary.remaining_pauses}</span>
+                    </div>
+                    <div className="cr-side">
+                        <Button
+                            loading={pauseDeda.isPending}
+                            disabled={busy}
+                            onClick={() =>
+                                modal.confirm({
+                                    title: 'Pausar a LAMP?',
+                                    content: (
+                                        <>
+                                            <p>
+                                                A LAMP para de contar a partir de agora. A semana em andamento é zerada:
+                                                a LAMP fica parada no fim da semana passada.
+                                            </p>
+                                            <p>Os DEDAs e o HPEC continuam sendo liberados toda semana.</p>
+                                            <p>
+                                                Para voltar, toque em “Resume LAMP” na página do Imerso. A LAMP volta a
+                                                contar na segunda-feira seguinte (no mesmo dia, se for segunda), de onde
+                                                parou e com as mesmas metas.
+                                            </p>
+                                            <p>Você usa 1 das suas {melpSummary.remaining_pauses} pausas.</p>
+                                        </>
+                                    ),
+                                    okText: 'Pausar a LAMP',
+                                    cancelText: 'Cancelar',
+                                    onOk: () => pauseDeda.mutateAsync().catch(() => undefined),
+                                })
+                            }
+                        >
+                            Pausar
+                        </Button>
+                    </div>
+                </div>
+            )}
+            {!readOnly && (
+                <div className="cr">
+                    <div className="cr-main">
+                        <b className="cr-name cr-info">
+                            Reiniciar a LAMP
+                            <Tooltip title="Zera a sua LAMP. Os seus DEDAs e o HPEC continuam como estão.">
+                                <Info {...ICON} size={15} aria-label="Sobre reiniciar a LAMP" />
+                            </Tooltip>
+                        </b>
+                        <span className="cr-sub">Reinícios restantes: {melpSummary.remaining_resets}</span>
+                    </div>
+                    <div className="cr-side">
+                        <Button
+                            loading={programReset.isPending}
+                            disabled={busy}
+                            onClick={() =>
+                                modal.confirm({
+                                    title: 'Reiniciar a LAMP?',
+                                    content: (
+                                        <>
+                                            <p>
+                                                A sua LAMP é zerada e volta a contar na próxima segunda-feira (no mesmo
+                                                dia, se hoje for segunda).
+                                            </p>
+                                            <p>
+                                                Os seus DEDAs e o HPEC não mudam: você continua exatamente de onde está.
+                                            </p>
+                                            <p>
+                                                Se você estiver em pausa, a pausa termina junto, sem gastar outra pausa.
+                                            </p>
+                                            <p>
+                                                Você usa 1 dos seus {melpSummary.remaining_resets} reinícios. Não dá
+                                                para desfazer.
+                                            </p>
+                                        </>
+                                    ),
+                                    okText: 'Reiniciar a LAMP',
+                                    cancelText: 'Cancelar',
+                                    onOk: () => programReset.mutateAsync().catch(() => undefined),
+                                })
+                            }
+                        >
+                            Reiniciar
+                        </Button>
+                    </div>
+                </div>
+            )}
+            {history.length > 0 && (
+                <div className="tl">
+                    <h3 id="s-history">Histórico do programa</h3>
+                    <ol aria-labelledby="s-history">
+                        {history.map((row) => (
+                            <li key={row.key}>
+                                {row.label}
+                                <span>{row.when}</span>
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+            )}
+        </div>
+    );
+};
+
+/** "Acesso e segurança": o e-mail (só leitura) e a senha, que troca num modal. */
+const SecurityCard: React.FC = () => {
+    const { user } = useAppContext();
+    const email = useProfile().data?.email || user?.email || 'Não informado';
+    const [open, setOpen] = useState(false);
+    const [form] = Form.useForm();
+    const newPassword = Form.useWatch('newPassword', form);
+    useEffect(() => {
+        if (!newPassword) form.resetFields(['newPasswordRepeat']);
+    }, [newPassword, form]);
+    const updatePassword = useUpdatePassword();
+
+    return (
+        <div className="card">
+            <div className="cr stack">
+                <div className="cr-main">
+                    <b className="cr-name">E-mail</b>
+                    <span className="cr-sub">E-mail da compra</span>
+                </div>
+                <div className="cr-side" style={{ minWidth: 0 }}>
+                    <span className="cr-value" title={email}>
+                        {email}
+                    </span>
+                </div>
+            </div>
+            <div className="cr">
+                <div className="cr-main">
+                    <b className="cr-name">Senha</b>
+                </div>
+                <div className="cr-side">
+                    <button type="button" className="btn line sm" onClick={() => setOpen(true)}>
+                        Alterar senha
+                    </button>
+                </div>
+            </div>
+            <Modal
+                title="Alterar senha"
+                open={open}
+                onCancel={() => !updatePassword.isPending && setOpen(false)}
+                footer={null}
+                destroyOnClose
+            >
+                <Form
+                    form={form}
+                    layout="vertical"
+                    colon={false}
+                    onFinish={({ newPasswordRepeat }: { newPasswordRepeat: string }) =>
+                        updatePassword.mutate(newPasswordRepeat)
+                    }
+                >
+                    <Form.Item name="newPassword" label="Nova senha" rules={passwordRules}>
+                        <Input.Password id="s-pass" autoComplete="new-password" />
+                    </Form.Item>
+                    <Form.Item
+                        name="newPasswordRepeat"
+                        label="Repita a nova senha"
+                        rules={[
+                            { required: true, message: 'Por favor insira uma nova senha' },
+                            { min: 8, message: 'A senha deve ter pelo menos 8 caracteres' },
+                            {
+                                validator: async (_, value) => {
+                                    if (value !== newPassword) {
+                                        return Promise.reject(new Error('As senhas não coincidem'));
+                                    }
+                                    const validationRegex = new RegExp(
+                                        /^(?!.*\s)(?=.*[a-zA-Z])(?=.*\d)(?=.*\W).{8,}$/,
+                                        'g',
+                                    );
+                                    if (!validationRegex.test(value)) {
+                                        return Promise.reject(
+                                            new Error(
+                                                'A senha deve ter pelo menos 8 caracteres, 1 letra maiúscula, 1 letra minúscula, 1 número e 1 caractere especial',
+                                            ),
+                                        );
+                                    }
+                                },
+                            },
+                        ]}
+                    >
+                        <Input.Password id="s-pass2" autoComplete="new-password" disabled={!newPassword} />
+                    </Form.Item>
+                    <Button loading={updatePassword.isPending} htmlType="submit" type="primary" block>
+                        Alterar senha
+                    </Button>
+                </Form>
+            </Modal>
         </div>
     );
 };
@@ -286,33 +594,52 @@ export const NewSettings: React.FC = () => {
 
     return (
         <NewPage className="narrow settings">
-            <PageHead title="Configurações" />
-            <section aria-labelledby="settings-profile">
-                <div className="sh">
-                    <h2 id="settings-profile">Perfil</h2>
-                </div>
-                <ProfileSettings />
-            </section>
-            <section aria-labelledby="settings-account">
-                <div className="sh">
-                    <h2 id="settings-account">Conta</h2>
-                </div>
-                <AccountSettings />
-            </section>
-            <section aria-labelledby="settings-password">
-                <div className="sh">
-                    <h2 id="settings-password">Senha</h2>
-                </div>
-                <SecuritySettings />
+            <Global styles={styles} />
+            <h1 className="sr">Configurações</h1>
+            <ProfileIdentity />
+            <section aria-labelledby="settings-products">
+                <h2 className="st" id="settings-products">
+                    Meus produtos
+                </h2>
+                <ProductsCard />
             </section>
             {isUserImerso && (
                 <section aria-labelledby="settings-imerso">
-                    <div className="sh">
-                        <h2 id="settings-imerso">IMERSO</h2>
-                    </div>
-                    <ImersoSettings />
+                    <h2 className="st" id="settings-imerso">
+                        Programa Imerso
+                    </h2>
+                    <ProgramCard />
                 </section>
             )}
+            <section aria-labelledby="settings-profile">
+                <h2 className="st" id="settings-profile">
+                    Dados pessoais
+                </h2>
+                <ProfileDataCard />
+            </section>
+            <section aria-labelledby="settings-security">
+                <h2 className="st" id="settings-security">
+                    Acesso e segurança
+                </h2>
+                <SecurityCard />
+            </section>
+            <section aria-labelledby="settings-appearance">
+                <h2 className="st" id="settings-appearance">
+                    Aparência
+                </h2>
+                <div className="card">
+                    <div className="cr">
+                        <div className="cr-main">
+                            <b className="cr-name" id="s-theme">
+                                Tema
+                            </b>
+                        </div>
+                        <div className="cr-side" aria-labelledby="s-theme">
+                            <ThemeSwitch labels />
+                        </div>
+                    </div>
+                </div>
+            </section>
         </NewPage>
     );
 };

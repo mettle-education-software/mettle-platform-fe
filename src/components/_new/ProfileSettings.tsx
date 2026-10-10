@@ -20,10 +20,10 @@ import {
     validateProfileField,
     validateProfileImage,
 } from 'libs/profile';
+import { Camera } from 'lucide-react';
 import { useAppContext } from 'providers';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
-import { ThemeSwitch } from './ThemeSwitch';
 
 /** Caixa do recorte: altura fixa (sem pulo a 360 px), cantos como os cards. */
 const CROP_BOX: React.CSSProperties = {
@@ -119,17 +119,17 @@ const ProfileForm: React.FC<{ data: Profile }> = ({ data }) => {
     };
 
     return (
-        <form className="rows profile-form" noValidate onSubmit={submit}>
-            {PROFILE_FIELDS.map(({ key, label, maxLength }) => {
-                const id = `profile-${key}`;
-                const error = errors[key];
-                const described = [key === 'phone' ? `${id}-hint` : '', error ? `${id}-error` : '']
-                    .filter(Boolean)
-                    .join(' ');
-                return (
-                    <div className="row" key={key}>
-                        <label htmlFor={id}>{label}</label>
-                        <div className="field">
+        <form className="card pf" noValidate onSubmit={submit}>
+            <div className="pf-grid">
+                {PROFILE_FIELDS.map(({ key, label, maxLength }) => {
+                    const id = `profile-${key}`;
+                    const error = errors[key];
+                    const described = [key === 'phone' ? `${id}-hint` : '', error ? `${id}-error` : '']
+                        .filter(Boolean)
+                        .join(' ');
+                    return (
+                        <div className="pf-field" key={key}>
+                            <label htmlFor={id}>{label}</label>
                             <Input
                                 id={id}
                                 ref={(input) => {
@@ -166,33 +166,30 @@ const ProfileForm: React.FC<{ data: Profile }> = ({ data }) => {
                                 </p>
                             )}
                         </div>
-                    </div>
-                );
-            })}
-            <div className="row profile-actions">
-                <span className="lab" aria-hidden />
-                <div className="field">
-                    <button type="submit" className="btn gold" disabled={!changed.length || pending}>
-                        {pending ? 'Salvando…' : 'Salvar'}
-                    </button>
-                    {success && (
-                        <span role="status" className="profile-saved">
-                            Salvo
-                        </span>
-                    )}
-                    {formError && (
-                        <span role="alert" className="profile-error">
-                            {formError}
-                        </span>
-                    )}
-                </div>
+                    );
+                })}
+            </div>
+            <div className="pf-actions profile-actions">
+                {success && (
+                    <span role="status" className="profile-saved">
+                        Salvo
+                    </span>
+                )}
+                {formError && (
+                    <span role="alert" className="profile-error">
+                        {formError}
+                    </span>
+                )}
+                <button type="submit" className="btn gold" disabled={!changed.length || pending}>
+                    {pending ? 'Salvando…' : 'Salvar'}
+                </button>
             </div>
         </form>
     );
 };
 
 /** Recorte como no iPhone: arrastar para posicionar, pinça ou roda (e a barra) para o zoom, círculo como o avatar. */
-const ProfilePhoto: React.FC<{ photo?: string | null; name?: string }> = ({ photo, name }) => {
+const PhotoPicker: React.FC<{ photo?: string | null; name?: string }> = ({ photo, name }) => {
     const [file, setFile] = useState<File>();
     const [source, setSource] = useState<string>();
     const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -239,139 +236,143 @@ const ProfilePhoto: React.FC<{ photo?: string | null; name?: string }> = ({ phot
         }
     };
     return (
-        <div className="row">
-            <span className="lab">Foto</span>
-            <div className="field">
-                <div className="profile-photo">
-                    <span className="profile-avatar" aria-hidden>
-                        {/* eslint-disable-next-line @next/next/no-img-element -- URL da foto do Firebase */}
-                        {photo ? <img src={photo} alt="" /> : name?.[0] || '?'}
-                    </span>
-                    <input
-                        ref={input}
-                        type="file"
-                        accept="image/*"
-                        hidden
-                        aria-label="Escolher foto"
-                        onChange={(event) => {
-                            const selected = event.target.files?.[0];
-                            event.target.value = '';
-                            if (!selected) return;
-                            // qualquer tamanho ou formato que o navegador abra: o recorte reduz para 1024 px em JPEG
-                            setError(undefined);
-                            setCrop({ x: 0, y: 0 });
-                            setZoom(1);
-                            setArea(null);
-                            setFile(selected);
-                        }}
-                    />
-                    <Button onClick={() => input.current?.click()}>Trocar foto</Button>
+        <>
+            {/* a foto inteira é o botão (como no iPhone); o selo da câmera diz que dá para trocar */}
+            <button type="button" className="idh-av" aria-label="Trocar foto" onClick={() => input.current?.click()}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- URL da foto do Firebase */}
+                {photo ? <img src={photo} alt="" /> : <span aria-hidden>{name?.[0] || '?'}</span>}
+                <span className="idh-cam" aria-hidden>
+                    <Camera size={15} strokeWidth={1.8} />
+                </span>
+            </button>
+            <input
+                ref={input}
+                type="file"
+                accept="image/*"
+                hidden
+                aria-label="Escolher foto"
+                onChange={(event) => {
+                    const selected = event.target.files?.[0];
+                    event.target.value = '';
+                    if (!selected) return;
+                    // qualquer tamanho ou formato que o navegador abra: o recorte reduz para 1024 px em JPEG
+                    setError(undefined);
+                    setCrop({ x: 0, y: 0 });
+                    setZoom(1);
+                    setArea(null);
+                    setFile(selected);
+                }}
+            />
+            {error && !file && (
+                <p className="profile-error idh-error" role="alert">
+                    {error}
+                </p>
+            )}
+            <Modal
+                title="Recortar foto"
+                open={!!file}
+                onCancel={close}
+                onOk={save}
+                okText="Usar foto"
+                cancelText="Cancelar"
+                confirmLoading={busy}
+                okButtonProps={{ disabled: !area || busy }}
+                cancelButtonProps={{ disabled: busy }}
+                closable={!busy}
+                maskClosable={!busy}
+                afterOpenChange={setShown}
+            >
+                {/* altura fixa: nada pula quando a foto carrega; o recorte não deixa a página rolar ao arrastar */}
+                <div className="profile-crop" style={CROP_BOX}>
+                    {source && shown && (
+                        <Cropper
+                            image={source}
+                            crop={crop}
+                            zoom={zoom}
+                            minZoom={1}
+                            maxZoom={3}
+                            aspect={1}
+                            cropShape="round"
+                            showGrid={false}
+                            keyboardStep={8}
+                            onCropChange={setCrop}
+                            onZoomChange={setZoom}
+                            onCropComplete={(_, pixels) => setArea(pixels)}
+                            mediaProps={{
+                                alt: 'Prévia do recorte',
+                                onError: () => {
+                                    setArea(null);
+                                    setError('Não foi possível abrir esta foto.');
+                                },
+                            }}
+                            cropperProps={{
+                                role: 'group',
+                                'aria-label': 'Recorte: arraste para posicionar; setas ajustam',
+                            }}
+                        />
+                    )}
                 </div>
-                {error && !file && (
-                    <p className="profile-error" role="alert">
-                        {error}
-                    </p>
-                )}
-                <Modal
-                    title="Recortar foto"
-                    open={!!file}
-                    onCancel={close}
-                    onOk={save}
-                    okText="Usar foto"
-                    cancelText="Cancelar"
-                    confirmLoading={busy}
-                    okButtonProps={{ disabled: !area || busy }}
-                    cancelButtonProps={{ disabled: busy }}
-                    closable={!busy}
-                    maskClosable={!busy}
-                    afterOpenChange={setShown}
-                >
-                    {/* altura fixa: nada pula quando a foto carrega; o recorte não deixa a página rolar ao arrastar */}
-                    <div className="profile-crop" style={CROP_BOX}>
-                        {source && shown && (
-                            <Cropper
-                                image={source}
-                                crop={crop}
-                                zoom={zoom}
-                                minZoom={1}
-                                maxZoom={3}
-                                aspect={1}
-                                cropShape="round"
-                                showGrid={false}
-                                keyboardStep={8}
-                                onCropChange={setCrop}
-                                onZoomChange={setZoom}
-                                onCropComplete={(_, pixels) => setArea(pixels)}
-                                mediaProps={{
-                                    alt: 'Prévia do recorte',
-                                    onError: () => {
-                                        setArea(null);
-                                        setError('Não foi possível abrir esta foto.');
-                                    },
-                                }}
-                                cropperProps={{
-                                    role: 'group',
-                                    'aria-label': 'Recorte: arraste para posicionar; setas ajustam',
-                                }}
-                            />
-                        )}
-                    </div>
-                    <label htmlFor="profile-photo-zoom">Zoom</label>
-                    <input
-                        id="profile-photo-zoom"
-                        type="range"
-                        min="1"
-                        max="3"
-                        step="0.05"
-                        value={zoom}
-                        disabled={busy}
-                        onChange={(event) => setZoom(Number(event.target.value))}
-                        style={{ width: '100%' }}
-                    />
-                    {error && <p role="alert">{error}</p>}
-                </Modal>
-            </div>
-        </div>
+                <label htmlFor="profile-photo-zoom">Zoom</label>
+                <input
+                    id="profile-photo-zoom"
+                    type="range"
+                    min="1"
+                    max="3"
+                    step="0.05"
+                    value={zoom}
+                    disabled={busy}
+                    onChange={(event) => setZoom(Number(event.target.value))}
+                    style={{ width: '100%' }}
+                />
+                {error && <p role="alert">{error}</p>}
+            </Modal>
+        </>
     );
 };
 
-export const ProfileSettings: React.FC = () => {
+/** Cabeçalho da conta: a foto grande (toque para trocar), o nome e "@username · e-mail". */
+export const ProfileIdentity: React.FC = () => {
     const { user } = useAppContext();
-    const profile = useProfile();
-    const data = profile.data;
+    const data = useProfile().data;
+    const name = [data?.first_name, data?.last_name].filter(Boolean).join(' ') || user?.name || '';
+    const sub = [data?.username ? `@${data.username}` : '', data?.email || user?.email || '']
+        .filter(Boolean)
+        .join(' · ');
     return (
-        <div className="panel">
-            {!data ? (
-                <p className="hint" role="status">
-                    {profile.isError ? (
-                        <>
-                            Não foi possível carregar o perfil.{' '}
-                            <Button onClick={() => profile.refetch()}>Tentar novamente</Button>
-                        </>
-                    ) : (
-                        'Carregando…'
-                    )}
-                </p>
-            ) : (
-                <>
-                    <ProfilePhoto photo={data.photoURL ?? user?.profileImageSrc} name={data.first_name ?? user?.name} />
-                    <ProfileForm key={user?.uid} data={data} />
-                </>
-            )}
-            <dl className="rows settings-data">
-                <div className="row">
-                    <dt className="lab">E-mail</dt>
-                    <dd className="field">{data?.email || user?.email || 'Não informado'}</dd>
-                </div>
-            </dl>
-            <div className="row">
-                <span className="lab" id="s-theme">
-                    Tema
-                </span>
-                <div className="field" aria-labelledby="s-theme">
-                    <ThemeSwitch labels />
-                </div>
+        <header className="idh">
+            <PhotoPicker photo={data?.photoURL ?? user?.profileImageSrc} name={data?.first_name ?? user?.name} />
+            <div className="idh-text">
+                <p className="idh-name">{name}</p>
+                {sub && <p className="idh-sub">{sub}</p>}
             </div>
-        </div>
+        </header>
     );
 };
+
+/** "Dados pessoais": o formulário do perfil (ou o carregando / a falha com nova tentativa). */
+export const ProfileDataCard: React.FC = () => {
+    const { user } = useAppContext();
+    const profile = useProfile();
+    if (!profile.data)
+        return (
+            <p className="hint" role="status">
+                {profile.isError ? (
+                    <>
+                        Não foi possível carregar o perfil.{' '}
+                        <Button onClick={() => profile.refetch()}>Tentar novamente</Button>
+                    </>
+                ) : (
+                    'Carregando…'
+                )}
+            </p>
+        );
+    return <ProfileForm key={user?.uid} data={profile.data} />;
+};
+
+/** Cabeçalho e dados (usado nos testes do perfil). */
+export const ProfileSettings: React.FC = () => (
+    <>
+        <ProfileIdentity />
+        <ProfileDataCard />
+    </>
+);

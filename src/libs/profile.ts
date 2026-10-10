@@ -1,16 +1,16 @@
 import { AsYouType, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js/min';
 
-/** Campos do perfil, na ordem da tela; um formulário só, um Salvar. */
+/** Campos do perfil, na ordem da tela (duas colunas no computador); um formulário só, um Salvar. */
 export const PROFILE_FIELDS = [
     { key: 'first_name', label: 'Nome', maxLength: 60 },
     { key: 'last_name', label: 'Sobrenome', maxLength: 60 },
     { key: 'username', label: '@username', maxLength: 20 },
     { key: 'instagram', label: 'Instagram', maxLength: 31 },
     { key: 'birth_date', label: 'Nascimento', maxLength: 10 },
+    { key: 'phone', label: 'WhatsApp', maxLength: 25 },
     { key: 'city', label: 'Cidade', maxLength: 80 },
     { key: 'state', label: 'Estado', maxLength: 80 },
     { key: 'country', label: 'País', maxLength: 80 },
-    { key: 'phone', label: 'Telefone', maxLength: 25 },
 ] as const;
 
 export type ProfileField = (typeof PROFILE_FIELDS)[number]['key'];

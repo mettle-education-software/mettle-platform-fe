@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
+import type { MyAccessRow } from 'libs/myProducts';
 import { Profile, profilePatch, ProfileValues } from 'libs/profile';
 import { useAppContext } from 'providers';
 import { accountService } from 'services';
@@ -13,7 +14,11 @@ export function useProfile(enabled = true) {
         queryKey: profileKey(user?.uid),
         queryFn: async () => {
             const { data } = await accountService.get<{
-                data: { userRecord: Profile[]; fbData: { photoURL?: string; phoneNumber?: string; email?: string } };
+                data: {
+                    userRecord: Profile[];
+                    fbData: { photoURL?: string; phoneNumber?: string; email?: string };
+                    accessDetails?: MyAccessRow[];
+                };
             }>('/me');
             const record = data.data.userRecord[0];
             if (!record || record.user_uid !== user?.uid) throw new Error('Perfil indisponível para esta sessão.');
@@ -23,6 +28,8 @@ export function useProfile(enabled = true) {
                 photoURL: data.data.fbData.photoURL ?? null,
                 phone: record.phone ?? record.phone_number ?? data.data.fbData.phoneNumber ?? null,
                 email: record.email ?? data.data.fbData.email,
+                // "Meus produtos": só do modelo de acesso (nunca do catálogo em cache)
+                accessDetails: Array.isArray(data.data.accessDetails) ? data.data.accessDetails : null,
             };
         },
         enabled: enabled && !!user?.uid,

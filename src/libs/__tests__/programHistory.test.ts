@@ -48,7 +48,7 @@ test('ciclo completo: início pela 1ª segunda, pausa de–até (até = segunda 
         ],
         2,
     );
-    expect(lines(rows)).toEqual(['Início | 12/10/2026', 'Pausa | 22/10/2026 – 02/11/2026', 'Reset | 18/11/2026']);
+    expect(lines(rows)).toEqual(['Início | 12/10/2026', 'Pausa | 22/10/2026 – 02/11/2026', 'Reinício | 18/11/2026']);
 });
 
 test('pausa em andamento: "desde"; voltou e espera a segunda: a segunda agendada', () => {
@@ -117,13 +117,15 @@ test('carga inicial sem data efetiva: só a data conhecida; volta sem semana: "L
     expect(lines(rows)).toEqual(['Pausa | 04/03/2025 – 10/03/2025', 'LAMP retomada | 02/06/2025']);
 });
 
-test('resets anteriores ao registro: sem data, primeiro; nunca negativo', () => {
+test('reinícios anteriores ao registro: sem data, primeiro e apagados; nunca negativo', () => {
     const one = programHistory([ev('reset', '2026-11-18T14:00:00.000Z')], 1);
-    expect(lines(one)).toEqual(['Reset | data não registrada', 'Reset | 18/11/2026']);
+    expect(lines(one)).toEqual(['Reinício (data não registrada) | ', 'Reinício | 18/11/2026']);
+    // registro incompleto em tom apagado; o reinício com data, normal
+    expect(one.map((row) => !!row.muted)).toEqual([true, false]);
     expect(lines(programHistory([], 0))).toEqual([
-        'Reset | data não registrada',
-        'Reset | data não registrada',
-        'Reset | data não registrada',
+        'Reinício (data não registrada) | ',
+        'Reinício (data não registrada) | ',
+        'Reinício (data não registrada) | ',
     ]);
     expect(programHistory([], 5)).toEqual([]); // mais resets que o padrão (crédito futuro): nada inventado
     expect(programHistory([], undefined)).toEqual([]);
@@ -140,7 +142,7 @@ test('reset com a LAMP pausada (passo 3): a pausa termina quando a LAMP recomeç
     );
     expect(lines(rows)).toEqual([
         'Pausa | 22/10/2026 – 02/11/2026',
-        'Reset | 28/10/2026',
+        'Reinício | 28/10/2026',
         'LAMP recomeçou na semana 1 | 02/11/2026',
     ]);
 });
@@ -197,7 +199,11 @@ test('datas inválidas: data efetiva inválida cai para a conhecida; evento sem 
         ],
         2,
     );
-    expect(lines(rows)).toEqual(['Reset | data não registrada', 'Início | 07/10/2026', 'Pausa | desde 22/10/2026']);
+    expect(lines(rows)).toEqual([
+        'Reinício (data não registrada) | ',
+        'Início | 07/10/2026',
+        'Pausa | desde 22/10/2026',
+    ]);
 });
 
 test('estados de conta sem histórico: nada aparece (antes do início, resumo antigo sem program_events)', () => {
@@ -234,12 +240,12 @@ test('pausas/resets a mais e reset de fábrica: linhas próprias; a contagem sem
         1,
     );
     expect(lines(rows)).toEqual([
-        'Reset | data não registrada',
-        'Reset | data não registrada',
-        'Reset | data não registrada',
+        'Reinício (data não registrada) | ',
+        'Reinício (data não registrada) | ',
+        'Reinício (data não registrada) | ',
         '2 pausas e 2 resets a mais | 10/10/2026',
         '1 pausa a mais | 11/10/2026',
-        'Reset | 12/10/2026',
+        'Reinício | 12/10/2026',
     ]);
     // reset de fábrica: fecha a pausa aberta; antes dele nada conta (3 restantes, nada sem data)
     const fresh = programHistory(
@@ -251,7 +257,7 @@ test('pausas/resets a mais e reset de fábrica: linhas próprias; a contagem sem
         3,
     );
     expect(lines(fresh)).toEqual([
-        'Reset | 01/09/2026',
+        'Reinício | 01/09/2026',
         'Pausa | 20/09/2026 – 10/10/2026',
         'Reset de fábrica | 10/10/2026',
     ]);

@@ -34,7 +34,7 @@ test('eventos sem id reutilizam rótulos e resets antigos sem criar chaves repet
         student({ resetsUsed: 1, resetsLeft: 2, events: [event, { ...event, at: '2026-10-19', lampWeek: 106 }] }),
     );
     expect(rows.map(({ label, when }) => [label, when])).toEqual([
-        ['Reset', 'data não registrada'],
+        ['Reinício (data não registrada)', ''],
         ['LAMP retomada na semana 105', '12/10/2026'],
         ['LAMP retomada na semana 106', '19/10/2026'],
     ]);

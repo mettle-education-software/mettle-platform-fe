@@ -13,6 +13,7 @@ import {
     EBOOK_PATH,
     EBOOK_POSITION_URL,
     EBOOK_PRODUCT,
+    EBOOK_SALES_URL,
     type EbookBook,
     type EbookBookmark,
     type EbookHighlight,
@@ -282,7 +283,8 @@ const Popover: React.FC<{
 export const NewEbookReader: React.FC = () => {
     const { user } = useAppContext();
     const { access } = useProductAccess();
-    const open = ebookOpen(access(EBOOK_PRODUCT).state);
+    const ebookState = access(EBOOK_PRODUCT).state;
+    const open = ebookOpen(ebookState);
     const { resolved, setPref } = useTheme();
 
     const [load, setLoad] = useState<Load>({ state: 'loading' });
@@ -810,16 +812,26 @@ export const NewEbookReader: React.FC = () => {
         return (
             <NewPage className="narrow">
                 {(load.state === 'error' || !open) && user ? (
-                    <State role="status">
-                        <p>
-                            {!open || (load.state === 'error' && load.noAccess)
-                                ? 'Este e-book não faz parte da sua conta.'
-                                : 'Não foi possível abrir o e-book agora. Tente de novo em instantes.'}
-                        </p>
-                        <Link href={EBOOK_PATH} className="btn line">
-                            {EBOOK.title}
-                        </Link>
-                    </State>
+                    !open || (load.state === 'error' && load.noAccess) ? (
+                        // a mesma frase e a mesma ação de /guia (PF2-09): Leitura = terminou + Renovar
+                        <State role="status">
+                            <p>
+                                {ebookState === 'expired'
+                                    ? 'O seu acesso a este e-book terminou.'
+                                    : 'Este e-book não faz parte da sua conta.'}
+                            </p>
+                            <a href={EBOOK_SALES_URL} className="btn gold">
+                                {ebookState === 'expired' ? 'Renovar' : 'Desbloquear'}
+                            </a>
+                        </State>
+                    ) : (
+                        <State role="status">
+                            <p>Não foi possível abrir o e-book agora. Tente de novo em instantes.</p>
+                            <Link href={EBOOK_PATH} className="btn line">
+                                {EBOOK.title}
+                            </Link>
+                        </State>
+                    )
                 ) : null}
             </NewPage>
         );
@@ -1229,6 +1241,12 @@ const State = styled.div`
     padding-top: 64px;
     text-align: center;
     color: var(--r-muted);
+    /* o título longo do livro no botão quebra em vez de vazar no celular (PF2-09) */
+    .btn {
+        max-width: 100%;
+        height: auto;
+        white-space: normal;
+    }
 `;
 
 /** Temas só do leitor: sépia (papel amarelado) e noite (preto, tinta clara). Contraste AA em texto e rótulos. */

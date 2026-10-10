@@ -12,7 +12,8 @@
 // - tipo de evento desconhecido, ou sem data válida, é ignorado (nunca quebra a tela).
 import type { ProgramEvent } from 'interfaces/melp';
 
-export type HistoryRow = { key: string; label: string; when: string };
+/** Uma linha do histórico; `muted` = registro incompleto (reinício antigo sem data), em tom apagado. */
+export type HistoryRow = { key: string; label: string; when: string; muted?: boolean };
 
 /** Resets que todo aluno recebe hoje (padrão de melp_program.remaining_resets). */
 export const RESET_ALLOWANCE = 3;
@@ -101,7 +102,8 @@ export const programHistory = (
     const granted = allowance + era.reduce((sum, e) => sum + (e.kind === 'allowance' ? extra(e.addResets) : 0), 0);
     const used = typeof remainingResets === 'number' ? Math.max(0, granted - remainingResets) : 0;
     const undated = Math.max(0, used - era.filter((e) => e.kind === 'reset').length);
-    for (let i = 0; i < undated; i++) items.push({ key: `reset-${i}`, label: 'Reset', when: 'data não registrada' });
+    for (let i = 0; i < undated; i++)
+        items.push({ key: `reset-${i}`, label: 'Reinício (data não registrada)', when: '', muted: true });
 
     let open: Pause[] = [];
     let bridge = false;
@@ -154,7 +156,7 @@ export const programHistory = (
                 bridge = false;
                 break;
             case 'reset':
-                items.push({ key, label: 'Reset', when: format(e.at) });
+                items.push({ key, label: 'Reinício', when: format(e.at) });
                 break;
             case 'lamp_restarted':
                 closeAll(e.at);

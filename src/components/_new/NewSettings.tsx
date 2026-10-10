@@ -241,15 +241,19 @@ const styles = css`
         font-weight: 500;
         color: var(--r-muted);
     }
+    /* a data longa (período de pausa) quebra para a linha de baixo, à direita, em vez de vazar no celular (PF2-08) */
     .settings .tl li {
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
-        gap: 12px;
+        gap: 2px 12px;
         padding: 7px 0;
         font-size: 14px;
     }
     .settings .tl li span {
-        flex: none;
+        flex: 0 1 auto;
+        margin-left: auto;
+        text-align: right;
         color: var(--r-muted);
         font-variant-numeric: tabular-nums;
     }
@@ -282,6 +286,9 @@ const styles = css`
         max-width: 160px;
         font-variant-numeric: tabular-nums;
         letter-spacing: 0.2em;
+    }
+    .settings .tl li.muted {
+        color: var(--r-faint);
     }
     /* Dados pessoais (o formulário traz a grade): o respiro do card */
     .settings .pf {
@@ -546,9 +553,9 @@ const ProgramCard: React.FC = () => {
                     <h3 id="s-history">Histórico do programa</h3>
                     <ol aria-labelledby="s-history">
                         {history.map((row) => (
-                            <li key={row.key}>
+                            <li key={row.key} className={row.muted ? 'muted' : undefined}>
                                 {row.label}
-                                <span>{row.when}</span>
+                                {row.when && <span>{row.when}</span>}
                             </li>
                         ))}
                     </ol>

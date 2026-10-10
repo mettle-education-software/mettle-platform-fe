@@ -12,10 +12,15 @@ import {
     type AccountRow,
     type AccountsSummary,
     accountsCsv,
-    brl,
     type ContasView,
     contasPath,
     lastAccessLabel,
+    type Level,
+    programStarted,
+    levelLabel,
+    LEVELS,
+    ltvCell,
+    metricLabel,
     ORIGIN_FILTERS,
     type OriginFilter,
     PAGE_SIZES,
@@ -32,6 +37,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import { ICON, UI_FONT_CLASS, UI_FONT_VAR } from 'themes/newDesign';
 import { AdminNav, chipStyles } from './AdminNav';
+import { LevelChip } from './LevelChip';
 import { StudentDetail } from './NewAdminStudent';
 import { TrashList } from './NewAdminTrash';
 import { NewPage } from './NewPage';
@@ -244,6 +250,30 @@ const styles = css`
     .ct .num {
         text-align: right;
     }
+    /* "Programa (em semanas)": o rótulo quebra em duas linhas (a coluna fica estreita) */
+    .ct th.wrap {
+        white-space: normal;
+        min-width: 84px;
+        line-height: 1.25;
+    }
+    /* 11 colunas: a lista usa a largura toda da tela (não a coluna de leitura) */
+    .ui-new-page.ct {
+        max-width: none;
+    }
+    /* LTV: só o botão da ordem ativa fica dourado */
+    .ct th .duo button[aria-pressed='false'] {
+        color: inherit;
+    }
+    /* LTV: duas ordens no mesmo cabeçalho (o dinheiro e os dias) */
+    .ct th .duo {
+        display: inline-flex;
+        gap: 10px;
+    }
+    .ct .when {
+        margin: -8px 0 10px;
+        font-size: 12px;
+        color: var(--r-faint);
+    }
     .ct .pages {
         display: flex;
         flex-wrap: wrap;
@@ -316,7 +346,7 @@ const n = (value: number | null | undefined) => (typeof value === 'number' ? val
  * Resumo de auditoria: a base inteira (igual ao Início); cada número aplica o seu filtro na lista padrão (scope=contas:
  * quem tem produto é ativo e com login, sem lixeira e equipe), então a lista bate com o número.
  */
-const FILTERS = ['product', 'state', 'origin', 'situacao', 'todas', 'lixeira'] as const;
+const FILTERS = ['product', 'state', 'origin', 'situacao', 'level', 'todas', 'lixeira'] as const;
 const Audit: React.FC<{
     summary: AccountsSummary | null;
     view: ContasView;
@@ -393,6 +423,7 @@ export const NewAdminContas: React.FC = () => {
         state: url.state,
         origin: url.origin,
         situacao: url.situacao,
+        level: url.level,
         todas: url.todas,
         sort: url.sort,
         dir: url.dir,
@@ -423,6 +454,7 @@ export const NewAdminContas: React.FC = () => {
         url.state,
         url.origin,
         url.situacao,
+        url.level,
         url.todas,
         sort.key,
         sort.dir,
@@ -437,6 +469,7 @@ export const NewAdminContas: React.FC = () => {
         state: url.state,
         origin: url.origin,
         situacao: url.situacao,
+        level: url.level,
         todas: url.todas,
         q,
         sort,
@@ -449,7 +482,7 @@ export const NewAdminContas: React.FC = () => {
     const summary = list.data?.summary ?? null;
     const pages = Math.max(1, Math.ceil(total / url.pageSize));
     const selectedRow = rows.find((row) => row.uid === selected);
-    const filtered = !!(url.product || url.origin || url.situacao || url.todas || q);
+    const filtered = !!(url.product || url.origin || url.situacao || url.level || url.todas || q);
     const [exporting, setExporting] = useState<'idle' | 'busy' | 'failed'>('idle');
     const [exported, setExported] = useState(false);
     const exportingRef = useRef(false);
@@ -535,6 +568,16 @@ export const NewAdminContas: React.FC = () => {
                     options={SITUACOES}
                     onChange={(situacao) => go({ situacao: situacao ?? undefined })}
                 />
+                <Select<Level>
+                    allowClear
+                    placeholder="Nível"
+                    aria-label="Nível"
+                    value={url.level}
+                    disabled={trash}
+                    popupMatchSelectWidth={false}
+                    options={LEVELS}
+                    onChange={(level) => go({ level: level ?? undefined })}
+                />
                 <label className="toggle">
                     <input
                         type="checkbox"
@@ -602,6 +645,16 @@ export const NewAdminContas: React.FC = () => {
                 </p>
             ) : (
                 <>
+                    {(list.data?.metricsAt || list.data?.snapshotAt) && (
+                        <p className="when">
+                            {[
+                                list.data?.metricsAt && `Overall, Run e posição de ${when(list.data.metricsAt)}`,
+                                list.data?.snapshotAt && `LTV de ${when(list.data.snapshotAt)}`,
+                            ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                        </p>
+                    )}
                     <div className="scroll" role="region" aria-label="Contas" tabIndex={0}>
                         <table>
                             <thead>
@@ -624,9 +677,34 @@ export const NewAdminContas: React.FC = () => {
                                             </th>
                                         ),
                                     )}
-                                    <th scope="col">Programa</th>
+                                    <th scope="col" className="wrap">
+                                        Programa (em semanas)
+                                    </th>
+                                    <SortHead label="Nível" field="level" sort={sort} onSort={onSort} />
+                                    <SortHead
+                                        label="Overall"
+                                        field="overall"
+                                        sort={sort}
+                                        onSort={onSort}
+                                        className="num"
+                                    />
+                                    <SortHead
+                                        label="DEDA Run"
+                                        field="dedaRun"
+                                        sort={sort}
+                                        onSort={onSort}
+                                        className="num"
+                                    />
+                                    <SortHead
+                                        label="Leaderboard"
+                                        by="posição geral"
+                                        field="leaderboardPos"
+                                        sort={sort}
+                                        onSort={onSort}
+                                        className="num"
+                                    />
                                     <SortHead label="Último acesso" field="lastAccess" sort={sort} onSort={onSort} />
-                                    <SortHead label="LTV" field="ltv" sort={sort} onSort={onSort} className="num" />
+                                    <LtvHead sort={sort} onSort={onSort} />
                                 </tr>
                             </thead>
                             <tbody>
@@ -640,7 +718,7 @@ export const NewAdminContas: React.FC = () => {
                                 ))}
                                 {!rows.length && (
                                     <tr>
-                                        <td colSpan={7} className="hint">
+                                        <td colSpan={11} className="hint">
                                             Nenhuma conta encontrada.
                                         </td>
                                     </tr>
@@ -705,51 +783,103 @@ export const NewAdminContas: React.FC = () => {
     );
 };
 
+/** Data e hora de Brasília, curtas: "10/10, 18:05". */
+const when = (iso: string) => {
+    const date = new Date(iso);
+    return Number.isNaN(date.getTime())
+        ? '—'
+        : date.toLocaleString('pt-BR', {
+              timeZone: 'America/Sao_Paulo',
+              day: '2-digit',
+              month: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+          });
+};
+
+/** LTV: duas ordens no mesmo cabeçalho — o dinheiro (sort=ltv) e os dias com acesso (sort=ltvDias). */
+const LtvHead: React.FC<{ sort: Sort; onSort: (key: SortKey) => void }> = ({ sort, onSort }) => {
+    const arrow = (key: SortKey) =>
+        sort.key === key ? (
+            sort.dir === 'asc' ? (
+                <ChevronUp size={14} aria-hidden />
+            ) : (
+                <ChevronDown size={14} aria-hidden />
+            )
+        ) : (
+            <ChevronsUpDown size={14} aria-hidden />
+        );
+    const active = sort.key === 'ltv' || sort.key === 'ltvDias';
+    return (
+        <th scope="col" className="num" aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+            <span className="duo">
+                <button type="button" onClick={() => onSort('ltv')} aria-pressed={sort.key === 'ltv'}>
+                    LTV<span className="sr"> (valor)</span>
+                    {arrow('ltv')}
+                </button>
+                <button type="button" onClick={() => onSort('ltvDias')} aria-pressed={sort.key === 'ltvDias'}>
+                    dias<span className="sr"> com acesso</span>
+                    {arrow('ltvDias')}
+                </button>
+            </span>
+        </th>
+    );
+};
+
 const AccountLine: React.FC<{ row: AccountRow; selected: boolean; onOpen: (uid: string) => void }> = ({
     row,
     selected,
     onOpen,
-}) => (
-    <tr aria-selected={selected} onClick={() => onOpen(row.uid)}>
-        <td>
-            <button
-                type="button"
-                className="who"
-                onClick={(event) => {
-                    event.stopPropagation();
-                    onOpen(row.uid);
-                }}
-            >
-                <span className="line">
-                    <b>{row.name || row.email || 'Sem nome'}</b>
-                    {row.team && <span className="tag team">Equipe</span>}
-                    {row.inTrash && <span className="tag">na lixeira</span>}
-                    {row.hasLogin === false && !row.inTrash && <span className="tag">sem login</span>}
-                </span>
-                {row.email && <small>{row.email}</small>}
-            </button>
-        </td>
-        {PRODUCTS.map((p) => {
-            const label = row.access ? accessBadge(row.access[p]) : null;
-            const detail = row.access ? accessDetail(row.access[p]) : null;
-            return (
-                <td key={p}>
-                    {label ? <span className={`pill${label === 'Ativo' ? ' on' : ''}`}>{label}</span> : '—'}
-                    {detail && <span className="tiny">{detail}</span>}
-                </td>
-            );
-        })}
-        <td>{programLabel(row.program)}</td>
-        <td>{lastAccessLabel(row.lastAccess)}</td>
-        <td className="num">
-            {brl(row.ltv?.total)}
-            {typeof row.ltv?.compras === 'number' && (
-                <span className="tiny">
-                    {row.ltv.compras} {row.ltv.compras === 1 ? 'compra' : 'compras'}
-                </span>
-            )}
-        </td>
-    </tr>
-);
+}) => {
+    const ltv = ltvCell(row);
+    return (
+        <tr aria-selected={selected} onClick={() => onOpen(row.uid)}>
+            <td>
+                <button
+                    type="button"
+                    className="who"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onOpen(row.uid);
+                    }}
+                >
+                    <span className="line">
+                        <b>{row.name || row.email || 'Sem nome'}</b>
+                        {row.team && <span className="tag team">Equipe</span>}
+                        {row.inTrash && <span className="tag">na lixeira</span>}
+                        {row.hasLogin === false && !row.inTrash && <span className="tag">sem login</span>}
+                    </span>
+                    {row.email && <small>{row.email}</small>}
+                </button>
+            </td>
+            {PRODUCTS.map((p) => {
+                const label = row.access ? accessBadge(row.access[p]) : null;
+                const detail = row.access ? accessDetail(row.access[p], undefined, p === 'imerso') : null;
+                return (
+                    <td key={p}>
+                        {label ? <span className={`pill${label === 'Ativo' ? ' on' : ''}`}>{label}</span> : '—'}
+                        {detail && <span className="tiny">{detail}</span>}
+                    </td>
+                );
+            })}
+            <td>{programLabel(row.program)}</td>
+            <td>
+                {row.program?.level && programStarted(row.program.melpStatus) ? (
+                    <LevelChip name={levelLabel(row.program.level)} />
+                ) : (
+                    '—'
+                )}
+            </td>
+            <td className="num">{metricLabel.overall(row.overall)}</td>
+            <td className="num">{metricLabel.dedaRun(row.dedaRun)}</td>
+            <td className="num">{metricLabel.leaderboardPos(row.leaderboardPos)}</td>
+            <td>{lastAccessLabel(row.lastAccess, row.loginRecriado)}</td>
+            <td className="num">
+                {ltv.money}
+                {ltv.line && <span className="tiny">{ltv.line}</span>}
+            </td>
+        </tr>
+    );
+};
 
 export default NewAdminContas;

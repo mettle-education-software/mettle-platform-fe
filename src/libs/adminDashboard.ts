@@ -31,6 +31,8 @@ export interface Dashboard {
     planosImerso: { label: string; alunos: number }[] | null;
     tempoPrograma: { label: string; alunos: number }[] | null;
     renovaramImerso: Count;
+    /** LTV médio do Imerso: o dinheiro e os dias com acesso ativo (null = não veio) */
+    ltvMedio: { valor: Count; dias: Count } | null;
     vencendo: {
         uid: string;
         name: string | null;
@@ -50,6 +52,8 @@ export interface Dashboard {
         lastAccess: string | null;
         dias: number | null;
         semana: number | null;
+        /** login recriado: sem data = "sem registro" (o histórico se perdeu), não "nunca entrou" */
+        loginRecriado: boolean;
     }[];
     semAcessoTotal: Count;
     eventos: {
@@ -162,6 +166,10 @@ export const readDashboard = (data: unknown): Dashboard | null => {
               })
             : null,
         renovaramImerso: nn(d.renovaramImerso),
+        ltvMedio:
+            d.ltvMedio && typeof d.ltvMedio === 'object'
+                ? { valor: nn(obj(d.ltvMedio).valor), dias: nn(obj(d.ltvMedio).dias) }
+                : null,
         vencendo: list(d.vencendo).flatMap((v) => {
             const uid = s(v.uid);
             const p2 = product(v.product);
@@ -184,7 +192,16 @@ export const readDashboard = (data: unknown): Dashboard | null => {
         semAcesso: list(d.semAcesso).flatMap((v) => {
             const uid = s(v.uid);
             return uid
-                ? [{ uid, name: s(v.name), lastAccess: s(v.lastAccess), dias: nn(v.dias), semana: nn(v.semana) }]
+                ? [
+                      {
+                          uid,
+                          name: s(v.name),
+                          lastAccess: s(v.lastAccess),
+                          dias: nn(v.dias),
+                          semana: nn(v.semana),
+                          loginRecriado: v.loginRecriado === true,
+                      },
+                  ]
                 : [];
         }),
         semAcessoTotal: nn(d.semAcessoTotal),

@@ -203,13 +203,23 @@ test('um dia só: sem curva (fica a linha do número); quem nunca entrou diz "nu
         data: readDashboard({
             ...full,
             estudoPorDia: [{ date: '2026-10-10', alunos: 2 }],
-            semAcesso: [{ uid: 'u9', name: 'Zé', lastAccess: null, dias: null, semana: null }],
+            semAcesso: [
+                { uid: 'u9', name: 'Zé', lastAccess: null, dias: null, semana: null },
+                // login recriado: entrou antes, o histórico se perdeu — "sem registro", não "nunca entrou"
+                { uid: 'u10', name: 'Lia', lastAccess: null, dias: null, semana: null, loginRecriado: true },
+            ],
+            ltvMedio: { valor: 1363, dias: 742 },
         }),
     };
     const d = render();
     expect(d.querySelector('section[aria-labelledby="db-period"] .chart')).toBeNull();
     expect(d.body.textContent).toContain('990 alunos estudaram');
-    expect(d.body.textContent).toContain('nunca entrou');
+    const rows = [...d.querySelectorAll('ol.rows li')].map((li) => li.textContent ?? '');
+    expect(rows.find((t) => t.startsWith('Zé'))).toContain('nunca entrou');
+    expect(rows.find((t) => t.startsWith('Lia'))).toContain('sem registro');
+    // LTV médio do Imerso: o dinheiro e os dias, uma linha no bloco do Imerso
+    const imerso = d.querySelector('section[aria-labelledby="db-imerso"]')!;
+    expect(imerso.textContent).toMatch(/LTV médio \(Imerso\): R\$\s1\.363,00 · 742 dias/);
 });
 
 test('vencem em carência: "carência até" o fim da carência, nunca a data antiga do produto', () => {

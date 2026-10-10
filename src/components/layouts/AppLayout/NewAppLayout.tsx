@@ -3,6 +3,7 @@
 import { css, Global, keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
 import { Drawer } from 'antd';
+import { LevelChip, programLevelName } from 'components/_new/LevelChip';
 import { NewPage } from 'components/_new/NewPage';
 import { NewContentLoading } from 'components/_new/NewStatus';
 import { RunChip } from 'components/_new/RunGold';
@@ -804,7 +805,8 @@ const MelpMini: React.FC<{ bar?: boolean }> = ({ bar }) => {
             <small>DEDA</small>
             <b>{melpSummary.currentDedaName}</b>
             <span>
-                Week {melpSummary.current_deda_week} · Day {saoPauloWeekday()}
+                Week {melpSummary.current_deda_week} · Day {saoPauloWeekday()}{' '}
+                <LevelChip name={programLevelName(melpSummary)} />
             </span>
             {!bar && <MelpRun />}
         </div>

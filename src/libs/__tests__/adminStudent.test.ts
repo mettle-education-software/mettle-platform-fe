@@ -170,7 +170,7 @@ test('aberta fora da página da lista (Início, saída da impersonação): o pro
         { q: 'aluno', todas: true, sort: { key: 'name', dir: 'asc' }, page: 1, pageSize: 25 },
         true,
     ]);
-    expect(d.querySelector('section[aria-labelledby="as-program"]')?.textContent).toContain('Sem. 3');
+    expect(d.querySelector('section[aria-labelledby="as-program"]')?.textContent).toContain('Semana 3');
 });
 
 test('cabeçalho: nome, e-mail, inicial no lugar da foto e "Sem login"', () => {

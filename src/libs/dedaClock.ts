@@ -8,6 +8,11 @@ type Summary = MelpSummaryResponse['data'];
 
 export const isCalendarClock = (s?: Summary | null) => s?.deda_clock === 'calendar';
 
+/** Estados do programa antes do início (não começou: sem semana nem nível). */
+export const NOT_STARTED: readonly string[] = ['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN', 'WEEK_ZERO'];
+/** O programa começou (o nível só existe para quem começou). */
+export const programStarted = (status?: string | null) => !!status && !NOT_STARTED.includes(status);
+
 /** A LAMP conta hoje (lançar o dia, concluir o DEDA): só em DEDA_STARTED, da semana 1 em diante, com o programa são. */
 export const lampRunning = (s?: Summary | null) =>
     s?.melp_status === 'DEDA_STARTED' && s.current_deda_week > 0 && s.program_health !== 'inconsistent';

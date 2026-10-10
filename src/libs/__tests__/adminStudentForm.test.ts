@@ -239,7 +239,7 @@ test('programa: +2 pausas grava na hora com addPauses; o que resta vem da linha 
         ),
     );
     const program = host.querySelector('section[aria-labelledby="as-program"]')!;
-    expect(program.textContent).toContain('Programa Sem. 3');
+    expect(program.textContent).toContain('Programa Semana 3');
     expect(program.textContent).toContain('Restam 1');
     click(program.querySelector('button[aria-label="Dar 2 pausas a mais"]') as HTMLElement);
     expect(mockAllowances).toEqual([{ addPauses: 2 }]);

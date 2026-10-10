@@ -32,6 +32,7 @@ import Link from 'next/link';
 import { useAppContext, useProductAccess } from 'providers';
 import React, { useEffect, useRef, useState } from 'react';
 import { ICON } from 'themes/newDesign';
+import { LevelChip, programLevelName } from './LevelChip';
 import { NewPage } from './NewPage';
 import { ProfileDataCard, ProfileIdentity } from './ProfileSettings';
 import { ThemeSwitch } from './ThemeSwitch';
@@ -449,7 +450,8 @@ const ProgramCard: React.FC = () => {
             <div className="cr">
                 <div className="cr-main">
                     <b className="cr-name">
-                        Semana {melpSummary.current_deda_week} · Dia {saoPauloWeekday()}
+                        Semana {melpSummary.current_deda_week} · Dia {saoPauloWeekday()}{' '}
+                        <LevelChip name={programLevelName(melpSummary)} />
                     </b>
                     {started && <span className="cr-sub">Início em {started}</span>}
                 </div>

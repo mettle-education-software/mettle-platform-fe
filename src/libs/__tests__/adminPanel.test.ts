@@ -9,7 +9,11 @@ import {
     brl,
     contasPath,
     lastAccessLabel,
+    levelLabel,
+    ltvCell,
+    metricLabel,
     programLabel,
+    programText,
     queryFromUrl,
     readSummary,
 } from '../adminPanel';
@@ -134,15 +138,33 @@ test('linha da lista conferida: produto sem dado vira "none"; programa em camelC
                 dateToConfirm: false,
             },
         },
-        program: { melp_status: 'DEDA_STARTED', current_deda_week: 12, remaining_pauses: 2, remaining_resets: 3 },
+        program: {
+            melp_status: 'DEDA_STARTED',
+            current_deda_week: 12,
+            remaining_pauses: 2,
+            remaining_resets: 3,
+            level: 'boost',
+        },
         lastAccess: '2026-10-09T12:00:00Z',
         hasLogin: true,
+        loginRecriado: true,
         inTrash: false,
-        ltv: { total: 1994, compras: 2 },
+        ltv: { total: 1994, compras: 2, dias: 742 },
+        overall: 85.37,
+        dedaRun: 77,
+        leaderboardPos: 12,
         status: 'ACTIVE',
         lastPurchase: '2026-04-22',
     })!;
-    expect(row).toMatchObject({ phone: '+5511912345678', team: true, ltv: { total: 1994, compras: 2 } });
+    expect(row).toMatchObject({
+        phone: '+5511912345678',
+        team: true,
+        ltv: { total: 1994, compras: 2, dias: 742 },
+        loginRecriado: true,
+        overall: 85.37,
+        dedaRun: 77,
+        leaderboardPos: 12,
+    });
     expect(row.access?.imerso).toMatchObject({ state: 'leitura', plan: 'Anual' });
     expect(row.access?.masterclass).toEqual({
         state: 'none',
@@ -152,9 +174,28 @@ test('linha da lista conferida: produto sem dado vira "none"; programa em camelC
         graceUntil: null,
         dateToConfirm: false,
     });
-    expect(row.program).toEqual({ melpStatus: 'DEDA_STARTED', lampWeek: 12, remainingPauses: 2, remainingResets: 3 });
+    expect(row.program).toEqual({
+        melpStatus: 'DEDA_STARTED',
+        lampWeek: 12,
+        remainingPauses: 2,
+        remainingResets: 3,
+        level: 'boost',
+    });
     expect(accountRow({ name: 'sem uid' })).toBeNull();
-    expect(accountRow({ uid: 'u2' })).toMatchObject({ team: false, ltv: null, access: null, lastAccess: null });
+    expect(accountRow({ uid: 'u2' })).toMatchObject({
+        team: false,
+        ltv: null,
+        access: null,
+        lastAccess: null,
+        loginRecriado: false,
+        overall: null,
+        dedaRun: null,
+        leaderboardPos: null,
+    });
+    // nível desconhecido não entra
+    expect(
+        accountRow({ uid: 'u3', program: { melpStatus: 'DEDA_STARTED', level: 'hard' } })?.program?.level,
+    ).toBeNull();
 });
 
 test('rótulos: programa, último acesso, selo (nunca "Total") e a linha miúda do produto', () => {
@@ -164,12 +205,16 @@ test('rótulos: programa, último acesso, selo (nunca "Total") e a linha miúda 
         remainingPauses: null,
         remainingResets: null,
     });
-    expect(programLabel(p('DEDA_STARTED', 12))).toBe('Sem. 12');
+    // "Programa (em semanas)": só o número
+    expect(programLabel(p('DEDA_STARTED', 12))).toBe('12');
     expect(programLabel(p('DEDA_PAUSED', 30))).toBe('Pausado');
     expect(programLabel(p('MELP_BEGIN'))).toBe('Não começou');
     expect(programLabel(null)).toBe('—');
     expect(lastAccessLabel('2026-10-10T02:30:00Z')).toBe('09/10/2026');
     expect(lastAccessLabel(null)).toBe('nunca entrou');
+    // login recriado: entrou antes, o histórico se perdeu
+    expect(lastAccessLabel(null, true)).toBe('sem registro');
+    expect(lastAccessLabel('2026-10-10T02:30:00Z', true)).toBe('09/10/2026');
 
     const access = (fields: object) => ({
         state: 'ativo' as const,
@@ -205,6 +250,12 @@ test('rótulos: programa, último acesso, selo (nunca "Total") e a linha miúda 
     expect(accessDetail(grace, '2026-10-12')).toBe('Anual · até 12/05/2024');
     expect(accessDetail(access({}))).toBeNull();
     expect(accessDetail(access({ state: 'none', origin: 'compra' }))).toBeNull();
+    // Masterclass e E-book: sem a palavra do plano (só "até"); fora de compra, a origem
+    expect(accessDetail(access({ origin: 'compra', plan: 'Anual', validUntil: '2027-04-22' }), undefined, false)).toBe(
+        'até 22/04/2027',
+    );
+    expect(accessDetail(access({ origin: 'equipe' }), undefined, false)).toBe('Equipe');
+    expect(accessDetail(grace, '2026-10-10', false)).toBe('carência até 11/10/2026');
     expect(brl(1994)).toMatch(/^R\$\s1\.994,00$/);
     expect(brl(null)).toBe('—');
 });
@@ -250,6 +301,107 @@ test('CSV: ";" e vírgula decimal (Excel em português), aspas e nada de fórmul
     const tab = accountRow({ uid: 'u2', name: '\t=1+1', email: '\r@x' })!;
     expect(accountsCsv([tab]).split('\r\n')[1].split(';').slice(0, 3)).toEqual(['u2', "'\t=1+1", `"'\r@x"`]);
     expect(line).toBe(
-        `u1;"'=HYPERLINK(""x"")";ana@x.test;'+5511912345678;;Ativo;Anual · até 22/04/2027;;;;;—;nunca entrou;997,50;1;`,
+        `u1;"'=HYPERLINK(""x"")";ana@x.test;'+5511912345678;;Ativo;Anual · até 22/04/2027;;;;;—;;;;;nunca entrou;997,50;1;;`,
     );
+    expect(header.split(';').slice(11)).toEqual([
+        'programa_semanas',
+        'nivel',
+        'overall',
+        'deda_run',
+        'leaderboard',
+        'ultimo_acesso',
+        'ltv_total',
+        'ltv_compras',
+        'ltv_dias',
+        'na_lixeira',
+    ]);
+});
+
+test('LTV: dinheiro e "compras · dias"; compra sem compra achada = "—", R$ 0,00 só para quem não paga', () => {
+    const acc = (origin: string) => ({
+        imerso: { state: 'ativo', origin, plan: null, validUntil: null, graceUntil: null, dateToConfirm: false },
+        masterclass: {
+            state: 'none',
+            origin: null,
+            plan: null,
+            validUntil: null,
+            graceUntil: null,
+            dateToConfirm: false,
+        },
+        ebook: { state: 'none', origin: null, plan: null, validUntil: null, graceUntil: null, dateToConfirm: false },
+    });
+    const cell = (ltv: object | null, origin = 'compra') => ltvCell({ ltv, access: acc(origin) } as never);
+    const paid = cell({ total: 1363, compras: 3, dias: 742 });
+    expect(paid.money).toMatch(/^R\$\s1\.363,00$/);
+    expect(paid.line).toBe('3 compras · 742 dias');
+    expect(cell({ total: 997, compras: 1, dias: 1 }).line).toBe('1 compra · 1 dia');
+    // compra sem compra achada na conciliação: "—", nunca "R$ 0,00 · 0 compras"
+    expect(cell({ total: 0, compras: 0, dias: 30 })).toEqual({ money: '—', line: '30 dias' });
+    // quem não paga (cortesia, parceiro, equipe): R$ 0,00 é o certo
+    expect(cell({ total: 0, compras: 0, dias: 120 }, 'cortesia').money).toMatch(/^R\$\s0,00$/);
+    expect(cell({ total: 0, compras: 0, dias: null }, 'equipe')).toEqual({
+        money: expect.stringMatching(/0,00$/),
+        line: null,
+    });
+    expect(cell(null)).toEqual({ money: '—', line: null });
+    // origem desconhecida (a confirmar) com cortesia: não é grátis — "—"
+    const mixed = {
+        ltv: { total: 0, compras: 0, dias: 10 },
+        access: {
+            ...acc('cortesia'),
+            imerso: {
+                state: 'ativo',
+                origin: null,
+                plan: null,
+                validUntil: null,
+                graceUntil: null,
+                dateToConfirm: false,
+            },
+            masterclass: {
+                state: 'ativo',
+                origin: 'cortesia',
+                plan: null,
+                validUntil: null,
+                graceUntil: null,
+                dateToConfirm: false,
+            },
+        },
+    };
+    expect(ltvCell(mixed as never).money).toBe('—');
+    // total sem a contagem de compras: o dinheiro aparece (sem "N compras")
+    expect(cell({ total: 997, compras: null, dias: 5 })).toEqual({
+        money: expect.stringMatching(/997,00$/),
+        line: '5 dias',
+    });
+});
+
+test('métricas, nível e o programa por extenso', () => {
+    expect(metricLabel.overall(85.37)).toBe('85,4%');
+    expect(metricLabel.overall(null)).toBe('—');
+    expect(metricLabel.dedaRun(77)).toBe('77');
+    expect(metricLabel.leaderboardPos(12)).toBe('12º');
+    expect(metricLabel.leaderboardPos(null)).toBe('—');
+    expect(levelLabel('turbo')).toBe('Turbo');
+    expect(levelLabel(null)).toBeNull();
+    const prog = (melpStatus: string, lampWeek: number | null, level: 'flow' | 'boost' | null) => ({
+        melpStatus,
+        lampWeek,
+        remainingPauses: null,
+        remainingResets: null,
+        level,
+    });
+    expect(programText(prog('DEDA_STARTED', 12, 'boost'))).toBe('Semana 12 · Boost');
+    expect(programText(prog('DEDA_PAUSED', 30, 'flow'))).toBe('Pausado · Flow');
+    // antes do início, sem nível
+    expect(programText(prog('MELP_BEGIN', null, 'flow'))).toBe('Não começou');
+});
+
+test('filtro de nível no endereço e na consulta', () => {
+    const url = queryFromUrl(new URLSearchParams('level=turbo&sort=dedaRun&dir=desc'));
+    expect(url).toMatchObject({ level: 'turbo', sort: 'dedaRun', dir: 'desc' });
+    expect(queryFromUrl(new URLSearchParams('level=hard')).level).toBeUndefined();
+    expect(contasPath({ level: 'boost', sort: 'overall' })).toBe('/admin/contas?level=boost&sort=overall');
+    expect(
+        accountsParams({ level: 'flow', sort: { key: 'leaderboardPos', dir: 'asc' }, page: 1, pageSize: 25 }),
+    ).toMatchObject({ level: 'flow', sort: 'leaderboardPos' });
 });

@@ -7,6 +7,9 @@ import type { AccessState } from './productAccess';
 /** Produto em product_access / roles (mesmo nome que o Worker usa). */
 export const EBOOK_PRODUCT = 'EBOOK_GUIA_COMPLETO';
 export const EBOOK_PATH = '/guia';
+/** Venda: o e-book só é vendido como order bump no checkout da Masterclass, então a página dela (libs/masterclass). */
+export const EBOOK_SALES_URL =
+    'https://mettle.com.br/masterclass/?utm_source=plataforma&utm_medium=home&utm_campaign=ebook';
 export const EBOOK_LINK_URL = 'https://events.mettle.com.br/plataforma/guia/link';
 
 export const EBOOK = {

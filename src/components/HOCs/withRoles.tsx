@@ -22,8 +22,12 @@ export function withRoles<P extends object>(Component: React.FC<P>, config: Conf
         const { access, accessLoading } = useProductAccess();
         const router = useRouter();
 
-        // Expirado ainda entra (modo leitura; o AppLayout decide o que abre). Só "none" é barrado.
-        const hasPermission = roles.some((role) => user?.roles?.includes(role) || access(role).state !== 'none');
+        // Expirado ainda entra (modo leitura; o AppLayout decide o que abre). Só "none" é barrado. Estado do modelo novo
+        // (claims, plataforma nova) manda sobre a role antiga.
+        const hasPermission = roles.some((role) => {
+            const { state, final } = access(role);
+            return final ? state !== 'none' : !!user?.roles?.includes(role) || state !== 'none';
+        });
 
         // sem a role, a permissão ainda pode vir de /v2/me/access: espera a resposta antes de barrar
         if (!user || (!hasPermission && accessLoading)) return <LoadingLayout />;

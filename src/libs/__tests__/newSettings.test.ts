@@ -3,10 +3,11 @@ import { JSDOM } from 'jsdom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NewSettings } from '../../components/_new/NewSettings';
-import { resolveAccess, type MyAccessResponse } from '../productAccess';
+import { resolveAccess, type AccessLevels, type MyAccessResponse } from '../productAccess';
 
 let mockUser: { uid: string; name: string; email: string; roles?: string[] } | undefined;
 let mockAccess: MyAccessResponse | undefined;
+let mockLevels: AccessLevels | undefined;
 let mockAccessLoading = false;
 let mockMutating = 0;
 let mockSummary: any;
@@ -32,7 +33,7 @@ jest.mock(
     () => ({
         useAppContext: () => ({ user: mockUser }),
         useProductAccess: () => ({
-            access: (product: string) => resolveAccess(product, mockUser?.roles, mockAccess),
+            access: (product: string) => resolveAccess(product, mockUser?.roles, mockAccess, mockLevels),
             accessLoading: mockAccessLoading,
         }),
     }),
@@ -82,6 +83,7 @@ beforeEach(() => {
     mockButtons.clear();
     mockUser = { uid: 'test', name: 'Aluno de Teste', email: 'aluno@example.test', roles: ['METTLE_STUDENT'] };
     mockAccess = undefined;
+    mockLevels = undefined;
     mockAccessLoading = false;
     mockMutating = 0;
     mockReset.isPending = false;
@@ -149,9 +151,29 @@ test('Conta respeita o acesso já consultado, inclusive carência e expiração'
         },
     };
     const text = render().querySelector('section[aria-labelledby="settings-account"]')!.textContent;
-    expect(text).toContain('ImersoExpirado');
+    expect(text).toContain('ImersoLeitura');
     expect(text).toContain('MasterclassEm carência');
     expect(text).toContain('E-bookAtivo');
+});
+
+test('Imerso em leitura (claims): sem reiniciar nem pausar; o histórico e a Conta continuam', () => {
+    mockLevels = { imerso: 'leitura', masterclass: 'none', ebook: 'ativo' };
+    const doc = render();
+    expect(action('Reiniciar')).toBeUndefined();
+    expect(action('Pausar')).toBeUndefined();
+    expect(doc.body.textContent).not.toContain('Reinícios restantes');
+    expect(doc.body.textContent).toContain('Histórico do programa');
+    const text = doc.querySelector('section[aria-labelledby="settings-account"]')!.textContent;
+    expect(text).toContain('ImersoLeitura');
+    expect(text).not.toContain('Masterclass');
+    expect(text).toContain('E-bookAtivo');
+});
+
+test('claims com o Imerso em none: sem a seção IMERSO mesmo com a role antiga', () => {
+    mockLevels = { imerso: 'none', ebook: 'ativo' };
+    const doc = render();
+    expect(doc.querySelector('#settings-imerso')).toBeNull();
+    expect(mockSummaryHook).not.toHaveBeenCalled();
 });
 
 test('Conta em carregamento não anuncia ausência de produtos', () => {

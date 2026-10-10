@@ -756,7 +756,8 @@ export const NewEbookReader: React.FC = () => {
 
     const results = useMemo(() => (panel === 'search' ? searchBook(texts, query, 100) : []), [panel, texts, query]);
 
-    if (load.state !== 'ready')
+    // sem acesso (inclusive se mudar com o livro aberto): o aviso, nunca o leitor
+    if (load.state !== 'ready' || !open)
         return (
             <NewPage className="narrow">
                 {(load.state === 'error' || !open) && user ? (

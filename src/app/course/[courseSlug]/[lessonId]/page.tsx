@@ -76,7 +76,8 @@ const Lesson: React.FC<LessonProps> = ({ params: { courseSlug, lessonId } }) => 
         return null;
     }
 
-    if (!!course && courseState === 'expired') {
+    // plataforma nova: a aula mostra a renovação no lugar do conteúdo (NewCourseLesson)
+    if (!!course && courseState === 'expired' && !newDesign) {
         return (
             <AppLayout>
                 <AccessCtaBlock

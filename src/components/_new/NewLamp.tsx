@@ -9,10 +9,11 @@ import { statisticsColors } from 'libs';
 import { lampLastDay, lampOpen, todaysDedaId } from 'libs/dedaClock';
 import { formatImersoDate, nextMondayDate } from 'libs/helpers';
 import { axisWords, minutesText } from 'libs/newDesign';
+import { IMERSO_PRODUCT } from 'libs/productAccess';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useAppContext, useMelpContext } from 'providers';
+import { useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { LampGoals } from './LampGoals';
 import { LampMirror } from './LampMirror';
@@ -645,13 +646,16 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
     const params = useSearchParams();
     const asked = initialTab ?? params?.get('lampTab') ?? undefined;
     const { melpSummary, isMelpSummaryError, retryMelpSummary } = useMelpContext();
+    // Imerso em leitura: só para ver (Input sem gravar, em lampInputForm; sem gravador)
+    const readOnly = useProductAccess().access(IMERSO_PRODUCT).state === 'expired';
     // Recordings: só quando o SERVIDOR diz que o gravador está ligado para esta conta (a env sozinha não basta — PF-03);
     // a consulta é a do DEDA de hoje (a mesma do leitor). Navegar "como o aluno" nunca mostra gravações.
-    const recorder = useDedaRecordings(todaysDedaId(melpSummary) ?? 'DEDA0');
-    const tabs = TABS.filter((t) => t.key !== 'recordings' || recorder.active);
+    const recorder = useDedaRecordings(todaysDedaId(melpSummary) ?? 'DEDA0', !readOnly);
+    const recordings = recorder.active && !readOnly;
+    const tabs = TABS.filter((t) => t.key !== 'recordings' || recordings);
     const [tab, setTab] = useState<TabKey>(TABS.some((t) => t.key === asked) ? (asked as TabKey) : 'performance');
     // pedido direto de ?lampTab=recordings: espera a resposta do servidor; sem gravador, Performance
-    const shown = tab === 'recordings' && !recorder.active ? (recorder.isLoading ? undefined : 'performance') : tab;
+    const shown = tab === 'recordings' && !recordings ? (recorder.isLoading ? undefined : 'performance') : tab;
     // o formulário da aba Input vive na página: trocar de aba não descarta rascunho nem falha de gravação
     const inputForm = useLampInputForm();
 

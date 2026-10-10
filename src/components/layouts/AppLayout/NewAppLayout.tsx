@@ -3,6 +3,7 @@
 import { css, Global, keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
 import { Button, ConfigProvider, Drawer, Flex, Modal, Select } from 'antd';
+import { NewPage } from 'components/_new/NewPage';
 import { RunChip } from 'components/_new/RunGold';
 import { ThemeCycle, ThemeSwitch } from 'components/_new/ThemeSwitch';
 import { popupStyles } from 'components/_new/ui';
@@ -17,13 +18,7 @@ import { ADMIN_SEGMENTS, SEGMENT_OWNERS } from 'libs/adminSegments';
 import { ADMIN_PANEL_EVENT } from 'libs/adminTools';
 import { isLeituraOwner } from 'libs/leitura';
 import { activeMenuKeys, displayName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
-import {
-    IMERSO_PRODUCT,
-    IMERSO_SALES_URL,
-    isImersoRouteAllowedWhenExpired,
-    RENEWAL_URLS,
-    renewalNotice,
-} from 'libs/productAccess';
+import { blockedWhenReadOnly, IMERSO_PRODUCT, IMERSO_SALES_URL, RENEWAL_URLS, renewalNotice } from 'libs/productAccess';
 import {
     GraduationCap,
     Headset,
@@ -546,10 +541,6 @@ const Frame = styled.div`
         min-height: 36px;
         margin-right: -8px;
     }
-    .cta {
-        ${ui};
-        padding: 24px 20px;
-    }
 `;
 
 /* gaveta do celular (antd Drawer, fora da árvore): mesmo acabamento das folhas da página do DEDA */
@@ -986,8 +977,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
             if (settings >= 0 && logout > settings) items.splice(logout - 1, 0, items.splice(settings, 1)[0]);
             return items;
         }, [menu.items]);
-        const { access, openCta } = useProductAccess();
-        const antdTheme = useNewAntdTheme();
+        const { access } = useProductAccess();
         const logoTheme = useLogoTheme();
 
         // Fluidez: com a casca de pé, adianta (em tempo ocioso) o código das páginas novas e as rotas do menu, para a
@@ -1034,27 +1024,16 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
             router.push('/');
         };
 
-        // Imerso expirado: mesma regra do AppLayout atual (rotas liberadas abrem o convite a cada clique; as demais
-        // mostram o convite no lugar do conteúdo).
-        const imersoState = access(IMERSO_PRODUCT).state;
-        const imersoLocked = imersoState === 'expired' && pathname.startsWith('/imerso');
-        const guardClick = (event: React.MouseEvent) => {
-            if ((event.target as HTMLElement).closest('[data-access-allow], .ant-tabs-tab')) return;
-            event.preventDefault();
-            event.stopPropagation();
-            openCta({ product: IMERSO_PRODUCT });
-        };
-        const content = !imersoLocked ? (
-            children
-        ) : isImersoRouteAllowedWhenExpired(pathname) ? (
-            <div onClickCapture={guardClick}>{children}</div>
-        ) : (
-            <ConfigProvider theme={antdTheme}>
-                <div className={`cta ${UI_FONT_CLASS}`}>
+        // Imerso em leitura (claims do modelo novo; o "expired" do front): abrir um DEDA e a Comunidade dão lugar à
+        // renovação; as demais rotas abrem só para ver (cada página tira o que grava: LAMP, HPEC, Configurações).
+        const content =
+            access(IMERSO_PRODUCT).state === 'expired' && blockedWhenReadOnly(pathname) ? (
+                <NewPage className="narrow">
                     <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />
-                </div>
-            </ConfigProvider>
-        );
+                </NewPage>
+            ) : (
+                children
+            );
         // Carência e "vence em breve": uma linha com a data e "Renovar" (libs/productAccess.renewalNotice); dentro do
         // IMERSO em inglês.
         const en = pathname.startsWith('/imerso');

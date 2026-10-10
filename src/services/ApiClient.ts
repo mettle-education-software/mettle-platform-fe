@@ -46,13 +46,13 @@ class ApiClient implements HTTPClient {
         });
     }
 
-    // Guardião das ações do Imerso: o backend recusa gravações de quem está expirado (403 ACCESS_EXPIRED → modal de
-    // renovação) ou sem o produto (403 NO_ACCESS → página de venda).
+    // Guardião das ações do Imerso: o backend recusa gravações de quem está expirado ou em leitura (403 ACCESS_EXPIRED,
+    // ACCESS_READ_ONLY → modal de renovação) ou sem o produto (403 NO_ACCESS → página de venda).
     setAccessInterceptor() {
         this.client.interceptors.response.use(undefined, (error) => {
             const code = error?.response?.status === 403 ? error.response.data?.code : undefined;
             if (typeof window !== 'undefined') {
-                if (code === 'ACCESS_EXPIRED') {
+                if (code === 'ACCESS_EXPIRED' || code === 'ACCESS_READ_ONLY') {
                     window.dispatchEvent(new CustomEvent(ACCESS_DENIED_EVENT, { detail: { product: IMERSO_PRODUCT } }));
                 } else if (code === 'NO_ACCESS') {
                     window.location.href = IMERSO_SALES_URL;

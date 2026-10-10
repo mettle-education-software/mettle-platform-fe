@@ -6,15 +6,20 @@ import { Button, ConfigProvider, Flex, Modal, Typography } from 'antd';
 import { popupStyles } from 'components/_new/ui';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { useNewAntdTheme } from 'hooks/useTheme';
+import { MASTERCLASS_SALES_URL } from 'libs/masterclass';
 import {
     ACCESS_DENIED_EVENT,
+    accessKey,
+    accessSource,
     IMERSO_PRODUCT,
     IMERSO_SALES_URL,
+    levelsFromMe,
     MyAccessResponse,
     ProductAccess,
     RENEWAL_URLS,
     resolveAccess,
 } from 'libs/productAccess';
+import { usePathname } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { accountService } from 'services';
 import { useAppContext } from './AppProvider';
@@ -46,6 +51,24 @@ const Context = createContext<AccessContext>({
 
 const PRODUCT_NAMES: Record<string, string> = { [IMERSO_PRODUCT]: 'Programa Imerso' };
 
+const renewUrlOf = (target: CtaTarget) =>
+    // Masterclass: a página de vendas dela (o paymentCheckout do curso leva ao Imerso)
+    (accessKey(target.product) === 'masterclass' ? MASTERCLASS_SALES_URL : target.renewUrl) ??
+    RENEWAL_URLS[target.product] ??
+    IMERSO_SALES_URL;
+
+/** Plataforma nova: o convite é um título e a ação, sem parágrafo; dentro do IMERSO (rotas /imerso), em inglês. */
+const useNewCopy = (target: CtaTarget) => {
+    const en = (usePathname() ?? '').startsWith('/imerso');
+    const title =
+        target.product !== IMERSO_PRODUCT
+            ? 'Acesso encerrado'
+            : en
+              ? 'Your IMERSO is read-only'
+              : 'Seu IMERSO está em modo leitura';
+    return { en, title, later: en ? 'Not now' : 'Agora não', renew: en ? 'Renew' : 'Renovar' };
+};
+
 const CtaContent: React.FC<{
     target: CtaTarget;
     imerso: MyAccessResponse['imerso'];
@@ -54,20 +77,17 @@ const CtaContent: React.FC<{
     inline?: boolean;
 }> = ({ target, imerso, onClose, inline }) => {
     const name = target.name ?? PRODUCT_NAMES[target.product] ?? 'este produto';
-    const renewUrl = target.renewUrl ?? RENEWAL_URLS[target.product] ?? IMERSO_SALES_URL;
     // a semana em que parou (o "DEDAs concluídos" do servidor conta dias, não DEDAs: fica de fora)
     const week = target.product === IMERSO_PRODUCT && imerso?.week ? imerso.week : null;
     const newDesign = useNewDesign();
-    // dentro do Imerso, na plataforma nova, tudo em inglês
-    const en = newDesign && target.product === IMERSO_PRODUCT;
-    const t = en
-        ? {
-              title: 'Your IMERSO access has expired',
-              text: `${week ? `You stopped at week ${week}. ` : ''}Your progress is saved.`,
-              later: 'Not now',
-              renew: 'Renew access',
-          }
+    const copy = useNewCopy(target);
+    const renewUrl = newDesign
+        ? renewUrlOf(target)
+        : (target.renewUrl ?? RENEWAL_URLS[target.product] ?? IMERSO_SALES_URL);
+    const t = newDesign
+        ? { ...copy, text: null }
         : {
+              en: false,
               title: `Seu acesso ao ${name} expirou`,
               text: `${week ? `Você parou na semana ${week}. ` : ''}Seu progresso está guardado. Renove para continuar de onde parou.`,
               later: 'Agora não',
@@ -75,9 +95,9 @@ const CtaContent: React.FC<{
           };
 
     return (
-        <Flex vertical gap="0.5rem" lang={en ? 'en' : 'pt-BR'}>
+        <Flex vertical gap="0.5rem" lang={t.en ? 'en' : 'pt-BR'}>
             <Title level={4}>{t.title}</Title>
-            <Paragraph>{t.text}</Paragraph>
+            {t.text && <Paragraph>{t.text}</Paragraph>}
             <Flex gap="0.5rem" justify={inline ? 'flex-start' : 'flex-end'} wrap>
                 {onClose && <Button onClick={onClose}>{t.later}</Button>}
                 <Button type="primary" href={renewUrl}>
@@ -91,6 +111,23 @@ const CtaContent: React.FC<{
 export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAppContext();
     const [cta, setCta] = useState<CtaTarget | null>(null);
+    const newDesign = useNewDesign();
+    const roles = user?.roles as unknown as string[] | undefined;
+
+    // Modelo novo (claims `access`), só na plataforma nova: libs/productAccess.accessSource
+    const source = newDesign ? accessSource(user) : { claim: undefined, me: false };
+    const { data: meLevels, isLoading: meLoading } = useQuery({
+        queryKey: ['me-access', user?.uid],
+        // null, não undefined: o React Query não aceita undefined como resposta
+        queryFn: () =>
+            accountService
+                .get<{ data?: unknown }>('/me')
+                .then(({ data }) => levelsFromMe(data?.data, user?.uid) ?? null),
+        enabled: source.me && !!user?.uid,
+        retry: false,
+        staleTime: 5 * 60 * 1000,
+    });
+    const levels = source.claim ?? (source.me ? (meLevels ?? undefined) : undefined);
 
     // Sem o endpoint (backend sem o PR #102) o erro é ignorado e vale o comportamento atual pelas roles.
     const { data, isLoading: accessLoading } = useQuery({
@@ -107,16 +144,15 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return () => window.removeEventListener(ACCESS_DENIED_EVENT, onDenied);
     }, []);
 
-    const roles = user?.roles as unknown as string[] | undefined;
     const value = useMemo<AccessContext>(
         () => ({
-            access: (product) => resolveAccess(product, roles, data),
-            accessLoading,
+            access: (product) => resolveAccess(product, roles, data, levels),
+            accessLoading: accessLoading || meLoading,
             imerso: data?.imerso ?? null,
             cta,
             openCta: setCta,
         }),
-        [roles, data, accessLoading, cta],
+        [roles, data, levels, accessLoading, meLoading, cta],
     );
 
     return <Context.Provider value={value}>{children}</Context.Provider>;
@@ -151,9 +187,23 @@ export const AccessCtaModal: React.FC = () => {
     );
 };
 
-// Mesmo conteúdo do modal, no lugar de uma página/conteúdo trancado.
+// Mesmo conteúdo do modal, no lugar de uma página/conteúdo trancado. Plataforma nova: o aviso de uma linha das
+// páginas novas (classe `notice` de components/_new/ui; quem usa garante a página em volta).
 export const AccessCtaBlock: React.FC<{ target: CtaTarget }> = ({ target }) => {
     const { imerso } = useProductAccess();
+    const newDesign = useNewDesign();
+    const copy = useNewCopy(target);
+    if (newDesign)
+        return (
+            <div className="notice" role="status" lang={copy.en ? 'en' : 'pt-BR'}>
+                <div>
+                    <b>{copy.title}</b>
+                </div>
+                <a className="btn gold" href={renewUrlOf(target)}>
+                    {copy.renew}
+                </a>
+            </div>
+        );
     return (
         <Flex justify="center" style={{ padding: '3rem 1rem' }}>
             <div style={{ maxWidth: '32rem', width: '100%' }}>

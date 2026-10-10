@@ -161,7 +161,8 @@ export const weekDayLabel = (week: number, day: number) => `Week ${week} · Day 
 /**
  * Recusas da gravação da LAMP (corpo `{ code, message }`): 409 `LAMP_DAY_REPLACED` (a linha do dia foi substituída:
  * recarregar e tentar de novo), 409 `PROGRAM_INCONSISTENT` (LAMP em manutenção, sem saída para o aluno), 409
- * `LAMP_FINISHED` (be #148, legado) e 400 `EXPECTED_ROW_ID_REQUIRED`. Qualquer outro erro (rede, 5xx): tentar de novo.
+ * `LAMP_FINISHED` (be #148, legado), 400 `EXPECTED_ROW_ID_REQUIRED` e 403 `ACCESS_READ_ONLY` (Imerso em leitura).
+ * Qualquer outro erro (rede, 5xx): tentar de novo.
  */
 export const lampSaveError = (error: unknown): string | undefined =>
     (error as { response?: { data?: { code?: unknown } } } | null)?.response?.data?.code as string | undefined;
@@ -173,6 +174,8 @@ export const lampSaveProblem = (error: unknown): { text: string; retry: boolean 
             return { text: 'Your LAMP has ended, so this can’t be saved.', retry: false };
         case 'PROGRAM_INCONSISTENT':
             return { text: 'LAMP under maintenance. The team has been notified.', retry: false };
+        case 'ACCESS_READ_ONLY':
+            return { text: 'Read-only access. Not saved.', retry: false };
         case 'LAMP_DAY_REPLACED':
         case 'EXPECTED_ROW_ID_REQUIRED':
             return { text: 'This LAMP day was updated. Please try again.', retry: true };

@@ -2,7 +2,8 @@ import { QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import { InputDataDTO, InputDataResponse } from 'interfaces';
 import { MelpSummaryResponse } from 'interfaces/melp';
 import { lampLastDay, lampRunning, lampSaveError, lampSaveProblem } from 'libs/dedaClock';
-import { useAppContext, useMelpContext, useNotificationsContext } from 'providers';
+import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { useAppContext, useMelpContext, useNotificationsContext, useProductAccess } from 'providers';
 import { useEffect, useMemo, useReducer, useState } from 'react';
 import { lampService } from 'services';
 import { lampRefusal, useGetInputData, withDayLock } from './lamp';
@@ -304,9 +305,11 @@ export const useLampInputForm = () => {
     const uid = user?.uid;
     const { melpSummary } = useMelpContext();
     const { showNotification } = useNotificationsContext();
+    const { access } = useProductAccess();
     const queryClient = useQueryClient();
     const last = lampLastDay(melpSummary);
-    const readOnly = !lampRunning(melpSummary);
+    // LAMP parada ou Imerso em leitura (modelo novo): só para ver
+    const readOnly = !lampRunning(melpSummary) || access(IMERSO_PRODUCT).state === 'expired';
     const currentWeek = melpSummary?.current_deda_week;
     env.queryClient = queryClient;
     env.notify = (text) => showNotification('error', 'LAMP', text);

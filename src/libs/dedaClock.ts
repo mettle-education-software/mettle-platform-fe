@@ -80,6 +80,9 @@ export const recentDedaIds = (s: Summary | null | undefined, n: number): string[
         const id = weeks[i].deda_id;
         if (id && !out.includes(id)) out.push(id);
     }
+    // liberado sem semana própria (duas exibições na mesma semana, lista antiga): também é liberado — entra depois
+    for (const id of [...(s.unlocked_dedas ?? [])].reverse())
+        if (out.length < n && id !== 'DEDA0' && !out.includes(id)) out.push(id);
     if (out.length < n && s.unlocked_dedas?.includes('DEDA0') && !out.includes('DEDA0')) out.push('DEDA0');
     return out;
 };
@@ -139,20 +142,6 @@ export const hpecDay = (s?: Summary | null): { day: number; frozen: boolean } | 
     if (['DEDA_PAUSED', 'DEDA_FINISHED'].includes(s.melp_status) || s.current_deda_day > 0)
         return { day: s.current_deda_day ?? 0, frozen: true };
     return null;
-};
-
-/**
- * Relógio novo: os DEDAs exibidos a partir de `since` (AAAA-MM-DD), do mais recente para trás, sem repetir — as
- * linhas da aba Recordings (antes de o gravador existir não há gravação nem pedido).
- */
-export const dedaIdsSince = (s: Summary | null | undefined, since: string): string[] => {
-    const out: string[] = [];
-    const weeks = s?.deda_weeks ?? [];
-    for (let i = weeks.length - 1; i >= 0 && weeks[i].monday >= since; i--) {
-        const id = weeks[i].deda_id;
-        if (id && !out.includes(id)) out.push(id);
-    }
-    return out;
 };
 
 /** "Week 4 · Day 4": o único formato de semana e dia (inglês, sem zero à esquerda). */

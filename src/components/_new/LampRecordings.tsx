@@ -18,11 +18,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 
 /*
- * Aba Recordings da LAMP (plataforma nova): um acordeão por semana (DEDA), do mais recente para trás, que aguenta de
- * poucas gravações a 156 semanas × 7. A API só lista com ?dedaId= (todas as voltas daquele DEDA de uma vez), então é
- * uma consulta por DEDA, a MESMA da aba "My recordings" (mesma chave), carregada aos poucos conforme a rolagem. Um só
- * player fixo embaixo; quando o mesmo DEDA tem gravações em mais de uma volta, "Hear your progress" toca a primeira e
- * depois a mais recente. Miniaturas só pelo espelho de imagens (/ctfimg), pequenas e preguiçosas.
+ * Aba Recordings da LAMP (plataforma nova): um acordeão por DEDA liberado (a lista da página de DEDAs, decisão do André
+ * de 07-Out-2026), do mais recente para trás, desenhado 30 por vez. As gravações vêm de uma consulta só (?since=, todas
+ * as do aluno) e cada linha pega as do seu DEDA. Um só player fixo embaixo; quando o mesmo DEDA tem gravações em mais
+ * de uma volta, "Hear your progress" toca a primeira e depois a mais recente. Miniaturas só pelo espelho de imagens
+ * (/ctfimg), pequenas e preguiçosas.
  */
 
 const styles = css`
@@ -410,7 +410,7 @@ const RecRow: React.FC<{
     );
 
 /** Uma semana do gotejamento do aluno: cabeçalho sempre presente; os números chegam quando a linha fica perto da tela. */
-/** As gravações de uma linha: do DEDA dela; no legado, só as da semana da linha (o mesmo DEDA pode voltar). */
+/** As gravações de uma linha (da consulta única): do DEDA dela; no legado, só as da semana da linha. */
 const rowRecordings = (w: Week, list: DedaRecording[] | undefined) =>
     (list ?? []).filter((r) => r.dedaId === w.dedaId && (!w.byWeek || r.week === `week${w.week}`));
 
@@ -588,7 +588,8 @@ export const LampRecordings: React.FC = () => {
     // todas as gravações numa consulta só: cada linha pega as do seu DEDA (nada de um pedido por linha)
     const recordings = useAllRecordings();
     const list = recordings.data?.recordings;
-    const known = !!recordings.data || recordings.isError;
+    // falha não é "sem gravações": as linhas seguem carregando e um aviso oferece tentar de novo
+    const known = !!recordings.data;
     const allWeeks: Week[] = useMemo(
         () =>
             recordingDedaIds(melpSummary, blockedDEDAs).map((id, index) => {
@@ -640,7 +641,7 @@ export const LampRecordings: React.FC = () => {
     // o DEDA mais recente com gravações abre sozinho (uma vez), quando as gravações chegam
     const autoOpened = useRef(false);
     useEffect(() => {
-        if (autoOpened.current || !known) return;
+        if (autoOpened.current || !known || !allWeeks.length) return;
         autoOpened.current = true;
         const first = allWeeks.find((w) => rowRecordings(w, list).length);
         if (first) setOpen((o) => ({ ...o, [first.key]: true }));
@@ -702,6 +703,14 @@ export const LampRecordings: React.FC = () => {
                 </dl>
             )}
             <div className="tools">
+                {recordings.isError && (
+                    <p className="hint" role="status">
+                        Couldn’t load your recordings.{' '}
+                        <button type="button" className="lnk gold" onClick={() => recordings.refetch()}>
+                            Try again
+                        </button>
+                    </p>
+                )}
                 {none && (
                     <p className="hint">
                         <>
@@ -729,7 +738,7 @@ export const LampRecordings: React.FC = () => {
                     onChange={(key?: string) => key !== undefined && goTo(key)}
                 />
             </div>
-            <ul className="weeks">
+            <ul className="weeks" aria-busy={!known || undefined}>
                 {weeks.map((w) => (
                     <WeekRow
                         key={w.key}

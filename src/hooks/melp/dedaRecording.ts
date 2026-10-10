@@ -32,6 +32,18 @@ export const RECORDER_FLAG_ON = process.env.DEDA_RECORDER === 'on';
 
 const base = (userUid: string) => `/deda/recordings/${encodeURIComponent(userUid)}`;
 
+/** Todas as gravações desde o gravador (= todas): uma consulta só, a mesma chave nos KPIs e na aba Recordings. */
+const sinceQuery = (uid: string | undefined) => ({
+    queryKey: ['deda-recordings', uid, 'since', RECORDER_SINCE],
+    queryFn: () =>
+        melpService
+            .get<DedaRecordingsResponse>(`${base(uid as string)}?since=${RECORDER_SINCE}`)
+            .then(({ data }) => data)
+            .catch(recordingsOrDisabled),
+    staleTime: 60_000,
+    retry: false,
+});
+
 /** A consulta da lista de gravações de um DEDA (a mesma chave em todo lugar). */
 const recordingsQuery = (uid: string | undefined, dedaId: string) => ({
     queryKey: ['deda-recordings', uid, dedaId],
@@ -62,28 +74,14 @@ export const useRecordingStats = () => {
     const results = useQueries({
         queries: ids.map((id) => ({ ...recordingsQuery(uid, id), enabled: allowed && current > 0, staleTime: 60_000 })),
     });
-    const since = useQuery({
-        // mesmo prefixo ['deda-recordings', uid]: toda gravação nova invalida também esta
-        queryKey: ['deda-recordings', uid, 'since', RECORDER_SINCE],
-        queryFn: () =>
-            melpService
-                .get<DedaRecordingsResponse>(`${base(uid as string)}?since=${RECORDER_SINCE}`)
-                .then(({ data }) => data)
-                .catch(recordingsOrDisabled),
-        enabled: allowed && calendar,
-        staleTime: 60_000,
-        retry: false,
-    });
+    // mesmo prefixo ['deda-recordings', uid]: toda gravação nova invalida também esta
+    const since = useQuery({ ...sinceQuery(uid), enabled: allowed && calendar });
     const loading = calendar ? since.isLoading : results.some((r) => r.isLoading);
     const enabled = calendar ? !!since.data?.enabled : results.some((r) => r.data?.enabled);
     const all = calendar ? (since.data?.recordings ?? []) : results.flatMap((r) => r.data?.recordings ?? []);
     const paused = calendar ? [] : pausedIntervals(melpSummary?.deda_pause_dates, melpSummary?.deda_start_dates);
     const stats = recordingStats(all, brasiliaDate(new Date()), paused);
-    // DEDAs com gravação na janela, da mais recente para trás (a aba lista também estes: DEDA0, DEDA antigo refeito)
-    const recordedIds = [
-        ...new Set([...all].sort((a, b) => b.recordedOn.localeCompare(a.recordedOn)).map((r) => r.dedaId)),
-    ];
-    return { allowed: allowed && enabled, loading, stats, recordedIds };
+    return { allowed: allowed && enabled, loading, stats };
 };
 
 /**
@@ -92,18 +90,7 @@ export const useRecordingStats = () => {
  */
 export const useAllRecordings = () => {
     const { user } = useAppContext();
-    const uid = user?.uid;
-    return useQuery({
-        queryKey: ['deda-recordings', uid, 'since', RECORDER_SINCE],
-        queryFn: () =>
-            melpService
-                .get<DedaRecordingsResponse>(`${base(uid as string)}?since=${RECORDER_SINCE}`)
-                .then(({ data }) => data)
-                .catch(recordingsOrDisabled),
-        enabled: RECORDER_FLAG_ON && !!uid && !user?.impersonating,
-        staleTime: 60_000,
-        retry: false,
-    });
+    return useQuery({ ...sinceQuery(user?.uid), enabled: RECORDER_FLAG_ON && !!user?.uid && !user?.impersonating });
 };
 
 /** Lista as gravações do aluno no DEDA, o consentimento e se o recurso está ligado para ele. */

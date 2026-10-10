@@ -464,6 +464,11 @@ describe('aba Recordings', () => {
         };
         expect(recordingDedaIds(calendar as never)).toEqual(dedaListIds(calendar));
         expect(recordingDedaIds(calendar as never)).toEqual(['DEDA33', 'DEDA35', 'DEDA34', 'DEDA0']);
+
+        // liberado sem semana própria (duas exibições na mesma semana): também entra, antes do DEDA0
+        const twoInAWeek = { ...calendar, unlocked_dedas: ['DEDA0', 'DEDA20', 'DEDA33', 'DEDA34', 'DEDA35'] };
+        expect(recordingDedaIds(twoInAWeek as never)).toEqual(dedaListIds(twoInAWeek));
+        expect(recordingDedaIds(twoInAWeek as never)).toEqual(['DEDA33', 'DEDA35', 'DEDA34', 'DEDA20', 'DEDA0']);
     });
 
     test('bloqueada como a página de DEDAs (suspenso, 2 primeiros dias) e sem resumo: nenhuma linha', () => {

@@ -6,7 +6,7 @@ import { DedaDifficulties, DedaDifficulty, MelpStatus } from 'interfaces/melp';
 import { formatImersoDate, nextMondayDate } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { firstName, IntensityLang, readIntensityLang, saveIntensityLang } from 'libs/newDesign';
-import { IMERSO_PRODUCT, IMERSO_SALES_URL, RENEWAL_URLS } from 'libs/productAccess';
+import { IMERSO_PRODUCT, IMERSO_RENEW_URL } from 'libs/productAccess';
 import { ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
@@ -17,6 +17,7 @@ import {
     Dash,
     HpecSection,
     Kpis,
+    LampPaused,
     NoProgram,
     NowRow,
     RecentDedas,
@@ -241,8 +242,9 @@ export const NewImersoHome: React.FC = () => {
     if (melpStatus === 'MELP_BEGIN' && daysSinceMelpStart >= 2 && daysSinceMelpStart < 9) {
         renderStatus = 'WEEK_ZERO' as MelpStatus;
     }
-    // Leitura: uma linha calma com a renovação no lugar do aviso do estado (as ações dele gravam); o painel fica para
-    // ver, e o que abre um DEDA ou uma aula leva à renovação.
+    // Leitura (com ou sem programa): a home de sempre, só para ver — uma linha com a renovação no topo, o DEDA da
+    // semana, a próxima aula, os números (ou a LAMP pausada), o percurso do HPEC e os DEDAs; cada ação leva à renovação
+    // (nunca página em branco).
     const readOnly = access(IMERSO_PRODUCT).state === 'expired';
 
     const view = VIEWS[renderStatus];
@@ -250,21 +252,35 @@ export const NewImersoHome: React.FC = () => {
 
     let body: React.ReactNode;
     if (isMelpSummaryError) body = <SummaryError onRetry={retryMelpSummary} />;
-    // sem programa (PF2-01): em Leitura, só o convite de renovação do topo; senão, a linha calma
-    else if (noMelpProgram) body = readOnly ? null : <NoProgram />;
-    else if (!melpSummary) body = <NewContentLoading />;
+    else if (noMelpProgram && !readOnly) body = <NoProgram />;
+    else if (melpSummary === undefined) body = <NewContentLoading />;
     else if (melpStatus === 'MELP_SUSPENDED') body = <SuspendedNotice />;
+    else if (readOnly)
+        body = (
+            <>
+                <NowRow withDeda trail={trail} error={error} renew={IMERSO_RENEW_URL} />
+                {noMelpProgram ? (
+                    <LampPaused />
+                ) : (
+                    <section aria-label="Your numbers">
+                        <Kpis />
+                    </section>
+                )}
+                <HpecSection trail={trail} loading={loading} error={error} renew={IMERSO_RENEW_URL} />
+                {noMelpProgram ? (
+                    <div className="sh">
+                        <ExploreAll />
+                    </div>
+                ) : (
+                    <RecentDedas skipCurrent={false} aside={<ExploreAll />} renew={IMERSO_RENEW_URL} />
+                )}
+            </>
+        );
     else if (view)
         body = (
             <>
-                {!readOnly && view.notice}
-                {/* Leitura: o DEDA de hoje e a aula levam à renovação, não ao bloqueio (PF2-07) */}
-                <NowRow
-                    withDeda={!!view.deda}
-                    trail={trail}
-                    error={error}
-                    renew={readOnly ? (RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL) : undefined}
-                />
+                {view.notice}
+                <NowRow withDeda={!!view.deda} trail={trail} error={error} />
                 {view.kpis && (
                     <section aria-label="Your numbers">
                         <Kpis />

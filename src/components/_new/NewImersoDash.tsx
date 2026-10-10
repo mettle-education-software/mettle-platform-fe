@@ -1,25 +1,26 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { useQuery } from '@tanstack/react-query';
 import { useDedasGrid } from 'components/_melp/_deda/DedasGrid/DedasGrid';
 import { useGetHpecsModules, useOverallProgress } from 'hooks';
+import { useGetCurrentDeda } from 'hooks/melp/deda';
 import { useDedaRun } from 'hooks/melp/lampDays';
+import { useFeaturedDedaData } from 'hooks/queries/dedaQueries';
 import { useHpecProgress } from 'hooks/useHpecProgress';
 import { statisticsColors } from 'libs';
 import { dedaPath, hpecLessonPath } from 'libs/cleanUrls';
 import { contentfulImage } from 'libs/dedaHeader';
 import { hpecTrail, opensLabel } from 'libs/hpecTrail';
-import { vimeoIdOf, vimeoOembedUrl, vumbnailUrl } from 'libs/newDesign';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
-import { ArrowRight, Play } from 'lucide-react';
+import { ArrowRight, Lock, Play } from 'lucide-react';
 import Link from 'next/link';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { ICON } from 'themes/newDesign';
 import { DailyGoal } from './DailyGoal';
 import { NewHpecTrail } from './NewHpecTrail';
 import { RunChip } from './RunGold';
+import { VimeoThumb as Thumb } from './VimeoThumb';
 
 /* Estilos só desta página (as classes comuns de components/_new/ui ficam como estão). */
 export const Dash = styled.div`
@@ -279,6 +280,47 @@ export const Dash = styled.div`
         color: var(--r-gold-hi);
     }
 
+    /* ---------- Leitura: tudo à vista, cada ação leva à renovação ---------- */
+    .now .cc.today .act svg.lk {
+        width: 14px;
+        height: 14px;
+    }
+    .lampoff {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px 0;
+        border-top: 1px solid var(--r-line);
+        border-bottom: 1px solid var(--r-line);
+        color: var(--r-text);
+        text-decoration: none;
+    }
+    .lampoff .go {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--r-gold-hi);
+    }
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 10px;
+        border: 1px solid var(--r-line-strong);
+        border-radius: 999px;
+        font-size: 12.5px;
+        color: var(--r-muted);
+        white-space: nowrap;
+    }
+    .recent .img {
+        position: relative;
+    }
+    .recent .locked img {
+        opacity: 0.35;
+        filter: saturate(0.5);
+    }
+
     /* telas largas: a imagem do "Agora" acompanha a coluna maior */
     @media (min-width: 1600px) {
         .now .cc.today {
@@ -352,29 +394,6 @@ export const Dash = styled.div`
     }
 `;
 
-/** Miniatura do Vimeo (oEmbed; vumbnail se o oEmbed não der; sem imagem, o fundo neutro do card). */
-const Thumb: React.FC<{ embedUrl: string }> = ({ embedUrl }) => {
-    const id = vimeoIdOf(embedUrl);
-    const [failed, setFailed] = useState(false);
-    const { data: oembed, isPending } = useQuery({
-        queryKey: ['vimeo-oembed', id],
-        queryFn: () =>
-            fetch(vimeoOembedUrl(id as string))
-                .then((r) => (r.ok ? r.json() : null))
-                .then((j: { thumbnail_url?: string } | null) => j?.thumbnail_url ?? null)
-                .catch(() => null),
-        enabled: !!id,
-        staleTime: Infinity,
-        gcTime: Infinity,
-        retry: false,
-    });
-    if (!id || isPending || failed) return null;
-    return (
-        // eslint-disable-next-line @next/next/no-img-element -- miniatura do Vimeo
-        <img src={oembed || vumbnailUrl(id)} alt="" loading="lazy" onError={() => setFailed(true)} />
-    );
-};
-
 const Skel: React.FC = () => (
     <div className="cc today skel" aria-hidden>
         <span className="img" />
@@ -428,8 +447,35 @@ export const NoProgram: React.FC = () => {
 
 /* ---------- Agora ---------- */
 
-/** DEDA de hoje: o atual (último liberado), da mesma consulta da grade de recentes; um clique abre (em Leitura, renova). */
-export const NowDeda: React.FC<{ renew?: string }> = ({ renew }) => {
+/**
+ * Leitura: o DEDA desta semana na rotação (o mesmo para todos, com ou sem programa), com capa e título; o clique
+ * leva à renovação. Sem rotação ou sem o conteúdo, nada (nunca esqueleto eterno).
+ */
+export const WeekDeda: React.FC<{ renew: string }> = ({ renew }) => {
+    const current = useGetCurrentDeda();
+    const featured = useFeaturedDedaData(current.data?.id);
+    const deda = featured.data?.dedaContentCollection.items[0];
+    if (!deda) return current.isLoading || featured.loading ? <Skel /> : null;
+    const thumb = contentfulImage(deda.dedaFeaturedImage?.url, { w: 448, h: 252, fit: 'fill', fm: 'webp', q: 70 });
+    return (
+        <Link className="cc today" href={renew} aria-label={`Renew to open this week’s DEDA: ${deda.dedaTitle}`}>
+            <span className="img">
+                {/* eslint-disable-next-line @next/next/no-img-element -- imagem do Contentful */}
+                {thumb && <img src={thumb} alt="" />}
+            </span>
+            <span className="meta">
+                <small>This week’s DEDA</small>
+            </span>
+            <b>{deda.dedaTitle}</b>
+            <span className="act">
+                <Lock {...ICON} className="lk" aria-hidden /> Renew
+            </span>
+        </Link>
+    );
+};
+
+/** DEDA de hoje: o atual (último liberado), da mesma consulta da grade de recentes; um clique abre (Leitura: WeekDeda). */
+export const NowDeda: React.FC = () => {
     const { isTodaysDedaCompleted } = useMelpContext();
     const grid = useDedasGrid('lastDedas');
     // o de hoje (libs/dedaClock): no relógio novo, antes de a rotação da semana sair não há "de hoje" — nada aparece
@@ -437,11 +483,7 @@ export const NowDeda: React.FC<{ renew?: string }> = ({ renew }) => {
     if (!deda) return grid.showSkeleton ? <Skel /> : null;
     const thumb = contentfulImage(deda.dedaFeaturedImage?.url, { w: 448, h: 252, fit: 'fill', fm: 'webp', q: 70 });
     return (
-        <Link
-            className="cc today"
-            href={renew ?? dedaPath(deda.dedaSlug)}
-            aria-label={renew ? `Renew to open today’s DEDA: ${deda.dedaTitle}` : `Today’s DEDA: ${deda.dedaTitle}`}
-        >
+        <Link className="cc today" href={dedaPath(deda.dedaSlug)} aria-label={`Today’s DEDA: ${deda.dedaTitle}`}>
             <span className="img">
                 {/* eslint-disable-next-line @next/next/no-img-element -- imagem do Contentful */}
                 {thumb && <img src={thumb} alt="" />}
@@ -452,7 +494,7 @@ export const NowDeda: React.FC<{ renew?: string }> = ({ renew }) => {
             </span>
             <b>{deda.dedaTitle}</b>
             <span className="act">
-                {renew ? 'Renew' : 'Open DEDA'} <ArrowRight {...ICON} size={16} aria-hidden />
+                Open DEDA <ArrowRight {...ICON} size={16} aria-hidden />
             </span>
         </Link>
     );
@@ -465,12 +507,34 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean; renew?: string }> = ({
     if (error) return null;
     if (!trail) return <Skel />;
     const { here, next } = trail;
+    // Leitura: a próxima aula (ou a primeira, "Get started") à vista; o clique leva à renovação (PF2, Adílson)
+    if (renew) {
+        const first = trail.modules.find((m) => m.lessons.length);
+        const pick = here ?? next ?? (first && { lesson: first.lessons[0], module: first });
+        if (!pick) return null;
+        const started = trail.modules.some((m) => m.lessons.some((l) => l.state === 'done'));
+        return (
+            <Link className="cc today" href={renew} aria-label={`Renew to watch HPEC: ${pick.lesson.title}`}>
+                <span className="img">
+                    <Thumb embedUrl={pick.lesson.embedUrl} />
+                </span>
+                <span className="meta">
+                    <small>HPEC · Module {pick.module.order}</small>
+                    {!started && <em>Get started</em>}
+                </span>
+                <b>{pick.lesson.title}</b>
+                <span className="act">
+                    <Lock {...ICON} className="lk" aria-hidden /> Renew
+                </span>
+            </Link>
+        );
+    }
     if (here)
         return (
             <Link
                 className="cc today"
-                href={renew ?? `${hpecLessonPath(here.lesson.id)}?play`}
-                aria-label={renew ? `Renew to watch HPEC: ${here.lesson.title}` : `Watch HPEC: ${here.lesson.title}`}
+                href={`${hpecLessonPath(here.lesson.id)}?play`}
+                aria-label={`Watch HPEC: ${here.lesson.title}`}
             >
                 <span className="img">
                     <Thumb embedUrl={here.lesson.embedUrl} />
@@ -480,15 +544,7 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean; renew?: string }> = ({
                 </span>
                 <b>{here.lesson.title}</b>
                 <span className="act">
-                    {renew ? (
-                        <>
-                            Renew <ArrowRight {...ICON} size={16} aria-hidden />
-                        </>
-                    ) : (
-                        <>
-                            <Play {...ICON} size={13} className="play" aria-hidden /> Watch
-                        </>
-                    )}
+                    <Play {...ICON} size={13} className="play" aria-hidden /> Watch
                 </span>
             </Link>
         );
@@ -509,11 +565,7 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean; renew?: string }> = ({
     // tudo liberado e visto: rever a partir do começo
     const first = trail.modules[0].lessons[0];
     return (
-        <Link
-            className="cc today"
-            href={renew ?? hpecLessonPath(first.id)}
-            aria-label={renew ? `Renew to watch HPEC again: ${first.title}` : `Watch HPEC again: ${first.title}`}
-        >
+        <Link className="cc today" href={hpecLessonPath(first.id)} aria-label={`Watch HPEC again: ${first.title}`}>
             <span className="img">
                 <Thumb embedUrl={first.embedUrl} />
             </span>
@@ -523,7 +575,7 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean; renew?: string }> = ({
             </span>
             <b>{first.title}</b>
             <span className="act">
-                {renew ? 'Renew' : 'Watch again'} <ArrowRight {...ICON} size={16} aria-hidden />
+                Watch again <ArrowRight {...ICON} size={16} aria-hidden />
             </span>
         </Link>
     );
@@ -556,9 +608,19 @@ export const NowRow: React.FC<{ withDeda: boolean; trail?: Trail; error?: boolea
     renew,
 }) => (
     <section aria-label="Now" className="now">
-        {withDeda && <NowDeda renew={renew} />}
+        {renew ? <WeekDeda renew={renew} /> : withDeda && <NowDeda />}
         <NowHpec trail={trail} error={error} renew={renew} />
     </section>
+);
+
+/** Leitura sem programa: no lugar dos números, a LAMP pausada (a página da LAMP mostra o calendário vazio). */
+export const LampPaused: React.FC = () => (
+    <Link href="/imerso/lamp" className="lampoff" aria-label="LAMP paused — open LAMP">
+        <span className="chip">LAMP paused</span>
+        <span className="go">
+            LAMP <ArrowRight {...ICON} size={16} aria-hidden />
+        </span>
+    </Link>
 );
 
 /* ---------- KPIs ---------- */
@@ -631,10 +693,11 @@ export const Kpis: React.FC = () => {
 
 /* ---------- HPEC ---------- */
 
-export const HpecSection: React.FC<{ trail?: Trail; loading: boolean; error: boolean }> = ({
+export const HpecSection: React.FC<{ trail?: Trail; loading: boolean; error: boolean; renew?: string }> = ({
     trail,
     loading,
     error,
+    renew,
 }) => {
     const title = (
         <>
@@ -649,7 +712,7 @@ export const HpecSection: React.FC<{ trail?: Trail; loading: boolean; error: boo
     return (
         <section aria-label="HPEC" aria-busy={loading || undefined} className="hp">
             {trail && trail.total > 0 && !error ? (
-                <NewHpecTrail modules={trail.modules} title={title} />
+                <NewHpecTrail modules={trail.modules} title={title} renew={renew} />
             ) : (
                 <>
                     <div className="sh">
@@ -675,11 +738,13 @@ export const HpecSection: React.FC<{ trail?: Trail; loading: boolean; error: boo
 /* ---------- DEDAs recentes ---------- */
 
 /** Os DEDAs anteriores ao de hoje, em cards grandes: uma fila cheia no computador, fila que rola no celular. */
-export const RecentDedas: React.FC<{ title?: string; aside?: React.ReactNode; skipCurrent?: boolean }> = ({
-    title = 'Recent DEDAs',
-    aside,
-    skipCurrent = true,
-}) => {
+export const RecentDedas: React.FC<{
+    title?: string;
+    aside?: React.ReactNode;
+    skipCurrent?: boolean;
+    /** Leitura: cards trancados que levam à renovação */
+    renew?: string;
+}> = ({ title = 'Recent DEDAs', aside, skipCurrent = true, renew }) => {
     // os DEDAs vêm da lista completa (a mesma consulta de "Explore all DEDAs", em cache entre as páginas); a ordem é a
     // de liberação (melp summary), do mais recente para trás
     const grid = useDedasGrid('allDedas');
@@ -707,10 +772,17 @@ export const RecentDedas: React.FC<{ title?: string; aside?: React.ReactNode; sk
                     });
                     return (
                         <li key={deda.dedaSlug}>
-                            <Link href={dedaPath(deda.dedaSlug)}>
+                            <Link
+                                href={renew ?? dedaPath(deda.dedaSlug)}
+                                className={renew ? 'locked' : undefined}
+                                aria-label={renew ? `Renew to open ${deda.dedaTitle}` : undefined}
+                            >
                                 <span className="img">
                                     {/* eslint-disable-next-line @next/next/no-img-element -- imagem do Contentful */}
                                     {src && <img src={src} alt="" loading="lazy" />}
+                                    {renew && (
+                                        <Lock {...ICON} size={28} strokeWidth={1.25} className="lock" aria-hidden />
+                                    )}
                                 </span>
                                 <span>
                                     {!!w && <small>Week {w}</small>}

@@ -50,6 +50,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ICON, UI_FONT_VAR, ui } from 'themes/newDesign';
 import { MasterclassSummary } from './MasterclassSummary';
 import { NewPage } from './NewPage';
+import { VimeoThumb } from './VimeoThumb';
 
 /* ---------- textos da interface (Imerso em inglês; cursos gerais em português, como hoje) ---------- */
 
@@ -73,6 +74,7 @@ const TEXTS = {
         noSummary: 'This lesson has no text',
         download: 'Download',
         close: 'Close',
+        renew: 'Renew',
     },
     pt: {
         video: 'Vídeo',
@@ -93,6 +95,7 @@ const TEXTS = {
         noSummary: 'Esta aula não tem texto',
         download: 'Baixar',
         close: 'Fechar',
+        renew: 'Renovar',
     },
 } as const;
 
@@ -645,6 +648,39 @@ const Wrap = styled.div`
         color: var(--r-muted);
     }
 
+    /* Leitura: a aula à vista (miniatura com cadeado e o texto de apresentação); a ação é a renovação */
+    .pv {
+        display: grid;
+        gap: 18px;
+        max-width: 760px;
+        padding-top: 4px;
+    }
+    .pv-img {
+        position: relative;
+        display: block;
+        aspect-ratio: 16 / 9;
+        border-radius: var(--r-radius);
+        overflow: hidden;
+        background: var(--r-surf);
+    }
+    .pv-img img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.45;
+        filter: saturate(0.6);
+    }
+    .pv-img .lock {
+        color: var(--r-text);
+    }
+    .pv-text {
+        max-width: 40em;
+        font-size: calc(15px * var(--r-scale, 1));
+        line-height: 1.6;
+        color: var(--r-muted);
+    }
+
     /* próxima aula ao fim do conteúdo */
     .after {
         display: flex;
@@ -853,8 +889,11 @@ export interface NewLessonProps {
     lessonId: string;
     progress?: { unlocked: number; total: number };
     lang: Lang;
-    /** Imerso expirado: o conteúdo dá lugar ao convite (a mesma peça das três abas atuais). */
-    lockedContent?: React.ReactNode;
+    /**
+     * Leitura: a aula à vista (título, miniatura com cadeado, texto de apresentação), sem vídeo, texto nem material;
+     * a miniatura e o botão levam à renovação (`note`: a linha ao lado do botão).
+     */
+    preview?: { renew: string; note: string };
     /** Vídeo assistido (90% ou fim): o curso decide o que fazer (HPEC: marca a aula como concluída). */
     onWatched?: (lessonId: string) => void;
     /** Controle "concluída" da aula (HPEC), ao lado da próxima aula. */
@@ -873,7 +912,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
     lessonId: routeLessonId,
     progress,
     lang,
-    lockedContent,
+    preview,
     onWatched,
     doneToggle,
 }) => {
@@ -1007,7 +1046,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                 <h1>{(switching ? current?.title : lesson?.lessonTitle) ?? current?.title ?? ' '}</h1>
             </div>
             {/* aula trancada (leitura): sem as abas de um conteúdo que não aparece */}
-            {!isMobile && tabs.length > 1 && !lockedContent && <div className="hd-tabs">{tabsEl}</div>}
+            {!isMobile && tabs.length > 1 && !preview && <div className="hd-tabs">{tabsEl}</div>}
             {!single && (
                 <nav className="pn" aria-label={t.lessons}>
                     {previous ? (
@@ -1034,8 +1073,25 @@ export const NewLesson: React.FC<NewLessonProps> = ({
     );
 
     let body: React.ReactNode;
-    if (lockedContent) {
-        body = lockedContent;
+    if (preview) {
+        const title = lesson?.lessonTitle ?? current?.title ?? '';
+        body = (
+            <div className="pv">
+                <a className="pv-img" href={preview.renew} aria-label={`${t.renew}: ${title}`}>
+                    <VimeoThumb embedUrl={lesson?.lessonVideoEmbedUrl} />
+                    <Lock {...ICON} size={32} strokeWidth={1.25} className="lock" aria-hidden />
+                </a>
+                {lesson?.lessonFeaturedText && <p className="pv-text">{lesson.lessonFeaturedText}</p>}
+                <div className="notice" role="status">
+                    <div>
+                        <b>{preview.note}</b>
+                    </div>
+                    <a className="btn gold" href={preview.renew}>
+                        {t.renew}
+                    </a>
+                </div>
+            </div>
+        );
     } else if (lockedModule) {
         body = (
             <div className="state" role="status">

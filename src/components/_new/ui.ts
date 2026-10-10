@@ -520,6 +520,9 @@ export const Page = styled.div`
         text-overflow: ellipsis;
         color: var(--r-faint);
     }
+    a.dc {
+        text-decoration: none;
+    }
     .dc:disabled {
         cursor: default;
     }

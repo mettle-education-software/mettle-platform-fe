@@ -438,7 +438,9 @@ export const NewAdminDashboard: React.FC = () => {
                     {days?.length ? (
                         <StudyChart days={days} />
                     ) : (
-                        <p className="hint">{days ? 'Sem dados no período.' : none('—')}</p>
+                        <p className="hint">
+                            {days ? (query.isPlaceholderData ? 'Carregando…' : 'Sem dados no período.') : none('—')}
+                        </p>
                     )}
                     {p && (
                         <p className="line">

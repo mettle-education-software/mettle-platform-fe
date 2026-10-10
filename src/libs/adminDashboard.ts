@@ -38,6 +38,8 @@ export interface Dashboard {
         origin: Origin | null;
         validUntil: string | null;
         inCarencia: boolean;
+        /** fim da carência (quando está nela) */
+        graceUntil: string | null;
     }[];
     vencendoTotal: Count;
     /** pessoas que vencem em 30 dias (o vencendoTotal conta produtos) */
@@ -167,6 +169,7 @@ export const readDashboard = (data: unknown): Dashboard | null => {
                           origin: origin(v.origin),
                           validUntil: s(v.validUntil),
                           inCarencia: v.inCarencia === true,
+                          graceUntil: s(v.graceUntil),
                       },
                   ]
                 : [];
@@ -202,35 +205,42 @@ export const readDashboard = (data: unknown): Dashboard | null => {
     };
 };
 
-/** Quem vence, uma linha por pessoa (os produtos juntos, a data mais cedo, carência se algum estiver nela). */
+/**
+ * Quem vence, uma linha por pessoa: os produtos juntos, o fim mais cedo e, se algum produto está em carência, até
+ * quando ela vai (a data antiga do produto não aparece).
+ */
 export interface DuePerson {
     uid: string;
     name: string | null;
     products: Product[];
+    /** o fim mais cedo dos produtos fora da carência */
     validUntil: string | null;
     inCarencia: boolean;
+    /** o fim mais cedo das carências (null enquanto o servidor não manda) */
+    graceUntil: string | null;
 }
+const earliest = (a: string | null, b: string | null) => (a && (!b || a < b) ? a : b);
 export const duePeople = (rows: Dashboard['vencendo']): DuePerson[] => {
     const people = new Map<string, DuePerson>();
     for (const row of rows) {
-        const person = people.get(row.uid);
-        if (!person) {
-            people.set(row.uid, {
-                uid: row.uid,
-                name: row.name,
-                products: [row.product],
-                validUntil: row.validUntil,
-                inCarencia: row.inCarencia,
-            });
-            continue;
-        }
+        const person = people.get(row.uid) ?? {
+            uid: row.uid,
+            name: row.name,
+            products: [],
+            validUntil: null,
+            inCarencia: false,
+            graceUntil: null,
+        };
+        people.set(row.uid, person);
         if (!person.products.includes(row.product)) person.products.push(row.product);
-        if (row.validUntil && (!person.validUntil || row.validUntil < person.validUntil))
-            person.validUntil = row.validUntil;
-        person.inCarencia ||= row.inCarencia;
+        if (row.inCarencia) {
+            person.inCarencia = true;
+            person.graceUntil = earliest(row.graceUntil, person.graceUntil);
+        } else person.validUntil = earliest(row.validUntil, person.validUntil);
     }
-    // a ordem do servidor é por data; com a data mais cedo de cada pessoa, reordena
-    return [...people.values()].sort((a, b) => (a.validUntil ?? '').localeCompare(b.validUntil ?? ''));
+    // a ordem do servidor é pelo fim do produto; com o fim que vale de cada pessoa (a carência, se houver), reordena
+    const due = (person: DuePerson) => (person.inCarencia ? person.graceUntil : person.validUntil) ?? '';
+    return [...people.values()].sort((a, b) => due(a).localeCompare(due(b)));
 };
 
 /** "Masterclass e E-book"; "Imerso, Masterclass e E-book". */
@@ -249,10 +259,10 @@ export const duePeopleCount = (d: Pick<Dashboard, 'vencendo' | 'vencendoTotal' |
     return d.vencendoTotal <= d.vencendo.length ? count(people) : `${count(people)}+`;
 };
 
-const STATE: Record<string, string> = { ativo: 'Total', leitura: 'Leitura', none: 'Sem acesso' };
+const STATE: Record<string, string> = { ativo: 'Ativo', leitura: 'Leitura', none: 'Sem acesso' };
 export const stateLabel = (state: string | null) => (state && STATE[state]) || 'Sem acesso';
 
-/** "Imerso: Leitura → Total". */
+/** "Imerso: Leitura → Ativo". */
 export const changeLabel = (event: Dashboard['eventos'][number]) =>
     `${PRODUCT_NAMES[event.product]}: ${stateLabel(event.from)} → ${stateLabel(event.to)}`;
 

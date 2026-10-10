@@ -227,6 +227,9 @@ const styles = css`
         font-style: normal;
         color: var(--r-gold-hi);
     }
+    .db ol.rows span em {
+        margin-left: 0;
+    }
     .db .sh a {
         font-size: 13.5px;
         color: var(--r-gold-hi);
@@ -565,12 +568,17 @@ export const NewAdminDashboard: React.FC = () => {
                                     .map((person) => (
                                         <li key={person.uid}>
                                             <Link href={adminPanelPath(person.uid)}>
-                                                <b>
-                                                    {person.name || 'Sem nome'}
-                                                    {person.inCarencia && <em>carência</em>}
-                                                </b>
+                                                <b>{person.name || 'Sem nome'}</b>
                                                 <span>
-                                                    {productList(person.products)} · {brDay(person.validUntil)}
+                                                    {productList(person.products)} ·{' '}
+                                                    {person.inCarencia ? (
+                                                        <em>
+                                                            carência
+                                                            {person.graceUntil && ` até ${brDay(person.graceUntil)}`}
+                                                        </em>
+                                                    ) : (
+                                                        brDay(person.validUntil)
+                                                    )}
                                                 </span>
                                             </Link>
                                         </li>

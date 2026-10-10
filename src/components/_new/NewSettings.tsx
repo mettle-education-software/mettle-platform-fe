@@ -6,10 +6,12 @@ import { Button, Form, Input, Modal, Tooltip } from 'antd';
 import { useMelpSummary, usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { useProfile } from 'hooks/useProfile';
 import { passwordRules, saoPauloWeekday } from 'libs';
+import { lampLastDay, lampOpen } from 'libs/dedaClock';
 import { longDate, productLines } from 'libs/myProducts';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { brLongDate, programHistory } from 'libs/programHistory';
 import { Info } from 'lucide-react';
+import Link from 'next/link';
 import { useAppContext, useProductAccess } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
@@ -336,11 +338,14 @@ const ProgramCard: React.FC = () => {
         </Button>
     );
 
-    // sem resumo: carregando; conta sem programa ou sem acesso (404/403): uma linha; outra falha: nova tentativa
+    // sem resumo: carregando; conta sem programa (404 → null): "Programa não iniciado", sem ações (PF2-01); sem acesso
+    // (403): uma linha; outra falha: nova tentativa
     if (!melpSummary)
         return (
             <div className="card">
-                {summary.isLoading ? (
+                {melpSummary === null ? (
+                    <p className="hint">Programa não iniciado.</p>
+                ) : summary.isLoading ? (
                     <p className="hint" role="status">
                         Carregando…
                     </p>
@@ -356,6 +361,19 @@ const ProgramCard: React.FC = () => {
     const stale = summary.isError;
     const busy = mutating || programReset.isPending || pauseDeda.isPending || stale;
     const history = programHistory(melpSummary.program_events, melpSummary.remaining_resets, undefined, brLongDate);
+    // sem saldo, o botão desliga e o caminho é o Suporte (PF2-06); reiniciar só com a LAMP existindo — antes do primeiro
+    // DEDA (MELP_BEGIN) não há o que zerar (PF2-10)
+    const noPauses = !(melpSummary.remaining_pauses > 0);
+    const noResets = !(melpSummary.remaining_resets > 0);
+    // relógio novo: a LAMP "abre" antes da primeira segunda (e depois de um reinício, até a segunda) sem dia contado —
+    // a mesma regra da página da LAMP (aguardando a segunda: nada a zerar)
+    const canReset = !readOnly && lampOpen(melpSummary) && !!lampLastDay(melpSummary);
+    const supportLine = (
+        <>
+            {' · '}
+            <Link href="/suporte">Fale com o Suporte</Link>
+        </>
+    );
     const started = longDate(melpSummary.deda_first_monday ?? melpSummary.melp_start_date);
 
     return (
@@ -388,12 +406,15 @@ const ProgramCard: React.FC = () => {
                                 <Info {...ICON} size={15} aria-label="Sobre pausar a LAMP" />
                             </Tooltip>
                         </b>
-                        <span className="cr-sub">Pausas restantes: {melpSummary.remaining_pauses}</span>
+                        <span className="cr-sub">
+                            Pausas restantes: {melpSummary.remaining_pauses}
+                            {noPauses && supportLine}
+                        </span>
                     </div>
                     <div className="cr-side">
                         <Button
                             loading={pauseDeda.isPending}
-                            disabled={busy}
+                            disabled={busy || noPauses}
                             onClick={() =>
                                 modal.confirm({
                                     title: 'Pausar a LAMP?',
@@ -423,7 +444,7 @@ const ProgramCard: React.FC = () => {
                     </div>
                 </div>
             )}
-            {!readOnly && (
+            {canReset && (
                 <div className="cr">
                     <div className="cr-main">
                         <b className="cr-name cr-info">
@@ -432,12 +453,15 @@ const ProgramCard: React.FC = () => {
                                 <Info {...ICON} size={15} aria-label="Sobre reiniciar a LAMP" />
                             </Tooltip>
                         </b>
-                        <span className="cr-sub">Reinícios restantes: {melpSummary.remaining_resets}</span>
+                        <span className="cr-sub">
+                            Reinícios restantes: {melpSummary.remaining_resets}
+                            {noResets && supportLine}
+                        </span>
                     </div>
                     <div className="cr-side">
                         <Button
                             loading={programReset.isPending}
-                            disabled={busy}
+                            disabled={busy || noResets}
                             onClick={() =>
                                 modal.confirm({
                                     title: 'Reiniciar a LAMP?',

@@ -15,6 +15,7 @@ import { useProfile } from 'hooks/useProfile';
 import { useLogoTheme } from 'hooks/useTheme';
 import { saoPauloWeekday } from 'libs';
 import { ADMIN_PANEL_PATH, adminPanelPath } from 'libs/adminPanel';
+import { graceNotices } from 'libs/myProducts';
 import { activeMenuKeys, displayName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
 import { IMERSO_PRODUCT, IMERSO_SALES_URL, RENEWAL_URLS, renewalNotice, shellGate } from 'libs/productAccess';
 import { VIEW_ONLY_EVENT } from 'libs/viewOnly';
@@ -943,6 +944,8 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
             return items;
         }, [menu.items]);
         const { access, levelsLoading } = useProductAccess();
+        // carência pelo modelo de acesso (/accounts/me): as claims dizem "ativo" e a casca não a via (PF2-03)
+        const accessDetails = useProfile().data?.accessDetails;
         const logoTheme = useLogoTheme();
 
         // Fluidez: com a casca de pé, adianta (em tempo ocioso) o código das páginas novas e as rotas do menu, para a
@@ -1004,17 +1007,31 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
                 children
             );
         // Carência e "vence em breve": uma linha com a data e "Renovar" (libs/productAccess.renewalNotice); dentro do
-        // IMERSO em inglês.
+        // IMERSO em inglês. Carência do modelo de acesso (libs/myProducts.graceNotices): no Início (todo produto) e no
+        // /imerso (o Imerso), no lugar da linha antiga (PF2-03).
         const en = pathname.startsWith('/imerso');
-        const renewText = renewalNotice(access(IMERSO_PRODUCT), en);
-        const graceBanner = renewText && (
-            <div className={`grace ${UI_FONT_CLASS}`} role="status" lang={en ? 'en' : 'pt-BR'}>
-                <TriangleAlert {...ICON} aria-hidden />
-                <span>{renewText}</span>
-                <a className="lnk gold" href={RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL}>
-                    {en ? 'Renew' : 'Renovar'}
-                </a>
-            </div>
+        const graces =
+            pathname === '/' || pathname === '/imerso'
+                ? graceNotices(accessDetails, { en, only: en ? 'imerso' : undefined })
+                : [];
+        const lines = graces.length
+            ? graces
+            : [{ key: 'imerso', name: 'Imerso', text: renewalNotice(access(IMERSO_PRODUCT), en), renew: undefined }];
+        const graceBanner = lines.map(
+            (line) =>
+                line.text && (
+                    <div key={line.key} className={`grace ${UI_FONT_CLASS}`} role="status" lang={en ? 'en' : 'pt-BR'}>
+                        <TriangleAlert {...ICON} aria-hidden />
+                        <span>{line.text}</span>
+                        <a
+                            className="lnk gold"
+                            href={line.renew ?? RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL}
+                            aria-label={`${en ? 'Renew' : 'Renovar'} ${line.name}`}
+                        >
+                            {en ? 'Renew' : 'Renovar'}
+                        </a>
+                    </div>
+                ),
         );
 
         const brand = (

@@ -1,4 +1,4 @@
-import { longDate, planLabel, productLines } from '../myProducts';
+import { graceNotices, longDate, planLabel, productLines } from '../myProducts';
 
 const today = '2026-10-10';
 
@@ -119,7 +119,8 @@ test('leitura: aviso de encerramento e Renovar; sem acesso não aparece; nada fo
             'Cortesia',
             'Acesso encerrado em 30 de setembro de 2026. Você ainda pode navegar.',
         ],
-        ['E-book', 'Leitura', null, 'Acesso encerrado em 15 de agosto de 2026. Você ainda pode navegar.'],
+        // navegar é só do Imerso: Masterclass e E-book em Leitura ficam trancados (PF2-05)
+        ['E-book', 'Leitura', null, 'Acesso encerrado em 15 de agosto de 2026. Renove para voltar a ler.'],
     ]);
     expect(lines[1].renew).toContain('masterclass');
     expect(productLines(undefined, today)).toEqual([]);
@@ -139,10 +140,55 @@ test('Leitura antes do prazo não anuncia data futura; venceu e ainda Ativo: avi
         today,
     );
     expect(early.alert).toBe('Acesso encerrado em 8 de outubro de 2026. Você ainda pode navegar.');
+    // a âncora da carga é segunda (12-Out): data futura nunca no passado (PF2-04)
+    const [anchored, mc] = productLines(
+        [
+            { product: 'imerso', state: 'leitura', origin: 'compra', validUntil: null, leituraSince: '2026-10-12' },
+            { product: 'masterclass', state: 'leitura', origin: 'compra', leituraSince: '2026-10-12' },
+        ],
+        today,
+    );
+    expect(anchored.alert).toBe('Acesso em Leitura. Você ainda pode navegar.');
+    expect(mc.alert).toBe('Acesso encerrado. Renove para voltar a assistir.');
     const [lapsed] = productLines(
         [{ product: 'masterclass', state: 'ativo', origin: 'compra', validUntil: '2026-10-09' }],
         today,
     );
     expect(lapsed.alert).toBe('Seu plano venceu em 9 de outubro de 2026.');
     expect(lapsed.renew).toContain('masterclass');
+});
+
+test('carência (aviso do Início e do /imerso): só Ativo com o prazo vencido e a carência valendo; nome fora do Imerso', () => {
+    const rows = [
+        { product: 'imerso', state: 'ativo', origin: 'compra', validUntil: '2024-05-12', graceUntil: '2026-10-11' },
+        {
+            product: 'masterclass',
+            state: 'ativo',
+            origin: 'compra',
+            validUntil: '2026-10-01',
+            graceUntil: '2026-10-15',
+        },
+        // carência acabou, ainda não venceu, ou em Leitura: nada
+        { product: 'ebook', state: 'ativo', origin: 'compra', validUntil: '2026-09-01', graceUntil: '2026-09-15' },
+        { product: 'outro', state: 'ativo', validUntil: '2026-09-01', graceUntil: '2026-10-15' },
+    ];
+    expect(graceNotices(rows, {}, today)).toEqual([
+        {
+            key: 'imerso',
+            text: 'Seu plano venceu em 12 de maio de 2024. Acesso total até 11 de outubro de 2026.',
+            name: 'Programa Imerso',
+            renew: expect.stringContaining('http'),
+        },
+        {
+            key: 'masterclass',
+            name: 'Masterclass',
+            text: 'Masterclass: seu plano venceu em 1 de outubro de 2026. Acesso total até 15 de outubro de 2026.',
+            renew: expect.stringContaining('masterclass'),
+        },
+    ]);
+    expect(graceNotices(rows, { en: true, only: 'imerso' }, today).map((n) => n.text)).toEqual([
+        'Your plan expired on May 12, 2024. Full access until October 11, 2026.',
+    ]);
+    expect(graceNotices(rows, {}, '2026-10-16')).toEqual([]);
+    expect(graceNotices(undefined)).toEqual([]);
 });

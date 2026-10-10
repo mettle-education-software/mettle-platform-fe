@@ -13,8 +13,18 @@ export const useMelpSummary = (userUid?: string) => {
 
     return useQuery({
         queryKey: ['imerso-summary', userUid],
+        // conta sem programa (Leitura que nunca começou, login restaurado): o 404 é resposta, não falha. null = "sem
+        // programa" (nada de carregando eterno nem nova tentativa — PF2-01)
         queryFn: () =>
-            melpService.get<MelpSummaryResponse>(`/v2/${userUid as string}/summary`).then(({ data }) => data.data),
+            melpService
+                .get<MelpSummaryResponse>(`/v2/${userUid as string}/summary`)
+                .then(({ data }): MelpSummaryResponse['data'] | null => data.data)
+                .catch((error) => {
+                    const response = (error as { response?: { status?: number; data?: unknown } })?.response;
+                    // o 404 do serviço (sem programa), não o de rota inexistente ("Not Found" do gateway/express)
+                    if (response?.status === 404 && response.data !== 'Not Found') return null;
+                    throw error;
+                }),
         enabled:
             !!userUid &&
             ([MettleRoles.METTLE_STUDENT, MettleRoles.METTLE_ADMIN].some((role) => user?.roles?.includes(role)) ||

@@ -19,7 +19,7 @@ import { LampGoals } from './LampGoals';
 import { LampMirror } from './LampMirror';
 import { LampOverallStats, LampStatsSort } from './LampOverallStats';
 import { LampRecordings } from './LampRecordings';
-import { SummaryError, SuspendedNotice } from './NewImersoDash';
+import { NoProgram, SummaryError, SuspendedNotice } from './NewImersoDash';
 import { NewLampInput } from './NewLampInput';
 import { NewPage } from './NewPage';
 import { PageHead } from './PageHead';
@@ -645,7 +645,7 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
     // na casca persistente a página nem sempre recebe searchParams: o endereço é a fonte (?lampTab=goal)
     const params = useSearchParams();
     const asked = initialTab ?? params?.get('lampTab') ?? undefined;
-    const { melpSummary, isMelpSummaryError, retryMelpSummary } = useMelpContext();
+    const { melpSummary, isMelpSummaryError, retryMelpSummary, noMelpProgram } = useMelpContext();
     // Imerso em leitura: só para ver (Input sem gravar, em lampInputForm; sem gravador)
     const readOnly = useProductAccess().access(IMERSO_PRODUCT).state === 'expired';
     // Recordings: só quando o SERVIDOR diz que o gravador está ligado para esta conta (a env sozinha não basta — PF-03);
@@ -661,13 +661,20 @@ const NewLamp: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
 
     // resumo fora do ar, LAMP fechada neste estado ou ainda sem dia (aguardando a segunda): título e uma linha
     // (PF-21, PF-15)
-    if (isMelpSummaryError || (melpSummary && (!lampOpen(melpSummary) || !lampLastDay(melpSummary))))
+    if (isMelpSummaryError || noMelpProgram || (melpSummary && (!lampOpen(melpSummary) || !lampLastDay(melpSummary))))
         return (
             <NewPage className="lamp">
                 <Global styles={lampStyles} />
                 <PageHead eyebrow="IMERSO" title="LAMP" />
                 {isMelpSummaryError ? (
                     <SummaryError onRetry={retryMelpSummary} />
+                ) : noMelpProgram ? (
+                    // sem programa (PF2-01): em Leitura, a renovação; senão, a LAMP começa com o primeiro DEDA
+                    readOnly ? (
+                        <NoProgram />
+                    ) : (
+                        <LampClosed />
+                    )
                 ) : (
                     <LampClosed status={melpSummary?.melp_status} />
                 )}

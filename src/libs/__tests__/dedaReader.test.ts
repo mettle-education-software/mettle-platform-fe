@@ -210,5 +210,7 @@ describe('aba Review (hasReviews, legado)', () => {
         expect(hasReviews(unlocked, 'outro')).toBe(false);
         expect(hasReviews(summary([]), 'd0')).toBe(false);
         expect(hasReviews(undefined, 'd0')).toBeUndefined();
+        // conta sem programa (resumo 404 → null): sem revisões, a barra de abas não fica escondida
+        expect(hasReviews(null, 'd0')).toBe(false);
     });
 });

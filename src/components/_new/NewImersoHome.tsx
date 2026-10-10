@@ -6,14 +6,24 @@ import { DedaDifficulties, DedaDifficulty, MelpStatus } from 'interfaces/melp';
 import { formatImersoDate, nextMondayDate } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { firstName, IntensityLang, readIntensityLang, saveIntensityLang } from 'libs/newDesign';
-import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { IMERSO_PRODUCT, IMERSO_SALES_URL, RENEWAL_URLS } from 'libs/productAccess';
 import { ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewDedasGrid } from './NewDedasGrid';
-import { Dash, HpecSection, Kpis, NowRow, RecentDedas, SummaryError, SuspendedNotice, useTrail } from './NewImersoDash';
+import {
+    Dash,
+    HpecSection,
+    Kpis,
+    NoProgram,
+    NowRow,
+    RecentDedas,
+    SummaryError,
+    SuspendedNotice,
+    useTrail,
+} from './NewImersoDash';
 import { NewPage } from './NewPage';
 import { NewContentLoading } from './NewStatus';
 
@@ -220,7 +230,7 @@ const VIEWS: Partial<Record<MelpStatus, View>> = {
  * saída, e falha do resumo um "Try again".
  */
 export const NewImersoHome: React.FC = () => {
-    const { melpSummary, isMelpSummaryError, retryMelpSummary } = useMelpContext();
+    const { melpSummary, isMelpSummaryError, retryMelpSummary, noMelpProgram } = useMelpContext();
     const { user } = useAppContext();
     const { access } = useProductAccess();
 
@@ -240,13 +250,21 @@ export const NewImersoHome: React.FC = () => {
 
     let body: React.ReactNode;
     if (isMelpSummaryError) body = <SummaryError onRetry={retryMelpSummary} />;
+    // sem programa (PF2-01): em Leitura, só o convite de renovação do topo; senão, a linha calma
+    else if (noMelpProgram) body = readOnly ? null : <NoProgram />;
     else if (!melpSummary) body = <NewContentLoading />;
     else if (melpStatus === 'MELP_SUSPENDED') body = <SuspendedNotice />;
     else if (view)
         body = (
             <>
                 {!readOnly && view.notice}
-                <NowRow withDeda={!!view.deda} trail={trail} error={error} />
+                {/* Leitura: o DEDA de hoje e a aula levam à renovação, não ao bloqueio (PF2-07) */}
+                <NowRow
+                    withDeda={!!view.deda}
+                    trail={trail}
+                    error={error}
+                    renew={readOnly ? (RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL) : undefined}
+                />
                 {view.kpis && (
                     <section aria-label="Your numbers">
                         <Kpis />

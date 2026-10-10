@@ -14,6 +14,8 @@ interface ProviderContext {
     isMelpSummaryLoading: boolean;
     /** o resumo falhou e não há dado anterior: a tela mostra "Try again" em vez de esqueleto eterno */
     isMelpSummaryError?: boolean;
+    /** a conta não tem programa do IMERSO (o resumo respondeu 404): cada tela mostra o estado vazio, sem carregando */
+    noMelpProgram?: boolean;
     retryMelpSummary?: () => void;
     isTodaysDedaCompleted?: boolean;
 }
@@ -29,13 +31,15 @@ export const MelpProvider: React.FC<ProviderProps> = ({ children }) => {
         isError,
         refetch,
     } = useMelpSummary(user?.uid as string);
-    const { data: currentDayDedaActivityStatus } = useCurrentDayDedaActivityStatus(melpSummary, user);
+    const { data: currentDayDedaActivityStatus } = useCurrentDayDedaActivityStatus(melpSummary ?? undefined, user);
 
     const value = useMemo(
         () => ({
             melpSummary: melpSummary as MelpSummaryResponse['data'],
             isMelpSummaryLoading,
-            isMelpSummaryError: isError && !melpSummary,
+            // sem programa (null) é resposta: uma nova leitura que falhar não troca o estado vazio por "Try again"
+            isMelpSummaryError: isError && melpSummary === undefined,
+            noMelpProgram: melpSummary === null,
             retryMelpSummary: () => void refetch(),
             isTodaysDedaCompleted: currentDayDedaActivityStatus?.isDedaCompleted,
         }),

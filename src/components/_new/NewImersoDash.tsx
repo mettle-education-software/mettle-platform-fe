@@ -11,9 +11,10 @@ import { dedaPath, hpecLessonPath } from 'libs/cleanUrls';
 import { contentfulImage } from 'libs/dedaHeader';
 import { hpecTrail, opensLabel } from 'libs/hpecTrail';
 import { vimeoIdOf, vimeoOembedUrl, vumbnailUrl } from 'libs/newDesign';
+import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { ArrowRight, Play } from 'lucide-react';
 import Link from 'next/link';
-import { useAppContext, useMelpContext } from 'providers';
+import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { useMemo, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { DailyGoal } from './DailyGoal';
@@ -406,10 +407,29 @@ export const SuspendedNotice: React.FC = () => (
     </div>
 );
 
+/**
+ * Conta sem programa do IMERSO (o resumo respondeu 404: Leitura que nunca começou, login restaurado): em Leitura, o
+ * convite de renovação; senão, uma linha calma com o Suporte. Nunca carregando (PF2-01).
+ */
+export const NoProgram: React.FC = () => {
+    const readOnly = useProductAccess().access(IMERSO_PRODUCT).state === 'expired';
+    if (readOnly) return <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />;
+    return (
+        <div className="notice" role="status">
+            <div>
+                <b>Your IMERSO program hasn’t started yet</b>
+            </div>
+            <Link className="btn line" href="/suporte" data-access-allow>
+                Contact support
+            </Link>
+        </div>
+    );
+};
+
 /* ---------- Agora ---------- */
 
-/** DEDA de hoje: o atual (último liberado), da mesma consulta da grade de recentes; um clique abre. */
-export const NowDeda: React.FC = () => {
+/** DEDA de hoje: o atual (último liberado), da mesma consulta da grade de recentes; um clique abre (em Leitura, renova). */
+export const NowDeda: React.FC<{ renew?: string }> = ({ renew }) => {
     const { isTodaysDedaCompleted } = useMelpContext();
     const grid = useDedasGrid('lastDedas');
     // o de hoje (libs/dedaClock): no relógio novo, antes de a rotação da semana sair não há "de hoje" — nada aparece
@@ -417,7 +437,11 @@ export const NowDeda: React.FC = () => {
     if (!deda) return grid.showSkeleton ? <Skel /> : null;
     const thumb = contentfulImage(deda.dedaFeaturedImage?.url, { w: 448, h: 252, fit: 'fill', fm: 'webp', q: 70 });
     return (
-        <Link className="cc today" href={dedaPath(deda.dedaSlug)} aria-label={`Today’s DEDA: ${deda.dedaTitle}`}>
+        <Link
+            className="cc today"
+            href={renew ?? dedaPath(deda.dedaSlug)}
+            aria-label={renew ? `Renew to open today’s DEDA: ${deda.dedaTitle}` : `Today’s DEDA: ${deda.dedaTitle}`}
+        >
             <span className="img">
                 {/* eslint-disable-next-line @next/next/no-img-element -- imagem do Contentful */}
                 {thumb && <img src={thumb} alt="" />}
@@ -428,7 +452,7 @@ export const NowDeda: React.FC = () => {
             </span>
             <b>{deda.dedaTitle}</b>
             <span className="act">
-                Open DEDA <ArrowRight {...ICON} size={16} aria-hidden />
+                {renew ? 'Renew' : 'Open DEDA'} <ArrowRight {...ICON} size={16} aria-hidden />
             </span>
         </Link>
     );
@@ -437,7 +461,7 @@ export const NowDeda: React.FC = () => {
 type Trail = ReturnType<typeof hpecTrail>;
 
 /** Aula do HPEC para agora: a primeira liberada não vista; tudo visto = a próxima a liberar (com a data). */
-const NowHpec: React.FC<{ trail?: Trail; error?: boolean }> = ({ trail, error }) => {
+const NowHpec: React.FC<{ trail?: Trail; error?: boolean; renew?: string }> = ({ trail, error, renew }) => {
     if (error) return null;
     if (!trail) return <Skel />;
     const { here, next } = trail;
@@ -445,8 +469,8 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean }> = ({ trail, error })
         return (
             <Link
                 className="cc today"
-                href={`${hpecLessonPath(here.lesson.id)}?play`}
-                aria-label={`Watch HPEC: ${here.lesson.title}`}
+                href={renew ?? `${hpecLessonPath(here.lesson.id)}?play`}
+                aria-label={renew ? `Renew to watch HPEC: ${here.lesson.title}` : `Watch HPEC: ${here.lesson.title}`}
             >
                 <span className="img">
                     <Thumb embedUrl={here.lesson.embedUrl} />
@@ -456,7 +480,15 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean }> = ({ trail, error })
                 </span>
                 <b>{here.lesson.title}</b>
                 <span className="act">
-                    <Play {...ICON} size={13} className="play" aria-hidden /> Watch
+                    {renew ? (
+                        <>
+                            Renew <ArrowRight {...ICON} size={16} aria-hidden />
+                        </>
+                    ) : (
+                        <>
+                            <Play {...ICON} size={13} className="play" aria-hidden /> Watch
+                        </>
+                    )}
                 </span>
             </Link>
         );
@@ -477,7 +509,11 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean }> = ({ trail, error })
     // tudo liberado e visto: rever a partir do começo
     const first = trail.modules[0].lessons[0];
     return (
-        <Link className="cc today" href={hpecLessonPath(first.id)}>
+        <Link
+            className="cc today"
+            href={renew ?? hpecLessonPath(first.id)}
+            aria-label={renew ? `Renew to watch HPEC again: ${first.title}` : `Watch HPEC again: ${first.title}`}
+        >
             <span className="img">
                 <Thumb embedUrl={first.embedUrl} />
             </span>
@@ -487,7 +523,7 @@ const NowHpec: React.FC<{ trail?: Trail; error?: boolean }> = ({ trail, error })
             </span>
             <b>{first.title}</b>
             <span className="act">
-                Watch again <ArrowRight {...ICON} size={16} aria-hidden />
+                {renew ? 'Renew' : 'Watch again'} <ArrowRight {...ICON} size={16} aria-hidden />
             </span>
         </Link>
     );
@@ -499,22 +535,29 @@ export const useTrail = () => {
     const { unlockedModules, lockedModules, loading, error } = useGetHpecsModules();
     // aulas concluídas de verdade (Worker, todos os aparelhos); sem elas, vale só a regra por módulo
     const { done } = useHpecProgress();
-    const ready = !!melpSummary && !loading && !error;
+    // null = conta sem programa: pronto (sem aula liberada), nunca carregando
+    const ready = melpSummary !== undefined && !loading && !error;
     const trail = useMemo(
         () => (ready ? hpecTrail(unlockedModules, lockedModules, new Set(Object.keys(done))) : undefined),
         [ready, unlockedModules, lockedModules, done],
     );
     return {
         trail,
-        loading: !error && (loading || !melpSummary),
+        loading: !error && (loading || melpSummary === undefined),
         error: !!error,
     };
 };
 
-export const NowRow: React.FC<{ withDeda: boolean; trail?: Trail; error?: boolean }> = ({ withDeda, trail, error }) => (
+/** "Agora": o DEDA de hoje e a aula do HPEC; em Leitura (`renew`), as duas levam à renovação (PF2-07). */
+export const NowRow: React.FC<{ withDeda: boolean; trail?: Trail; error?: boolean; renew?: string }> = ({
+    withDeda,
+    trail,
+    error,
+    renew,
+}) => (
     <section aria-label="Now" className="now">
-        {withDeda && <NowDeda />}
-        <NowHpec trail={trail} error={error} />
+        {withDeda && <NowDeda renew={renew} />}
+        <NowHpec trail={trail} error={error} renew={renew} />
     </section>
 );
 

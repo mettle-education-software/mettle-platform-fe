@@ -103,13 +103,15 @@ export const openWriteDay = (requested: number | null | undefined, today: number
 /**
  * A mesma regra de DedaReview/ReaderReview ("No reviews available at this stage"): as revisões começam na semana 4 da
  * LAMP (o servidor só cria review1 a partir dela). A semana do DEDA vem de `dedaLampWeek` (relógio novo: a exibição mais
- * recente com semana na LAMP; legado: a posição em unlocked_dedas). `undefined` = resumo ainda não chegou (sem piscar).
+ * recente com semana na LAMP; legado: a posição em unlocked_dedas). `undefined` = resumo ainda não chegou (sem piscar);
+ * `null` = conta sem programa: sem revisões.
  */
 export const REVIEW_FROM_WEEK = 4;
 export const hasReviews = (
     summary: MelpSummaryResponse['data'] | null | undefined,
     dedaId: string,
-): boolean | undefined => (summary ? (dedaLampWeek(summary, dedaId) ?? 0) >= REVIEW_FROM_WEEK : undefined);
+): boolean | undefined =>
+    summary === null ? false : summary ? (dedaLampWeek(summary, dedaId) ?? 0) >= REVIEW_FROM_WEEK : undefined;
 
 // ---------- tamanho do texto de leitura ("Aa" na barra do topo): preferência por aparelho ----------
 

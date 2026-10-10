@@ -8,6 +8,35 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React from 'react';
 
+/** Botões de filtro do Admin (Contas e o período do Início). */
+export const chipStyles = css`
+    .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .chips button {
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid var(--r-line);
+        border-radius: 999px;
+        background: none;
+        color: var(--r-muted);
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+    }
+    .chips button[aria-pressed='true'] {
+        border-color: var(--r-gold);
+        background: var(--r-gold-tint);
+        color: var(--r-text);
+    }
+    .chips button:disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+`;
+
 const styles = css`
     .admin-nav {
         display: flex;

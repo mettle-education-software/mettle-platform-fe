@@ -21,7 +21,7 @@ import { ChevronDown, ChevronUp, ChevronsUpDown, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { ICON, UI_FONT_CLASS, UI_FONT_VAR } from 'themes/newDesign';
-import { AdminNav } from './AdminNav';
+import { AdminNav, chipStyles } from './AdminNav';
 import { StudentDetail } from './NewAdminStudent';
 import { TrashList } from './NewAdminTrash';
 import { NewPage } from './NewPage';
@@ -44,31 +44,6 @@ const styles = css`
     .ct .search {
         flex: 1 1 260px;
         max-width: 340px;
-    }
-    .ct .chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-    }
-    .ct .chips button {
-        min-height: 36px;
-        padding: 0 12px;
-        border: 1px solid var(--r-line);
-        border-radius: 999px;
-        background: none;
-        color: var(--r-muted);
-        font: inherit;
-        font-size: 13px;
-        cursor: pointer;
-    }
-    .ct .chips button[aria-pressed='true'] {
-        border-color: var(--r-gold);
-        background: var(--r-gold-tint);
-        color: var(--r-text);
-    }
-    .ct .chips button:disabled {
-        opacity: 0.45;
-        cursor: default;
     }
     .ct .scroll {
         width: 100%;
@@ -178,8 +153,13 @@ const styles = css`
         gap: 8px;
     }
     .ui-new-page.drawer {
-        padding: 4px 0 32px;
+        padding: 4px 24px 32px;
         max-width: none;
+    }
+    @media (max-width: 860px) {
+        .ui-new-page.drawer {
+            padding: 4px 16px 32px;
+        }
     }
 `;
 
@@ -254,7 +234,7 @@ export const NewAdminContas: React.FC = () => {
 
     return (
         <NewPage className="xwide ct">
-            <Global styles={styles} />
+            <Global styles={[styles, chipStyles]} />
             <AdminNav />
             <div className="tools">
                 <Input

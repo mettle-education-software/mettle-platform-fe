@@ -336,14 +336,19 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
                         />
                     )}
                     {kind === 'none' && <span className="hint">Sem prazo</span>}
-                    <button
-                        type="button"
-                        className="btn gold"
-                        disabled={!dirty || !body || save.isPending}
-                        onClick={() => body && !busy && save.mutate(body, { onSuccess: () => setSaves((n) => n + 1) })}
-                    >
-                        {save.isPending ? 'Salvando…' : 'Salvar'}
-                    </button>
+                    {/* Salvar só aparece com algo a gravar (menos é mais) */}
+                    {(dirty || save.isPending) && (
+                        <button
+                            type="button"
+                            className="btn gold"
+                            disabled={!body || save.isPending}
+                            onClick={() =>
+                                body && !busy && save.mutate(body, { onSuccess: () => setSaves((n) => n + 1) })
+                            }
+                        >
+                            {save.isPending ? 'Salvando…' : 'Salvar'}
+                        </button>
+                    )}
                 </div>
                 {problem && <p className="msg">{problem}</p>}
                 {save.isError && (

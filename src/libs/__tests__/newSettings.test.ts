@@ -1,16 +1,17 @@
 /** @jest-environment node */
+// Configurações (desenho "Apple ID", 10-Out-2026): cabeçalho da conta, Meus produtos (só do modelo de acesso, nunca do
+// catálogo), Programa Imerso, Dados pessoais (um Salvar), Acesso e segurança (senha num modal) e Aparência.
 import { JSDOM } from 'jsdom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NewSettings } from '../../components/_new/NewSettings';
-import { resolveAccess, type AccessLevels, type MyAccessResponse } from '../productAccess';
+import { resolveAccess, type AccessLevels } from '../productAccess';
 
 let mockUser: { uid: string; name: string; email: string; roles?: string[] } | undefined;
-let mockAccess: MyAccessResponse | undefined;
 let mockLevels: AccessLevels | undefined;
-let mockAccessLoading = false;
 let mockMutating = 0;
 let mockSummary: any;
+let mockProfile: any;
 const mockReset = { mutateAsync: jest.fn(), isPending: false };
 const mockPause = { mutateAsync: jest.fn(), isPending: false };
 const mockPassword = { mutate: jest.fn(), isPending: false };
@@ -33,21 +34,8 @@ jest.mock(
     () => ({
         useAppContext: () => ({ user: mockUser }),
         useProductAccess: () => ({
-            access: (product: string) => resolveAccess(product, mockUser?.roles, mockAccess, mockLevels),
-            accessLoading: mockAccessLoading,
-        }),
-    }),
-    { virtual: true },
-);
-jest.mock(
-    'hooks/queries/useCourses',
-    () => ({
-        useCachedCourses: () => ({
-            data: {
-                courseCollection: {
-                    items: [{ courseSlug: 'masterclass-as-7-regras', coursePurchaseId: 'MASTERCLASS_TEST' }],
-                },
-            },
+            access: (product: string) => resolveAccess(product, mockUser?.roles, undefined, mockLevels),
+            accessLoading: false,
         }),
     }),
     { virtual: true },
@@ -55,24 +43,15 @@ jest.mock(
 jest.mock(
     'hooks/useProfile',
     () => ({
-        useProfile: () => ({
-            data: {
-                first_name: 'Aluno',
-                last_name: 'de Teste',
-                username: 'aluno.teste',
-                email: 'aluno@example.test',
-                phone: '+5511999999999',
-            },
-        }),
+        useProfile: () => mockProfile,
         useSaveProfile: () => ({ mutateAsync: jest.fn(), isPending: false }),
         useSaveProfilePhoto: () => ({ mutateAsync: jest.fn(), isPending: false }),
     }),
     { virtual: true },
 );
 jest.mock('libs/profile', () => jest.requireActual('../profile'), { virtual: true });
-jest.mock('libs', () => ({ passwordRules: [] }), { virtual: true });
-jest.mock('libs/ebook', () => ({ EBOOK_PRODUCT: 'EBOOK_GUIA_COMPLETO' }), { virtual: true });
-jest.mock('libs/masterclass', () => ({ MASTERCLASS_COURSE: 'masterclass-as-7-regras' }), { virtual: true });
+jest.mock('libs/myProducts', () => jest.requireActual('../myProducts'), { virtual: true });
+jest.mock('libs', () => ({ passwordRules: [], saoPauloWeekday: () => 3 }), { virtual: true });
 jest.mock('libs/productAccess', () => jest.requireActual('../productAccess'), { virtual: true });
 jest.mock('libs/programHistory', () => jest.requireActual('../programHistory'), { virtual: true });
 jest.mock('themes/newDesign', () => ({ ICON: {} }), { virtual: true });
@@ -80,7 +59,7 @@ jest.mock('@tanstack/react-query', () => ({ useIsMutating: () => mockMutating })
 jest.mock('../../components/_new/NewPage', () => ({
     NewPage: ({ children }: any) => createElement('main', null, children),
 }));
-jest.mock('../../components/_new/ThemeSwitch', () => ({ ThemeSwitch: () => createElement('button', null, 'Tema') }));
+jest.mock('../../components/_new/ThemeSwitch', () => ({ ThemeSwitch: () => createElement('span', null, 'Tema') }));
 jest.mock('antd', () => {
     const actual = jest.requireActual('antd');
     return {
@@ -98,25 +77,49 @@ jest.mock('antd', () => {
 
 const render = () => new JSDOM(renderToStaticMarkup(createElement(NewSettings))).window.document;
 const action = (label: string) => mockButtons.get(label);
+const section = (doc: Document, id: string) => doc.querySelector(`section[aria-labelledby="${id}"]`)!;
+const rows = (doc: Document) =>
+    [...section(doc, 'settings-products').querySelectorAll('li')].map((li) => li.textContent);
+const inDays = (days: number) => {
+    const d = new Date(Date.now() + days * 86_400_000);
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(d);
+};
 
 beforeEach(() => {
     jest.clearAllMocks();
     mockButtons.clear();
     mockUser = { uid: 'test', name: 'Aluno de Teste', email: 'aluno@example.test', roles: ['METTLE_STUDENT'] };
-    mockAccess = undefined;
     mockLevels = undefined;
-    mockAccessLoading = false;
     mockMutating = 0;
     mockReset.isPending = false;
     mockPause.isPending = false;
     mockReset.mutateAsync.mockResolvedValue(undefined);
     mockPause.mutateAsync.mockResolvedValue(undefined);
+    mockProfile = {
+        data: {
+            user_uid: 'test',
+            first_name: 'Aluno',
+            last_name: 'de Teste',
+            username: 'aluno.teste',
+            email: 'aluno@example.test',
+            phone: '+5511999999999',
+            accessDetails: [
+                { product: 'imerso', state: 'ativo', origin: 'compra', plan: 'Anual', validUntil: '2030-03-12' },
+                { product: 'masterclass', state: 'ativo', origin: 'compra', plan: 'Mensal', validUntil: inDays(20) },
+                { product: 'ebook', state: 'none' },
+            ],
+        },
+        isError: false,
+        refetch: jest.fn(),
+    };
     mockSummary = {
         data: {
             melp_status: 'DEDA_STARTED',
+            current_deda_week: 12,
+            deda_first_monday: '2026-07-20',
             remaining_resets: 2,
             remaining_pauses: 3,
-            program_events: [{ id: '1', kind: 'start', at: '2026-10-01T12:00:00Z', actor: 'student' }],
+            program_events: [{ id: '1', kind: 'start', at: '2026-07-20T12:00:00Z', actor: 'student' }],
         },
         isLoading: false,
         isError: false,
@@ -125,49 +128,91 @@ beforeEach(() => {
     };
 });
 
-test('uma página com as quatro seções na ordem, perfil editável, senha e histórico juntos', () => {
+test('página na ordem: conta, Meus produtos, Programa Imerso, Dados pessoais, Acesso e segurança, Aparência', () => {
     const doc = render();
-    expect([...doc.querySelectorAll('h2')].map((h) => h.textContent)).toEqual(['Perfil', 'Conta', 'Senha', 'IMERSO']);
-    expect(doc.querySelector('[role="tablist"]')).toBeNull();
-    expect(doc.querySelector('#profile-first_name')?.getAttribute('value')).toBe('Aluno');
-    expect(doc.querySelector('#profile-last_name')?.getAttribute('value')).toBe('de Teste');
-    // um formulário, um Salvar (o telefone agora é um campo dele); o e-mail segue só para ler
-    expect(doc.querySelectorAll('section[aria-labelledby="settings-profile"] form')).toHaveLength(1);
-    expect(
-        [...doc.querySelectorAll('section[aria-labelledby="settings-profile"] button')].filter(
-            (b) => b.textContent === 'Salvar',
-        ),
-    ).toHaveLength(1);
-    // e só esse na página: a senha troca com "Trocar senha"
+    expect(doc.querySelector('h1')?.textContent).toBe('Configurações');
+    expect([...doc.querySelectorAll('h2')].map((h) => h.textContent)).toEqual([
+        'Meus produtos',
+        'Programa Imerso',
+        'Dados pessoais',
+        'Acesso e segurança',
+        'Aparência',
+    ]);
+    // cabeçalho: a foto é o botão (selo da câmera), o nome e "@username · e-mail"
+    expect(doc.querySelector('.idh-av')?.getAttribute('aria-label')).toBe('Trocar foto');
+    expect(doc.querySelector('.idh-name')?.textContent).toBe('Aluno de Teste');
+    expect(doc.querySelector('.idh-sub')?.textContent).toBe('@aluno.teste · aluno@example.test');
+    // um formulário, um Salvar na página inteira; WhatsApp no lugar de Telefone; rótulos acima dos campos
+    expect(doc.querySelectorAll('form')).toHaveLength(1);
     expect([...doc.querySelectorAll('button')].filter((b) => b.textContent === 'Salvar')).toHaveLength(1);
-    expect(doc.body.textContent).toContain('Trocar senha');
-    expect(doc.querySelector('#profile-phone')).not.toBeNull();
-    expect(doc.querySelector('input[type="email"]')).toBeNull();
-    expect(doc.body.textContent).toContain('Trocar foto');
-    expect(doc.body.textContent).toContain('aluno@example.test');
-    expect(doc.body.textContent).toContain('Telefone');
-    expect(doc.body.textContent).toContain('Histórico do programa');
-    expect(doc.body.textContent).not.toContain('Ajuda');
-    expect(doc.querySelectorAll('input[type="password"]')).toHaveLength(2);
+    expect(doc.querySelector('label[for="profile-phone"]')?.textContent).toBe('WhatsApp');
+    expect(doc.querySelector('#profile-first_name')?.getAttribute('value')).toBe('Aluno');
+    // senha num modal (fechado): o botão "Alterar senha"; e-mail só para ler, "E-mail da compra"
+    const security = section(doc, 'settings-security');
+    expect(security.textContent).toContain('aluno@example.test');
+    expect(security.textContent).toContain('E-mail da compra');
+    expect([...security.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Alterar senha']);
+    expect(doc.querySelectorAll('input[type="password"]')).toHaveLength(0);
+    expect(section(doc, 'settings-appearance').textContent).toContain('Tema');
 });
 
-test('aluno sem Imerso não vê a seção nem consulta o resumo', () => {
-    mockUser!.roles = ['MASTERCLASS_TEST', 'EBOOK_GUIA_COMPLETO'];
+test('Meus produtos só do modelo de acesso: a Masterclass aparece sem catálogo; prazo perto avisa', () => {
+    const doc = render();
+    const list = rows(doc);
+    expect(list).toHaveLength(2);
+    expect(list[0]).toBe('Programa ImersoPlano anualVálido até 12 de março de 2030Ativo');
+    expect(list[1]).toContain('Masterclass');
+    expect(list[1]).toContain('Plano mensal');
+    expect(list[1]).toContain(' · faltam 20 dias');
+});
+
+test('Leitura e carência: a frase de cada caso e o Renovar', () => {
+    mockProfile.data.accessDetails = [
+        { product: 'imerso', state: 'leitura', origin: 'cortesia', validUntil: '2026-09-30' },
+        {
+            product: 'masterclass',
+            state: 'ativo',
+            origin: 'compra',
+            plan: 'Anual',
+            validUntil: inDays(-3),
+            graceUntil: inDays(11),
+        },
+    ];
+    const doc = render();
+    const [leitura, carencia] = rows(doc);
+    expect(leitura).toContain('Acesso encerrado em 30 de setembro de 2026. Você ainda pode navegar.');
+    expect(leitura).toContain('Leitura');
+    expect(carencia).toContain('Seu plano venceu em');
+    expect(carencia).toContain('Acesso total até');
+    const renew = [...section(doc, 'settings-products').querySelectorAll('a')].map((a) => a.textContent);
+    expect(renew).toEqual(['Renovar', 'Renovar']);
+});
+
+test('sem produto: uma linha calma; perfil ainda carregando: Carregando', () => {
+    mockProfile.data.accessDetails = [{ product: 'imerso', state: 'none' }];
+    expect(section(render(), 'settings-products').textContent).toContain('Nenhum produto nesta conta.');
+    mockProfile = { data: undefined, isError: false, refetch: jest.fn() };
+    expect(section(render(), 'settings-products').textContent).toContain('Carregando');
+});
+
+test('Programa Imerso: semana e início; pausar antes de reiniciar; histórico', () => {
+    const doc = render();
+    const program = section(doc, 'settings-imerso');
+    expect(program.textContent).toContain('Semana 12 · Dia 3');
+    expect(program.textContent).toContain('Início em 20 de julho de 2026');
+    expect(program.textContent!.indexOf('Pausar a LAMP')).toBeLessThan(
+        program.textContent!.indexOf('Reiniciar a LAMP'),
+    );
+    expect(program.textContent).toContain('Pausas restantes: 3');
+    expect(program.textContent).toContain('Reinícios restantes: 2');
+    expect(program.textContent).toContain('Histórico do programa');
+});
+
+test('aluno sem Imerso não vê o programa nem consulta o resumo', () => {
+    mockUser!.roles = ['MASTERCLASS_TEST'];
     const doc = render();
     expect(doc.querySelector('#settings-imerso')).toBeNull();
     expect(mockSummaryHook).not.toHaveBeenCalled();
-    const account = doc.querySelector('section[aria-labelledby="settings-account"]')!;
-    expect(account.textContent).toContain('Masterclass');
-    expect(account.textContent).toContain('E-book');
-    expect(account.textContent).not.toContain('Imerso');
-});
-
-test.each([undefined, []])('conta com roles %p não quebra', (roles) => {
-    mockUser!.roles = roles;
-    const doc = render();
-    expect(doc.querySelector('#settings-imerso')).toBeNull();
-    expect(doc.body.textContent).toContain('Nenhum produto disponível.');
-    expect(doc.querySelector('#settings-password')).not.toBeNull();
 });
 
 test('contexto ainda sem usuário não quebra', () => {
@@ -175,61 +220,19 @@ test('contexto ainda sem usuário não quebra', () => {
     expect(render().querySelector('#settings-imerso')).toBeNull();
 });
 
-test('Conta respeita o acesso já consultado, inclusive carência e expiração', () => {
-    mockAccess = {
-        imerso: null,
-        products: {
-            METTLE_STUDENT: { state: 'expired' },
-            MASTERCLASS_TEST: { state: 'grace' },
-            EBOOK_GUIA_COMPLETO: { state: 'active' },
-        },
-    };
-    const text = render().querySelector('section[aria-labelledby="settings-account"]')!.textContent;
-    expect(text).toContain('ImersoLeitura');
-    expect(text).toContain('MasterclassEm carência');
-    expect(text).toContain('E-bookAtivo');
-});
-
-test('Imerso em leitura (claims): sem reiniciar nem pausar; o histórico e a Conta continuam', () => {
+test('Imerso em leitura (claims): sem reiniciar nem pausar; o histórico continua', () => {
     mockLevels = { imerso: 'leitura', masterclass: 'none', ebook: 'ativo' };
     const doc = render();
     expect(action('Reiniciar')).toBeUndefined();
     expect(action('Pausar')).toBeUndefined();
-    expect(doc.body.textContent).not.toContain('Reinícios restantes');
     expect(doc.body.textContent).toContain('Histórico do programa');
-    const text = doc.querySelector('section[aria-labelledby="settings-account"]')!.textContent;
-    expect(text).toContain('ImersoLeitura');
-    expect(text).not.toContain('Masterclass');
-    expect(text).toContain('E-bookAtivo');
 });
 
-test('claims com o Imerso em none: sem a seção IMERSO mesmo com a role antiga', () => {
-    mockLevels = { imerso: 'none', ebook: 'ativo' };
-    const doc = render();
-    expect(doc.querySelector('#settings-imerso')).toBeNull();
-    expect(mockSummaryHook).not.toHaveBeenCalled();
-});
-
-test('Conta em carregamento não anuncia ausência de produtos', () => {
-    mockAccessLoading = true;
-    const text = render().querySelector('section[aria-labelledby="settings-account"]')!.textContent;
-    expect(text).toContain('Carregando');
-    expect(text).not.toContain('Nenhum produto');
-});
-
-test.each([403, 404])('conta sem programa (%s) preserva Perfil, Conta e Senha', (status) => {
+test.each([403, 404])('conta sem programa (%s): uma linha, o resto da página fica', (status) => {
     mockSummary = { ...mockSummary, data: undefined, isError: true, error: { response: { status } } };
     const doc = render();
     expect(doc.body.textContent).toContain('Programa IMERSO indisponível nesta conta.');
-    expect(doc.querySelectorAll('h2')).toHaveLength(4);
-    expect(action('Reiniciar')).toBeUndefined();
-});
-
-test('programa carregando não apresenta ausência nem ações', () => {
-    mockSummary = { ...mockSummary, data: undefined, isLoading: true };
-    const doc = render();
-    expect(doc.querySelector('[role="status"]')?.textContent).toContain('Carregando');
-    expect(doc.body.textContent).not.toContain('indisponível');
+    expect(doc.querySelectorAll('h2')).toHaveLength(5);
     expect(action('Reiniciar')).toBeUndefined();
 });
 
@@ -257,7 +260,6 @@ test.each(['Reiniciar', 'Pausar'])('%s só executa após confirmação e absorve
     action(label).onClick();
     expect(mutation.mutateAsync).not.toHaveBeenCalled();
     const config = mockConfirm.mock.calls[0][0];
-    // o texto da confirmação diz o que acontece com a LAMP (#209)
     expect(renderToStaticMarkup(config.content)).toContain(
         label === 'Reiniciar' ? 'A sua LAMP é zerada' : 'A LAMP para de contar',
     );

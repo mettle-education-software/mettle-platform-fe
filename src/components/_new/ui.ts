@@ -715,72 +715,19 @@ export const Page = styled.div`
         min-height: 32px;
         margin-bottom: 8px;
     }
-    .profile-photo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    /* um formulário, um Salvar: logo depois do último campo, na coluna dos campos */
-    .profile-form .row {
-        align-items: start;
-    }
-    @media (min-width: 861px) {
-        .profile-form .row > label {
-            padding-top: 10px;
-        }
-    }
-    .profile-actions {
-        border-bottom: 0;
-    }
-    @media (max-width: 860px) {
-        .profile-actions > .lab {
-            display: none;
-        }
-    }
-    .profile-actions .field {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 8px 16px;
-    }
     .profile-hint {
         margin: 6px 0 0;
         font-size: 12.5px;
         color: var(--r-faint);
-    }
-    .profile-avatar {
-        display: grid;
-        place-items: center;
-        width: 64px;
-        height: 64px;
-        overflow: hidden;
-        border-radius: 50%;
-        background: var(--r-hover);
-        font-size: 24px;
-    }
-    .profile-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
     }
     .profile-error {
         color: var(--r-error);
         font-size: 13px;
         margin: 6px 0 0;
     }
-    .profile-actions .profile-error {
-        margin: 0;
-    }
     .profile-saved {
         color: var(--r-muted);
         font-size: 13px;
-    }
-    .settings-data,
-    .settings-data dd {
-        margin: 0;
-    }
-    .settings-data .field {
-        overflow-wrap: anywhere;
     }
     .panel h2 {
         font-size: 20px;
@@ -840,7 +787,7 @@ export const Page = styled.div`
         justify-content: flex-end;
         padding: 20px 0 0;
     }
-    /* Histórico do programa (Configurações → IMERSO): título + a mesma lista de linhas */
+    /* Histórico do programa (conta no Painel de Contas): título + a mesma lista de linhas */
     .history {
         margin-top: 36px;
     }

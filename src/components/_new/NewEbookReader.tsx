@@ -45,6 +45,7 @@ import localFont from 'next/font/local';
 import Link from 'next/link';
 import { useAppContext, useProductAccess } from 'providers';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { fontStack } from 'themes/fontStack';
 import { ICON } from 'themes/newDesign';
 import { NewPage } from './NewPage';
 
@@ -66,8 +67,7 @@ type Op = Record<string, unknown> & { op: string; id: string };
 /** No sumário, "Sobre o autor" (o título do capítulo é o nome do André). */
 const tocTitle = (c: { slug: string; eyebrow: string; title: string }) => (c.slug === 'autor' ? c.eyebrow : c.title);
 
-/** Serifa de livro (padrão) para o texto; a interface continua em Manrope. Literata, do repositório (src/fonts). */
-const bookSerif = localFont({
+const literata = localFont({
     src: [
         { path: '../../fonts/literata-latin.woff2', weight: '400', style: 'normal' },
         { path: '../../fonts/literata-latin.woff2', weight: '600', style: 'normal' },
@@ -75,8 +75,37 @@ const bookSerif = localFont({
         { path: '../../fonts/literata-latin-italic.woff2', weight: '600', style: 'italic' },
     ],
     display: 'swap',
-    adjustFontFallback: 'Times New Roman',
+    adjustFontFallback: false,
+    variable: '--font-literata',
+    declarations: [
+        {
+            prop: 'unicode-range',
+            value: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
+        },
+    ],
 });
+
+const literataExt = localFont({
+    src: [
+        { path: '../../fonts/literata-latin-ext.woff2', weight: '400', style: 'normal' },
+        { path: '../../fonts/literata-latin-ext.woff2', weight: '600', style: 'normal' },
+        { path: '../../fonts/literata-latin-ext-italic.woff2', weight: '400', style: 'italic' },
+        { path: '../../fonts/literata-latin-ext-italic.woff2', weight: '600', style: 'italic' },
+    ],
+    display: 'swap',
+    preload: false,
+    adjustFontFallback: false,
+    variable: '--font-literata-ext',
+    declarations: [
+        {
+            prop: 'unicode-range',
+            value: 'U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF',
+        },
+    ],
+});
+
+/** Serifa de livro (padrão) para o texto; a interface continua em Manrope. Literata, do repositório (ver themes/font.ts). */
+const bookSerif = fontStack(literata, literataExt, 'font-literata', 'Literata Fallback');
 
 const FONT_KEY = 'ebookFont';
 const THEME_KEY = 'ebookTheme'; // sepia | night (claro e escuro seguem o tema da Plataforma)

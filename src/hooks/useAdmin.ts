@@ -1,7 +1,15 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
 import { QueryParams } from 'interfaces';
-import type { AccessBody, AccessEvent, AccessRow, Product, StudentUser, TrashEntry } from 'libs/adminAccess';
+import type {
+    AccessBody,
+    AccessEvent,
+    AccessRow,
+    Product,
+    StudentPurchase,
+    StudentUser,
+    TrashEntry,
+} from 'libs/adminAccess';
 import { type Range, readDashboard } from 'libs/adminDashboard';
 import { ADMIN_HISTORY_URL, type HistorySnapshot } from 'libs/adminHistory';
 import {
@@ -10,10 +18,11 @@ import {
     type AccountsPage,
     type AccountsQuery,
     accountsParams,
-    snapshotPage,
+    readSummary,
 } from 'libs/adminPanel';
 import { EBOOK_BUYERS_URL } from 'libs/adminSegments';
 import { isLeituraOwner } from 'libs/leitura';
+import { type Profile, profilePatch, type ProfileValues } from 'libs/profile';
 import { useAppContext } from 'providers';
 import { accountService, adminService } from 'services';
 
@@ -92,17 +101,56 @@ export const useAdminHistory = (enabled = true) => {
 
 // ---------- Acesso por produto de um aluno (accounts-service, só admin) ----------
 
-/** Linhas dos três produtos e quem é o aluno. 404 até o servidor publicar as rotas: a tela fica calma. */
+/** A conta no painel: linhas de acesso, quem é, as compras e o LTV, e o perfil (para editar em Dados). */
 export const useStudentAccess = (uid: string) =>
     useQuery({
         queryKey: ['admin-access', uid],
         queryFn: () =>
             accountService
-                .get<{ data: AccessRow[]; user?: StudentUser }>(`/${encodeURIComponent(uid)}/access`)
+                .get<{
+                    data: AccessRow[];
+                    user?: StudentUser;
+                    purchases?: StudentPurchase[];
+                    ltv?: { total?: number | null; compras?: number | null };
+                    profile?: Partial<Profile> | null;
+                }>(`/${encodeURIComponent(uid)}/access`)
                 .then(({ data }) => data),
         retry: false,
         staleTime: 30_000,
     });
+
+/** Dados do aluno editados pelo administrador: o mesmo PATCH (só o que mudou) e a mesma validação das Configurações. */
+export const useSaveStudentProfile = (uid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (changes: Partial<ProfileValues>) => {
+            const body = profilePatch(changes);
+            const { data } = await accountService.patch<typeof body, { data: Profile }>(
+                `/${encodeURIComponent(uid)}/profile-data`,
+                body,
+            );
+            const back = (data?.data ?? {}) as Partial<Profile>;
+            const saved = Object.fromEntries(
+                Object.entries(body).map(([field, value]) => [
+                    field,
+                    field in back ? back[field as keyof Profile] : value,
+                ]),
+            ) as Partial<Profile>;
+            if (saved.birth_date) saved.birth_date = saved.birth_date.slice(0, 10);
+            return { saved };
+        },
+        // o perfil da conta já com o que ficou salvo (o Salvar não volta a acender enquanto relê)
+        onSuccess: ({ saved }) =>
+            queryClient.setQueryData<{ profile?: Partial<Profile> | null }>(['admin-access', uid], (previous) =>
+                previous ? { ...previous, profile: { ...previous.profile, ...saved } } : previous,
+            ),
+        // sem esperar: o "Salvo" vem do PATCH (a lista é uma varredura inteira no servidor)
+        onSettled: () => {
+            void queryClient.invalidateQueries({ queryKey: ['admin-access', uid] });
+            void queryClient.invalidateQueries({ queryKey: ['admin-accounts'] });
+        },
+    });
+};
 
 export const useStudentAccessEvents = (uid: string) =>
     useQuery({
@@ -126,11 +174,15 @@ export const useSaveStudentAccess = (uid: string, product: Product) => {
                     { data: AccessRow & { claimsSynced?: boolean } }
                 >(`/${encodeURIComponent(uid)}/access/${product}`, body)
                 .then(({ data }) => data.data),
-        onSettled: () =>
-            Promise.all([
+        onSettled: () => {
+            // a lista do Contas e o Início (selos, resumo) relêem sem segurar o "Salvo"
+            void queryClient.invalidateQueries({ queryKey: ['admin-accounts'] });
+            void queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+            return Promise.all([
                 queryClient.invalidateQueries({ queryKey: ['admin-access', uid] }),
                 queryClient.invalidateQueries({ queryKey: ['admin-access-events', uid] }),
-            ]),
+            ]);
+        },
     });
 };
 
@@ -179,42 +231,41 @@ export const useRestoreAccount = () => {
 
 // ---------- Painel de Contas ----------
 
-/**
- * A lista do painel: GET /admin/accounts (filtros, ordem e página no servidor). Enquanto o servidor não publica a rota
- * (404 no gateway), o retrato noturno do histórico (só o dono), no mesmo formato.
- */
+/** A lista do painel: GET /admin/accounts (filtros, ordem, página e o resumo de auditoria no servidor). */
 export const useAdminAccounts = (query: AccountsQuery, enabled = true) => {
     const params = accountsParams(query);
-    const live = useQuery({
+    return useQuery({
         queryKey: ['admin-accounts', params],
         queryFn: () =>
             adminService
-                .get<{ data?: unknown[]; total?: number }>('/accounts', { params })
+                .get<{ data?: unknown[]; total?: number; summary?: unknown }>('/accounts', { params })
                 .then(({ data }): AccountsPage => {
                     const rows = (data.data ?? []).map(accountRow).filter((row): row is AccountRow => !!row);
-                    return { rows, total: typeof data.total === 'number' ? data.total : rows.length, snapshot: false };
+                    return {
+                        rows,
+                        total: typeof data.total === 'number' ? data.total : rows.length,
+                        summary: readSummary(data.summary),
+                    };
                 }),
         enabled,
         retry: false,
         staleTime: 30_000,
         placeholderData: keepPreviousData,
     });
-    const missing = (live.error as { response?: { status?: number } } | null)?.response?.status === 404;
-    // o retrato (todos os alunos) só desce quando a rota nova falta
-    const snapshot = useAdminHistory(enabled && missing);
-    if (missing && snapshot.data)
-        return {
-            data: snapshotPage(snapshot.data.students, query),
-            isLoading: false,
-            isError: false,
-            refetch: live.refetch,
-        };
-    return {
-        data: live.data,
-        isLoading: live.isLoading || (missing && snapshot.isLoading),
-        isError: live.isError && !(missing && snapshot.isLoading),
-        refetch: live.refetch,
-    };
+};
+
+/** CSV do filtro atual (só o dono): todas as páginas, de 200 em 200 (o máximo do servidor), sem repetir conta. */
+export const fetchAllAccounts = async (query: AccountsQuery, maxPages = 100) => {
+    const rows = new Map<string, AccountRow>();
+    for (let page = 1; page <= maxPages; page++) {
+        const params = accountsParams({ ...query, page, pageSize: 200 });
+        const { data } = await adminService.get<{ data?: unknown[]; total?: number }>('/accounts', { params });
+        const raw = data.data ?? [];
+        for (const row of raw.map(accountRow)) if (row) rows.set(row.uid, row);
+        if (raw.length < 200 || (typeof data.total === 'number' && page * 200 >= data.total)) return [...rows.values()];
+    }
+    // ponytail: 100 páginas = 20 mil contas; a base tem centenas. Passou disso, falha em vez de cortar calado.
+    throw new Error('Lista grande demais para exportar.');
 };
 
 /** Entra como o aluno (modo visualização) e abre o Início dele. */

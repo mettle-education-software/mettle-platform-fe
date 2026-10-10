@@ -87,6 +87,7 @@ jest.mock('libs/adminAccess', () => jest.requireActual('../adminAccess'), { virt
 jest.mock('libs/adminHistory', () => jest.requireActual('../adminHistory'), { virtual: true });
 jest.mock('libs/adminPanel', () => jest.requireActual('../adminPanel'), { virtual: true });
 jest.mock('../../components/layouts/AdminActions/MercyMode', () => ({ MERCY_MODE_UIDS: [], MercyMode: () => null }));
+jest.mock('../../components/_new/ProfileSettings', () => ({ ProfileForm: () => null }));
 jest.mock('libs/leitura', () => ({ isLeituraOwner: () => false }), { virtual: true });
 jest.mock(
     'config/firebase',

@@ -559,9 +559,8 @@ export const NewAdminDashboard: React.FC = () => {
                                 Vencem em 30 dias
                                 {d && duePeopleCount(d) !== null && ` · ${duePeopleCount(d)}`}
                             </h3>
-                            <Link href={contasPath({ product: 'imerso', state: 'ativo', sort: 'expiry' })}>
-                                ver todos
-                            </Link>
+                            {/* a mesma situação do painel, em todas as contas (como o servidor conta) */}
+                            <Link href={contasPath({ situacao: 'vence30', todas: true })}>ver todos</Link>
                         </div>
                         {d?.vencendo.length ? (
                             <ol className="rows">
@@ -599,7 +598,9 @@ export const NewAdminDashboard: React.FC = () => {
                                 Sem acessar há 14+ dias
                                 {d && d.semAcessoTotal !== null && ` · ${count(d.semAcessoTotal)}`}
                             </h3>
-                            <Link href={contasPath({ sort: 'lastAccess' })}>ver todos</Link>
+                            <Link href={contasPath({ situacao: 'semAcesso14', todas: true, sort: 'lastAccess' })}>
+                                ver todos
+                            </Link>
                         </div>
                         {d?.semAcesso.length ? (
                             <ol className="rows">

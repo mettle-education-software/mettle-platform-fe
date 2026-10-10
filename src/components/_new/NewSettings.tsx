@@ -234,34 +234,9 @@ const styles = css`
         color: var(--r-muted);
         font-variant-numeric: tabular-nums;
     }
-    /* Dados pessoais: rótulos acima dos campos; duas colunas no computador, uma no celular */
+    /* Dados pessoais (o formulário traz a grade): o respiro do card */
     .settings .pf {
         padding: 18px;
-    }
-    .settings .pf-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px 18px;
-    }
-    .settings .pf-field {
-        min-width: 0;
-    }
-    .settings .pf-field label {
-        display: block;
-        margin: 0 0 6px 2px;
-        font-size: 13px;
-        color: var(--r-muted);
-    }
-    .settings .pf-actions {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 8px 16px;
-        margin-top: 20px;
-    }
-    .settings .pf-actions .profile-error {
-        margin: 0;
     }
     .settings .card .hint {
         margin: 0;
@@ -278,9 +253,6 @@ const styles = css`
         }
         .settings .idh-name {
             font-size: 22px;
-        }
-        .settings .pf-grid {
-            grid-template-columns: minmax(0, 1fr);
         }
         .settings .cr {
             padding: 14px 16px;

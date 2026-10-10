@@ -1,19 +1,25 @@
 'use client';
 
-import { Button, Flex } from 'antd';
 import { useResetRecordingAttempts } from 'hooks/melp/dedaRecording';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 /** Só o dono vê o botão (decisão de André, 7-Out-2026). Não é segredo: o servidor exige METTLE_ADMIN. */
 export const MERCY_MODE_UIDS: readonly string[] = ['RBgG61nNKdgHUKCkxhR4vhaBLGU2'];
 
 /**
- * Mercy Mode: o aluno gastou as 3 tentativas do dia e chamou o suporte; o administrador devolve as de hoje.
- * Confirmação na própria linha (nada de caixa sobre o modal).
+ * Mercy Mode: o aluno gastou as 3 tentativas do dia e chamou o suporte; o administrador libera novas tentativas hoje.
+ * Confirmação na própria linha (nada de caixa sobre o painel).
  */
 export const MercyMode: React.FC<{ studentUid?: string; studentLabel?: string }> = ({ studentUid, studentLabel }) => {
     const reset = useResetRecordingAttempts();
     const [confirming, setConfirming] = useState(false);
+    // depois de confirmar ou cancelar, o foco volta ao botão (a linha da confirmação some)
+    const main = useRef<HTMLButtonElement>(null);
+    const back = useRef(false);
+    useEffect(() => {
+        if (!confirming && back.current) main.current?.focus();
+        back.current = confirming;
+    }, [confirming]);
 
     // Outro aluno escolhido: começa do zero (sem confirmação nem resultado do anterior).
     useEffect(() => {
@@ -26,45 +32,51 @@ export const MercyMode: React.FC<{ studentUid?: string; studentLabel?: string }>
 
     return (
         <>
-            <p className="eyebrow" id="admin-mercy" style={{ marginTop: 20 }}>
-                Mercy Mode
-            </p>
+            <div className="sh">
+                <h2 id="admin-mercy">Gravações</h2>
+            </div>
             {confirming ? (
-                <Flex gap={8} align="center" wrap role="group" aria-labelledby="admin-mercy">
+                <div className="ctl" role="group" aria-labelledby="admin-mercy">
                     <p style={{ flex: '1 1 200px', minWidth: 0, margin: 0 }}>
-                        Devolver as tentativas de gravação de hoje
-                        {studentLabel ? ` a ${studentLabel}` : ''}?
+                        Liberar novas tentativas de gravação hoje{studentLabel ? ` para ${studentLabel}` : ''}?
                     </p>
-                    <Button onClick={() => setConfirming(false)} autoFocus>
+                    <button
+                        type="button"
+                        className="btn ghost"
+                        disabled={reset.isPending}
+                        onClick={() => setConfirming(false)}
+                        autoFocus
+                    >
                         Cancelar
-                    </Button>
-                    <Button
-                        type="primary"
-                        loading={reset.isPending}
+                    </button>
+                    <button
+                        type="button"
+                        className="btn gold"
+                        disabled={reset.isPending}
                         onClick={() => reset.mutate(studentUid, { onSettled: () => setConfirming(false) })}
                     >
-                        Devolver
-                    </Button>
-                </Flex>
+                        {reset.isPending ? 'Liberando…' : 'Liberar'}
+                    </button>
+                </div>
             ) : (
-                <Flex gap={8} align="center" wrap>
-                    {/* O título acima já diz "Mercy Mode": lido junto, "Mercy Mode · Reset today’s recording attempts". */}
-                    <Button
+                <div className="ctl">
+                    <button
+                        ref={main}
+                        type="button"
+                        className="btn line"
                         onClick={() => setConfirming(true)}
-                        aria-labelledby="admin-mercy admin-mercy-btn"
                         aria-describedby="admin-mercy-status"
-                        style={{ maxWidth: '100%', whiteSpace: 'normal', height: 'auto', minHeight: 36 }}
                     >
-                        <span id="admin-mercy-btn">Reset today’s recording attempts</span>
-                    </Button>
+                        Liberar novas tentativas de gravação hoje
+                    </button>
                     <span className="hint" id="admin-mercy-status" role="status">
                         {reset.isSuccess
-                            ? `Feito: ${reset.data.attempts.left} tentativas de novo hoje (usadas antes: ${reset.data.reset.usedBefore}).`
+                            ? `Liberado: ${reset.data.attempts.left} tentativas hoje (usadas antes: ${reset.data.reset.usedBefore}).`
                             : reset.isError
-                              ? 'Não foi possível devolver agora. Tente de novo.'
+                              ? 'Não foi possível liberar agora. Tente de novo.'
                               : ''}
                     </span>
-                </Flex>
+                </div>
             )}
         </>
     );

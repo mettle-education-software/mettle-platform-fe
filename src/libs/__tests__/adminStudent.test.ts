@@ -1,5 +1,6 @@
 /** @jest-environment node */
-// Página do aluno no Admin: cabeçalho, os três produtos (Total/Leitura, origem, prazo, selos), registro e histórico.
+// Página do aluno no Admin: cabeçalho, os três produtos (Ativo/Leitura, origem, prazo, selos), compras e LTV, dados do
+// perfil (o formulário das Configurações), registro e histórico.
 import { JSDOM } from 'jsdom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -12,6 +13,8 @@ let mockHistory: any;
 let mockLookup: any;
 const mockLookupCalls: unknown[][] = [];
 const mockMutate = jest.fn();
+const mockSaveProfile = { mutateAsync: jest.fn(), isPending: false };
+const mockSaveProfileUids: string[] = [];
 
 jest.mock(
     'hooks/useAdmin',
@@ -51,6 +54,10 @@ jest.mock(
             mockLookupCalls.push(args);
             return mockLookup;
         },
+        useSaveStudentProfile: (uid: string) => {
+            mockSaveProfileUids.push(uid);
+            return mockSaveProfile;
+        },
         useSaveStudentAccess: () => ({
             mutate: mockMutate,
             reset: jest.fn(),
@@ -65,6 +72,17 @@ jest.mock('libs/adminAccess', () => jest.requireActual('../adminAccess'), { virt
 jest.mock('libs/adminHistory', () => jest.requireActual('../adminHistory'), { virtual: true });
 jest.mock('libs/adminPanel', () => jest.requireActual('../adminPanel'), { virtual: true });
 jest.mock('../../components/layouts/AdminActions/MercyMode', () => ({ MERCY_MODE_UIDS: [], MercyMode: () => null }));
+// o formulário de verdade tem os próprios testes (profileForm.test.ts); aqui, o que ele recebe
+jest.mock('../../components/_new/ProfileSettings', () => ({
+    ProfileForm: ({ data, save }: any) =>
+        jest
+            .requireActual('react')
+            .createElement(
+                'form',
+                { className: 'pf-stub', 'data-admin-save': String(save === mockSaveProfile) },
+                `${data.user_uid} ${data.first_name} ${data.phone}`,
+            ),
+}));
 jest.mock('libs/leitura', () => ({ isLeituraOwner: () => true }), { virtual: true });
 jest.mock('config/firebase', () => ({ auth: { currentUser: { uid: 'dono' } } }), { virtual: true });
 jest.mock(
@@ -132,7 +150,7 @@ beforeEach(() => {
     mockLookupCalls.length = 0;
 });
 
-test('aberta fora da página da lista (Início, saída da impersonação): o programa vem da busca pelo e-mail', () => {
+test('aberta fora da página da lista (Início, saída da impersonação): o programa vem da busca pelo uid', () => {
     mockLookup = {
         data: {
             rows: [
@@ -149,10 +167,10 @@ test('aberta fora da página da lista (Início, saída da impersonação): o pro
     };
     const d = render();
     expect(mockLookupCalls.at(-1)).toEqual([
-        { q: 'aluna@example.test', sort: { key: 'name', dir: 'asc' }, page: 1 },
+        { q: 'aluno', todas: true, sort: { key: 'name', dir: 'asc' }, page: 1, pageSize: 25 },
         true,
     ]);
-    expect(d.querySelector('section[aria-labelledby="as-program"]')?.textContent).toContain('Em andamento · sem. 3');
+    expect(d.querySelector('section[aria-labelledby="as-program"]')?.textContent).toContain('Sem. 3');
 });
 
 test('cabeçalho: nome, e-mail, inicial no lugar da foto e "Sem login"', () => {
@@ -163,7 +181,7 @@ test('cabeçalho: nome, e-mail, inicial no lugar da foto e "Sem login"', () => {
     expect(d.body.textContent).toContain('Sem login');
 });
 
-test('os três produtos na ordem, com Total/Leitura, selos e o prazo de cada origem', () => {
+test('os três produtos na ordem, com Ativo/Leitura, selos e o prazo de cada origem', () => {
     const d = render();
     expect([...d.querySelectorAll('li.prod .lab b')].map((b) => b.textContent)).toEqual([
         'Imerso',
@@ -171,7 +189,7 @@ test('os três produtos na ordem, com Total/Leitura, selos e o prazo de cada ori
         'E-book',
     ]);
     const imerso = product(d, 'Imerso');
-    expect(pressed(imerso)).toEqual(['Total']);
+    expect(pressed(imerso)).toEqual(['Ativo']);
     expect(imerso.textContent).toContain('data a confirmar');
     expect(imerso.querySelector('input[type="date"]')).not.toBeNull();
     // Imerso ativo com prazo: estender +1/+3/+6/+12
@@ -196,7 +214,7 @@ test('os três produtos na ordem, com Total/Leitura, selos e o prazo de cada ori
 test('registro: antes → depois, quando e quem', () => {
     const text = render().querySelector('.log')?.textContent ?? '';
     expect(text).toContain('E-book');
-    expect(text).toContain('Total · Cortesia até 30/09/2026 → Leitura · Cortesia até 30/09/2026');
+    expect(text).toContain('Ativo · Cortesia até 30/09/2026 → Leitura · Cortesia até 30/09/2026');
     expect(text).toContain('Rotina diária');
     expect(text).toContain('10/10/2026');
 });
@@ -254,4 +272,45 @@ test('sem o `user` do servidor: nome e e-mail do retrato do histórico; a linha 
     expect(d.querySelector('h1')?.textContent).toBe('Aluna do Retrato');
     expect(d.body.textContent).toContain('retrato@example.test');
     expect(d.querySelector('#as-history')).not.toBeNull();
+});
+
+test('carência: o selo diz até quando ela vai (o prazo antigo fica no campo de data)', () => {
+    mockAccess.data.data[0] = row({ product: 'imerso', validUntil: '2020-05-12', graceUntil: '2099-10-11' });
+    expect(product(render(), 'Imerso').textContent).toContain('carência até 11/10/2099');
+});
+
+test('compras: a mais recente primeiro (sem data no fim), estornada com selo; o LTV no título', () => {
+    mockAccess.data.purchases = [
+        { date: '2025-04-22', product: 'imerso', plan: 'Anual', value: 997, channel: 'HeroSpark', refunded: false },
+        { date: '2026-04-22', product: 'masterclass', plan: null, value: 497, channel: 'Guru', refunded: true },
+        { date: null, product: 'ebook', plan: null, value: 47, channel: null, refunded: false },
+    ];
+    mockAccess.data.ltv = { total: 997, compras: 1 };
+    const section = render().querySelector('section[aria-labelledby="as-buys"]')!;
+    expect(section.querySelector('h2')?.textContent).toMatch(/^Compras LTV R\$\s997,00 · 1 compra$/);
+    const items = [...section.querySelectorAll('li')].map((li) => li.textContent);
+    expect(items[0]).toMatch(/^Masterclass22\/04\/2026 · GuruR\$\s497,00Estornada$/);
+    expect(items[1]).toMatch(/^Imerso · Anual22\/04\/2025 · HeroSparkR\$\s997,00$/);
+    // sem data: no fim
+    expect(items[2]).toMatch(/^E-book—R\$\s47,00$/);
+});
+
+test('sem compras: uma linha calma; sem acesso carregado, nem compras nem dados', () => {
+    mockAccess.data.purchases = [];
+    expect(render().querySelector('section[aria-labelledby="as-buys"]')?.textContent).toContain(
+        'Nenhuma compra registrada.',
+    );
+    mockAccess = { isLoading: true, isError: false };
+    const d = render();
+    expect(d.querySelector('section[aria-labelledby="as-buys"]')).toBeNull();
+    expect(d.querySelector('section[aria-labelledby="as-data"]')).toBeNull();
+});
+
+test('dados: o formulário das Configurações com o perfil do aluno e a gravação do administrador', () => {
+    mockSaveProfileUids.length = 0;
+    mockAccess.data.profile = { first_name: 'Aluna', last_name: 'Teste', phone: '+5511912345678' };
+    const form = render().querySelector('section[aria-labelledby="as-data"] .pf-stub')!;
+    expect(form.textContent).toBe('aluno Aluna +5511912345678');
+    expect(form.getAttribute('data-admin-save')).toBe('true');
+    expect(mockSaveProfileUids).toEqual(['aluno']);
 });

@@ -31,6 +31,16 @@ export interface StudentUser {
     disabled: boolean | null;
 }
 
+/** Uma compra da conta (tabela purchase): data, produto, plano, valor, canal e se foi estornada. */
+export interface StudentPurchase {
+    date: string | null;
+    product: string | null;
+    plan: string | null;
+    value: number | null;
+    channel: string | null;
+    refunded: boolean;
+}
+
 /** Antes/depois do registro: a linha gravada, com os nomes do banco. */
 export interface EventFields {
     state?: AccessStateNew | null;
@@ -82,13 +92,13 @@ export type Term =
     | { kind: 'extend'; months: number };
 
 export interface Draft {
-    /** null: produto sem acesso, nada escolhido ainda (a origem escolhida liga Total) */
+    /** null: produto sem acesso, nada escolhido ainda (a origem escolhida liga Ativo) */
     state: 'ativo' | 'leitura' | null;
     origin: Origin | null;
     term: Term;
 }
 
-/** O rascunho começa igual ao servidor (sem acesso: Total, a origem por escolher). */
+/** O rascunho começa igual ao servidor (sem acesso: Ativo, a origem por escolher). */
 export const draftOf = (row: AccessRow): Draft => ({
     state: row.state === 'none' ? null : row.state,
     origin: row.origin,
@@ -112,7 +122,7 @@ export const plusDays = (iso: string, days: number) =>
     new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 
 /**
- * Total com um prazo que já passou (o servidor recusaria com ALREADY_EXPIRED): a frase do que falta, ou null. Compra
+ * Ativo com um prazo que já passou (o servidor recusaria com ALREADY_EXPIRED): a frase do que falta, ou null. Compra
  * vale até a data + 14 dias de carência; Cortesia, até a data.
  */
 export const termProblem = (draft: Draft, row: AccessRow, today = brToday()) => {
@@ -156,15 +166,30 @@ export const isDirty = (draft: Draft, row: AccessRow) => {
 export const brDay = (iso: string | null | undefined) =>
     iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : '—';
 
-/** Selos da linha: data a confirmar e até quando vai a cortesia. */
-export const accessBadges = (row: AccessRow) => [
+/**
+ * Em carência: o prazo passou e o servidor mantém Ativo até o fim da carência. Vale mostrar esse fim, nunca o prazo
+ * antigo (que pode ser de anos atrás).
+ */
+export const inGrace = (
+    access: { state: AccessStateNew; validUntil: string | null; graceUntil: string | null },
+    today = brToday(),
+) =>
+    access.state === 'ativo' &&
+    !!access.validUntil &&
+    !!access.graceUntil &&
+    access.validUntil.slice(0, 10) < today &&
+    access.graceUntil.slice(0, 10) >= today;
+
+/** Selos da linha: data a confirmar, até quando vai a cortesia e a carência. */
+export const accessBadges = (row: AccessRow, today = brToday()) => [
     ...(row.state === 'ativo' && row.dateToConfirm ? ['data a confirmar'] : []),
     ...(row.origin === 'cortesia' && row.validUntil ? [`cortesia até ${brDay(row.validUntil)}`] : []),
+    ...(inGrace(row, today) ? [`carência até ${brDay(row.graceUntil?.slice(0, 10))}`] : []),
 ];
 
-const STATE_LABEL: Record<AccessStateNew, string> = { ativo: 'Total', leitura: 'Leitura', none: 'Sem acesso' };
+const STATE_LABEL: Record<AccessStateNew, string> = { ativo: 'Ativo', leitura: 'Leitura', none: 'Sem acesso' };
 
-/** "Total · Cortesia até 10/01/2027", "Leitura · Compra", "Sem acesso". */
+/** "Ativo · Cortesia até 10/01/2027", "Leitura · Compra", "Sem acesso". */
 export const accessLabel = (fields: EventFields | null | undefined) => {
     if (!fields?.state || fields.state === 'none') return 'Sem acesso';
     const origin = fields.origin ? ORIGIN_LABEL[fields.origin] : 'origem a confirmar';

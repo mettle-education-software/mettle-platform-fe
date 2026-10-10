@@ -5,11 +5,12 @@ import { fetchAllAccounts, useSaveStudentAccess, useSaveStudentProfile } from '.
 const mockPatch = jest.fn();
 const mockAdminGet = jest.fn();
 const mockInvalidate = jest.fn().mockResolvedValue(undefined);
+const mockSetData = jest.fn();
 jest.mock('@tanstack/react-query', () => ({
     keepPreviousData: undefined,
     useQuery: (config: unknown) => config,
     useMutation: (config: unknown) => config,
-    useQueryClient: () => ({ invalidateQueries: mockInvalidate }),
+    useQueryClient: () => ({ invalidateQueries: mockInvalidate, setQueryData: mockSetData }),
 }));
 jest.mock(
     'services',
@@ -41,6 +42,14 @@ test('dados do aluno pelo administrador: PATCH na conta dele, telefone em E.164,
     expect(mockPatch).toHaveBeenCalledTimes(1);
     expect(mockPatch.mock.calls[0][0]).toBe('/aluno%2Fx/profile-data');
     expect(mockPatch.mock.calls[0][1]).toMatchObject({ city: 'Recife', phone: '+5511912345678' });
+    // o perfil da conta em cache já com o salvo
+    mutation.onSuccess({ saved: { city: 'Recife' } });
+    const [key, update] = mockSetData.mock.calls[0];
+    expect(key).toEqual(['admin-access', 'aluno/x']);
+    expect(update({ data: [], profile: { city: 'Olinda', first_name: 'Ana' } })).toEqual({
+        data: [],
+        profile: { city: 'Recife', first_name: 'Ana' },
+    });
     await mutation.onSettled();
     expect(mockInvalidate).toHaveBeenCalledWith({ queryKey: ['admin-access', 'aluno/x'] });
     expect(mockInvalidate).toHaveBeenCalledWith({ queryKey: ['admin-accounts'] });

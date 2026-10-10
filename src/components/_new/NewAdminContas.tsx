@@ -126,7 +126,9 @@ const styles = css`
     .ct table {
         width: 100%;
         min-width: 980px;
-        border-collapse: collapse;
+        /* separate: as linhas acompanham a coluna fixa ao rolar para o lado */
+        border-collapse: separate;
+        border-spacing: 0;
         font-size: 13.5px;
         font-variant-numeric: tabular-nums;
     }

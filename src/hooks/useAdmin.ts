@@ -139,6 +139,11 @@ export const useSaveStudentProfile = (uid: string) => {
             if (saved.birth_date) saved.birth_date = saved.birth_date.slice(0, 10);
             return { saved };
         },
+        // o perfil da conta já com o que ficou salvo (o Salvar não volta a acender enquanto relê)
+        onSuccess: ({ saved }) =>
+            queryClient.setQueryData<{ profile?: Partial<Profile> | null }>(['admin-access', uid], (previous) =>
+                previous ? { ...previous, profile: { ...previous.profile, ...saved } } : previous,
+            ),
         // sem esperar: o "Salvo" vem do PATCH (a lista é uma varredura inteira no servidor)
         onSettled: () => {
             void queryClient.invalidateQueries({ queryKey: ['admin-access', uid] });

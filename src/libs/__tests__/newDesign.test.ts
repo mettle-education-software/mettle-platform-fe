@@ -60,7 +60,7 @@ describe('chave da plataforma nova', () => {
     it('é a mesma lista da página do DEDA', () => {
         expect(NEW_DESIGN_UIDS).toBe(DEDA_READER_UIDS);
         expect(isNewDesignAccount(NEW_DESIGN_UIDS[0])).toBe(true);
-        expect(isNewDesignAccount('outro-aluno')).toBe(false);
+        expect(isNewDesignAccount('outro-aluno')).toBe(true); // virada: todas as contas logadas
         expect(isNewDesignAccount(undefined)).toBe(false);
         expect(isNewDesignAccount(null)).toBe(false);
     });

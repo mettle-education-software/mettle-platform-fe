@@ -24,7 +24,7 @@ describe('chave por conta', () => {
 
     it('liga só para as contas da lista', () => {
         expect(isDedaReaderAccount(owner)).toBe(true);
-        expect(isDedaReaderAccount('outro-aluno')).toBe(false);
+        expect(isDedaReaderAccount('outro-aluno')).toBe(true); // virada: todas as contas logadas
         expect(isDedaReaderAccount(undefined)).toBe(false);
         expect(isDedaReaderAccount(null)).toBe(false);
         expect(isDedaReaderAccount('')).toBe(false);

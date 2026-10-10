@@ -5,17 +5,20 @@ import { dedaLampWeek } from './dedaClock';
 import { saoPauloWeekday } from './helpers';
 
 /**
- * Contas com a página nova. Só a do André (dono do produto), por decisão dele: usa a própria conta em produção
- * como ambiente de teste e pede os ajustes ali. Todas as outras contas veem a página atual, sem nenhuma mudança.
+ * Contas com a página nova. '*' = todas as contas logadas (virada de 12-Out-2026). Para voltar a só a conta do André:
+ * ['RBgG61nNKdgHUKCkxhR4vhaBLGU2'] (ou DEDA_READER=off na Vercel, que desliga para todo mundo).
  */
-export const DEDA_READER_UIDS: readonly string[] = ['RBgG61nNKdgHUKCkxhR4vhaBLGU2'];
+export const DEDA_READER_UIDS: readonly string[] = ['*'];
 
 /** Variável de teste: DEDA_READER=off desliga a página nova para todo mundo (página atual em todas as contas). */
 export const DEDA_READER_FORCED_OFF = process.env.DEDA_READER === 'off';
 
 /** `uid` é o da conta realmente logada (Firebase), nunca o do aluno que um administrador está vendo. */
 export const isDedaReaderAccount = (uid?: string | null, forcedOff = DEDA_READER_FORCED_OFF) =>
-    !forcedOff && typeof uid === 'string' && DEDA_READER_UIDS.includes(uid);
+    !forcedOff &&
+    typeof uid === 'string' &&
+    uid.length > 0 &&
+    (DEDA_READER_UIDS.includes('*') || DEDA_READER_UIDS.includes(uid));
 
 // ---------- preferência "Classic view" / "New view" (só para as contas da lista) ----------
 

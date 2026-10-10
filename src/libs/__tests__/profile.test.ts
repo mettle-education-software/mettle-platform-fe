@@ -1,5 +1,15 @@
 /** @jest-environment node */
-import { profileError, squareCrop, validateProfileField, validateProfileImage } from '../profile';
+import {
+    fieldChanged,
+    phoneDisplay,
+    phoneE164,
+    profileError,
+    profilePatch,
+    squareCrop,
+    typePhone,
+    validateProfileField,
+    validateProfileImage,
+} from '../profile';
 
 const today = new Date('2026-10-09T12:00:00Z');
 
@@ -104,4 +114,37 @@ test('valida aniversário no fuso de Brasília e rejeita caracteres de controle'
     expect(validateProfileField('birth_date', '2016-10-10', new Date('2026-10-10T01:00:00Z'))).toBeDefined();
     expect(validateProfileField('first_name', '<André>')).toBeDefined();
     expect(validateProfileField('city', 'São\u200BPaulo')).toBeDefined();
+});
+
+describe('telefone (mundo todo; sem "+", Brasil)', () => {
+    test('formata enquanto digita; apagar não traz a máscara de volta; colar formata', () => {
+        expect(typePhone('11912345678', '1191234567')).toBe('(11) 91234-5678');
+        expect(typePhone('+447911123456', '')).toBe('+44 7911 123456');
+        expect(typePhone('(11) 91234-567', '(11) 91234-5678')).toBe('(11) 91234-567');
+        expect(typePhone('+447911123456', '+55 11 91234 5678')).toBe('+44 7911 123456');
+        // digitando no meio, o texto fica como está (o cursor não pula para o fim)
+        expect(typePhone('(11) 991234-5678', '(11) 91234-5678', false)).toBe('(11) 991234-5678');
+    });
+    test('E.164 só de número válido; vazio é vazio; exibição internacional', () => {
+        expect(phoneE164('(11) 91234-5678')).toBe('+5511912345678');
+        expect(phoneE164('+1 212 555 0123')).toBe('+12125550123');
+        expect(phoneE164('  ')).toBe('');
+        expect(phoneE164('123')).toBeNull();
+        expect(validateProfileField('phone', '123')).toContain('Telefone inválido');
+        expect(validateProfileField('phone', '')).toBeUndefined();
+        expect(validateProfileField('phone', '+351 912 345 678')).toBeUndefined();
+        expect(phoneDisplay('+5511912345678')).toBe('+55 11 91234 5678');
+        expect(phoneDisplay('não é número')).toBe('não é número');
+        expect(phoneDisplay(null)).toBe('');
+    });
+    test('mesmo número em outro formato não é mudança; PATCH com E.164 e vazio como null', () => {
+        expect(fieldChanged('phone', '+55 (11) 91234-5678', '+5511912345678')).toBe(false);
+        expect(fieldChanged('phone', '(11) 91234-5679', '+5511912345678')).toBe(true);
+        expect(fieldChanged('city', ' Lisboa ', 'Lisboa')).toBe(false);
+        expect(profilePatch({ phone: '(11) 91234-5678', city: ' ', first_name: ' Ana ' })).toEqual({
+            phone: '+5511912345678',
+            city: null,
+            first_name: 'Ana',
+        });
+    });
 });

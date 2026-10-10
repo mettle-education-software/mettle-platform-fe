@@ -715,14 +715,36 @@ export const Page = styled.div`
         min-height: 32px;
         margin-bottom: 8px;
     }
-    .profile-edit,
     .profile-photo {
         display: flex;
         align-items: center;
         gap: 12px;
     }
-    .profile-edit .ant-input {
-        min-width: 0;
+    /* um formulário, um Salvar: logo depois do último campo, na coluna dos campos */
+    .profile-form .row {
+        align-items: start;
+    }
+    .profile-form .row > label {
+        padding-top: 10px;
+    }
+    .profile-actions {
+        border-bottom: 0;
+    }
+    @media (max-width: 860px) {
+        .profile-actions > .lab {
+            display: none;
+        }
+    }
+    .profile-actions .field {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 16px;
+    }
+    .profile-hint {
+        margin: 6px 0 0;
+        font-size: 12.5px;
+        color: var(--r-faint);
     }
     .profile-avatar {
         display: grid;
@@ -743,6 +765,9 @@ export const Page = styled.div`
         color: var(--r-error);
         font-size: 13px;
         margin: 6px 0 0;
+    }
+    .profile-actions .profile-error {
+        margin: 0;
     }
     .profile-saved {
         color: var(--r-muted);

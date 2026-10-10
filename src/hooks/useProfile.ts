@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
-import { Profile, ProfileField } from 'libs/profile';
+import { Profile, profilePatch, ProfileValues } from 'libs/profile';
 import { useAppContext } from 'providers';
 import { accountService } from 'services';
 
@@ -21,7 +21,7 @@ export function useProfile(enabled = true) {
                 ...record,
                 birth_date: record.birth_date?.slice(0, 10) ?? null,
                 photoURL: data.data.fbData.photoURL ?? null,
-                phone: record.phone ?? record.phone_number ?? data.data.fbData.phoneNumber,
+                phone: record.phone ?? record.phone_number ?? data.data.fbData.phoneNumber ?? null,
                 email: record.email ?? data.data.fbData.email,
             };
         },
@@ -30,30 +30,34 @@ export function useProfile(enabled = true) {
     });
 }
 
+/** Um PATCH com todos os campos alterados; o cache recebe o que o servidor devolveu (nomes já normalizados). */
 export function useSaveProfile() {
     const { user } = useAppContext();
     const client = useQueryClient();
     return useMutation({
-        mutationFn: async ({ field, value }: { field: ProfileField; value: string }) => {
+        mutationFn: async (changes: Partial<ProfileValues>) => {
             if (!user?.uid) throw new Error('Sessão indisponível.');
-            const { data } = await accountService.patch<Partial<Profile>, { data: Profile }>(
+            const body = profilePatch(changes);
+            const { data } = await accountService.patch<typeof body, { data: Profile }>(
                 `/${user.uid}/profile-data`,
-                { [field]: value.trim() || null },
+                body,
             );
-            return { uid: user.uid, profile: { ...data.data, birth_date: data.data.birth_date?.slice(0, 10) ?? null } };
+            // o que o servidor não devolver vale como enviado (ex.: telefone, enquanto a resposta não o inclui)
+            const saved = Object.fromEntries(
+                Object.entries(body).map(([field, value]) => [
+                    field,
+                    field in data.data ? data.data[field as keyof Profile] : value,
+                ]),
+            ) as Partial<Profile>;
+            if (saved.birth_date) saved.birth_date = saved.birth_date.slice(0, 10);
+            return { uid: user.uid, saved, updatedAt: data.data.profile_updated_at ?? null };
         },
         onMutate: () => client.cancelQueries({ queryKey: profileKey(user?.uid) }),
-        onSuccess: async ({ profile: data, uid }, { field }) => {
+        onSuccess: async ({ saved, updatedAt, uid }) => {
             // um GET em voo (começado durante o PATCH) não pode voltar depois e desfazer o "Salvo"
             await client.cancelQueries({ queryKey: profileKey(uid) });
             client.setQueryData<Profile>(profileKey(uid), (previous) =>
-                previous
-                    ? {
-                          ...previous,
-                          [field]: data[field],
-                          profile_updated_at: data.profile_updated_at,
-                      }
-                    : data,
+                previous ? { ...previous, ...saved, profile_updated_at: updatedAt } : previous,
             );
         },
     });

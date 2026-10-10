@@ -11,6 +11,7 @@ const mockReload = jest.fn().mockResolvedValue(undefined);
 const mockToken = jest.fn().mockResolvedValue('token');
 const mockAuth = { currentUser: { uid: 'student-1', reload: mockReload, getIdToken: mockToken } };
 jest.mock('providers', () => ({ useAppContext: () => ({ user: mockUser }) }), { virtual: true });
+jest.mock('libs/profile', () => jest.requireActual('../profile'), { virtual: true });
 jest.mock(
     'services',
     () => ({
@@ -63,35 +64,61 @@ test('GET verifica a conta e normaliza nascimento para input date', async () => 
     await expect(query.queryFn()).rejects.toThrow('Perfil indisponível para esta sessão');
 });
 
-test('PATCH envia só o campo, mescla só seu resultado e mantém cache da conta original', async () => {
+test('um PATCH com só os campos alterados; o cache recebe o que o servidor devolveu, na conta original', async () => {
     const mutation = useSaveProfile() as any;
     mockPatch.mockResolvedValue({
         data: {
-            data: { user_uid: 'student-1', first_name: 'Ana', city: 'cidade antiga', profile_updated_at: 'today' },
+            data: {
+                user_uid: 'student-1',
+                first_name: 'André',
+                city: 'São Paulo',
+                birth_date: '2000-02-29T00:00:00.000Z',
+                profile_updated_at: 'today',
+            },
         },
     });
-    const result = await mutation.mutationFn({ field: 'first_name', value: '  Ana  ' });
-    expect(mockPatch).toHaveBeenCalledWith('/student-1/profile-data', { first_name: 'Ana' });
+    const result = await mutation.mutationFn({
+        first_name: '  andré  ',
+        city: 'são paulo',
+        birth_date: '2000-02-29',
+        instagram: ' ',
+        phone: '(11) 91234-5678',
+    });
+    // vazio vira null; telefone em E.164 (sem "+", Brasil)
+    expect(mockPatch).toHaveBeenCalledTimes(1);
+    expect(mockPatch).toHaveBeenCalledWith('/student-1/profile-data', {
+        first_name: 'andré',
+        city: 'são paulo',
+        birth_date: '2000-02-29',
+        instagram: null,
+        phone: '+5511912345678',
+    });
+    // o que o servidor devolveu (nome com maiúscula); o que ele não devolveu (telefone) vale como enviado
+    expect(result.saved).toEqual({
+        first_name: 'André',
+        city: 'São Paulo',
+        birth_date: '2000-02-29',
+        instagram: null,
+        phone: '+5511912345678',
+    });
     mockUser = { uid: 'student-2' };
-    await mutation.onSuccess(result, { field: 'first_name' });
+    await mutation.onSuccess(result);
     // GET em voo cancelado antes de gravar no cache (não volta depois com o valor antigo)
     expect(mockCancel).toHaveBeenCalledWith({ queryKey: ['account-profile', 'student-1'] });
     expect(mockCancel.mock.invocationCallOrder[0]).toBeLessThan(mockCache.mock.invocationCallOrder[0]);
     expect(mockCache.mock.calls[0][0]).toEqual(['account-profile', 'student-1']);
-    expect(mockCache.mock.calls[0][1]({ first_name: 'Anterior', city: 'cidade já salva' })).toMatchObject({
-        first_name: 'Ana',
-        city: 'cidade já salva',
+    expect(mockCache.mock.calls[0][1]({ first_name: 'Anterior', state: 'estado já salvo' })).toMatchObject({
+        first_name: 'André',
+        state: 'estado já salvo',
+        profile_updated_at: 'today',
     });
 });
 
-test('campo opcional vazio envia null; conflitos não são absorvidos', async () => {
+test('conflitos não são absorvidos', async () => {
     const mutation = useSaveProfile() as any;
-    mockPatch.mockResolvedValue({ data: { data: { instagram: null } } });
-    await mutation.mutationFn({ field: 'instagram', value: ' ' });
-    expect(mockPatch).toHaveBeenCalledWith('/student-1/profile-data', { instagram: null });
     const conflict = { response: { status: 409, data: { code: 'username_taken', message: 'Indisponível' } } };
     mockPatch.mockRejectedValue(conflict);
-    await expect(mutation.mutationFn({ field: 'username', value: 'ana' })).rejects.toBe(conflict);
+    await expect(mutation.mutationFn({ username: 'ana' })).rejects.toBe(conflict);
 });
 
 test('foto envia multipart e atualiza cache e token após salvar', async () => {

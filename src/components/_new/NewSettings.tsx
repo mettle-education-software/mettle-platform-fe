@@ -177,9 +177,9 @@ const ImersoSettings: React.FC = () => {
                     <div className="row">
                         <div className="lab">
                             <b>
-                                Reiniciar o programa
-                                <Tooltip title="Você pode reiniciar a sua conta e recomeçar o programa IMERSO do início. Seu progresso até agora será inteiramente removido.">
-                                    <Info {...ICON} size={16} aria-label="Sobre reiniciar" />
+                                Reiniciar a LAMP
+                                <Tooltip title="Zera a sua LAMP e recomeça da semana 1. Os seus DEDAs e o HPEC continuam como estão.">
+                                    <Info {...ICON} size={16} aria-label="Sobre reiniciar a LAMP" />
                                 </Tooltip>
                             </b>
                             <span>
@@ -192,9 +192,30 @@ const ImersoSettings: React.FC = () => {
                                 disabled={busy}
                                 onClick={() =>
                                     modal.confirm({
-                                        title: 'Atenção!',
-                                        content:
-                                            'Tem certeza que deseja reiniciar? Você perderá todo o seu progresso atual e essa ação não poderá ser revertida.',
+                                        title: 'Reiniciar a LAMP?',
+                                        content: (
+                                            <>
+                                                <p>
+                                                    A sua LAMP volta a zero e recomeça da semana 1 na próxima
+                                                    segunda-feira (no mesmo dia, se hoje for segunda). As metas também
+                                                    recomeçam da semana 1.
+                                                </p>
+                                                <p>
+                                                    Os seus DEDAs e o HPEC continuam como estão. Os registros atuais da
+                                                    LAMP são arquivados e deixam de contar.
+                                                </p>
+                                                <p>
+                                                    Se você estiver em pausa, a pausa termina junto, sem gastar outra
+                                                    pausa.
+                                                </p>
+                                                <p>
+                                                    Você usa 1 dos seus {melpSummary.remaining_resets} reinícios. Não dá
+                                                    para desfazer.
+                                                </p>
+                                            </>
+                                        ),
+                                        okText: 'Reiniciar a LAMP',
+                                        cancelText: 'Cancelar',
                                         onOk: () => programReset.mutateAsync().catch(() => undefined),
                                     })
                                 }
@@ -207,9 +228,9 @@ const ImersoSettings: React.FC = () => {
                         <div className="row">
                             <div className="lab">
                                 <b>
-                                    Pausar DEDA
-                                    <Tooltip title="Você pode pausar o DEDA 3 vezes. Ao pausar, seu progresso não será contabilizado até que você ative novamente.">
-                                        <Info {...ICON} size={16} aria-label="Sobre pausar" />
+                                    Pausar a LAMP
+                                    <Tooltip title="Para a contagem da LAMP enquanto você estiver fora. Os DEDAs e o HPEC continuam sendo liberados.">
+                                        <Info {...ICON} size={16} aria-label="Sobre pausar a LAMP" />
                                     </Tooltip>
                                 </b>
                                 <span>
@@ -222,9 +243,24 @@ const ImersoSettings: React.FC = () => {
                                     disabled={busy}
                                     onClick={() =>
                                         modal.confirm({
-                                            title: 'Atenção!',
-                                            content:
-                                                'Tem certeza que deseja pausar? Você não poderá despausar até a próxima semana, e o progresso desta semana será perdido.',
+                                            title: 'Pausar a LAMP?',
+                                            content: (
+                                                <>
+                                                    <p>
+                                                        A LAMP para de contar a partir de agora. A semana em andamento é
+                                                        zerada: a LAMP fica parada no fim da semana passada.
+                                                    </p>
+                                                    <p>Os DEDAs e o HPEC continuam sendo liberados toda semana.</p>
+                                                    <p>
+                                                        Para voltar, toque em “Resume LAMP” na página do Imerso. A LAMP
+                                                        volta a contar na segunda-feira seguinte (no mesmo dia, se for
+                                                        segunda), de onde parou e com as mesmas metas.
+                                                    </p>
+                                                    <p>Você usa 1 das suas {melpSummary.remaining_pauses} pausas.</p>
+                                                </>
+                                            ),
+                                            okText: 'Pausar a LAMP',
+                                            cancelText: 'Cancelar',
                                             onOk: () => pauseDeda.mutateAsync().catch(() => undefined),
                                         })
                                     }

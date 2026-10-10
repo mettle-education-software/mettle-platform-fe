@@ -14,6 +14,7 @@ import { AccessCtaModal, AccessProvider, AppProvider, NotificationsProvider, use
 import { MelpProvider } from 'providers/MelpProvider';
 import React, { useEffect } from 'react';
 import { darkTheme, lightTheme } from 'themes';
+import { DARK, LIGHT, tooltipTokens } from 'themes/newDesign';
 import '../styles/globals.css';
 
 const queryClient = new QueryClient();
@@ -21,12 +22,16 @@ const queryClient = new QueryClient();
 const App = ({ children }: { children: React.ReactNode }) => {
     const { theme, isAppLoading, user } = useAppContext();
 
-    const themeConfig: ThemeConfig | undefined = theme === 'light' ? lightTheme : darkTheme;
-
     // Chat de suporte no tema da plataforma nova (Claro/Escuro/Automático já resolvido); os demais ficam no claro.
     // O SDK aceita 'dark' e troca em tempo de execução (setColorScheme); antes de o SDK ficar pronto, espera 'chatwoot:ready'.
     const newDesign = useNewDesign();
     const { resolved } = useTheme();
+
+    // plataforma nova: os balões (Tooltip) da casca também com a identidade dela (as páginas já têm pelo NewPage)
+    const base = theme === 'light' ? lightTheme : darkTheme;
+    const themeConfig: ThemeConfig | undefined = newDesign
+        ? { ...base, components: { ...base.components, Tooltip: tooltipTokens(resolved === 'light' ? LIGHT : DARK) } }
+        : base;
     const chatScheme = chatwootScheme(newDesign, resolved);
     useEffect(installImageFallback, []); // imagem do espelho que falhar vem do Contentful
     useEffect(() => {

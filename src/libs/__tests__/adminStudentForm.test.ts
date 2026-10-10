@@ -76,6 +76,7 @@ jest.mock('libs/adminAccess', () => jest.requireActual('../adminAccess'), { virt
 jest.mock('libs/adminHistory', () => jest.requireActual('../adminHistory'), { virtual: true });
 jest.mock('libs/adminPanel', () => jest.requireActual('../adminPanel'), { virtual: true });
 jest.mock('../../components/layouts/AdminActions/MercyMode', () => ({ MERCY_MODE_UIDS: [], MercyMode: () => null }));
+jest.mock('../../components/_new/ProfileSettings', () => ({ ProfileForm: () => null }));
 jest.mock('libs/leitura', () => ({ isLeituraOwner: () => false }), { virtual: true });
 jest.mock('config/firebase', () => ({ auth: { currentUser: { uid: 'admin' } } }), { virtual: true });
 jest.mock(
@@ -177,15 +178,15 @@ test('estender +6 grava uma vez; gravando, nada muda nem grava de novo', () => {
     const after = imerso(host);
     expect(after.textContent).toContain('Salvo.');
     expect(button(after, 'Salvar')).toBeUndefined();
-    expect([...after.querySelectorAll('[aria-pressed="true"]')].map((b) => b.textContent)).toEqual(['Total']);
+    expect([...after.querySelectorAll('[aria-pressed="true"]')].map((b) => b.textContent)).toEqual(['Ativo']);
     act(() => root.unmount());
 });
 
-test('Leitura → Total com prazo vencido: não grava até escolher um prazo novo', () => {
+test('Leitura → Ativo com prazo vencido: não grava até escolher um prazo novo', () => {
     mockRows = [row({ state: 'leitura', origin: 'cortesia', validUntil: '2026-01-31', graceUntil: null })];
     const { host, root } = mount();
     const li = imerso(host);
-    click(button(li, 'Total'));
+    click(button(li, 'Ativo'));
     expect(li.textContent).toContain('Prazo vencido: escolha um prazo novo.');
     expect(button(li, 'Salvar').disabled).toBe(true);
     click(button(li, '+3'));
@@ -195,7 +196,7 @@ test('Leitura → Total com prazo vencido: não grava até escolher um prazo nov
     act(() => root.unmount());
 });
 
-test('sem acesso: nada marcado; escolher a origem já concede (Total) e grava', () => {
+test('sem acesso: nada marcado; escolher a origem já concede (Ativo) e grava', () => {
     const { host, root } = mount();
     const ebook = [...host.querySelectorAll('li.prod')].find(
         (li) => li.querySelector('.lab b')?.textContent === 'E-book',
@@ -207,7 +208,7 @@ test('sem acesso: nada marcado; escolher a origem já concede (Total) e grava', 
         select.value = 'parceiro';
         select.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
     });
-    expect([...ebook.querySelectorAll('[aria-pressed="true"]')].map((b) => b.textContent)).toEqual(['Total']);
+    expect([...ebook.querySelectorAll('[aria-pressed="true"]')].map((b) => b.textContent)).toEqual(['Ativo']);
     expect(ebook.textContent).toContain('Sem prazo');
     click(button(ebook, 'Salvar'));
     expect(mockCalls).toEqual([{ state: 'ativo', origin: 'parceiro' }]);
@@ -238,7 +239,7 @@ test('programa: +2 pausas grava na hora com addPauses; o que resta vem da linha 
         ),
     );
     const program = host.querySelector('section[aria-labelledby="as-program"]')!;
-    expect(program.textContent).toContain('Em andamento · sem. 3');
+    expect(program.textContent).toContain('Programa Sem. 3');
     expect(program.textContent).toContain('Restam 1');
     click(program.querySelector('button[aria-label="Dar 2 pausas a mais"]') as HTMLElement);
     expect(mockAllowances).toEqual([{ addPauses: 2 }]);

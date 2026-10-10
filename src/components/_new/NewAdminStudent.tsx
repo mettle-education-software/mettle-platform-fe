@@ -10,6 +10,7 @@ import {
     useImpersonateStudent,
     useProgramAllowances,
     useSaveStudentAccess,
+    useSaveStudentProfile,
     useStudentAccess,
     useStudentAccessEvents,
     useTrashAccount,
@@ -20,6 +21,7 @@ import {
     accessBody,
     accessLabel,
     actorLabel,
+    brDay,
     brInstantDay,
     canExtend,
     Draft,
@@ -31,16 +33,20 @@ import {
     isTrashOwner,
     MONTHS,
     ORIGINS,
+    type Product,
     PRODUCT_NAMES,
     serverProblem,
+    type StudentPurchase,
     termKind,
     termProblem,
 } from 'libs/adminAccess';
 import { studentHistory } from 'libs/adminHistory';
-import { adminPanelPath, type AccountRow, programLabel } from 'libs/adminPanel';
+import { adminPanelPath, type AccountRow, brl, programLabel } from 'libs/adminPanel';
+import type { Profile } from 'libs/profile';
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MERCY_MODE_UIDS, MercyMode } from '../layouts/AdminActions/MercyMode';
+import { ProfileForm } from './ProfileSettings';
 
 const styles = css`
     .as .as-head {
@@ -110,6 +116,22 @@ const styles = css`
         background: var(--r-gold-tint);
         color: var(--r-text);
         font-size: 12px;
+        white-space: nowrap;
+    }
+    .as .buys .field {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px 10px;
+        font-variant-numeric: tabular-nums;
+    }
+    .as .buys .badge {
+        padding: 2px 9px;
+        border: 1px solid var(--r-line-strong);
+        border-radius: 999px;
+        font-size: 12px;
+        color: var(--r-muted);
         white-space: nowrap;
     }
     .as .ctl .ant-select-selection-placeholder {
@@ -235,7 +257,7 @@ const Months: React.FC<{
     </span>
 );
 
-/** Um produto: Total/Leitura, origem e prazo (data, meses ou sem prazo); grava no Salvar. */
+/** Um produto: Ativo/Leitura, origem e prazo (data, meses ou sem prazo); grava no Salvar. */
 const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) => {
     const [draft, setDraft] = useState<Draft>(() => draftOf(row));
     // o rascunho recomeça da linha do servidor (fonte única): quando ela muda (outra pessoa, rotina) e depois de cada
@@ -285,7 +307,7 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
                             aria-pressed={draft.state === 'ativo'}
                             onClick={() => set({ state: 'ativo' })}
                         >
-                            Total
+                            Ativo
                         </button>
                         <button
                             type="button"
@@ -303,7 +325,7 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
                         disabled={busy}
                         options={ORIGINS}
                         popupMatchSelectWidth={false}
-                        // produto sem acesso: escolher a origem já é conceder (Total)
+                        // produto sem acesso: escolher a origem já é conceder (Ativo)
                         onChange={(origin) => set({ origin, term: { kind: 'keep' }, state: draft.state ?? 'ativo' })}
                     />
                     {kind === 'date' && (
@@ -539,6 +561,57 @@ const ProgramAllowances: React.FC<{ uid: string; program: AccountRow['program'] 
     );
 };
 
+/** Compras da conta (a mais recente primeiro) e o LTV no título; estornada leva o selo. */
+const Purchases: React.FC<{
+    purchases: StudentPurchase[];
+    ltv?: { total?: number | null; compras?: number | null };
+}> = ({ purchases, ltv }) => (
+    <section aria-labelledby="as-buys">
+        <div className="sh">
+            <h2 id="as-buys">
+                Compras
+                {typeof ltv?.total === 'number' && (
+                    <span>
+                        LTV {brl(ltv.total)}
+                        {typeof ltv.compras === 'number' &&
+                            ` · ${ltv.compras} ${ltv.compras === 1 ? 'compra' : 'compras'}`}
+                    </span>
+                )}
+            </h2>
+        </div>
+        {purchases.length ? (
+            <ol className="rows buys">
+                {[...purchases].reverse().map((buy, index) => (
+                    <li className="row" key={index}>
+                        <span className="lab">
+                            <b>
+                                {[PRODUCT_NAMES[buy.product as Product] ?? buy.product ?? 'Produto', buy.plan]
+                                    .filter(Boolean)
+                                    .join(' · ')}
+                            </b>
+                            <span>{[brDay(buy.date?.slice(0, 10)), buy.channel].filter(Boolean).join(' · ')}</span>
+                        </span>
+                        <span className="field">
+                            {brl(buy.value)}
+                            {buy.refunded && <span className="badge">Estornada</span>}
+                        </span>
+                    </li>
+                ))}
+            </ol>
+        ) : (
+            <p className="hint">Nenhuma compra registrada.</p>
+        )}
+    </section>
+);
+
+/** Dados do aluno: o mesmo formulário (e a mesma validação) das Configurações, gravado pelo administrador. */
+const StudentProfile: React.FC<{ uid: string; profile: Partial<Profile> }> = ({ uid, profile }) => {
+    const save = useSaveStudentProfile(uid);
+    // objeto estável (a consulta mantém a mesma referência sem mudança): o formulário só recarrega o que mudou
+    const data = useMemo(() => ({ ...profile, user_uid: uid }) as Profile, [profile, uid]);
+    return <ProfileForm data={data} save={save} />;
+};
+
 const AccessEvents: React.FC<{ uid: string }> = ({ uid }) => {
     const events = useStudentAccessEvents(uid);
     if (events.isLoading) return null;
@@ -566,9 +639,10 @@ const AccessEvents: React.FC<{ uid: string }> = ({ uid }) => {
 };
 
 /**
- * Uma conta no Painel de Contas (ao lado da lista): quem é, acessar como o aluno, o acesso por produto (Total/Leitura,
- * origem e prazo), o programa (pausas/resets a mais; reset de fábrica, só o dono), Mercy Mode (só o dono), o registro
- * de cada mudança, o histórico do programa (o retrato noturno, só o dono) e a exclusão (só o dono).
+ * Uma conta no Painel de Contas (ao lado da lista): quem é, acessar como o aluno, o acesso por produto (Ativo/Leitura,
+ * origem e prazo), as compras e o LTV, o programa (pausas/resets a mais; reset de fábrica, só o dono), os dados do
+ * perfil (um Salvar), Mercy Mode (só o dono), o registro de cada mudança, o histórico do programa (o retrato noturno,
+ * só o dono) e a exclusão (só o dono).
  */
 export const StudentDetail: React.FC<{ uid: string; account?: AccountRow }> = ({ uid, account }) => {
     const access = useStudentAccess(uid);
@@ -577,9 +651,11 @@ export const StudentDetail: React.FC<{ uid: string; account?: AccountRow }> = ({
     const snapshot = history.data?.students.find((student) => student.uid === uid);
     const user = access.data?.user;
     // aberta fora da página atual da lista (Início, saída da impersonação): a linha (programa, pausas, resets) vem da
-    // busca pelo e-mail
-    const lookupEmail = account ? '' : (user?.email ?? '');
-    const lookup = useAdminAccounts({ q: lookupEmail, sort: { key: 'name', dir: 'asc' }, page: 1 }, !!lookupEmail);
+    // busca pelo uid, arquivadas incluídas
+    const lookup = useAdminAccounts(
+        { q: uid, todas: true, sort: { key: 'name', dir: 'asc' }, page: 1, pageSize: 25 },
+        !account,
+    );
     const row = account ?? lookup.data?.rows.find((candidate) => candidate.uid === uid);
     const name = user?.name || row?.name || snapshot?.name || user?.email || row?.email || snapshot?.email || 'Conta';
     const email = user?.email || row?.email || snapshot?.email;
@@ -661,6 +737,8 @@ export const StudentDetail: React.FC<{ uid: string; account?: AccountRow }> = ({
                 )}
             </section>
 
+            {access.data && <Purchases purchases={access.data.purchases ?? []} ltv={access.data.ltv} />}
+
             {program && (
                 <section aria-labelledby="as-program">
                     <div className="sh">
@@ -677,8 +755,17 @@ export const StudentDetail: React.FC<{ uid: string; account?: AccountRow }> = ({
                 </section>
             )}
 
+            {access.data?.profile && (
+                <section aria-labelledby="as-data">
+                    <div className="sh">
+                        <h2 id="as-data">Dados</h2>
+                    </div>
+                    <StudentProfile uid={uid} profile={access.data.profile} />
+                </section>
+            )}
+
             {!!realUid && MERCY_MODE_UIDS.includes(realUid) && (
-                <section aria-label="Gravações">
+                <section aria-labelledby="admin-mercy">
                     <MercyMode studentUid={uid} studentLabel={name} />
                 </section>
             )}

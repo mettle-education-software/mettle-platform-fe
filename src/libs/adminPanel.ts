@@ -1,9 +1,18 @@
-// Painel de Contas (/admin/contas, 10-Out-2026): a lista de todas as contas (todos os produtos) e o detalhe de cada uma
-// ao lado. Substitui /admin/historico, /admin/aluno/[uid], /admin/lixeira (agora um filtro, só do dono) e o painel
-// antigo (impersonar, segmentos, Mercy Mode). Fonte: GET /admin/accounts (admin-service); até ele sair, o retrato
-// noturno do histórico (Worker, só o dono). Testes: libs/__tests__/adminPanel.test.ts.
-import { PRODUCT_NAMES, type AccessStateNew, type Origin, type Product } from './adminAccess';
-import { historyStatusLabel, type HistoryStudent } from './adminHistory';
+// Painel de Contas v2 (/admin/contas, 10-Out-2026): a lista de todas as contas com o resumo de auditoria no topo
+// (números iguais aos do Início, cada um aplica o seu filtro), filtros no endereço (produto e estado, origem,
+// situação, arquivadas, Lixeira do dono), LTV e a conta ao lado. Fonte: GET /admin/accounts (admin-service).
+// Testes: libs/__tests__/adminPanel.test.ts.
+import {
+    type AccessStateNew,
+    brDay,
+    brToday,
+    inGrace,
+    type Origin,
+    ORIGINS,
+    PRODUCT_NAMES,
+    type Product,
+} from './adminAccess';
+import { historyStatusLabel } from './adminHistory';
 
 export const ADMIN_PANEL_PATH = '/admin/contas';
 /** O painel com o detalhe de uma conta aberto (links antigos, saída da impersonação, linhas do Início). */
@@ -18,14 +27,46 @@ export const ADMIN_NAV: readonly { key: string; label: string; href: string; own
     { key: 'leitura', label: 'Gestão de Leituras', href: '/admin/leitura', owner: true },
 ];
 
-export const PAGE_SIZE = 25;
-export type SortKey = 'name' | 'lastAccess' | 'expiry';
+export const PAGE_SIZES = [25, 50, 100] as const;
+export type PageSize = (typeof PAGE_SIZES)[number];
+export type SortKey = 'name' | 'lastAccess' | 'expiry' | 'ltv';
 export type Sort = { key: SortKey; dir: 'asc' | 'desc' };
+export type OriginFilter = Origin | 'aconfirmar';
+export type Situacao =
+    | 'vence30'
+    | 'carencia'
+    | 'semAcesso14'
+    | 'nuncaEntrou'
+    | 'dataAConfirmar'
+    | 'pausados'
+    | 'naoComecou'
+    | 'semProduto';
+
+export const ORIGIN_FILTERS: { value: OriginFilter; label: string }[] = [
+    { value: 'compra', label: 'Compra' },
+    { value: 'cortesia', label: 'Cortesia' },
+    { value: 'parceiro', label: 'Parceiro' },
+    { value: 'equipe', label: 'Equipe' },
+    { value: 'vitalicio', label: 'Vitalício' },
+    { value: 'aconfirmar', label: 'A confirmar' },
+];
+export const SITUACOES: { value: Situacao; label: string }[] = [
+    { value: 'vence30', label: 'Vence em 30 dias' },
+    { value: 'carencia', label: 'Em carência' },
+    { value: 'semAcesso14', label: 'Sem acessar 14+ dias' },
+    { value: 'nuncaEntrou', label: 'Nunca entrou' },
+    { value: 'dataAConfirmar', label: 'Data a confirmar' },
+    { value: 'pausados', label: 'Pausados' },
+    { value: 'naoComecou', label: 'Não começou' },
+    { value: 'semProduto', label: 'Sem produto' },
+];
 
 export interface ProductAccessSummary {
     state: AccessStateNew;
     origin: Origin | null;
+    plan: string | null;
     validUntil: string | null;
+    graceUntil: string | null;
     dateToConfirm: boolean;
 }
 
@@ -33,8 +74,10 @@ export interface AccountRow {
     uid: string;
     name: string | null;
     email: string | null;
+    phone: string | null;
     photoURL: string | null;
-    /** null: sem a informação (retrato noturno, antes do endpoint) */
+    /** conta da equipe (selo "Equipe") */
+    team: boolean;
     access: Record<Product, ProductAccessSummary> | null;
     program: {
         melpStatus: string;
@@ -45,99 +88,146 @@ export interface AccountRow {
     lastAccess: string | null;
     hasLogin: boolean | null;
     inTrash: boolean;
+    /** LTV: total em R$ e quantas compras; null = não veio */
+    ltv: { total: number | null; compras: number | null } | null;
+    status: string | null;
+    lastPurchase: string | null;
+}
+
+/** Resumo de auditoria (a base inteira, independente da página e dos filtros); null = não veio. */
+export interface AccountsSummary {
+    contas: number | null;
+    imerso: { ativo: number | null; leitura: number | null };
+    masterclass: { ativo: number | null; leitura: number | null };
+    ebook: { ativo: number | null; leitura: number | null };
+    semProduto: number | null;
+    /** só do dono; null para os outros */
+    lixeira: number | null;
+    arquivadas: number | null;
 }
 
 export interface AccountsPage {
     rows: AccountRow[];
     total: number;
-    /** veio do retrato noturno (sem acesso por produto nem último acesso) */
-    snapshot: boolean;
+    summary: AccountsSummary | null;
 }
 
 export interface AccountsQuery {
     product?: Product;
     state?: AccessStateNew;
+    origin?: OriginFilter;
+    situacao?: Situacao;
+    /** incluir arquivadas (scope=todas) */
+    todas?: boolean;
     q?: string;
     sort: Sort;
     page: number;
+    pageSize: PageSize;
 }
 
 const PRODUCTS: readonly Product[] = ['imerso', 'masterclass', 'ebook'];
-const SORT_KEYS: readonly SortKey[] = ['name', 'lastAccess', 'expiry'];
+const SORT_KEYS: readonly SortKey[] = ['name', 'lastAccess', 'expiry', 'ltv'];
+const STATES: readonly string[] = ['ativo', 'leitura', 'none'];
 
-/** Filtros vindos do endereço (o Início abre "ver todos" já filtrado); valor desconhecido é ignorado. */
-export const queryFromUrl = (params: URLSearchParams | null): Omit<AccountsQuery, 'page'> & { trash: boolean } => {
+/** O que fica no endereço (recarregar mantém; links do Início e da Lixeira chegam filtrados). */
+export interface ContasView {
+    product?: Product;
+    state?: AccessStateNew;
+    origin?: OriginFilter;
+    situacao?: Situacao;
+    todas?: boolean;
+    /** busca (nome, e-mail, telefone ou uid) */
+    q?: string;
+    sort?: SortKey;
+    dir?: 'asc' | 'desc';
+    pageSize?: PageSize;
+    lixeira?: boolean;
+    conta?: string | null;
+}
+
+/** Filtros vindos do endereço; valor desconhecido é ignorado. */
+export const queryFromUrl = (
+    params: URLSearchParams | null,
+): Required<Pick<ContasView, 'sort' | 'dir' | 'pageSize'>> & ContasView & { trash: boolean } => {
     const product = params?.get('product') as Product | null;
-    const state = params?.get('state') as AccessStateNew | null;
+    const state = params?.get('state');
+    const origin = params?.get('origin');
+    const situacao = params?.get('situacao');
     const sort = params?.get('sort') as SortKey | null;
+    const size = Number(params?.get('pageSize'));
     const okProduct = product && PRODUCTS.includes(product) ? product : undefined;
     return {
         product: okProduct,
-        state: okProduct && state && ['ativo', 'leitura', 'none'].includes(state) ? state : undefined,
+        state: okProduct && state && STATES.includes(state) ? (state as AccessStateNew) : undefined,
+        origin: ORIGIN_FILTERS.some((o) => o.value === origin) ? (origin as OriginFilter) : undefined,
+        situacao: SITUACOES.some((s) => s.value === situacao) ? (situacao as Situacao) : undefined,
+        todas: params?.get('scope') === 'todas',
         q: params?.get('q')?.slice(0, 100) || undefined,
-        sort: {
-            key: sort && SORT_KEYS.includes(sort) ? sort : 'name',
-            dir: params?.get('dir') === 'desc' ? 'desc' : 'asc',
-        },
+        sort: sort && SORT_KEYS.includes(sort) ? sort : 'name',
+        dir: params?.get('dir') === 'desc' ? 'desc' : 'asc',
+        pageSize: (PAGE_SIZES as readonly number[]).includes(size) ? (size as PageSize) : 25,
         trash: params?.get('lixeira') === '1',
     };
 };
 
-/**
- * Endereço do Contas: filtros, ordem, Lixeira e a conta aberta ficam no endereço (recarregar mantém; os "ver todos" do
- * Início e o link da Lixeira chegam já filtrados). O padrão (conta, crescente) fica de fora.
- */
-export const contasPath = (view: {
-    product?: Product;
-    state?: AccessStateNew;
-    sort?: SortKey;
-    dir?: 'asc' | 'desc';
-    lixeira?: boolean;
-    conta?: string | null;
-}) => {
+/** Endereço do Contas a partir da vista (o padrão fica de fora: nome crescente, 25 por página, só contas). */
+export const contasPath = (view: ContasView) => {
     const params = new URLSearchParams();
     if (view.lixeira) params.set('lixeira', '1');
     else {
         if (view.product) params.set('product', view.product);
         if (view.product && view.state) params.set('state', view.state);
+        if (view.origin) params.set('origin', view.origin);
+        if (view.situacao) params.set('situacao', view.situacao);
+        if (view.todas) params.set('scope', 'todas');
+        if (view.q?.trim()) params.set('q', view.q.trim().slice(0, 100));
         if (view.sort && view.sort !== 'name') params.set('sort', view.sort);
         if (view.dir === 'desc') params.set('dir', 'desc');
+        if (view.pageSize && view.pageSize !== 25) params.set('pageSize', String(view.pageSize));
     }
     if (view.conta) params.set('conta', view.conta);
     const qs = params.toString();
     return qs ? `${ADMIN_PANEL_PATH}?${qs}` : ADMIN_PANEL_PATH;
 };
 
-export const productName = (product: Product) => PRODUCT_NAMES[product];
-
 const num = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
 const text = (value: unknown) => (typeof value === 'string' && value ? value : null);
-const STATES: readonly string[] = ['ativo', 'leitura', 'none'];
+const obj = (value: unknown): Record<string, unknown> =>
+    value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 
-const summary = (raw: unknown): ProductAccessSummary => {
-    const a = (raw ?? {}) as Record<string, unknown>;
+const productSummary = (raw: unknown): ProductAccessSummary => {
+    const a = obj(raw);
     return {
         state: (STATES.includes(a.state as string) ? a.state : 'none') as AccessStateNew,
         origin: (text(a.origin) as Origin | null) ?? null,
+        plan: text(a.plan),
         validUntil: text(a.validUntil),
+        graceUntil: text(a.graceUntil),
         dateToConfirm: a.dateToConfirm === true,
     };
 };
 
 /** Linha de GET /admin/accounts, conferida (campos ausentes viram null; programa em camelCase ou snake_case). */
 export const accountRow = (raw: unknown): AccountRow | null => {
-    const r = (raw ?? {}) as Record<string, unknown>;
+    const r = obj(raw);
     const uid = text(r.uid);
     if (!uid) return null;
-    const access = (r.access ?? null) as Record<string, unknown> | null;
-    const p = (r.program ?? null) as Record<string, unknown> | null;
+    const access = r.access && typeof r.access === 'object' ? obj(r.access) : null;
+    const p = r.program && typeof r.program === 'object' ? obj(r.program) : null;
+    const ltv = r.ltv && typeof r.ltv === 'object' ? obj(r.ltv) : null;
     return {
         uid,
         name: text(r.name),
         email: text(r.email),
+        phone: text(r.phone),
         photoURL: text(r.photoURL),
+        team: r.team === true,
         access: access
-            ? { imerso: summary(access.imerso), masterclass: summary(access.masterclass), ebook: summary(access.ebook) }
+            ? {
+                  imerso: productSummary(access.imerso),
+                  masterclass: productSummary(access.masterclass),
+                  ebook: productSummary(access.ebook),
+              }
             : null,
         program: p
             ? {
@@ -150,72 +240,142 @@ export const accountRow = (raw: unknown): AccountRow | null => {
         lastAccess: text(r.lastAccess),
         hasLogin: typeof r.hasLogin === 'boolean' ? r.hasLogin : null,
         inTrash: r.inTrash === true,
+        ltv: ltv ? { total: num(ltv.total), compras: num(ltv.compras) } : null,
+        status: text(r.status),
+        lastPurchase: text(r.lastPurchase),
+    };
+};
+
+/** O resumo de auditoria da resposta; null quando não veio. */
+export const readSummary = (raw: unknown): AccountsSummary | null => {
+    if (!raw || typeof raw !== 'object') return null;
+    const s = obj(raw);
+    const pair = (value: unknown) => ({ ativo: num(obj(value).ativo), leitura: num(obj(value).leitura) });
+    return {
+        contas: num(s.contas),
+        imerso: pair(s.imerso),
+        masterclass: pair(s.masterclass),
+        ebook: pair(s.ebook),
+        semProduto: num(s.semProduto),
+        lixeira: num(s.lixeira),
+        arquivadas: num(s.arquivadas),
     };
 };
 
 /** Parâmetros de GET /admin/accounts (estado só com o produto, como o servidor exige). */
-export const accountsParams = ({ product, state, q, sort, page }: AccountsQuery) => ({
+export const accountsParams = ({
+    product,
+    state,
+    origin,
+    situacao,
+    todas,
+    q,
+    sort,
+    page,
+    pageSize,
+}: AccountsQuery) => ({
     ...(product ? { product } : {}),
     ...(product && state ? { state } : {}),
+    ...(origin ? { origin } : {}),
+    ...(situacao ? { situacao } : {}),
+    scope: todas ? 'todas' : 'contas',
     ...(q?.trim() ? { q: q.trim().slice(0, 100) } : {}),
     sort: sort.key,
     dir: sort.dir,
     page,
-    pageSize: PAGE_SIZE,
+    pageSize,
 });
 
-const fold = (value: string) => value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('pt-BR');
-
-/**
- * Retrato noturno (só o dono) no formato da lista, enquanto GET /admin/accounts não sai: só alunos do Imerso, sem acesso
- * por produto nem último acesso; busca e ordem por nome aqui, e a página também.
- */
-export const snapshotPage = (students: HistoryStudent[], { q, sort, page }: AccountsQuery): AccountsPage => {
-    const query = q?.trim() ? fold(q.trim()) : '';
-    const rows = students
-        .filter((s) => !query || fold(`${s.name} ${s.email}`).includes(query))
-        .sort((a, b) => {
-            const x = fold(a.name || a.email);
-            const y = fold(b.name || b.email);
-            return (x < y ? -1 : x > y ? 1 : 0) * (sort.key === 'name' && sort.dir === 'desc' ? -1 : 1);
-        })
-        .map(
-            (s): AccountRow => ({
-                uid: s.uid,
-                name: s.name || null,
-                email: s.email || null,
-                photoURL: null,
-                access: null,
-                program: {
-                    melpStatus: s.status,
-                    lampWeek: s.lampWeek,
-                    remainingPauses: s.pausesLeft,
-                    remainingResets: s.resetsLeft,
-                },
-                lastAccess: null,
-                hasLogin: null,
-                inTrash: false,
-            }),
-        );
-    const start = (page - 1) * PAGE_SIZE;
-    return { rows: rows.slice(start, start + PAGE_SIZE), total: rows.length, snapshot: true };
-};
-
-/** Estado do programa em uma palavra (mesma tabela do histórico) e a semana da LAMP, quando houver. */
+/** Estado do programa: "Sem. 12", "Pausado", "Não começou", "Formado", "Suspenso" ou "—". */
 export const programLabel = (program: AccountRow['program']) => {
-    if (!program?.melpStatus) return '—';
-    const label = historyStatusLabel(program.melpStatus);
-    return program.lampWeek ? `${label} · sem. ${program.lampWeek}` : label;
+    const status = program?.melpStatus;
+    if (!status) return '—';
+    if (status === 'DEDA_STARTED') return program?.lampWeek ? `Sem. ${program.lampWeek}` : 'Em andamento';
+    if (status === 'DEDA_PAUSED') return 'Pausado';
+    if (['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN', 'WEEK_ZERO'].includes(status)) return 'Não começou';
+    return historyStatusLabel(status);
 };
 
-/** Último acesso em DD/MM/AAAA (Brasília). */
+/** Último acesso em DD/MM/AAAA (Brasília); sem nenhum, "nunca entrou". */
 export const lastAccessLabel = (at: string | null) => {
     const date = at ? new Date(at) : null;
     return date && !Number.isNaN(date.getTime())
         ? date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
-        : '—';
+        : 'nunca entrou';
 };
 
-/** Selo curto de cada produto na lista: T (Total), L (Leitura) ou nada. */
+/** Selo de cada produto na lista: Ativo, Leitura ou nada (nunca "Total"). */
 export const accessBadge = (summary: ProductAccessSummary | undefined) =>
-    summary?.state === 'ativo' ? 'Total' : summary?.state === 'leitura' ? 'Leitura' : null;
+    summary?.state === 'ativo' ? 'Ativo' : summary?.state === 'leitura' ? 'Leitura' : null;
+
+/**
+ * Linha miúda sob o selo: plano ou origem e o fim ("Anual · até 22/04/2027", "Parceiro", "Vitalício"); em carência, o
+ * fim dela ("Anual · carência até 11/10/2026"), nunca o prazo antigo.
+ */
+export const accessDetail = (summary: ProductAccessSummary | undefined, today = brToday()) => {
+    if (!summary || summary.state === 'none') return null;
+    const vital = summary.origin === 'vitalicio' || /vital/i.test(summary.plan ?? '');
+    const what = vital
+        ? 'Vitalício'
+        : (summary.origin === 'compra' && summary.plan) || ORIGINS.find((o) => o.value === summary.origin)?.label;
+    if (!vital && inGrace(summary, today))
+        return [what, `carência até ${brDay(summary.graceUntil?.slice(0, 10))}`].filter(Boolean).join(' · ');
+    const until = !vital && !summary.dateToConfirm ? brDay(summary.validUntil?.slice(0, 10)) : '—';
+    return [what, until !== '—' && `até ${until}`].filter(Boolean).join(' · ') || null;
+};
+
+/** R$ 1.234,56 (ou "—"). */
+export const brl = (value: number | null | undefined) =>
+    typeof value === 'number'
+        ? value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 })
+        : '—';
+
+export const productName = (product: Product) => PRODUCT_NAMES[product];
+
+// ---------- CSV (só o dono): a lista do filtro atual, página por página ----------
+
+const CSV_HEADER = [
+    'uid',
+    'nome',
+    'e-mail',
+    'telefone',
+    'equipe',
+    'imerso',
+    'imerso_detalhe',
+    'masterclass',
+    'masterclass_detalhe',
+    'ebook',
+    'ebook_detalhe',
+    'programa',
+    'ultimo_acesso',
+    'ltv_total',
+    'ltv_compras',
+    'na_lixeira',
+];
+const cell = (value: unknown) => {
+    const s = value === null || value === undefined ? '' : String(value);
+    // planilha não executa fórmula vinda de dado (=, +, -, @); aspas duplicadas
+    const safe = /^[=+\-@]/.test(s) ? `'${s}` : s;
+    return /[",;\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+};
+export const accountsCsv = (rows: AccountRow[]) =>
+    [
+        CSV_HEADER.join(','),
+        ...rows.map((row) =>
+            [
+                row.uid,
+                row.name,
+                row.email,
+                row.phone,
+                row.team ? 'sim' : '',
+                ...PRODUCTS.flatMap((p) => [accessBadge(row.access?.[p]) ?? '', accessDetail(row.access?.[p]) ?? '']),
+                programLabel(row.program),
+                row.lastAccess ? lastAccessLabel(row.lastAccess) : 'nunca entrou',
+                row.ltv?.total ?? '',
+                row.ltv?.compras ?? '',
+                row.inTrash ? 'sim' : '',
+            ]
+                .map(cell)
+                .join(','),
+        ),
+    ].join('\r\n');

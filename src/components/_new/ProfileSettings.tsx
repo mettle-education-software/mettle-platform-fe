@@ -1,3 +1,4 @@
+import { css, Global } from '@emotion/react';
 import { Button, Input, Modal } from 'antd';
 import type { InputRef } from 'antd';
 import { useProfile, useSaveProfile, useSaveProfilePhoto } from 'hooks/useProfile';
@@ -51,6 +52,46 @@ const CROP_BOX: React.CSSProperties = {
     background: '#111',
 };
 
+/** O formulário leva o próprio estilo (Configurações e a conta no Admin): rótulos acima, duas colunas no computador. */
+const formStyles = css`
+    .pf-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px 18px;
+    }
+    .pf-field {
+        min-width: 0;
+    }
+    .pf-field label {
+        display: block;
+        margin: 0 0 6px 2px;
+        font-size: 13px;
+        color: var(--r-muted);
+    }
+    .pf-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px 16px;
+        margin-top: 20px;
+    }
+    .pf-actions .profile-error {
+        margin: 0;
+    }
+    @media (max-width: 860px) {
+        .pf-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+`;
+
+/** Quem grava: o próprio aluno (useSaveProfile) ou o administrador (useSaveStudentProfile); devolvem o que ficou salvo. */
+export type SaveProfile = {
+    mutateAsync: (changes: Partial<ProfileValues>) => Promise<{ saved: Partial<Profile> }>;
+    isPending: boolean;
+};
+
 const savedValues = (data: Profile) =>
     Object.fromEntries(PROFILE_FIELDS.map(({ key }) => [key, fieldValue(key, data[key])])) as ProfileValues;
 
@@ -59,8 +100,7 @@ const savedValues = (data: Profile) =>
  * mudou, erros embaixo de cada campo e o primeiro inválido em foco. Valor novo vindo de fora (outra sessão,
  * administrador) entra só no campo que o aluno não está editando.
  */
-const ProfileForm: React.FC<{ data: Profile }> = ({ data }) => {
-    const mutation = useSaveProfile();
+export const ProfileForm: React.FC<{ data: Profile; save: SaveProfile }> = ({ data, save: mutation }) => {
     const saved = useMemo(() => savedValues(data), [data]);
     const [values, setValues] = useState<ProfileValues>(saved);
     const [errors, setErrors] = useState<Partial<Record<ProfileField, string>>>({});
@@ -135,6 +175,7 @@ const ProfileForm: React.FC<{ data: Profile }> = ({ data }) => {
 
     return (
         <form className="card pf" noValidate onSubmit={submit}>
+            <Global styles={formStyles} />
             <div className="pf-grid">
                 {PROFILE_FIELDS.map(({ key, label, maxLength }) => {
                     const id = `profile-${key}`;
@@ -389,6 +430,7 @@ export const ProfileIdentity: React.FC = () => {
 export const ProfileDataCard: React.FC = () => {
     const { user } = useAppContext();
     const profile = useProfile();
+    const save = useSaveProfile();
     if (!profile.data)
         return (
             <p className="hint" role="status">
@@ -402,7 +444,7 @@ export const ProfileDataCard: React.FC = () => {
                 )}
             </p>
         );
-    return <ProfileForm key={user?.uid} data={profile.data} />;
+    return <ProfileForm key={user?.uid} data={profile.data} save={save} />;
 };
 
 /** Cabeçalho e dados (usado nos testes do perfil). */

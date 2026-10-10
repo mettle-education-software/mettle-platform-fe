@@ -178,3 +178,19 @@ test('valor novo de fora: o campo em edição fica como o aluno digitou; os outr
     expect(field('last_name').value).toBe('Souza');
     act(() => root.unmount());
 });
+
+test('administrador (conta no Admin): o mesmo formulário, gravado por ele — só o que mudou, num pedido', async () => {
+    const { ProfileForm } = jest.requireActual('../../components/_new/ProfileSettings');
+    const adminSave = { mutateAsync: jest.fn().mockResolvedValue({ saved: { city: 'Recife' } }), isPending: false };
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    act(() => root.render(createElement(ProfileForm, { data: BASE, save: adminSave })));
+    type(host.querySelector('#profile-city') as HTMLInputElement, 'Recife');
+    await submit(host);
+    expect(adminSave.mutateAsync).toHaveBeenCalledTimes(1);
+    expect(adminSave.mutateAsync).toHaveBeenCalledWith({ city: 'Recife' });
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(host.querySelector('[role="status"]')?.textContent).toBe('Salvo');
+    act(() => root.unmount());
+});

@@ -53,7 +53,7 @@ describe('prazo por origem', () => {
 });
 
 describe('PUT do rascunho', () => {
-    it('sem acesso: nada escolhido (nem Total nem Leitura) e sem origem não grava', () => {
+    it('sem acesso: nada escolhido (nem Ativo nem Leitura) e sem origem não grava', () => {
         const none = row({ state: 'none', origin: null, validUntil: null });
         expect(draftOf(none).state).toBeNull();
         expect(accessBody(draftOf(none), none)).toBeNull();
@@ -62,7 +62,7 @@ describe('PUT do rascunho', () => {
             state: 'ativo',
             origin: 'parceiro',
         });
-        // nada escolhido ainda não é mudança (o Salvar não aparece); escolher Total é
+        // nada escolhido ainda não é mudança (o Salvar não aparece); escolher Ativo é
         expect(isDirty(draftOf(none), none)).toBe(false);
         expect(isDirty({ ...draftOf(none), state: 'ativo' }, none)).toBe(true);
     });
@@ -130,7 +130,7 @@ describe('PUT do rascunho', () => {
 describe('prazo vencido (o servidor recusaria com ALREADY_EXPIRED)', () => {
     const today = '2026-10-10';
 
-    it('cortesia vencida em Leitura → Total sem prazo novo: não grava e diz o que falta', () => {
+    it('cortesia vencida em Leitura → Ativo sem prazo novo: não grava e diz o que falta', () => {
         const ended = row({ state: 'leitura', origin: 'cortesia', validUntil: '2026-09-30', graceUntil: null });
         const draft = { ...draftOf(ended), state: 'ativo' as const };
         expect(termProblem(draft, ended, today)).toBe('Prazo vencido: escolha um prazo novo.');
@@ -172,19 +172,25 @@ describe('selos, registro e textos', () => {
         expect(accessBadges(row({ origin: 'cortesia', validUntil: '2027-01-10' }))).toEqual([
             'cortesia até 10/01/2027',
         ]);
-        expect(accessBadges(row())).toEqual([]);
+        expect(accessBadges(row(), '2026-10-10')).toEqual([]);
+        // carência: o prazo passou e ela ainda vale; antes do prazo ou depois dela, nada
+        const grace = row({ origin: 'compra', validUntil: '2024-05-12', graceUntil: '2026-10-11' });
+        expect(accessBadges(grace, '2026-10-10')).toEqual(['carência até 11/10/2026']);
+        expect(accessBadges(grace, '2026-10-12')).toEqual([]);
+        expect(accessBadges({ ...grace, validUntil: '2026-10-30' }, '2026-10-10')).toEqual([]);
+        expect(accessBadges({ ...grace, state: 'leitura' }, '2026-10-10')).toEqual([]);
     });
 
     it('antes e depois de cada mudança', () => {
         expect(accessLabel(null)).toBe('Sem acesso');
         expect(accessLabel({ state: 'ativo', origin: 'cortesia', valid_until: '2027-01-10' })).toBe(
-            'Total · Cortesia até 10/01/2027',
+            'Ativo · Cortesia até 10/01/2027',
         );
         expect(accessLabel({ state: 'ativo', origin: 'compra', date_to_confirm: true })).toBe(
-            'Total · Compra, data a confirmar',
+            'Ativo · Compra, data a confirmar',
         );
         expect(accessLabel({ state: 'leitura', origin: null })).toBe('Leitura · origem a confirmar');
-        expect(accessLabel({ state: 'ativo', origin: 'vitalicio' })).toBe('Total · Vitalício');
+        expect(accessLabel({ state: 'ativo', origin: 'vitalicio' })).toBe('Ativo · Vitalício');
     });
 
     it('quem mudou: nome, rotina/carga/compra, ou equipe', () => {

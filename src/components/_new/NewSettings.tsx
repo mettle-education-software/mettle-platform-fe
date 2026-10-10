@@ -10,6 +10,7 @@ import { useProfile } from 'hooks/useProfile';
 import { passwordRules, saoPauloWeekday } from 'libs';
 import {
     authCode,
+    clearAdminMfa,
     cleanCode,
     disableTotp,
     enrolledOn,
@@ -665,6 +666,7 @@ const TwoFactorRow: React.FC = () => {
         setError(null);
         try {
             await finishTotpEnrollment(account, setup.secret, code);
+            clearAdminMfa();
             setOpen(false);
             setSetup(null);
             setDone('Verificação em duas etapas ativada.');
@@ -708,13 +710,17 @@ const TwoFactorRow: React.FC = () => {
                     ),
         });
     const leave = () => void signOut(auth).then(() => window.location.assign('/login'));
-    const verifyEmail = () =>
-        void sendEmailVerification(account)
+    const verifyEmail = () => {
+        if (busy) return; // dois toques não mandam dois e-mails
+        setBusy(true);
+        sendEmailVerification(account)
             .then(() => {
                 setError(null);
                 setInfo('Enviamos um e-mail de confirmação. Confirme e toque em Ativar de novo.');
             })
-            .catch(fail);
+            .catch(fail)
+            .finally(() => setBusy(false));
+    };
 
     return (
         <div className="cr">
@@ -773,7 +779,6 @@ const TwoFactorRow: React.FC = () => {
                             <div className="mfa-code">
                                 <Input
                                     ref={codeInput}
-                                    autoFocus
                                     inputMode="numeric"
                                     autoComplete="one-time-code"
                                     aria-label="Código de 6 dígitos"
@@ -793,7 +798,8 @@ const TwoFactorRow: React.FC = () => {
                             </div>
                         </>
                     ) : (
-                        !error && (
+                        !error &&
+                        !info && (
                             <p className="cr-sub" role="status">
                                 Preparando…
                             </p>
@@ -811,7 +817,9 @@ const TwoFactorRow: React.FC = () => {
                     )}
                     {error?.code === MFA_CODES.recentLogin && <Button onClick={leave}>Sair e entrar de novo</Button>}
                     {error?.code === MFA_CODES.unverifiedEmail && (
-                        <Button onClick={verifyEmail}>Enviar e-mail de confirmação</Button>
+                        <Button loading={busy} onClick={verifyEmail}>
+                            Enviar e-mail de confirmação
+                        </Button>
                     )}
                 </div>
             </Modal>

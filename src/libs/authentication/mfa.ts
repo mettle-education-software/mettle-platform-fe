@@ -20,11 +20,19 @@ export const MFA_REQUIRED = 'auth/multi-factor-auth-required';
 export const ADMIN_MFA_CODE = 'MFA_REQUIRED';
 export const ADMIN_MFA_EVENT = 'mettle:admin-mfa-required';
 let adminMfaMissing = false;
+const emitAdminMfa = (value: boolean) => {
+    adminMfaMissing = value;
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(ADMIN_MFA_EVENT));
+};
 /** Algum pedido do Admin foi recusado por falta do segundo fator (vale para quem montar depois). */
 export const adminMfaRequired = () => adminMfaMissing;
-export const flagAdminMfa = () => {
-    adminMfaMissing = true;
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(ADMIN_MFA_EVENT));
+export const flagAdminMfa = () => emitAdminMfa(true);
+/** Ativou o segundo fator ou saiu da conta: o aviso some até o próximo 403. */
+export const clearAdminMfa = () => emitAdminMfa(false);
+/** Para useSyncExternalStore: avisa quem mostra o aviso quando ele liga ou desliga. */
+export const onAdminMfa = (listener: () => void) => {
+    window.addEventListener(ADMIN_MFA_EVENT, listener);
+    return () => window.removeEventListener(ADMIN_MFA_EVENT, listener);
 };
 
 /** Códigos do Firebase usados aqui (os mesmos de AuthErrorCodes do SDK 10). */

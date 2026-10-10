@@ -48,8 +48,24 @@ test('Admin sem o segundo fator (403 MFA_REQUIRED): o aviso do Admin é avisado;
         .fn()
         .mockRejectedValueOnce(refuse('MFA_REQUIRED'))
         .mockRejectedValueOnce(refuse('NO_ACCESS'));
-    await expect(client.get('/accounts')).rejects.toBeTruthy();
+    // a recusa original segue para quem pediu (a tela mostra o erro dela); só o aviso é ligado
+    await expect(client.get('/accounts')).rejects.toMatchObject({
+        response: { status: 403, data: { code: 'MFA_REQUIRED' } },
+    });
     expect(mockFlagAdminMfa).toHaveBeenCalledTimes(1);
-    await expect(client.get('/accounts')).rejects.toBeTruthy();
+    await expect(client.get('/accounts')).rejects.toMatchObject({ response: { data: { code: 'NO_ACCESS' } } });
+    expect(mockFlagAdminMfa).toHaveBeenCalledTimes(1);
+});
+
+test('cliente do melp (guardião de acesso + aviso do Admin): a recusa MFA_REQUIRED chega inteira e liga o aviso', async () => {
+    mockFlagAdminMfa.mockClear();
+    const client = new ApiClient('melp');
+    client.client.defaults.adapter = jest.fn().mockRejectedValueOnce(
+        Object.assign(new Error('403'), {
+            isAxiosError: true,
+            response: { status: 403, data: { code: 'MFA_REQUIRED' } },
+        }),
+    );
+    await expect(client.get('/x')).rejects.toMatchObject({ response: { status: 403, data: { code: 'MFA_REQUIRED' } } });
     expect(mockFlagAdminMfa).toHaveBeenCalledTimes(1);
 });

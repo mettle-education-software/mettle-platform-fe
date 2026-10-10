@@ -3,11 +3,12 @@
 import { css, Global } from '@emotion/react';
 import { auth } from 'config/firebase';
 import { ADMIN_NAV } from 'libs/adminPanel';
-import { ADMIN_MFA_EVENT, adminMfaRequired } from 'libs/authentication/mfa';
+import { handleLogout } from 'libs/authentication/handleLogout';
+import { adminMfaRequired, onAdminMfa, totpFactors } from 'libs/authentication/mfa';
 import { isLeituraOwner } from 'libs/leitura';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useSyncExternalStore } from 'react';
 
 /** Botões de filtro do Admin (Contas e o período do Início). */
 export const chipStyles = css`
@@ -69,12 +70,9 @@ export const AdminNav: React.FC = () => {
     const pathname = usePathname() ?? '';
     const owner = isLeituraOwner(auth.currentUser?.uid);
     // o servidor recusou o Admin por falta do segundo fator: uma linha calma com o caminho
-    const [mfa, setMfa] = useState(adminMfaRequired);
-    useEffect(() => {
-        const on = () => setMfa(true);
-        window.addEventListener(ADMIN_MFA_EVENT, on);
-        return () => window.removeEventListener(ADMIN_MFA_EVENT, on);
-    }, []);
+    const mfa = useSyncExternalStore(onAdminMfa, adminMfaRequired, adminMfaRequired);
+    // já ativou e o servidor ainda recusa: a sessão é de antes do código (falta entrar de novo com ele)
+    const enrolled = mfa && !!auth.currentUser && totpFactors(auth.currentUser).length > 0;
     return (
         <>
             <nav className="admin-nav" aria-label="Admin">
@@ -89,13 +87,23 @@ export const AdminNav: React.FC = () => {
                 })}
             </nav>
             {mfa && (
-                <div className="notice" role="alert">
+                <div className="notice" role="status">
                     <div>
-                        <b>Ative a verificação em duas etapas em Configurações para usar o Admin.</b>
+                        <b>
+                            {enrolled
+                                ? 'Saia e entre de novo com o código do app para usar o Admin.'
+                                : 'Ative a verificação em duas etapas em Configurações para usar o Admin.'}
+                        </b>
                     </div>
-                    <Link className="btn line" href="/settings">
-                        Configurações
-                    </Link>
+                    {enrolled ? (
+                        <button type="button" className="btn line" onClick={() => void handleLogout()}>
+                            Sair
+                        </button>
+                    ) : (
+                        <Link className="btn line" href="/settings">
+                            Configurações
+                        </Link>
+                    )}
                 </div>
             )}
         </>

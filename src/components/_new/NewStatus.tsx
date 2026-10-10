@@ -56,6 +56,17 @@ const Box = styled.div`
     .btn {
         margin-top: 14px;
     }
+    /* mais de uma ação: lado a lado (quebram para baixo no celular) */
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 14px;
+    }
+    .row .btn {
+        margin-top: 0;
+    }
 `;
 
 /** Carregando (plataforma nova): só o símbolo, respirando. */

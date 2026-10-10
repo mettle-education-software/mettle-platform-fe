@@ -13,6 +13,7 @@ import {
     EBOOK_PATH,
     EBOOK_POSITION_URL,
     EBOOK_PRODUCT,
+    EBOOK_RENEW_URL,
     EBOOK_SALES_URL,
     type EbookBook,
     type EbookBookmark,
@@ -57,7 +58,7 @@ import { NewPage } from './NewPage';
  * de letra, tamanho e janela. Marcas por usuário no Worker (mettle-events, D1), com fila no aparelho se a rede falhar.
  */
 
-type Load = { state: 'loading' } | { state: 'error'; noAccess: boolean } | { state: 'ready'; book: EbookBook };
+type Load = { state: 'loading' } | { state: 'error' } | { state: 'ready'; book: EbookBook };
 type Theme = 'light' | 'sepia' | 'dark' | 'night';
 type Panel = null | 'toc' | 'bm' | 'hl' | 'aa' | 'search';
 type Anchor = { ci: number; o: number };
@@ -366,9 +367,9 @@ export const NewEbookReader: React.FC = () => {
                 setLoad({ state: 'ready', book: b });
                 flushOutbox(b.save);
             })
-            .catch((e: Error) => {
+            .catch(() => {
                 fetched.current = false;
-                setLoad({ state: 'error', noAccess: e.message === '403' });
+                setLoad({ state: 'error' });
             });
     }, [user, open]);
 
@@ -812,7 +813,9 @@ export const NewEbookReader: React.FC = () => {
         return (
             <NewPage className="narrow">
                 {(load.state === 'error' || !open) && user ? (
-                    !open || (load.state === 'error' && load.noAccess) ? (
+                    // compra/renovação só quando o acesso diz que não pode; com acesso e o servidor recusando (o acesso
+                    // ainda chegando ao Worker), a linha neutra com o caminho para /guia — nunca "Desbloquear" a quem tem
+                    !open ? (
                         // a mesma frase e a mesma ação de /guia (PF2-09): Leitura = terminou + Renovar
                         <State role="status">
                             <p>
@@ -820,7 +823,7 @@ export const NewEbookReader: React.FC = () => {
                                     ? 'O seu acesso a este e-book terminou.'
                                     : 'Este e-book não faz parte da sua conta.'}
                             </p>
-                            <a href={EBOOK_SALES_URL} className="btn gold">
+                            <a href={ebookState === 'expired' ? EBOOK_RENEW_URL : EBOOK_SALES_URL} className="btn gold">
                                 {ebookState === 'expired' ? 'Renovar' : 'Desbloquear'}
                             </a>
                         </State>
@@ -1246,6 +1249,9 @@ const State = styled.div`
         max-width: 100%;
         height: auto;
         white-space: normal;
+        /* em duas linhas, o botão respira (sem as linhas coladas na borda) */
+        line-height: 1.3;
+        padding-block: 10px;
     }
 `;
 

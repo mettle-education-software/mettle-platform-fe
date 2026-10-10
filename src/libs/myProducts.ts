@@ -1,9 +1,7 @@
 // "Meus produtos" nas Configurações (desenho de 10-Out-2026): só do modelo de acesso (GET /accounts/me, accessDetails),
 // nunca do catálogo de cursos em cache (abrir a página direto não pode sumir com a Masterclass). Para o aluno: nada de
 // "a confirmar" nem de origem desconhecida. Testes: libs/__tests__/myProducts.test.ts.
-import { EBOOK_SALES_URL } from './ebook';
-import { MASTERCLASS_SALES_URL } from './masterclass';
-import { IMERSO_PRODUCT, RENEWAL_URLS } from './productAccess';
+import { EBOOK_RENEW_URL, IMERSO_RENEW_URL, MASTERCLASS_RENEW_URL } from './checkout';
 
 /** Linha de `accessDetails` (accessDto do servidor); `firstPurchase` chega depois (mostrado só se vier). */
 export interface MyAccessRow {
@@ -34,9 +32,9 @@ export interface ProductLine {
 
 const NAMES: Record<string, string> = { imerso: 'Programa Imerso', masterclass: 'Masterclass', ebook: 'E-book' };
 const RENEW: Record<string, string> = {
-    imerso: RENEWAL_URLS[IMERSO_PRODUCT],
-    masterclass: MASTERCLASS_SALES_URL,
-    ebook: EBOOK_SALES_URL,
+    imerso: IMERSO_RENEW_URL,
+    masterclass: MASTERCLASS_RENEW_URL,
+    ebook: EBOOK_RENEW_URL,
 };
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 const day = (value?: string | null) => (value && ISO_DAY.test(value.slice(0, 10)) ? value.slice(0, 10) : null);
@@ -98,9 +96,9 @@ export const productLines = (rows: MyAccessRow[] | null | undefined, today = brT
         const grace = day(row.graceUntil);
         const base = { key, name: NAMES[key], soon: false, renew: null as string | null };
         if (row.state === 'leitura') {
-            // o último dia de acesso que já passou; data futura nunca no passado (a âncora da carga é segunda — PF2-04)
-            const anchor = day(row.leituraSince);
-            const ended = longDate([grace, valid, anchor].find((d) => d && d <= today));
+            // "encerrado em": só a validade (ou o fim da carência) e só se já passou; a data em que a conta entrou em
+            // Leitura (leituraSince) nunca é fim de acesso (decisão de 10-Out-2026); sem data, "Acesso em Leitura."
+            const ended = longDate([grace, valid].find((d) => d && d <= today));
             // navegar é só do Imerso; Masterclass e E-book em Leitura ficam trancados (PF2-05)
             const alert =
                 key === 'imerso'

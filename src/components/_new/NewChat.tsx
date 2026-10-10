@@ -439,6 +439,8 @@ const ChatPage: React.FC = () => {
         ? { name: user.name || 'Aluno', avatar: user.profileImageSrc || null }
         : { name: auth.currentUser?.displayName || 'Você', avatar: auth.currentUser?.photoURL || null };
     const [readOnly, setReadOnly] = useState(isViewOnly());
+    const root = useRef<HTMLDivElement>(null);
+    useComposerInset(root, !readOnly);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [more, setMore] = useState(false);
     const [teamSeenAt, setTeamSeenAt] = useState(0);
@@ -956,7 +958,7 @@ const ChatPage: React.FC = () => {
 
     return (
         <NewPage className="lesson fill">
-            <Wrap>
+            <Wrap ref={root}>
                 <header className="hd">
                     <MettleMark />
                     <div className="hd-id">
@@ -1296,6 +1298,36 @@ export default NewChat;
 
 /* Papel de parede: rabiscos de linha do nosso mundo, densos como o do WhatsApp (desenho próprio), um arquivo por tema em
    public/img/chat-wall-{dark,light}.svg (ladrilho de 400 px; gerado por scripts/chat-wallpaper.py). */
+/**
+ * O campo de mensagem flutua sobre a conversa (como no WhatsApp): a altura dele vira --cmp-h no contêiner, e a lista
+ * ganha esse respiro embaixo, então a última mensagem nunca fica escondida. Crescer o campo (várias linhas, resposta,
+ * anexo) com a conversa no fim mantém o fim à vista. `composer`: o campo existe (fora do modo só leitura).
+ */
+export const useComposerInset = (root: React.RefObject<HTMLElement>, composer: boolean) =>
+    useLayoutEffect(() => {
+        const el = root.current;
+        const cmp = composer ? el?.querySelector<HTMLElement>(':scope > .composer') : null;
+        const list = el?.querySelector<HTMLElement>(':scope > .list');
+        if (!el || !cmp) {
+            el?.style.removeProperty('--cmp-h');
+            return;
+        }
+        let last = -1;
+        const set = () => {
+            const h = cmp.offsetHeight;
+            if (h === last) return;
+            const atEnd = !!list && list.scrollHeight - list.scrollTop - list.clientHeight < 24;
+            last = h;
+            el.style.setProperty('--cmp-h', `${h}px`);
+            if (list && atEnd) list.scrollTop = list.scrollHeight;
+        };
+        set();
+        if (typeof ResizeObserver === 'undefined') return;
+        const ro = new ResizeObserver(set);
+        ro.observe(cmp);
+        return () => ro.disconnect();
+    }, [root, composer]);
+
 export const Wrap = styled.div`
     /* identidade do WhatsApp nesta página (pedido do André): cores das variáveis públicas do WhatsApp Web
        (--WDS-*, tema padrão de out/2026), papel de parede nosso tingido como o deles; a casca segue Mettle */
@@ -1409,6 +1441,7 @@ export const Wrap = styled.div`
             -webkit-touch-callout: none;
         }
     }
+    position: relative;
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -2173,11 +2206,32 @@ export const Wrap = styled.div`
     }
 
     /* ---------- escrever ---------- */
+    /* o campo flutua sobre a conversa, que rola por trás dele: sem fundo, sem fio, sem faixa; só os controles (o "+",
+       o campo com a própria superfície e o microfone) recebem o toque — o vão entre eles passa para a conversa */
     .composer {
-        flex: none;
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 2;
         /* área segura de baixo (indicador de início do iPhone) + folga, como no WhatsApp */
         padding: 6px 7px calc(var(--sab) + 8px) 9px;
         background: none;
+        border: 0;
+        box-shadow: none;
+        pointer-events: none;
+    }
+    .composer fieldset {
+        pointer-events: none;
+    }
+    .composer > :not(fieldset),
+    .composer fieldset > * {
+        pointer-events: auto;
+    }
+    /* seletor de emoji/figurinha aberto: o campo volta para o fluxo, logo abaixo dele (nada fica por cima) */
+    .picker ~ .composer {
+        position: static;
+        pointer-events: auto;
     }
     .ro {
         flex: none;
@@ -2410,5 +2464,13 @@ export const Wrap = styled.div`
         .msg.flash .bare {
             animation: none;
         }
+    }
+    /* a conversa rola por trás do campo: o respiro embaixo é a altura dele (useComposerInset) + folga */
+    .list {
+        padding-bottom: calc(var(--cmp-h, 0px) + 10px);
+    }
+    /* com o seletor de emoji/figurinha aberto o campo está no fluxo: sem o respiro */
+    .list:has(~ .picker) {
+        padding-bottom: 10px;
     }
 `;

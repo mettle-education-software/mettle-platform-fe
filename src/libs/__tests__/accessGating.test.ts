@@ -6,8 +6,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { NewHome } from '../../components/_new/NewHome';
 import { NewImersoHome } from '../../components/_new/NewImersoHome';
 import { AccessCtaBlock } from '../../providers/AccessProvider';
-import { EBOOK_SALES_URL } from '../ebook';
-import { MASTERCLASS_SALES_URL } from '../masterclass';
+import { EBOOK_RENEW_URL, EBOOK_SALES_URL } from '../ebook';
+import { MASTERCLASS_RENEW_URL, MASTERCLASS_SALES_URL } from '../masterclass';
 import { type AccessLevels, RENEWAL_URLS, resolveAccess } from '../productAccess';
 
 const MC = 'MASTERCLASS_"AS_7_REGRAS"_9c466a35-2685-4d1e-8434-b29044628056';
@@ -159,10 +159,10 @@ describe('home: cards por estado', () => {
         expect(imerso.getAttribute('href')).toBe('/imerso');
         expect(imerso.classList.contains('locked')).toBe(false);
         const mc = card(d, 'Masterclass');
-        expect(mc.getAttribute('href')).toBe(MASTERCLASS_SALES_URL);
+        expect(mc.getAttribute('href')).toBe(MASTERCLASS_RENEW_URL);
         expect(mc.classList.contains('locked')).toBe(true);
         expect(mc.textContent).toContain('Renovar');
-        const ebook = [...d.querySelectorAll('a.cc')].find((a) => a.getAttribute('href') === EBOOK_SALES_URL);
+        const ebook = [...d.querySelectorAll('a.cc')].find((a) => a.getAttribute('href') === EBOOK_RENEW_URL);
         expect(ebook?.classList.contains('locked')).toBe(true);
         expect(ebook?.textContent).toContain('Renovar');
         expect(d.querySelector('a[href="/guia"]')).toBeNull();
@@ -256,7 +256,7 @@ describe('aviso de renovação (plataforma nova)', () => {
         expect(d.querySelector('a.btn')?.textContent).toBe('Renovar');
     });
 
-    test('Masterclass: a página de vendas dela, nunca o checkout do curso (que leva ao Imerso)', () => {
+    test('Masterclass: o checkout dela (renovação), nunca o checkout do curso (que leva ao Imerso)', () => {
         mockPath = '/course/masterclass-as-7-regras/aula-1';
         const d = doc(
             createElement(AccessCtaBlock, {
@@ -264,7 +264,7 @@ describe('aviso de renovação (plataforma nova)', () => {
             }),
         );
         expect(d.querySelector('.notice b')?.textContent).toBe('Acesso encerrado');
-        expect(d.querySelector('a.btn')?.getAttribute('href')).toBe(MASTERCLASS_SALES_URL);
+        expect(d.querySelector('a.btn')?.getAttribute('href')).toBe(MASTERCLASS_RENEW_URL);
     });
 
     test('tela clássica: o convite de antes, intocado', () => {

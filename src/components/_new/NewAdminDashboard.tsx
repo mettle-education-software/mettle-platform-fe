@@ -23,10 +23,11 @@ import {
     validRange,
 } from 'libs/adminDashboard';
 import { adminPanelPath, contasPath, lastAccessLabel } from 'libs/adminPanel';
+import { ChevronDown } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import React, { useState } from 'react';
-import { DARK, LIGHT } from 'themes/newDesign';
+import { DARK, ICON, LIGHT } from 'themes/newDesign';
 import { AdminNav, chipStyles } from './AdminNav';
 import { NewPage } from './NewPage';
 import { useSoftChart } from './lampCharts';
@@ -110,8 +111,43 @@ const styles = css`
         opacity: 0.45;
         transition: opacity 0.2s;
     }
+    /* Combinações: fechadas de início (pedido do André); o cabeçalho abre e fecha, a seta gira no lugar */
     .db .combos {
-        margin-top: 28px;
+        margin-top: 16px;
+    }
+    .db .combos summary {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 44px;
+        list-style: none;
+        cursor: pointer;
+    }
+    .db .combos summary::-webkit-details-marker {
+        display: none;
+    }
+    .db .combos summary:focus-visible {
+        outline: 2px solid var(--r-gold-hi);
+        outline-offset: 2px;
+        border-radius: 6px;
+    }
+    .db .combos summary:hover h3 {
+        color: var(--r-text);
+    }
+    .db .combos .chev {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        color: var(--r-muted);
+        transition: transform 0.2s ease;
+    }
+    .db .combos[open] .chev {
+        transform: rotate(180deg);
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .db .combos .chev {
+            transition: none;
+        }
     }
     .db .combo-list {
         display: grid;
@@ -465,9 +501,13 @@ export const NewAdminDashboard: React.FC = () => {
                     <h2 id="db-base">Base</h2>
                 </div>
                 <Cards cards={base} label="Base" />
-                {/* combinações de produtos: uma lista calma, sem gráfico */}
-                <div className="combos">
-                    <h3>Combinações</h3>
+                {/* combinações de produtos: uma lista calma, sem gráfico; fechada até alguém abrir (details/summary:
+                    teclado e leitor de tela de graça, sem lembrar o estado) */}
+                <details className="combos">
+                    <summary>
+                        <h3>Combinações</h3>
+                        <ChevronDown {...ICON} className="chev" aria-hidden />
+                    </summary>
                     {d?.combinacoes ? (
                         <ul className="combo-list">
                             {d.combinacoes.map((row) => (
@@ -480,7 +520,7 @@ export const NewAdminDashboard: React.FC = () => {
                     ) : (
                         <p className="hint">{none('—')}</p>
                     )}
-                </div>
+                </details>
             </section>
 
             <section aria-labelledby="db-period" aria-busy={query.isPlaceholderData}>

@@ -25,7 +25,7 @@ import {
 import { lampLastDay, lampOpen } from 'libs/dedaClock';
 import { longDate, productLines } from 'libs/myProducts';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
-import { brLongDate, programHistory } from 'libs/programHistory';
+import { brLongDateWhole, programHistory } from 'libs/programHistory';
 import { isViewOnly } from 'libs/viewOnly';
 import { Info } from 'lucide-react';
 import Link from 'next/link';
@@ -150,6 +150,14 @@ const styles = css`
         display: block;
         font-size: 15px;
         font-weight: 500;
+    }
+    /* links na linha de detalhe (ex.: "Fale com o Suporte"): o dourado dos links da plataforma, nunca o azul */
+    .settings .cr-sub a {
+        color: var(--r-gold-hi);
+        text-decoration: none;
+    }
+    .settings .cr-sub a:hover {
+        text-decoration: underline;
     }
     .settings .cr-sub {
         display: block;
@@ -414,7 +422,12 @@ const ProgramCard: React.FC = () => {
     // uma ação por vez e nunca sobre um resumo velho (se a atualização falhou, as ações esperam nova tentativa)
     const stale = summary.isError;
     const busy = mutating || programReset.isPending || pauseDeda.isPending || stale;
-    const history = programHistory(melpSummary.program_events, melpSummary.remaining_resets, undefined, brLongDate);
+    const history = programHistory(
+        melpSummary.program_events,
+        melpSummary.remaining_resets,
+        undefined,
+        brLongDateWhole,
+    );
     // sem saldo, o botão desliga e o caminho é o Suporte (PF2-06); reiniciar só com a LAMP existindo — antes do primeiro
     // DEDA (MELP_BEGIN) não há o que zerar (PF2-10)
     const noPauses = !(melpSummary.remaining_pauses > 0);
@@ -461,7 +474,8 @@ const ProgramCard: React.FC = () => {
                             </Tooltip>
                         </b>
                         <span className="cr-sub">
-                            Pausas restantes: {melpSummary.remaining_pauses}
+                            {melpSummary.remaining_pauses === 1 ? 'Pausa restante' : 'Pausas restantes'}:{' '}
+                            {melpSummary.remaining_pauses}
                             {noPauses && supportLine}
                         </span>
                     </div>
@@ -508,7 +522,8 @@ const ProgramCard: React.FC = () => {
                             </Tooltip>
                         </b>
                         <span className="cr-sub">
-                            Reinícios restantes: {melpSummary.remaining_resets}
+                            {melpSummary.remaining_resets === 1 ? 'Reinício restante' : 'Reinícios restantes'}:{' '}
+                            {melpSummary.remaining_resets}
                             {noResets && supportLine}
                         </span>
                     </div>

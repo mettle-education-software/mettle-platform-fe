@@ -122,11 +122,14 @@ test('leitura: aviso de encerramento e Renovar; sem acesso não aparece; nada fo
         // navegar é só do Imerso: Masterclass e E-book em Leitura ficam trancados (PF2-05)
         ['E-book', 'Leitura', null, 'Acesso encerrado em 15 de agosto de 2026. Renove para voltar a ler.'],
     ]);
-    expect(lines[1].renew).toContain('masterclass');
+    // Renovar = o checkout do próprio produto, com a campanha de renovação
+    expect(lines[0].renew).toContain('programa-imerso');
+    expect(lines[1].renew).toContain('e-book-guia-completo');
+    expect(lines.every((l) => l.renew?.endsWith('utm_campaign=renovacao'))).toBe(true);
     expect(productLines(undefined, today)).toEqual([]);
 });
 
-test('Leitura antes do prazo não anuncia data futura; venceu e ainda Ativo: aviso e Renovar', () => {
+test('Leitura: "encerrado em" só pela validade já passada (nunca a data de entrada em Leitura); venceu e ainda Ativo: aviso e Renovar', () => {
     const [early] = productLines(
         [
             {
@@ -139,7 +142,8 @@ test('Leitura antes do prazo não anuncia data futura; venceu e ainda Ativo: avi
         ],
         today,
     );
-    expect(early.alert).toBe('Acesso encerrado em 8 de outubro de 2026. Você ainda pode navegar.');
+    // validade no futuro e leituraSince no passado: sem data (leituraSince não é fim de acesso)
+    expect(early.alert).toBe('Acesso em Leitura. Você ainda pode navegar.');
     // a âncora da carga é segunda (12-Out): data futura nunca no passado (PF2-04)
     const [anchored, mc] = productLines(
         [

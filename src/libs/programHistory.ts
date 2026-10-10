@@ -36,7 +36,7 @@ export const brDate = (iso: string | null | undefined) => {
     });
 };
 
-/** "14 de outubro de 2024" no horário de Brasília (Configurações do aluno). */
+/** "14 de outubro de 2024" no horário de Brasília (Configurações do aluno); `inteira`: sem quebra dentro da data. */
 export const brLongDate = (iso: string | null | undefined) => {
     const ok = validDate(iso);
     if (!ok) return '';
@@ -47,6 +47,9 @@ export const brLongDate = (iso: string | null | undefined) => {
         year: 'numeric',
     });
 };
+
+/** A data longa sem quebra dentro dela (espaços que não quebram): o histórico só quebra entre as datas. */
+export const brLongDateWhole = (iso: string | null | undefined) => brLongDate(iso).replace(/ /g, '\u00a0');
 
 /** Ids são bigint do Postgres (texto): compara pelo valor exato, sem passar por Number. */
 const cmpId = (a: unknown, b: unknown) => {
@@ -71,9 +74,10 @@ const plural = (n: number, one: string, many: string) => (n ? `${n} ${n === 1 ? 
 type Pause = { key: string; label: string; from: string; to: string | null; planned: string | null };
 type Item = HistoryRow | Pause;
 
+// o traço fica preso à primeira data (espaço que não quebra): na tela estreita, a linha quebra depois do traço
 const pauseText = (p: Pause, format: (iso: string | null | undefined) => string) => {
     const until = p.to ?? p.planned;
-    return until ? `${format(p.from)} – ${format(until)}` : `desde ${format(p.from)}`;
+    return until ? `${format(p.from)}\u00a0– ${format(until)}` : `desde\u00a0${format(p.from)}`;
 };
 
 /**

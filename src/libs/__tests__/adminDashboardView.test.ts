@@ -143,6 +143,10 @@ test('com os números: base, período, Imerso e atenção; listas abrem a conta;
     // o total de pessoas do servidor
     expect(attention.textContent).toContain('Vencem em 30 dias · 41');
     // combinações: lista calma (só as que vieram)
+    // Combinações fechadas de início: details sem "open", o cabeçalho é o summary (abre e fecha pelo teclado)
+    const combos = d.querySelector('details.combos');
+    expect(combos?.hasAttribute('open')).toBe(false);
+    expect(combos?.querySelector('summary h3')?.textContent).toBe('Combinações');
     expect([...d.querySelectorAll('.combo-list li')].map((li) => li.textContent)).toEqual([
         'Só Imerso900',
         'Só Masterclass120',

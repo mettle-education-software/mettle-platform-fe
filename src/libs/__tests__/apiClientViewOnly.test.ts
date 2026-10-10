@@ -9,6 +9,12 @@ jest.mock('libs/productAccess', () => ({ ACCESS_DENIED_EVENT: 'x', IMERSO_PRODUC
 });
 jest.mock('libs/viewOnly', () => jest.requireActual('../viewOnly'), { virtual: true });
 jest.mock('interfaces', () => ({}), { virtual: true });
+const mockFlagAdminMfa = jest.fn();
+jest.mock(
+    'libs/authentication/mfa',
+    () => ({ ADMIN_MFA_CODE: 'MFA_REQUIRED', flagAdminMfa: () => mockFlagAdminMfa() }),
+    { virtual: true },
+);
 
 const ApiClient = jest.requireActual('../../services/ApiClient').default;
 const { setViewOnly } = jest.requireActual('../viewOnly');
@@ -32,4 +38,18 @@ test('hub de eventos na impersonação: o POST não sai; o GET sai', async () =>
     setViewOnly(false);
     await expect(client.post('/user-logged-in', {})).resolves.toMatchObject({ status: 200 });
     expect(adapter).toHaveBeenCalledTimes(2);
+});
+
+test('Admin sem o segundo fator (403 MFA_REQUIRED): o aviso do Admin é avisado; outra recusa, não', async () => {
+    const client = new ApiClient('https://api.example/admin');
+    const refuse = (code: string) =>
+        Object.assign(new Error('403'), { isAxiosError: true, response: { status: 403, data: { code } } });
+    client.client.defaults.adapter = jest
+        .fn()
+        .mockRejectedValueOnce(refuse('MFA_REQUIRED'))
+        .mockRejectedValueOnce(refuse('NO_ACCESS'));
+    await expect(client.get('/accounts')).rejects.toBeTruthy();
+    expect(mockFlagAdminMfa).toHaveBeenCalledTimes(1);
+    await expect(client.get('/accounts')).rejects.toBeTruthy();
+    expect(mockFlagAdminMfa).toHaveBeenCalledTimes(1);
 });

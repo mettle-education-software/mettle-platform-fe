@@ -3,10 +3,11 @@
 import { css, Global } from '@emotion/react';
 import { auth } from 'config/firebase';
 import { ADMIN_NAV } from 'libs/adminPanel';
+import { ADMIN_MFA_EVENT, adminMfaRequired } from 'libs/authentication/mfa';
 import { isLeituraOwner } from 'libs/leitura';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 /** Botões de filtro do Admin (Contas e o período do Início). */
 export const chipStyles = css`
@@ -67,18 +68,37 @@ const styles = css`
 export const AdminNav: React.FC = () => {
     const pathname = usePathname() ?? '';
     const owner = isLeituraOwner(auth.currentUser?.uid);
+    // o servidor recusou o Admin por falta do segundo fator: uma linha calma com o caminho
+    const [mfa, setMfa] = useState(adminMfaRequired);
+    useEffect(() => {
+        const on = () => setMfa(true);
+        window.addEventListener(ADMIN_MFA_EVENT, on);
+        return () => window.removeEventListener(ADMIN_MFA_EVENT, on);
+    }, []);
     return (
-        <nav className="admin-nav" aria-label="Admin">
-            <Global styles={styles} />
-            {ADMIN_NAV.filter((item) => !item.owner || owner).map((item) => {
-                const current = item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href);
-                return (
-                    <Link key={item.key} href={item.href} aria-current={current ? 'page' : undefined}>
-                        {item.label}
+        <>
+            <nav className="admin-nav" aria-label="Admin">
+                <Global styles={styles} />
+                {ADMIN_NAV.filter((item) => !item.owner || owner).map((item) => {
+                    const current = item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href);
+                    return (
+                        <Link key={item.key} href={item.href} aria-current={current ? 'page' : undefined}>
+                            {item.label}
+                        </Link>
+                    );
+                })}
+            </nav>
+            {mfa && (
+                <div className="notice" role="alert">
+                    <div>
+                        <b>Ative a verificação em duas etapas em Configurações para usar o Admin.</b>
+                    </div>
+                    <Link className="btn line" href="/settings">
+                        Configurações
                     </Link>
-                );
-            })}
-        </nav>
+                </div>
+            )}
+        </>
     );
 };
 

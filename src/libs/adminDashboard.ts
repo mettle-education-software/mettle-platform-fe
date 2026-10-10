@@ -75,12 +75,15 @@ const split = (value: unknown): Split => {
 const PLANS: [string, string][] = [
     ['mensal', 'Mensal'],
     ['anual', 'Anual'],
+    ['doisAnos', '2 anos'],
     ['tresAnos', '3 anos'],
     ['vitalicio', 'Vitalício'],
     ['cortesia', 'Cortesia'],
     ['parceiro', 'Parceiro'],
     ['aConfirmar', 'A confirmar'],
 ];
+
+const OPTIONAL_PLANS = ['doisAnos', 'aConfirmar'];
 
 /** "Não começou", "1–3 meses", "24+ meses". */
 export const programTimeLabel = (min: number | null, max: number | null) =>
@@ -119,7 +122,8 @@ export const readDashboard = (data: unknown): Dashboard | null => {
         planosImerso: plans
             ? PLANS.flatMap(([key, label]) => {
                   const alunos = nn(plans[key]);
-                  return alunos === null || (key === 'aConfirmar' && alunos <= 0) ? [] : [{ label, alunos }];
+                  // "2 anos" e "A confirmar" só aparecem com alguém
+                  return alunos === null || (OPTIONAL_PLANS.includes(key) && alunos <= 0) ? [] : [{ label, alunos }];
               })
             : null,
         tempoPrograma: Array.isArray(d.tempoPrograma)

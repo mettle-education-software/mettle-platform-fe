@@ -32,7 +32,16 @@ const full = {
         { date: '2026-10-09', alunos: 40 },
         { date: 'ontem', alunos: 3 },
     ],
-    planosImerso: { mensal: 400, anual: 600, tresAnos: 100, vitalicio: 90, cortesia: 50, parceiro: 10, aConfirmar: 0 },
+    planosImerso: {
+        mensal: 400,
+        anual: 600,
+        doisAnos: 0,
+        tresAnos: 100,
+        vitalicio: 90,
+        cortesia: 50,
+        parceiro: 10,
+        aConfirmar: 0,
+    },
     tempoPrograma: [
         { min: null, max: null, alunos: 80 },
         { min: 1, max: 3, alunos: 300 },
@@ -80,6 +89,12 @@ test('resposta conferida (linhas inválidas fora); a rota antiga no mesmo endere
     expect(
         readDashboard({ ...full, planosImerso: { ...full.planosImerso, aConfirmar: 3 } })!.planosImerso?.at(-1),
     ).toEqual({ label: 'A confirmar', alunos: 3 });
+    // "2 anos" só com alguém, entre Anual e 3 anos
+    expect(
+        readDashboard({ ...full, planosImerso: { ...full.planosImerso, doisAnos: 7 } })!.planosImerso?.map(
+            (p) => p.label,
+        ),
+    ).toEqual(['Mensal', 'Anual', '2 anos', '3 anos', 'Vitalício', 'Cortesia', 'Parceiro']);
     expect(d.tempoPrograma).toEqual([
         { label: 'Não começou', alunos: 80 },
         { label: '1–3 meses', alunos: 300 },

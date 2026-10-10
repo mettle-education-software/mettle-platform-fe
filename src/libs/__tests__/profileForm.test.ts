@@ -1,5 +1,6 @@
 /** @jest-environment node */
-// Campo do perfil com cliques de verdade (num DOM): valor novo do servidor não apaga o que o aluno está digitando.
+// Perfil num formulário só (cliques de verdade, num DOM): um Salvar, só o que mudou num PATCH, erros embaixo de cada
+// campo com o primeiro em foco, o que o servidor devolve volta aos campos e valor novo de fora não apaga a edição.
 import { JSDOM } from 'jsdom';
 
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'https://plataforma.mettle.com.br/' });
@@ -14,12 +15,13 @@ Object.assign(globalThis, {
 });
 
 let mockProfile: Record<string, string | null> = {};
+const mockSave = jest.fn();
 
 jest.mock(
     'hooks/useProfile',
     () => ({
         useProfile: () => ({ data: mockProfile, isError: false }),
-        useSaveProfile: () => ({ mutateAsync: jest.fn(), isPending: false }),
+        useSaveProfile: () => ({ mutateAsync: mockSave, isPending: false }),
         useSaveProfilePhoto: () => ({ mutateAsync: jest.fn(), isPending: false }),
     }),
     { virtual: true },
@@ -31,14 +33,22 @@ jest.mock('providers', () => ({ useAppContext: () => ({ user: { uid: 'aluno', na
 jest.mock('antd', () => {
     const React = jest.requireActual('react');
     return {
-        Input: ({ id, value, onChange, disabled, type }: any) =>
-            React.createElement('input', { id, value, onChange, disabled, type }),
-        Button: ({ children, htmlType, disabled, onClick, style, ...rest }: any) =>
-            React.createElement(
-                'button',
-                { type: htmlType ?? 'button', disabled, onClick, style, 'aria-label': rest['aria-label'] },
-                children,
-            ),
+        Input: React.forwardRef(function Input(props: any, ref: any) {
+            const { id, value, onChange, type, readOnly, placeholder, inputMode } = props;
+            return React.createElement('input', {
+                id,
+                value,
+                onChange,
+                type,
+                readOnly,
+                placeholder,
+                inputMode,
+                ref,
+                'aria-invalid': props['aria-invalid'],
+                'aria-describedby': props['aria-describedby'],
+            });
+        }),
+        Button: ({ children, onClick }: any) => React.createElement('button', { type: 'button', onClick }, children),
         Modal: () => null,
     };
 });
@@ -48,33 +58,117 @@ const { act, createElement } = jest.requireActual('react');
 const { createRoot } = jest.requireActual('react-dom/client');
 const { ProfileSettings } = jest.requireActual('../../components/_new/ProfileSettings');
 
+const BASE = {
+    user_uid: 'aluno',
+    first_name: 'Ana',
+    last_name: 'Silva',
+    username: 'ana.silva',
+    instagram: null,
+    birth_date: null,
+    city: null,
+    state: null,
+    country: null,
+    phone: '+5511912345678',
+};
+
+const mount = () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    act(() => root.render(createElement(ProfileSettings)));
+    const field = (key: string) => host.querySelector(`#profile-${key}`) as HTMLInputElement;
+    const salvar = () => [...host.querySelectorAll('button')].find((b) => /Salvar|Salvando/.test(b.textContent!))!;
+    return { host, root, field, salvar, rerender: () => act(() => root.render(createElement(ProfileSettings))) };
+};
 const type = (input: HTMLInputElement, value: string) =>
     act(() => {
         Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value')!.set!.call(input, value);
         input.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
     });
+const submit = async (host: HTMLElement) => {
+    await act(async () => {
+        host.querySelector('form')!.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
+    });
+};
 
-test('valor novo do servidor: o campo em edição fica como o aluno digitou; os outros acompanham', () => {
-    mockProfile = { user_uid: 'aluno', first_name: 'Ana', last_name: 'Silva', username: 'ana.silva' };
-    const host = document.createElement('div');
-    document.body.appendChild(host);
-    const root = createRoot(host);
-    act(() => root.render(createElement(ProfileSettings)));
-    const first = host.querySelector('#profile-first_name') as HTMLInputElement;
-    const save = host.querySelector('button[aria-label="Salvar Nome"]') as HTMLButtonElement;
-    // sem mudança, o Salvar não aparece (o espaço fica)
-    expect(save.style.visibility).toBe('hidden');
-    type(first, 'Anabela');
-    expect(save.style.visibility).toBe('');
-    expect(save.disabled).toBe(false);
-    // outra sessão muda nome e sobrenome
+beforeEach(() => {
+    mockProfile = { ...BASE };
+    mockSave.mockReset();
+});
+
+test('um formulário, um Salvar à vista: apagado sem mudança, aceso com mudança; telefone formatado', () => {
+    const { host, root, field, salvar } = mount();
+    expect(host.querySelectorAll('form')).toHaveLength(1);
+    expect([...host.querySelectorAll('button')].filter((b) => b.textContent === 'Salvar')).toHaveLength(1);
+    expect(salvar().disabled).toBe(true);
+    // o número salvo (E.164) aparece no formato internacional; o mesmo número em outro formato não é mudança
+    expect(field('phone').value).toBe('+55 11 91234 5678');
+    type(field('phone'), '+55 (11) 91234-5678');
+    expect(salvar().disabled).toBe(true);
+    type(field('first_name'), 'Anabela');
+    expect(salvar().disabled).toBe(false);
+    act(() => root.unmount());
+});
+
+test('Salvar: só o que mudou num pedido; o que o servidor devolve volta aos campos; "Salvo"', async () => {
+    mockSave.mockResolvedValue({ saved: { first_name: 'André', city: 'São Paulo', phone: '+447911123456' } });
+    const { host, root, field, salvar } = mount();
+    type(field('first_name'), 'andré');
+    type(field('city'), 'são paulo');
+    type(field('phone'), '+447911123456');
+    expect(field('phone').value).toBe('+44 7911 123456');
+    await submit(host);
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    expect(mockSave).toHaveBeenCalledWith({ first_name: 'andré', city: 'são paulo', phone: '+44 7911 123456' });
+    expect(field('first_name').value).toBe('André');
+    expect(field('city').value).toBe('São Paulo');
+    expect(host.querySelector('[role="status"]')?.textContent).toBe('Salvo');
+    // editar de novo tira o "Salvo"
+    type(field('last_name'), 'Souza');
+    expect(host.querySelector('[role="status"]')).toBeNull();
+    expect(salvar().disabled).toBe(false);
+    act(() => root.unmount());
+});
+
+test('inválidos: erro embaixo de cada campo, foco no primeiro, nada é enviado', async () => {
+    const { host, root, field } = mount();
+    type(field('username'), 'A');
+    type(field('phone'), '123');
+    await submit(host);
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(field('username').value).toBe('a'); // minúsculas ao digitar
+    expect(host.querySelector('#profile-username-error')?.textContent).toContain('3 a 20');
+    expect(host.querySelector('#profile-phone-error')?.textContent).toContain('Telefone inválido');
+    expect(field('phone').getAttribute('aria-describedby')).toBe('profile-phone-hint profile-phone-error');
+    expect(document.activeElement).toBe(field('username'));
+    act(() => root.unmount());
+});
+
+test('recusas do servidor: as do @username embaixo dele; o resto ao lado do botão', async () => {
+    const taken = {
+        response: { status: 409, data: { code: 'username_taken', message: 'Este username já está em uso.' } },
+    };
+    mockSave.mockRejectedValueOnce(taken);
+    const { host, root, field } = mount();
+    type(field('username'), 'ana.nova');
+    await submit(host);
+    expect(host.querySelector('#profile-username-error')?.textContent).toBe('Este username já está em uso.');
+    expect(document.activeElement).toBe(field('username'));
+    mockSave.mockRejectedValueOnce({ response: { status: 500 } });
+    await submit(host);
+    expect(host.querySelector('#profile-username-error')).toBeNull();
+    expect(host.querySelector('.profile-actions [role="alert"]')?.textContent).toBe(
+        'Não foi possível salvar. Tente novamente.',
+    );
+    act(() => root.unmount());
+});
+
+test('valor novo de fora: o campo em edição fica como o aluno digitou; os outros acompanham', () => {
+    const { root, field, rerender } = mount();
+    type(field('first_name'), 'Anabela');
     mockProfile = { ...mockProfile, first_name: 'Ana Maria', last_name: 'Souza' };
-    act(() => root.render(createElement(ProfileSettings)));
-    expect((host.querySelector('#profile-first_name') as HTMLInputElement).value).toBe('Anabela');
-    expect((host.querySelector('#profile-last_name') as HTMLInputElement).value).toBe('Souza');
-    // @username vira minúsculas ao digitar
-    const username = host.querySelector('#profile-username') as HTMLInputElement;
-    type(username, 'Ana.Silva2');
-    expect(username.value).toBe('ana.silva2');
+    rerender();
+    expect(field('first_name').value).toBe('Anabela');
+    expect(field('last_name').value).toBe('Souza');
     act(() => root.unmount());
 });

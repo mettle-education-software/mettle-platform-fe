@@ -1,3 +1,6 @@
+import { AsYouType, isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js/min';
+
+/** Campos do perfil, na ordem da tela; um formulário só, um Salvar. */
 export const PROFILE_FIELDS = [
     { key: 'first_name', label: 'Nome', maxLength: 60 },
     { key: 'last_name', label: 'Sobrenome', maxLength: 60 },
@@ -7,16 +10,88 @@ export const PROFILE_FIELDS = [
     { key: 'city', label: 'Cidade', maxLength: 80 },
     { key: 'state', label: 'Estado', maxLength: 80 },
     { key: 'country', label: 'País', maxLength: 80 },
+    { key: 'phone', label: 'Telefone', maxLength: 25 },
 ] as const;
 
 export type ProfileField = (typeof PROFILE_FIELDS)[number]['key'];
 export type Profile = Record<ProfileField, string | null> & {
     user_uid: string;
     email?: string;
-    phone?: string | null;
     phone_number?: string | null;
     photoURL?: string | null;
     profile_updated_at?: string | null;
+};
+export type ProfileValues = Record<ProfileField, string>;
+
+// ---------- telefone (alunos no mundo todo: sem "+", Brasil) ----------
+
+export const PHONE_PLACEHOLDER = '+55 11 91234-5678';
+export const PHONE_HINT = 'Com o código do país, se não for do Brasil.';
+const country = (value: string) => (value.trim().startsWith('+') ? undefined : 'BR');
+
+/** `a` sai de `b` só apagando caracteres (backspace, recorte). */
+const erased = (a: string, b: string) => {
+    let i = 0;
+    for (const char of b) if (char === a[i]) i++;
+    return a.length < b.length && i === a.length;
+};
+
+/** Enquanto digita (ou cola), o formato do país; apagando, o texto fica como está (senão a máscara voltaria). */
+export const typePhone = (next: string, previous: string) =>
+    erased(next, previous) ? next : new AsYouType(country(next)).input(next);
+
+/** E.164 (+5511912345678) de um número válido; '' se vazio; null se não é um telefone. */
+export const phoneE164 = (raw: string): string | null => {
+    const value = raw.trim();
+    if (!value) return '';
+    try {
+        return isValidPhoneNumber(value, country(value)) ? parsePhoneNumber(value, country(value)).number : null;
+    } catch {
+        return null;
+    }
+};
+
+/** Telefone salvo no formato internacional (+55 11 91234 5678); o que não é número aparece como veio. */
+export const phoneDisplay = (saved?: string | null) => {
+    if (!saved) return '';
+    try {
+        return parsePhoneNumber(saved, country(saved)).formatInternational();
+    } catch {
+        return saved;
+    }
+};
+
+// ---------- valores do formulário ----------
+
+/** O que cada campo mostra a partir do salvo (telefone formatado). */
+export const fieldValue = (field: ProfileField, saved?: string | null) =>
+    field === 'phone' ? phoneDisplay(saved) : (saved ?? '');
+
+/** Forma comparável: o telefone pelo número (E.164), o resto sem espaços nas pontas. */
+const comparable = (field: ProfileField, value: string) =>
+    field === 'phone' ? (phoneE164(value) ?? value.trim()) : value.trim();
+
+/** Mesmo valor (mesmo número em outro formato também é). */
+export const sameValue = (field: ProfileField, a: string, b: string) => comparable(field, a) === comparable(field, b);
+
+/** Campo mudou em relação ao salvo. */
+export const fieldChanged = (field: ProfileField, value: string, saved?: string | null) =>
+    !sameValue(field, value, fieldValue(field, saved));
+
+/** Corpo do PATCH com só os campos alterados: vazio vira null; telefone em E.164. */
+export const profilePatch = (changes: Partial<ProfileValues>) =>
+    Object.fromEntries(
+        Object.entries(changes).map(([field, value]) => [
+            field,
+            (field === 'phone' ? phoneE164(value ?? '') : (value ?? '').trim()) || null,
+        ]),
+    ) as Partial<Record<ProfileField, string | null>>;
+
+/** Recusas do servidor que são do @username (a frase vai embaixo dele). */
+export const USERNAME_CODES = ['username_taken', 'username_reserved', 'username_cooldown'];
+export const serverCode = (error: unknown) => {
+    const code = (error as { response?: { data?: { code?: unknown } } })?.response?.data?.code;
+    return typeof code === 'string' ? code : undefined;
 };
 
 const reserved = new Set([
@@ -56,6 +131,8 @@ export function validateProfileField(field: ProfileField, raw: string, today = n
                 handle.includes('..'))
         )
             return 'Informe um @handle válido, sem URL.';
+    } else if (field === 'phone') {
+        if (phoneE164(value) === null) return 'Telefone inválido. Fora do Brasil, comece com + e o código do país.';
     } else if (field === 'birth_date' && value) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'Informe uma data válida.';
         const birth = new Date(`${value}T00:00:00Z`);

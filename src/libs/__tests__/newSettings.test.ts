@@ -131,8 +131,15 @@ test('uma página com as quatro seções na ordem, perfil editável, senha e his
     expect(doc.querySelector('[role="tablist"]')).toBeNull();
     expect(doc.querySelector('#profile-first_name')?.getAttribute('value')).toBe('Aluno');
     expect(doc.querySelector('#profile-last_name')?.getAttribute('value')).toBe('de Teste');
-    expect(doc.querySelectorAll('section[aria-labelledby="settings-profile"] form')).toHaveLength(8);
-    expect(doc.querySelector('input[type="email"], input[type="tel"]')).toBeNull();
+    // um formulário, um Salvar (o telefone agora é um campo dele); o e-mail segue só para ler
+    expect(doc.querySelectorAll('section[aria-labelledby="settings-profile"] form')).toHaveLength(1);
+    expect(
+        [...doc.querySelectorAll('section[aria-labelledby="settings-profile"] button')].filter(
+            (b) => b.textContent === 'Salvar',
+        ),
+    ).toHaveLength(1);
+    expect(doc.querySelector('#profile-phone')).not.toBeNull();
+    expect(doc.querySelector('input[type="email"]')).toBeNull();
     expect(doc.body.textContent).toContain('Trocar foto');
     expect(doc.body.textContent).toContain('aluno@example.test');
     expect(doc.body.textContent).toContain('Telefone');

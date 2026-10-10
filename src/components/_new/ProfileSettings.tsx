@@ -1,94 +1,164 @@
 import { Button, Input, Modal } from 'antd';
+import type { InputRef } from 'antd';
 import { useProfile, useSaveProfile, useSaveProfilePhoto } from 'hooks/useProfile';
 import {
     cropProfileImage,
+    fieldChanged,
+    fieldValue,
+    PHONE_HINT,
+    PHONE_PLACEHOLDER,
+    Profile,
     PROFILE_FIELDS,
     ProfileField,
     profileError,
+    ProfileValues,
+    sameValue,
+    serverCode,
+    typePhone,
+    USERNAME_CODES,
     validateProfileField,
     validateProfileImage,
 } from 'libs/profile';
 import { useAppContext } from 'providers';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ThemeSwitch } from './ThemeSwitch';
 
-const ProfileInput: React.FC<{ field: ProfileField; label: string; maxLength: number; saved: string }> = ({
-    field,
-    label,
-    maxLength,
-    saved,
-}) => {
-    const [value, setValue] = useState(saved);
-    const [error, setError] = useState<string>();
-    const [success, setSuccess] = useState(false);
+const savedValues = (data: Profile) =>
+    Object.fromEntries(PROFILE_FIELDS.map(({ key }) => [key, fieldValue(key, data[key])])) as ProfileValues;
+
+/**
+ * Dados do perfil num formulário só: um Salvar (sempre à vista, apagado sem mudança; Enter grava), um PATCH com só o que
+ * mudou, erros embaixo de cada campo e o primeiro inválido em foco. Valor novo vindo de fora (outra sessão,
+ * administrador) entra só no campo que o aluno não está editando.
+ */
+const ProfileForm: React.FC<{ data: Profile }> = ({ data }) => {
     const mutation = useSaveProfile();
-    const id = `profile-${field}`;
-    const dirty = value.trim() !== saved;
-    // valor novo vindo do servidor (outra sessão, administrador): troca o campo só se o aluno não o estiver editando
+    const saved = useMemo(() => savedValues(data), [data]);
+    const [values, setValues] = useState<ProfileValues>(saved);
+    const [errors, setErrors] = useState<Partial<Record<ProfileField, string>>>({});
+    const [formError, setFormError] = useState<string>();
+    const [success, setSuccess] = useState(false);
+    const inputs = useRef<Partial<Record<ProfileField, InputRef | null>>>({});
     const lastSaved = useRef(saved);
     useEffect(() => {
-        setValue((current) => (current.trim() === lastSaved.current ? saved : current));
+        const before = lastSaved.current;
+        setValues((current) => {
+            const next = { ...current };
+            for (const { key } of PROFILE_FIELDS) if (sameValue(key, current[key], before[key])) next[key] = saved[key];
+            return next;
+        });
         lastSaved.current = saved;
     }, [saved]);
+    const changed = PROFILE_FIELDS.map(({ key }) => key).filter((key) => fieldChanged(key, values[key], data[key]));
+    const pending = mutation.isPending;
+
+    const edit = (field: ProfileField, raw: string) => {
+        setValues((current) => ({
+            ...current,
+            // @username só em minúsculas; telefone no formato do país enquanto digita
+            [field]: field === 'username' ? raw.toLowerCase() : field === 'phone' ? typePhone(raw, current.phone) : raw,
+        }));
+        setErrors((current) => (current[field] ? { ...current, [field]: undefined } : current));
+        setFormError(undefined);
+        setSuccess(false);
+    };
+
+    const submit = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (!changed.length || pending) return;
+        const invalid: Partial<Record<ProfileField, string>> = {};
+        for (const key of changed) {
+            const problem = validateProfileField(key, values[key]);
+            if (problem) invalid[key] = problem;
+        }
+        setErrors(invalid);
+        setFormError(undefined);
+        setSuccess(false);
+        const first = PROFILE_FIELDS.find(({ key }) => invalid[key]);
+        if (first) {
+            inputs.current[first.key]?.focus();
+            return;
+        }
+        try {
+            const { saved: back } = await mutation.mutateAsync(
+                Object.fromEntries(changed.map((key) => [key, values[key]])) as Partial<ProfileValues>,
+            );
+            // o que o servidor devolveu (nomes com maiúsculas, telefone formatado) volta para os campos
+            setValues((current) => {
+                const next = { ...current };
+                for (const key of changed) next[key] = fieldValue(key, back[key] ?? null);
+                return next;
+            });
+            setSuccess(true);
+        } catch (failure) {
+            if (USERNAME_CODES.includes(serverCode(failure) ?? '')) {
+                setErrors({ username: profileError(failure) });
+                inputs.current.username?.focus();
+            } else setFormError(profileError(failure));
+        }
+    };
+
     return (
-        <form
-            className="row"
-            onSubmit={async (event) => {
-                event.preventDefault();
-                const invalid = validateProfileField(field, value);
-                setError(invalid);
-                setSuccess(false);
-                if (invalid || mutation.isPending) return;
-                try {
-                    const { profile } = await mutation.mutateAsync({ field, value });
-                    setValue(profile[field] ?? '');
-                    setSuccess(true);
-                } catch (failure) {
-                    setError(profileError(failure));
-                }
-            }}
-        >
-            <label htmlFor={id}>{label}</label>
-            <div className="field">
-                <div className="profile-edit">
-                    <Input
-                        id={id}
-                        type={field === 'birth_date' ? 'date' : 'text'}
-                        value={value}
-                        maxLength={maxLength}
-                        disabled={mutation.isPending}
-                        autoCapitalize={field === 'username' || field === 'instagram' ? 'none' : undefined}
-                        spellCheck={field === 'username' || field === 'instagram' ? false : undefined}
-                        aria-invalid={!!error}
-                        aria-describedby={error ? `${id}-error` : undefined}
-                        onChange={(event) => {
-                            // username só em minúsculas: o aluno digita como quiser
-                            setValue(field === 'username' ? event.target.value.toLowerCase() : event.target.value);
-                            setError(undefined);
-                            setSuccess(false);
-                        }}
-                    />
-                    {/* "Salvar" só no campo alterado; o espaço fica reservado (o campo não muda de largura) */}
-                    <Button
-                        htmlType="submit"
-                        loading={mutation.isPending}
-                        disabled={!dirty || mutation.isPending}
-                        aria-label={`Salvar ${label}`}
-                        style={dirty || mutation.isPending ? undefined : { visibility: 'hidden' }}
-                    >
-                        Salvar
-                    </Button>
+        <form className="rows profile-form" noValidate onSubmit={submit}>
+            {PROFILE_FIELDS.map(({ key, label, maxLength }) => {
+                const id = `profile-${key}`;
+                const error = errors[key];
+                const described = [key === 'phone' ? `${id}-hint` : '', error ? `${id}-error` : '']
+                    .filter(Boolean)
+                    .join(' ');
+                return (
+                    <div className="row" key={key}>
+                        <label htmlFor={id}>{label}</label>
+                        <div className="field">
+                            <Input
+                                id={id}
+                                ref={(input) => {
+                                    inputs.current[key] = input;
+                                }}
+                                type={key === 'birth_date' ? 'date' : key === 'phone' ? 'tel' : 'text'}
+                                inputMode={key === 'phone' ? 'tel' : undefined}
+                                autoComplete={key === 'phone' ? 'tel' : undefined}
+                                placeholder={key === 'phone' ? PHONE_PLACEHOLDER : undefined}
+                                value={values[key]}
+                                maxLength={maxLength}
+                                readOnly={pending}
+                                autoCapitalize={key === 'username' || key === 'instagram' ? 'none' : undefined}
+                                spellCheck={key === 'username' || key === 'instagram' ? false : undefined}
+                                aria-invalid={!!error}
+                                aria-describedby={described || undefined}
+                                onChange={(event) => edit(key, event.target.value)}
+                            />
+                            {key === 'phone' && (
+                                <p className="profile-hint" id={`${id}-hint`}>
+                                    {PHONE_HINT}
+                                </p>
+                            )}
+                            {error && (
+                                <p className="profile-error" id={`${id}-error`} role="alert">
+                                    {error}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                );
+            })}
+            <div className="row profile-actions">
+                <span className="lab" aria-hidden />
+                <div className="field">
+                    <button type="submit" className="btn gold" disabled={!changed.length || pending}>
+                        {pending ? 'Salvando…' : 'Salvar'}
+                    </button>
+                    {success && (
+                        <span role="status" className="profile-saved">
+                            Salvo
+                        </span>
+                    )}
+                    {formError && (
+                        <span role="alert" className="profile-error">
+                            {formError}
+                        </span>
+                    )}
                 </div>
-                {error && (
-                    <p className="profile-error" id={`${id}-error`} role="alert">
-                        {error}
-                    </p>
-                )}
-                {success && (
-                    <span role="status" className="profile-saved">
-                        Salvo
-                    </span>
-                )}
             </div>
         </form>
     );
@@ -176,7 +246,7 @@ const ProfilePhoto: React.FC<{ photo?: string | null; name?: string }> = ({ phot
                     open={!!file}
                     onCancel={close}
                     onOk={save}
-                    okText="Salvar foto"
+                    okText="Usar foto"
                     cancelText="Cancelar"
                     confirmLoading={busy}
                     okButtonProps={{ disabled: !loaded || busy }}
@@ -252,21 +322,13 @@ export const ProfileSettings: React.FC = () => {
             ) : (
                 <>
                     <ProfilePhoto photo={data.photoURL ?? user?.profileImageSrc} name={data.first_name ?? user?.name} />
-                    <div className="rows">
-                        {PROFILE_FIELDS.map(({ key, ...props }) => (
-                            <ProfileInput key={`${user?.uid}:${key}`} field={key} saved={data[key] ?? ''} {...props} />
-                        ))}
-                    </div>
+                    <ProfileForm key={user?.uid} data={data} />
                 </>
             )}
             <dl className="rows settings-data">
                 <div className="row">
                     <dt className="lab">E-mail</dt>
                     <dd className="field">{data?.email || user?.email || 'Não informado'}</dd>
-                </div>
-                <div className="row">
-                    <dt className="lab">Telefone</dt>
-                    <dd className="field">{data?.phone || 'Não informado'}</dd>
                 </div>
             </dl>
             <div className="row">

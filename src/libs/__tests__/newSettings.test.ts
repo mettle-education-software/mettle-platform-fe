@@ -154,16 +154,18 @@ test('página na ordem: conta, Meus produtos, Programa Imerso, Dados pessoais, A
     expect([...security.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Alterar senha']);
     expect(doc.querySelectorAll('input[type="password"]')).toHaveLength(0);
     expect(section(doc, 'settings-appearance').textContent).toContain('Tema');
+    // no celular, o tema empilha (o seletor de três opções não cabe ao lado do rótulo a 360 px)
+    expect(section(doc, 'settings-appearance').querySelector('.cr.stack')).not.toBeNull();
 });
 
 test('Meus produtos só do modelo de acesso: a Masterclass aparece sem catálogo; prazo perto avisa', () => {
     const doc = render();
     const list = rows(doc);
     expect(list).toHaveLength(2);
-    expect(list[0]).toBe('Programa ImersoPlano anualVálido até 12 de março de 2030Ativo');
-    expect(list[1]).toContain('Masterclass');
-    expect(list[1]).toContain('Plano mensal');
-    expect(list[1]).toContain(' · faltam 20 dias');
+    // linha 1: nome e selo; linha 2: uma só; aviso só quando faltam até 60 dias
+    expect(list[0]).toBe('Programa ImersoAtivoPlano anual · válido até 12 de março de 2030');
+    expect(list[1]).toContain('MasterclassAtivoPlano mensal · válido até');
+    expect(list[1]).toContain('Faltam 20 dias');
 });
 
 test('Leitura e carência: a frase de cada caso e o Renovar', () => {
@@ -182,8 +184,15 @@ test('Leitura e carência: a frase de cada caso e o Renovar', () => {
     const [leitura, carencia] = rows(doc);
     expect(leitura).toContain('Acesso encerrado em 30 de setembro de 2026. Você ainda pode navegar.');
     expect(leitura).toContain('Leitura');
+    expect(carencia).toContain('Carência');
     expect(carencia).toContain('Seu plano venceu em');
     expect(carencia).toContain('Acesso total até');
+    // Imerso em Leitura pelo modelo de acesso: sem pausar nem reiniciar, uma linha calma; semana e histórico ficam
+    const program = section(doc, 'settings-imerso');
+    expect(action('Pausar')).toBeUndefined();
+    expect(action('Reiniciar')).toBeUndefined();
+    expect(program.textContent).toContain('A LAMP fica pausada enquanto o seu acesso estiver em Leitura.');
+    expect(program.textContent).toContain('Semana 12');
     const renew = [...section(doc, 'settings-products').querySelectorAll('a')].map((a) => a.textContent);
     expect(renew).toEqual(['Renovar', 'Renovar']);
 });
@@ -206,6 +215,9 @@ test('Programa Imerso: semana e início; pausar antes de reiniciar; histórico',
     expect(program.textContent).toContain('Pausas restantes: 3');
     expect(program.textContent).toContain('Reinícios restantes: 2');
     expect(program.textContent).toContain('Histórico do programa');
+    // datas por extenso, como no resto da página
+    expect(program.textContent).toContain('20 de julho de 2026');
+    expect(program.textContent).not.toContain('20/07/2026');
 });
 
 test('aluno sem Imerso não vê o programa nem consulta o resumo', () => {

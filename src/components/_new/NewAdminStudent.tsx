@@ -371,13 +371,16 @@ const DeleteAccount: React.FC<{ uid: string; email?: string | null }> = ({ uid, 
                 if (ok && !trash.isPending) trash.mutate(typed.trim());
             }}
         >
+            {/* excluindo: nada muda até a resposta (sem segundo pedido, sem perder o retorno) */}
             <input
                 type="email"
                 autoComplete="off"
                 aria-label="Digite o e-mail da conta para confirmar"
                 placeholder="Digite o e-mail da conta"
                 value={typed}
+                disabled={trash.isPending}
                 onChange={(event) => {
+                    if (trash.isPending) return;
                     trash.reset();
                     setTyped(event.target.value);
                 }}
@@ -388,7 +391,9 @@ const DeleteAccount: React.FC<{ uid: string; email?: string | null }> = ({ uid, 
             <button
                 type="button"
                 className="btn ghost"
+                disabled={trash.isPending}
                 onClick={() => {
+                    if (trash.isPending) return;
                     setOpen(false);
                     setTyped('');
                     trash.reset();

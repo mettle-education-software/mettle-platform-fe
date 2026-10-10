@@ -145,6 +145,8 @@ describe('regras', () => {
         expect(trashName(entry())).toBe('Aluna Teste');
         expect(trashName(entry({ firstName: null, lastName: null }))).toBe('aluna@example.test');
         expect(brInstantDay('2026-11-09T15:00:00Z')).toBe('09/11/2026');
+        // 02:30 UTC ainda é o dia anterior em Brasília
+        expect(brInstantDay('2026-11-10T02:30:00Z')).toBe('09/11/2026');
     });
 });
 
@@ -191,6 +193,12 @@ describe('Excluir conta permanentemente (página do aluno)', () => {
         expect(button(host, 'Excluir')!.disabled).toBe(false);
         click(button(host, 'Excluir')!);
         expect(mockTrashCalls).toEqual(['aluna@example.test']);
+        // excluindo: o campo e o Cancelar param (sem segundo pedido, sem perder o retorno)
+        expect(input.disabled).toBe(true);
+        expect(button(host, 'Cancelar')!.disabled).toBe(true);
+        click(button(host, 'Cancelar')!);
+        click(button(host, 'Excluindo…')!);
+        expect(mockTrashCalls).toHaveLength(1);
         act(() => mockTrashDone!());
         expect(host.textContent).toContain(
             'A conta vai para a lixeira por 30 dias (exclusão definitiva em 09/11/2026).',

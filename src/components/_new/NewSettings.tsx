@@ -178,7 +178,7 @@ const ImersoSettings: React.FC = () => {
                         <div className="lab">
                             <b>
                                 Reiniciar a LAMP
-                                <Tooltip title="Zera a sua LAMP e recomeça da semana 1. Os seus DEDAs e o HPEC continuam como estão.">
+                                <Tooltip title="Zera a sua LAMP. Os seus DEDAs e o HPEC continuam como estão.">
                                     <Info {...ICON} size={16} aria-label="Sobre reiniciar a LAMP" />
                                 </Tooltip>
                             </b>
@@ -196,13 +196,12 @@ const ImersoSettings: React.FC = () => {
                                         content: (
                                             <>
                                                 <p>
-                                                    A sua LAMP volta a zero e recomeça da semana 1 na próxima
-                                                    segunda-feira (no mesmo dia, se hoje for segunda). As metas também
-                                                    recomeçam da semana 1.
+                                                    A sua LAMP é zerada e volta a contar na próxima segunda-feira (no
+                                                    mesmo dia, se hoje for segunda).
                                                 </p>
                                                 <p>
-                                                    Os seus DEDAs e o HPEC continuam como estão. Os registros atuais da
-                                                    LAMP são arquivados e deixam de contar.
+                                                    Os seus DEDAs e o HPEC não mudam: você continua exatamente de onde
+                                                    está.
                                                 </p>
                                                 <p>
                                                     Se você estiver em pausa, a pausa termina junto, sem gastar outra

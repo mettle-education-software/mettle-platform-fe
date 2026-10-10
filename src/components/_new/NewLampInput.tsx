@@ -53,7 +53,7 @@ const styles = css`
         margin-top: 2px;
         font-size: 22px;
     }
-    .linput .when h2 span {
+    .linput .when h2 > span:not(.lvl) {
         font-size: 14px;
         color: var(--r-muted);
     }

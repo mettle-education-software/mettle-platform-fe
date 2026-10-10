@@ -3,15 +3,13 @@
 import styled from '@emotion/styled';
 import React from 'react';
 import { DedaDifficulties, type DedaDifficulty } from '../../interfaces/melp';
-
-/** Estados do programa antes do início (o nível só existe para quem começou). */
-const NOT_STARTED = ['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN', 'WEEK_ZERO'];
+import { programStarted } from '../../libs/dedaClock';
 
 /** Nome do nível do programa (Flow, Boost, Turbo) para quem já começou; antes do início ou sem nível, null. */
 export const programLevelName = (
     s?: { melp_status?: string | null; deda_difficulty?: DedaDifficulty | null } | null,
 ) => {
-    if (!s?.melp_status || NOT_STARTED.includes(s.melp_status) || !s.deda_difficulty) return null;
+    if (!programStarted(s?.melp_status) || !s?.deda_difficulty) return null;
     return DedaDifficulties[s.deda_difficulty] ?? null;
 };
 
@@ -38,8 +36,4 @@ const Chip = styled.span`
  * no programa (Flow, Boost, Turbo); sem nome, nada.
  */
 export const LevelChip: React.FC<{ name?: string | null; className?: string }> = ({ name, className }) =>
-    name ? (
-        <Chip className={['lvl', className].filter(Boolean).join(' ')} title="Program level">
-            {name}
-        </Chip>
-    ) : null;
+    name ? <Chip className={['lvl', className].filter(Boolean).join(' ')}>{name}</Chip> : null;

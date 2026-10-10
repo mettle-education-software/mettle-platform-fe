@@ -555,7 +555,7 @@ export const NewAdminDashboard: React.FC = () => {
                 {d?.ltvMedio && (
                     <p className="line">
                         LTV médio (Imerso): {brl(d.ltvMedio.valor)}
-                        {typeof d.ltvMedio.dias === 'number' && ` · ${count(d.ltvMedio.dias)} dias`}
+                        {typeof d.ltvMedio.dias === 'number' && ` · ${count(Math.round(d.ltvMedio.dias))} dias`}
                     </p>
                 )}
                 <div className="two">

@@ -16,6 +16,7 @@ import {
     contasPath,
     lastAccessLabel,
     type Level,
+    programStarted,
     levelLabel,
     LEVELS,
     ltvCell,
@@ -255,8 +256,13 @@ const styles = css`
         min-width: 84px;
         line-height: 1.25;
     }
-    .ct th.wrap button {
-        text-align: left;
+    /* 11 colunas: a lista usa a largura toda da tela (não a coluna de leitura) */
+    .ui-new-page.ct {
+        max-width: none;
+    }
+    /* LTV: só o botão da ordem ativa fica dourado */
+    .ct th .duo button[aria-pressed='false'] {
+        color: inherit;
     }
     /* LTV: duas ordens no mesmo cabeçalho (o dinheiro e os dias) */
     .ct th .duo {
@@ -340,7 +346,7 @@ const n = (value: number | null | undefined) => (typeof value === 'number' ? val
  * Resumo de auditoria: a base inteira (igual ao Início); cada número aplica o seu filtro na lista padrão (scope=contas:
  * quem tem produto é ativo e com login, sem lixeira e equipe), então a lista bate com o número.
  */
-const FILTERS = ['product', 'state', 'origin', 'situacao', 'todas', 'lixeira'] as const;
+const FILTERS = ['product', 'state', 'origin', 'situacao', 'level', 'todas', 'lixeira'] as const;
 const Audit: React.FC<{
     summary: AccountsSummary | null;
     view: ContasView;
@@ -777,10 +783,6 @@ export const NewAdminContas: React.FC = () => {
     );
 };
 
-/** O programa começou (o nível só aparece depois do início, como no resto da plataforma). */
-const programStarted = (program: NonNullable<AccountRow['program']>) =>
-    !['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN', 'WEEK_ZERO'].includes(program.melpStatus);
-
 /** Data e hora de Brasília, curtas: "10/10, 18:05". */
 const when = (iso: string) => {
     const date = new Date(iso);
@@ -862,7 +864,7 @@ const AccountLine: React.FC<{ row: AccountRow; selected: boolean; onOpen: (uid: 
             })}
             <td>{programLabel(row.program)}</td>
             <td>
-                {row.program?.level && programStarted(row.program) ? (
+                {row.program?.level && programStarted(row.program.melpStatus) ? (
                     <LevelChip name={levelLabel(row.program.level)} />
                 ) : (
                     '—'

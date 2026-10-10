@@ -13,6 +13,9 @@ import {
     type Product,
 } from './adminAccess';
 import { historyStatusLabel } from './adminHistory';
+import { NOT_STARTED, programStarted } from './dedaClock';
+
+export { programStarted };
 
 export const ADMIN_PANEL_PATH = '/admin/contas';
 /** O painel com o detalhe de uma conta aberto (links antigos, saída da impersonação, linhas do Início). */
@@ -343,16 +346,14 @@ export const programLabel = (program: AccountRow['program']) => {
     if (!status) return '—';
     if (status === 'DEDA_STARTED') return program?.lampWeek ? String(program.lampWeek) : 'Em andamento';
     if (status === 'DEDA_PAUSED') return 'Pausado';
-    if (['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN', 'WEEK_ZERO'].includes(status)) return 'Não começou';
+    if (NOT_STARTED.includes(status)) return 'Não começou';
     return historyStatusLabel(status);
 };
 
 /** O programa por extenso (a conta aberta): "Semana 12 · Boost", "Pausado · Flow", "Não começou"… */
 export const programText = (program: AccountRow['program']) => {
     const label = programLabel(program);
-    const started =
-        program?.melpStatus &&
-        !['MELP_BEGIN', 'CAN_START_DEDA', 'DEDA_STARTED_NOT_BEGUN', 'WEEK_ZERO'].includes(program.melpStatus);
+    const started = programStarted(program?.melpStatus);
     return [/^\d+$/.test(label) ? `Semana ${label}` : label, started && levelLabel(program?.level)]
         .filter(Boolean)
         .join(' · ');
@@ -385,7 +386,7 @@ export const accessDetail = (summary: ProductAccessSummary | undefined, today = 
     const what = vital
         ? 'Vitalício'
         : summary.origin === 'compra'
-          ? (plan && summary.plan) || null
+          ? (plan && (summary.plan || 'Compra')) || null
           : ORIGINS.find((o) => o.value === summary.origin)?.label;
     if (!vital && inGrace(summary, today))
         return [what, `carência até ${brDay(summary.graceUntil?.slice(0, 10))}`].filter(Boolean).join(' · ');
@@ -403,12 +404,14 @@ export const ltvCell = (row: Pick<AccountRow, 'ltv' | 'access'>) => {
     const days =
         typeof ltv?.dias === 'number' ? `${ltv.dias.toLocaleString('pt-BR')} ${ltv.dias === 1 ? 'dia' : 'dias'}` : null;
     if (!ltv) return { money: '—', line: null };
-    const paid = (ltv.compras ?? 0) > 0;
-    const origins = PRODUCTS.map((p) => row.access?.[p]?.origin).filter(Boolean);
+    // pagou: há compras (ou um total, mesmo sem a contagem); grátis: todo produto que a pessoa tem é cortesia, parceiro
+    // ou equipe (origem desconhecida não conta como grátis)
+    const paid = (ltv.compras ?? 0) > 0 || (ltv.total ?? 0) > 0;
+    const held = PRODUCTS.map((p) => row.access?.[p]).filter((a) => a && (a.state !== 'none' || a.origin));
     const free =
-        !paid && origins.length > 0 && origins.every((o) => o === 'cortesia' || o === 'parceiro' || o === 'equipe');
+        !paid && held.length > 0 && held.every((a) => ['cortesia', 'parceiro', 'equipe'].includes(a?.origin ?? ''));
     const money = paid ? brl(ltv.total) : free ? brl(0) : '—';
-    const buys = paid ? `${ltv.compras} ${ltv.compras === 1 ? 'compra' : 'compras'}` : null;
+    const buys = (ltv.compras ?? 0) > 0 ? `${ltv.compras} ${ltv.compras === 1 ? 'compra' : 'compras'}` : null;
     return { money, line: [buys, days].filter(Boolean).join(' · ') || null };
 };
 
@@ -473,13 +476,15 @@ export const accountsCsv = (rows: AccountRow[]) =>
                     accessDetail(row.access?.[p], undefined, p === 'imerso') ?? '',
                 ]),
                 programLabel(row.program),
-                levelLabel(row.program?.level) ?? '',
+                (programStarted(row.program?.melpStatus) && levelLabel(row.program?.level)) || '',
                 typeof row.overall === 'number' ? String(row.overall).replace('.', ',') : '',
                 row.dedaRun ?? '',
                 row.leaderboardPos ?? '',
                 lastAccessLabel(row.lastAccess, row.loginRecriado),
-                typeof row.ltv?.total === 'number' ? row.ltv.total.toFixed(2).replace('.', ',') : '',
-                row.ltv?.compras ?? '',
+                ltvCell(row).money === '—' || typeof row.ltv?.total !== 'number'
+                    ? ''
+                    : row.ltv.total.toFixed(2).replace('.', ','),
+                ltvCell(row).money === '—' ? '' : (row.ltv?.compras ?? ''),
                 row.ltv?.dias ?? '',
                 row.inTrash ? 'sim' : '',
             ]

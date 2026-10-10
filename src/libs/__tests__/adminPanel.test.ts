@@ -344,6 +344,35 @@ test('LTV: dinheiro e "compras · dias"; compra sem compra achada = "—", R$ 0,
         line: null,
     });
     expect(cell(null)).toEqual({ money: '—', line: null });
+    // origem desconhecida (a confirmar) com cortesia: não é grátis — "—"
+    const mixed = {
+        ltv: { total: 0, compras: 0, dias: 10 },
+        access: {
+            ...acc('cortesia'),
+            imerso: {
+                state: 'ativo',
+                origin: null,
+                plan: null,
+                validUntil: null,
+                graceUntil: null,
+                dateToConfirm: false,
+            },
+            masterclass: {
+                state: 'ativo',
+                origin: 'cortesia',
+                plan: null,
+                validUntil: null,
+                graceUntil: null,
+                dateToConfirm: false,
+            },
+        },
+    };
+    expect(ltvCell(mixed as never).money).toBe('—');
+    // total sem a contagem de compras: o dinheiro aparece (sem "N compras")
+    expect(cell({ total: 997, compras: null, dias: 5 })).toEqual({
+        money: expect.stringMatching(/997,00$/),
+        line: '5 dias',
+    });
 });
 
 test('métricas, nível e o programa por extenso', () => {

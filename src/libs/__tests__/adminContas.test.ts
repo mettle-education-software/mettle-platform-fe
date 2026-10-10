@@ -242,6 +242,14 @@ test('a lista: conta com selo Equipe, Ativo/Leitura com a linha miúda, programa
     act(() => root.unmount());
 });
 
+test('filtro de nível ligado: nenhum número do resumo aparece como "aplicado"', () => {
+    mockSearch = 'level=turbo';
+    const { host, root } = mount();
+    const audit = host.querySelector('[aria-label="Resumo das contas"]')!;
+    expect(audit.querySelectorAll('button[aria-pressed="true"]')).toHaveLength(0);
+    act(() => root.unmount());
+});
+
 test('resumo de auditoria: os números da base; cada um aplica o seu filtro (do zero, sem busca, mantendo a ordem)', async () => {
     mockSearch = 'origin=parceiro&sort=ltv&dir=desc';
     const { host, root, rerender } = mount();

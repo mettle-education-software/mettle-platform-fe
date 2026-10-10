@@ -950,7 +950,10 @@ const NewChat: React.FC = () => {
             <Wrap>
                 <header className="hd">
                     <MettleMark />
-                    <h1>Suporte Mettle</h1>
+                    <div className="hd-id">
+                        <h1>Suporte Mettle</h1>
+                        <p>Respondemos em até 24 horas</p>
+                    </div>
                 </header>
 
                 <div
@@ -1401,11 +1404,22 @@ export const Wrap = styled.div`
         background: var(--c-head);
         border-bottom: 1px solid var(--r-line);
     }
+    .hd-id {
+        min-width: 0;
+    }
     .hd h1 {
         margin: 0;
         font-size: 16px;
         font-weight: 500;
+        line-height: 1.25;
         color: var(--r-text);
+    }
+    /* o prazo de resposta: uma linha discreta sob o nome, como o status de um contato */
+    .hd-id p {
+        margin: 1px 0 0;
+        font-size: 12.5px;
+        line-height: 1.3;
+        color: var(--r-muted);
     }
 
     /* ---------- conversa ---------- */

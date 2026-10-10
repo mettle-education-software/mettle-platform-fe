@@ -21,6 +21,7 @@ import {
     lessonNeighbours,
     lockedModuleOf,
     lockedNotes,
+    plainEmphasis,
     readLessonRailCollapsed,
     readOpenModules,
     saveLessonRailCollapsed,
@@ -1088,7 +1089,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                     <VimeoThumb embedUrl={lesson?.lessonVideoEmbedUrl} />
                     <Lock {...ICON} size={32} strokeWidth={1.25} className="lock" aria-hidden />
                 </a>
-                {lesson?.lessonFeaturedText && <p className="pv-text">{lesson.lessonFeaturedText}</p>}
+                {lesson?.lessonFeaturedText && <p className="pv-text">{plainEmphasis(lesson.lessonFeaturedText)}</p>}
                 <div className="notice" role="status">
                     <div>
                         <b>{preview.note}</b>

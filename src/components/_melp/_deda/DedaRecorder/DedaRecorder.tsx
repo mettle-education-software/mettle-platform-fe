@@ -63,10 +63,11 @@ const Bar = styled.section`
         color: var(--r-text);
         padding: 0;
         border-radius: 0;
-        flex-wrap: nowrap;
+        /* uma linha enquanto o estado tiver ~10rem; sem espaço, os botões descem (a barra cresce, nada se sobrepõe) */
+        flex-wrap: wrap;
     }
     &.docked .status {
-        flex: 1 1 auto;
+        flex: 1 1 10rem;
     }
     &.docked .detail {
         color: var(--r-muted);
@@ -82,12 +83,17 @@ const Bar = styled.section`
         background: var(--r-track);
     }
     &.docked .actions {
-        flex: none;
+        flex: 0 1 auto;
+        min-width: 0;
     }
     /* uma linha por estado; o detalhe, quando existe, fica no ⓘ (abre para cima: a barra está no pé da tela) */
     &.docked .headline {
         position: relative;
+        flex-wrap: wrap;
+        row-gap: 0;
         font-weight: 400;
+        /* sem espaço, quebra por palavra (as tentativas descem), nunca letra por letra (era o "anywhere" da base) */
+        overflow-wrap: normal;
     }
     &.docked .headline.error {
         color: var(--r-error);

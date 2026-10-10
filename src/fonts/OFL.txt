@@ -1,8 +1,8 @@
 Os arquivos .woff2 desta pasta (Jost, Manrope, Figtree, Literata; subconjuntos latin e latin-ext servidos pelo
 Google Fonts) estão sob a SIL Open Font License 1.1, abaixo, e não sob a LICENSE da raiz do repositório.
 
-Copyright 2020 The Jost Project Authors (https://github.com/indestructible-type)
-Copyright 2018 The Manrope Project Authors (https://github.com/googlefonts/manrope)
+Copyright 2020 The Jost Project Authors (https://github.com/indestructible-type/Jost)
+Copyright 2019 The Manrope Project Authors (https://github.com/sharanda/manrope)
 Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree)
 Copyright 2017 The Literata Project Authors (https://github.com/googlefonts/literata)
 

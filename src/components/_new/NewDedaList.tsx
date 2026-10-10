@@ -11,7 +11,7 @@ import { useMelpContext } from 'providers';
 import React, { useMemo } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewDedasGrid } from './NewDedasGrid';
-import { SummaryError, SuspendedNotice } from './NewImersoDash';
+import { NoProgram, SummaryError, SuspendedNotice } from './NewImersoDash';
 import { NewPage } from './NewPage';
 
 /**
@@ -21,7 +21,8 @@ import { NewPage } from './NewPage';
  */
 export const NewDedaList: React.FC = () => {
     const router = useRouter();
-    const { melpSummary, isTodaysDedaCompleted, isMelpSummaryError, retryMelpSummary } = useMelpContext();
+    const { melpSummary, isTodaysDedaCompleted, isMelpSummaryError, retryMelpSummary, noMelpProgram } =
+        useMelpContext();
 
     const blockedDEDAs =
         useMemo(() => ['MELP_SUSPENDED'].includes(melpSummary?.melp_status), [melpSummary]) ||
@@ -42,11 +43,18 @@ export const NewDedaList: React.FC = () => {
 
     const handleSelectedDeda = (dedaSlug: string) => router.push(dedaPath(dedaSlug));
 
-    // sem resumo (falha) ou suspenso: o aviso no lugar das grades (nada de esqueleto eterno nem lista trancada sem motivo)
-    if (isMelpSummaryError || melpSummary?.melp_status === 'MELP_SUSPENDED')
+    // sem resumo (falha), sem programa ou suspenso: o aviso no lugar das grades (nada de esqueleto eterno nem lista
+    // trancada sem motivo)
+    if (isMelpSummaryError || noMelpProgram || melpSummary?.melp_status === 'MELP_SUSPENDED')
         return (
             <NewPage className="wide">
-                {isMelpSummaryError ? <SummaryError onRetry={retryMelpSummary} /> : <SuspendedNotice />}
+                {isMelpSummaryError ? (
+                    <SummaryError onRetry={retryMelpSummary} />
+                ) : noMelpProgram ? (
+                    <NoProgram />
+                ) : (
+                    <SuspendedNotice />
+                )}
             </NewPage>
         );
 

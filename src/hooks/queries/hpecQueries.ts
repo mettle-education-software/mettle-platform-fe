@@ -46,6 +46,15 @@ export const useGetHpecsModules = () => {
     const [totalLessons, setTotalLessons] = useState(0);
 
     useEffect(() => {
+        // conta sem programa (resumo 404 → null): nada liberado, todo módulo trancado até o programa começar (PF2-01)
+        if (melpSummary === null && modulesContentData) {
+            const all = modulesContentData.hpecContentCollection.items;
+            setUnlockedModules([]);
+            setLockedModules(all.map((hpec) => ({ ...hpec, unlockDate: 'Opens when your IMERSO starts' })));
+            setUnlockedLessons(0);
+            setTotalLessons(all.reduce((sum, hpec) => sum + hpec.hpecLessonsCollection.items.length, 0));
+            return;
+        }
         if (melpSummary && modulesContentData) {
             const daysSinceMelpStart = melpSummary.days_since_melp_start;
             // depois do start, o dia que goteja (libs/dedaClock.hpecDay): relógio novo = calendário em todo estado;

@@ -98,19 +98,17 @@ export const productLines = (rows: MyAccessRow[] | null | undefined, today = brT
         const grace = day(row.graceUntil);
         const base = { key, name: NAMES[key], soon: false, renew: null as string | null };
         if (row.state === 'leitura') {
-            // o último dia de acesso que já passou (Leitura posta antes do prazo não anuncia uma data futura)
-            const ended = longDate([grace, valid].find((d) => d && d <= today) ?? row.leituraSince);
-            return [
-                {
-                    ...base,
-                    pill: 'Leitura',
-                    details: line(),
-                    alert: ended
-                        ? `Acesso encerrado em ${ended}. Você ainda pode navegar.`
-                        : 'Acesso encerrado. Você ainda pode navegar.',
-                    renew: RENEW[key],
-                },
-            ];
+            // o último dia de acesso que já passou; data futura nunca no passado (a âncora da carga é segunda — PF2-04)
+            const since = day(row.leituraSince);
+            const ended = longDate([grace, valid, since].find((d) => d && d <= today));
+            // navegar é só do Imerso; Masterclass e E-book em Leitura ficam trancados (PF2-05)
+            const alert =
+                key === 'imerso'
+                    ? `${ended ? `Acesso encerrado em ${ended}.` : 'Acesso em Leitura.'} Você ainda pode navegar.`
+                    : `Acesso encerrado${ended ? ` em ${ended}` : ''}. Renove para voltar a ${
+                          key === 'ebook' ? 'ler' : 'assistir'
+                      }.`;
+            return [{ ...base, pill: 'Leitura', details: line(), alert, renew: RENEW[key] }];
         }
         // carência da compra: venceu, mas o acesso segue total até o fim da carência
         if (valid && valid < today && grace && grace >= today)
@@ -142,4 +140,36 @@ export const productLines = (rows: MyAccessRow[] | null | undefined, today = brT
             return [{ ...base, pill: 'Ativo', details: line(`válido até ${longDate(valid)}`), alert, soon: !!alert }];
         }
         return [{ ...base, pill: 'Ativo', details: line(noTerm(row) && 'sem prazo'), alert: null }];
+    });
+
+/**
+ * Carência (a compra venceu, o acesso segue total até o fim dela): o aviso do Início e do /imerso, com "Renovar"
+ * (PF2-03). As claims dizem "ativo"; a carência vem do /accounts/me. `only` limita a um produto (o /imerso).
+ */
+export const graceNotices = (
+    rows: MyAccessRow[] | null | undefined,
+    { en = false, only }: { en?: boolean; only?: string } = {},
+    today = brToday(),
+) =>
+    (rows ?? []).flatMap((row) => {
+        const valid = day(row?.validUntil);
+        const grace = day(row?.graceUntil);
+        if (!row || row.state !== 'ativo' || !valid || !grace || !(valid < today && grace >= today)) return [];
+        if (!NAMES[row.product] || (only && row.product !== only)) return [];
+        const when = (iso: string) =>
+            en
+                ? new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      timeZone: 'UTC',
+                  })
+                : longDate(iso);
+        const text = en
+            ? `Your plan expired on ${when(valid)}. Full access until ${when(grace)}.`
+            : `Seu plano venceu em ${when(valid)}. Acesso total até ${when(grace)}.`;
+        // mais de um produto (só no Início): o nome na frente
+        const named =
+            row.product === 'imerso' || only ? text : `${NAMES[row.product]}: ${text[0].toLowerCase()}${text.slice(1)}`;
+        return [{ key: row.product, text: named, renew: RENEW[row.product] }];
     });

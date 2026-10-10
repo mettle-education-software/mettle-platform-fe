@@ -54,6 +54,14 @@ jest.mock('libs/myProducts', () => jest.requireActual('../myProducts'), { virtua
 jest.mock('libs', () => ({ passwordRules: [], saoPauloWeekday: () => 3 }), { virtual: true });
 jest.mock('libs/productAccess', () => jest.requireActual('../productAccess'), { virtual: true });
 jest.mock('libs/programHistory', () => jest.requireActual('../programHistory'), { virtual: true });
+jest.mock('libs/dedaClock', () => jest.requireActual('../dedaClock'), { virtual: true });
+jest.mock(
+    'next/link',
+    () =>
+        function Link({ href, children }: any) {
+            return createElement('a', { href }, children);
+        },
+);
 jest.mock('themes/newDesign', () => ({ ICON: {} }), { virtual: true });
 jest.mock('@tanstack/react-query', () => ({ useIsMutating: () => mockMutating }));
 jest.mock('../../components/_new/NewPage', () => ({
@@ -284,5 +292,38 @@ test('DEDA pausado mantém reset e histórico, sem oferecer pausa de novo', () =
     mockSummary.data.melp_status = 'DEDA_PAUSED';
     expect(render().body.textContent).toContain('Histórico do programa');
     expect(action('Reiniciar')).toBeDefined();
+    expect(action('Pausar')).toBeUndefined();
+});
+
+test('sem programa (o resumo respondeu 404 → null): "Programa não iniciado.", sem ações, nunca "Carregando…"', () => {
+    mockSummary = { ...mockSummary, data: null, isLoading: false, isError: false };
+    const doc = render();
+    expect(section(doc, 'settings-imerso').textContent).toContain('Programa não iniciado.');
+    expect(doc.body.textContent).not.toContain('Carregando');
+    expect(action('Reiniciar')).toBeUndefined();
+    expect(action('Pausar')).toBeUndefined();
+});
+
+test('sem saldo: Reiniciar e Pausar desligados, com o caminho pelo Suporte (PF2-06)', () => {
+    mockSummary.data.remaining_resets = 0;
+    mockSummary.data.remaining_pauses = 0;
+    const doc = render();
+    expect(action('Reiniciar').disabled).toBe(true);
+    expect(action('Pausar').disabled).toBe(true);
+    const support = [...section(doc, 'settings-imerso').querySelectorAll('a')].filter(
+        (a) => a.getAttribute('href') === '/suporte',
+    );
+    expect(support).toHaveLength(2);
+});
+
+test('antes do primeiro DEDA (MELP_BEGIN): sem Reiniciar nem Pausar (PF2-10)', () => {
+    mockSummary.data = {
+        ...mockSummary.data,
+        melp_status: 'MELP_BEGIN',
+        deda_first_monday: null,
+        current_deda_week: 0,
+    };
+    render();
+    expect(action('Reiniciar')).toBeUndefined();
     expect(action('Pausar')).toBeUndefined();
 });

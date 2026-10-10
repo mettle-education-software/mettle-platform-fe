@@ -73,7 +73,10 @@ test('PATCH envia só o campo, mescla só seu resultado e mantém cache da conta
     const result = await mutation.mutationFn({ field: 'first_name', value: '  Ana  ' });
     expect(mockPatch).toHaveBeenCalledWith('/student-1/profile-data', { first_name: 'Ana' });
     mockUser = { uid: 'student-2' };
-    mutation.onSuccess(result, { field: 'first_name' });
+    await mutation.onSuccess(result, { field: 'first_name' });
+    // GET em voo cancelado antes de gravar no cache (não volta depois com o valor antigo)
+    expect(mockCancel).toHaveBeenCalledWith({ queryKey: ['account-profile', 'student-1'] });
+    expect(mockCancel.mock.invocationCallOrder[0]).toBeLessThan(mockCache.mock.invocationCallOrder[0]);
     expect(mockCache.mock.calls[0][0]).toEqual(['account-profile', 'student-1']);
     expect(mockCache.mock.calls[0][1]({ first_name: 'Anterior', city: 'cidade já salva' })).toMatchObject({
         first_name: 'Ana',
@@ -98,6 +101,7 @@ test('foto envia multipart e atualiza cache e token após salvar', async () => {
     expect(mockPut.mock.calls[0][0]).toBe('/student-1/profile');
     expect(mockPut.mock.calls[0][1].get('profileImage').type).toBe('image/jpeg');
     await mutation.onSuccess(result);
+    expect(mockCancel.mock.invocationCallOrder[0]).toBeLessThan(mockCache.mock.invocationCallOrder[0]);
     expect(mockCache.mock.calls[0][1]({ photoURL: 'old' })).toMatchObject({ photoURL: 'photo-new' });
     expect(mockReload).toHaveBeenCalledTimes(1);
     expect(mockToken).toHaveBeenCalledWith(true);

@@ -24,8 +24,11 @@ const ProfileInput: React.FC<{ field: ProfileField; label: string; maxLength: nu
     const mutation = useSaveProfile();
     const id = `profile-${field}`;
     const dirty = value.trim() !== saved;
+    // valor novo vindo do servidor (outra sessão, administrador): troca o campo só se o aluno não o estiver editando
+    const lastSaved = useRef(saved);
     useEffect(() => {
-        setValue(saved);
+        setValue((current) => (current.trim() === lastSaved.current ? saved : current));
+        lastSaved.current = saved;
     }, [saved]);
     return (
         <form

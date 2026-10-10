@@ -43,7 +43,9 @@ export function useSaveProfile() {
             return { uid: user.uid, profile: { ...data.data, birth_date: data.data.birth_date?.slice(0, 10) ?? null } };
         },
         onMutate: () => client.cancelQueries({ queryKey: profileKey(user?.uid) }),
-        onSuccess: ({ profile: data, uid }, { field }) => {
+        onSuccess: async ({ profile: data, uid }, { field }) => {
+            // um GET em voo (começado durante o PATCH) não pode voltar depois e desfazer o "Salvo"
+            await client.cancelQueries({ queryKey: profileKey(uid) });
             client.setQueryData<Profile>(profileKey(uid), (previous) =>
                 previous
                     ? {
@@ -70,6 +72,7 @@ export function useSaveProfilePhoto() {
         },
         onMutate: () => client.cancelQueries({ queryKey: profileKey(user?.uid) }),
         onSuccess: async ({ photoURL, uid }) => {
+            await client.cancelQueries({ queryKey: profileKey(uid) });
             client.setQueryData<Profile>(profileKey(uid), (previous) =>
                 previous ? { ...previous, photoURL } : previous,
             );

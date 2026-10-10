@@ -86,6 +86,18 @@ test('conserva mensagens claras do servidor (conflito e limite) e trata falhas d
         'Aguarde 30 dias.',
     );
     expect(profileError(new Error('Network error'))).toContain('Tente novamente');
+    // rota ainda não publicada (404 do gateway, mensagem técnica em inglês): frase curta em português
+    expect(profileError({ response: { status: 404, data: { message: 'Not Found: /accounts/x/profile-data' } } })).toBe(
+        'Ainda não é possível salvar. Tente mais tarde.',
+    );
+    expect(profileError({ response: { status: 500, data: { message: 'Internal Server Error' } } })).toBe(
+        'Não foi possível salvar. Tente novamente.',
+    );
+    expect(
+        profileError({
+            response: { status: 404, data: { code: 'profile_not_found', message: 'Perfil não encontrado.' } },
+        }),
+    ).toBe('Perfil não encontrado.');
 });
 
 test('valida aniversário no fuso de Brasília e rejeita caracteres de controle', () => {

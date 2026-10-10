@@ -85,9 +85,17 @@ export function validateProfileImage(file: Pick<File, 'type' | 'size'>): string 
     return undefined;
 }
 
+/**
+ * Frase do erro: a do servidor só quando é uma recusa nossa ({ code, message }, em português); rota ainda não publicada
+ * (404 do gateway) e falhas de infraestrutura têm frase própria, curta.
+ */
 export function profileError(error: unknown): string {
-    const message = (error as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
-    return typeof message === 'string' ? message : 'Não foi possível salvar. Tente novamente.';
+    const response = (error as { response?: { status?: number; data?: { code?: unknown; message?: unknown } } })
+        ?.response;
+    const { code, message } = response?.data ?? {};
+    if (typeof code === 'string' && typeof message === 'string') return message;
+    if (response?.status === 404) return 'Ainda não é possível salvar. Tente mais tarde.';
+    return 'Não foi possível salvar. Tente novamente.';
 }
 
 /** Mesmo recorte central usado na prévia com object-fit: cover. */

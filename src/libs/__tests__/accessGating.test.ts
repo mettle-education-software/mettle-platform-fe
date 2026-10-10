@@ -23,7 +23,7 @@ jest.mock(
     'providers',
     () => ({
         useAppContext: () => ({ user: { uid: 'aluno', name: 'Aluno', roles: mockRoles } }),
-        useMelpContext: () => ({ melpSummary: mockSummary }),
+        useMelpContext: () => ({ melpSummary: mockSummary, noMelpProgram: mockSummary === null }),
         useProductAccess: () => ({ access: mockAccess, openCta: jest.fn() }),
         AccessCtaBlock: () => createElement('div', { 'data-test': 'renew' }, 'RENEW-LINE'),
     }),
@@ -76,7 +76,14 @@ jest.mock('libs', () => ({ formatImersoDate: () => 'Oct 12', nextMondayDate: () 
 jest.mock('libs/cleanUrls', () => jest.requireActual('../cleanUrls'), { virtual: true });
 jest.mock(
     'libs/dedaClock',
-    () => ({ isCalendarClock: () => false, lampToday: () => null, todaysDedaId: () => null, weekDayLabel: () => '' }),
+    () => ({
+        isCalendarClock: () => false,
+        lampToday: () => null,
+        todaysDedaId: () => null,
+        weekDayLabel: () => '',
+        lampOpen: jest.requireActual('../dedaClock').lampOpen,
+        lampLastDay: jest.requireActual('../dedaClock').lampLastDay,
+    }),
     { virtual: true },
 );
 jest.mock('libs/dedaHeader', () => ({ contentfulImage: () => null }), { virtual: true });
@@ -111,6 +118,8 @@ jest.mock('../../components/_new/NewImersoDash', () => {
         Dash: ({ children }: any) => createElement('div', null, children),
         HpecSection: stub('HPEC'),
         Kpis: stub('KPIS'),
+        LampPaused: stub('LAMP-PAUSED'),
+        NoProgram: stub('NO-PROGRAM'),
         NowRow: stub('NOW'),
         RecentDedas: stub('RECENT'),
         SummaryError: stub('SUMMARY-ERROR'),
@@ -182,15 +191,42 @@ describe('home do IMERSO', () => {
         expect(text).not.toContain('Start DEDA');
         expect(text).toContain('NOW');
         expect(text).toContain('HPEC');
+        // a LAMP ainda sem dia: pausada, não números vazios (a mesma regra da página da LAMP)
+        expect(text).toContain('LAMP-PAUSED');
+        expect(text).not.toContain('KPIS');
     });
 
     test('leitura com a LAMP pausada pelo sistema: sem "Return to DEDA"', () => {
         mockLevels = { imerso: 'leitura' };
-        mockSummary = { melp_status: 'DEDA_PAUSED', days_since_melp_start: 90 };
+        mockSummary = {
+            melp_status: 'DEDA_PAUSED',
+            days_since_melp_start: 90,
+            current_deda_day: 40,
+            current_deda_week: 6,
+        };
         const text = doc(createElement(NewImersoHome)).body.textContent;
         expect(text).toContain('RENEW-LINE');
         expect(text).not.toContain('Return to DEDA');
         expect(text).toContain('KPIS');
+    });
+
+    test('leitura sem programa (resumo 404): a home de sempre, com a LAMP pausada — nunca página em branco', () => {
+        mockLevels = { imerso: 'leitura' };
+        mockSummary = null;
+        const text = doc(createElement(NewImersoHome)).body.textContent;
+        expect(text).toContain('RENEW-LINE');
+        expect(text).toContain('NOW');
+        expect(text).toContain('LAMP-PAUSED');
+        expect(text).toContain('HPEC');
+        expect(text).not.toContain('NO-PROGRAM');
+    });
+
+    test('sem programa fora da Leitura: a linha calma; resumo ainda chegando: carregando', () => {
+        mockLevels = { imerso: 'ativo' };
+        mockSummary = null;
+        expect(doc(createElement(NewImersoHome)).body.textContent).toContain('NO-PROGRAM');
+        mockSummary = undefined;
+        expect(doc(createElement(NewImersoHome)).body.textContent).toContain('LOADING');
     });
 
     test('ativo: o aviso do estado, sem a linha de renovação', () => {

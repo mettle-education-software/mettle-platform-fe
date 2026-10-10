@@ -154,6 +154,8 @@ test('página na ordem: conta, Meus produtos, Programa Imerso, Dados pessoais, A
     expect([...security.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Alterar senha']);
     expect(doc.querySelectorAll('input[type="password"]')).toHaveLength(0);
     expect(section(doc, 'settings-appearance').textContent).toContain('Tema');
+    // no celular, o tema empilha (o seletor de três opções não cabe ao lado do rótulo a 360 px)
+    expect(section(doc, 'settings-appearance').querySelector('.cr.stack')).not.toBeNull();
 });
 
 test('Meus produtos só do modelo de acesso: a Masterclass aparece sem catálogo; prazo perto avisa', () => {

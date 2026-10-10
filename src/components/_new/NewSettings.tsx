@@ -629,7 +629,8 @@ export const NewSettings: React.FC = () => {
                     Aparência
                 </h2>
                 <div className="card">
-                    <div className="cr">
+                    {/* no celular o seletor (três opções com nome) desce para baixo de "Tema" */}
+                    <div className="cr stack">
                         <div className="cr-main">
                             <b className="cr-name" id="s-theme">
                                 Tema

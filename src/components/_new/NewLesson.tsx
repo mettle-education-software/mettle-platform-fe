@@ -1073,11 +1073,18 @@ export const NewLesson: React.FC<NewLessonProps> = ({
     );
 
     let body: React.ReactNode;
-    if (preview) {
-        const title = lesson?.lessonTitle ?? current?.title ?? '';
+    const missing = !modulesLoading && !loading && !lesson;
+    if (preview && !missing) {
+        const title = lesson?.lessonTitle ?? current?.title;
         body = (
             <div className="pv">
-                <a className="pv-img" href={preview.renew} aria-label={`${t.renew}: ${title}`}>
+                {/* a imagem leva ao mesmo lugar do botão: fora da ordem do Tab (um destino, uma parada) */}
+                <a
+                    className="pv-img"
+                    href={preview.renew}
+                    tabIndex={-1}
+                    aria-label={title ? `${t.renew}: ${title}` : t.renew}
+                >
                     <VimeoThumb embedUrl={lesson?.lessonVideoEmbedUrl} />
                     <Lock {...ICON} size={32} strokeWidth={1.25} className="lock" aria-hidden />
                 </a>
@@ -1105,7 +1112,7 @@ export const NewLesson: React.FC<NewLessonProps> = ({
                 )}
             </div>
         );
-    } else if (!modulesLoading && !loading && !lesson) {
+    } else if (missing) {
         body = (
             <div className="state" role="status">
                 <h1>{t.missing}</h1>

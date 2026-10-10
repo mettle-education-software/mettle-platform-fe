@@ -5,6 +5,7 @@ import { useResumeDeda, useStartDeda } from 'hooks';
 import { DedaDifficulties, DedaDifficulty, MelpStatus } from 'interfaces/melp';
 import { formatImersoDate, nextMondayDate } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
+import { lampLastDay, lampOpen } from 'libs/dedaClock';
 import { firstName, IntensityLang, readIntensityLang, saveIntensityLang } from 'libs/newDesign';
 import { IMERSO_PRODUCT, IMERSO_RENEW_URL } from 'libs/productAccess';
 import { ArrowRight } from 'lucide-react';
@@ -258,8 +259,9 @@ export const NewImersoHome: React.FC = () => {
     else if (readOnly)
         body = (
             <>
-                <NowRow withDeda trail={trail} error={error} renew={IMERSO_RENEW_URL} />
-                {noMelpProgram ? (
+                <NowRow withDeda={false} trail={trail} error={error} renew={IMERSO_RENEW_URL} />
+                {/* números só com a LAMP aberta e com dia (a mesma regra da página da LAMP); senão, LAMP pausada */}
+                {noMelpProgram || !lampOpen(melpSummary) || !lampLastDay(melpSummary) ? (
                     <LampPaused />
                 ) : (
                     <section aria-label="Your numbers">
@@ -272,7 +274,7 @@ export const NewImersoHome: React.FC = () => {
                         <ExploreAll />
                     </div>
                 ) : (
-                    <RecentDedas skipCurrent={false} aside={<ExploreAll />} renew={IMERSO_RENEW_URL} />
+                    <RecentDedas aside={<ExploreAll />} renew={IMERSO_RENEW_URL} />
                 )}
             </>
         );

@@ -30,7 +30,7 @@ export const NewDedaList: React.FC = () => {
     const readOnly = useProductAccess().access(IMERSO_PRODUCT).state === 'expired';
     const renew = readOnly ? IMERSO_RENEW_URL : undefined;
     // sem programa não há DEDA "de hoje": o destaque é o da semana na rotação (o mesmo para todos)
-    const rotation = useGetCurrentDeda(readOnly && noMelpProgram).data?.id;
+    const rotation = useGetCurrentDeda(!!(readOnly && noMelpProgram)).data?.id;
 
     const blockedDEDAs =
         useMemo(() => ['MELP_SUSPENDED'].includes(melpSummary?.melp_status), [melpSummary]) ||

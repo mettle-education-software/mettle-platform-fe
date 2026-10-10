@@ -11,10 +11,9 @@ import { statisticsColors } from 'libs';
 import { dedaPath, hpecLessonPath } from 'libs/cleanUrls';
 import { contentfulImage } from 'libs/dedaHeader';
 import { hpecTrail, opensLabel } from 'libs/hpecTrail';
-import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { ArrowRight, Lock, Play } from 'lucide-react';
 import Link from 'next/link';
-import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
+import { useAppContext, useMelpContext } from 'providers';
 import React, { useMemo } from 'react';
 import { ICON } from 'themes/newDesign';
 import { DailyGoal } from './DailyGoal';
@@ -241,6 +240,7 @@ export const Dash = styled.div`
         text-decoration: none;
     }
     .recent .img {
+        position: relative;
         display: block;
         aspect-ratio: 16 / 9;
         border-radius: var(--r-radius);
@@ -312,9 +312,6 @@ export const Dash = styled.div`
         font-size: 12.5px;
         color: var(--r-muted);
         white-space: nowrap;
-    }
-    .recent .img {
-        position: relative;
     }
     .recent .locked img {
         opacity: 0.35;
@@ -427,12 +424,10 @@ export const SuspendedNotice: React.FC = () => (
 );
 
 /**
- * Conta sem programa do IMERSO (o resumo respondeu 404: Leitura que nunca começou, login restaurado): em Leitura, o
- * convite de renovação; senão, uma linha calma com o Suporte. Nunca carregando (PF2-01).
+ * Conta sem programa do IMERSO (o resumo respondeu 404, fora da Leitura — a Leitura vê a página de sempre): uma linha
+ * calma com o Suporte. Nunca carregando (PF2-01).
  */
 export const NoProgram: React.FC = () => {
-    const readOnly = useProductAccess().access(IMERSO_PRODUCT).state === 'expired';
-    if (readOnly) return <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />;
     return (
         <div className="notice" role="status">
             <div>

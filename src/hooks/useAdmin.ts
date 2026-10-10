@@ -1,9 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
 import { QueryParams } from 'interfaces';
+import type { AccessBody, AccessEvent, AccessRow, Product, StudentUser } from 'libs/adminAccess';
+import { ADMIN_HISTORY_URL, type HistorySnapshot } from 'libs/adminHistory';
 import { ADMIN_SEGMENTS, AdminSegment, EBOOK_BUYERS_URL, onlyBuyers } from 'libs/adminSegments';
+import { isLeituraOwner } from 'libs/leitura';
 import { useAppContext } from 'providers';
-import { adminService } from 'services';
+import { accountService, adminService } from 'services';
 
 export const useGetMettleUsers = (params: QueryParams) => {
     const { user } = useAppContext();
@@ -78,4 +81,74 @@ export const useSegmentCounts = (enabled: boolean) => {
         staleTime: 5 * 60_000,
     });
     return q;
+};
+
+// ---------- Histórico do programa (retrato do Worker, só o dono) ----------
+
+const getHistory = async (): Promise<HistorySnapshot> => {
+    const user = auth.currentUser;
+    if (!isLeituraOwner(user?.uid) || !user) throw new Error('Acesso restrito');
+    const token = await user.getIdToken();
+    const response = await fetch(ADMIN_HISTORY_URL, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+    });
+    if (!response.ok) throw new Error(String(response.status));
+    return response.json();
+};
+
+/** O retrato de /admin/historico (mesma consulta e cache da tabela e da página do aluno). */
+export const useAdminHistory = () => {
+    const uid = auth.currentUser?.uid;
+    return useQuery({
+        queryKey: ['admin-history', uid],
+        queryFn: getHistory,
+        enabled: isLeituraOwner(uid),
+        staleTime: 5 * 60_000,
+        retry: 1,
+    });
+};
+
+// ---------- Acesso por produto de um aluno (accounts-service, só admin) ----------
+
+/** Linhas dos três produtos e quem é o aluno. 404 até o servidor publicar as rotas: a tela fica calma. */
+export const useStudentAccess = (uid: string) =>
+    useQuery({
+        queryKey: ['admin-access', uid],
+        queryFn: () =>
+            accountService
+                .get<{ data: AccessRow[]; user?: StudentUser }>(`/${encodeURIComponent(uid)}/access`)
+                .then(({ data }) => data),
+        retry: false,
+        staleTime: 30_000,
+    });
+
+export const useStudentAccessEvents = (uid: string) =>
+    useQuery({
+        queryKey: ['admin-access-events', uid],
+        queryFn: () =>
+            accountService
+                .get<{ data: AccessEvent[] }>(`/${encodeURIComponent(uid)}/access-events`)
+                .then(({ data }) => data.data),
+        retry: false,
+        staleTime: 30_000,
+    });
+
+/** PUT de um produto; depois relê as linhas e o registro. */
+export const useSaveStudentAccess = (uid: string, product: Product) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (body: AccessBody) =>
+            accountService
+                .put<
+                    AccessBody,
+                    { data: AccessRow & { claimsSynced?: boolean } }
+                >(`/${encodeURIComponent(uid)}/access/${product}`, body)
+                .then(({ data }) => data.data),
+        onSettled: () =>
+            Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['admin-access', uid] }),
+                queryClient.invalidateQueries({ queryKey: ['admin-access-events', uid] }),
+            ]),
+    });
 };

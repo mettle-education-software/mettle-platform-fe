@@ -1,39 +1,25 @@
 'use client';
 
 import { css, Global } from '@emotion/react';
-import { useQuery } from '@tanstack/react-query';
 import { Input } from 'antd';
-import { auth } from 'config/firebase';
+import { useAdminHistory } from 'hooks/useAdmin';
+import { studentPath } from 'libs/adminAccess';
 import {
-    ADMIN_HISTORY_URL,
     filterHistory,
     historyDate,
-    HistorySnapshot,
     HistorySort,
     HistorySortKey,
     historyStatusLabel,
     HistoryStudent,
     paginateHistory,
     sortHistory,
-    studentHistory,
 } from 'libs/adminHistory';
-import { isLeituraOwner } from 'libs/leitura';
 import { ChevronDown, ChevronRight, ChevronUp, ChevronsUpDown } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import React, { useMemo, useState } from 'react';
 import { NewPage } from './NewPage';
 import { PageHead } from './PageHead';
-
-const getHistory = async (): Promise<HistorySnapshot> => {
-    const user = auth.currentUser;
-    if (!isLeituraOwner(user?.uid) || !user) throw new Error('Acesso restrito');
-    const token = await user.getIdToken();
-    const response = await fetch(ADMIN_HISTORY_URL, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-    });
-    if (!response.ok) throw new Error(String(response.status));
-    return response.json();
-};
 
 const COLUMNS: { key: HistorySortKey; label: string; numeric?: boolean }[] = [
     { key: 'name', label: 'Aluno' },
@@ -135,8 +121,7 @@ const styles = css`
     .ah .ah-student {
         cursor: pointer;
     }
-    .ah .ah-student:hover,
-    .ah .ah-student.ah-open {
+    .ah .ah-student:hover {
         background: var(--r-hover);
     }
     .ah .ah-name {
@@ -152,6 +137,7 @@ const styles = css`
         text-align: left;
         font: inherit;
         cursor: pointer;
+        text-decoration: none;
     }
     .ah .ah-name svg {
         flex-shrink: 0;
@@ -185,23 +171,6 @@ const styles = css`
         color: var(--r-gold-hi);
         background: var(--r-gold-tint);
     }
-    .ah .ah-events td {
-        padding: 8px 24px 20px;
-        background: var(--r-surf);
-        white-space: normal;
-    }
-    .ah .history {
-        margin: 0;
-        max-width: 700px;
-    }
-    .ah .history .rows {
-        border-top: 0;
-    }
-    .ah .history .row {
-        grid-template-columns: minmax(0, 1fr) auto;
-        padding: 12px 0;
-    }
-    .ah .history .row:last-child,
     .ah tbody tr:last-child td {
         border-bottom: 0;
     }
@@ -225,40 +194,13 @@ const styles = css`
     }
 `;
 
-const Timeline: React.FC<{ student: HistoryStudent }> = ({ student }) => {
-    const rows = studentHistory(student);
-    return rows.length ? (
-        <section className="history" aria-label={`Histórico de ${student.name || student.email}`}>
-            <ol className="rows">
-                {rows.map((row) => (
-                    <li className="row" key={row.key}>
-                        <span className="lab">
-                            <b>{row.label}</b>
-                        </span>
-                        <span className="field">{row.when}</span>
-                    </li>
-                ))}
-            </ol>
-        </section>
-    ) : (
-        <p className="hint">Sem eventos.</p>
-    );
-};
-
 export const NewAdminHistory: React.FC = () => {
-    const uid = auth.currentUser?.uid;
-    const query = useQuery({
-        queryKey: ['admin-history', uid],
-        queryFn: getHistory,
-        enabled: isLeituraOwner(uid),
-        staleTime: 5 * 60_000,
-        retry: 1,
-    });
+    const router = useRouter();
+    const query = useAdminHistory();
     const [term, setTerm] = useState('');
     const [status, setStatus] = useState<string | null>(null);
     const [sort, setSort] = useState<HistorySort>({ key: 'name', direction: 'asc' });
     const [page, setPage] = useState(1);
-    const [expanded, setExpanded] = useState<string | null>(null);
     const students = query.data?.students ?? EMPTY;
     const statuses = useMemo(
         () =>
@@ -272,7 +214,6 @@ export const NewAdminHistory: React.FC = () => {
         [students, term, status, sort],
     );
     const result = paginateHistory(filtered, page);
-    const toggle = (studentUid: string) => setExpanded((current) => (current === studentUid ? null : studentUid));
     const sortBy = (key: HistorySortKey) => {
         setSort((current) => ({ key, direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc' }));
         setPage(1);
@@ -360,74 +301,51 @@ export const NewAdminHistory: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {result.rows.map((student) => {
-                                        const open = expanded === student.uid;
-                                        const detailId = `history-${student.uid}`;
-                                        return (
-                                            <React.Fragment key={student.uid}>
-                                                <tr
-                                                    className={`ah-student${open ? ' ah-open' : ''}`}
-                                                    data-status={student.status}
-                                                    onClick={() => toggle(student.uid)}
+                                    {/* a linha inteira abre a página do aluno; o nome é o link (teclado e leitor) */}
+                                    {result.rows.map((student) => (
+                                        <tr
+                                            key={student.uid}
+                                            className="ah-student"
+                                            data-status={student.status}
+                                            onClick={() => router.push(studentPath(student.uid))}
+                                        >
+                                            <td>
+                                                <Link
+                                                    className="ah-name"
+                                                    href={studentPath(student.uid)}
+                                                    onClick={(event) => event.stopPropagation()}
                                                 >
-                                                    <td>
-                                                        <button
-                                                            className="ah-name"
-                                                            type="button"
-                                                            aria-expanded={open}
-                                                            aria-controls={open ? detailId : undefined}
-                                                            aria-label={`Histórico de ${student.name || student.email}`}
-                                                            onClick={(event) => {
-                                                                event.stopPropagation();
-                                                                toggle(student.uid);
-                                                            }}
-                                                        >
-                                                            {open ? (
-                                                                <ChevronDown size={16} aria-hidden="true" />
-                                                            ) : (
-                                                                <ChevronRight size={16} aria-hidden="true" />
-                                                            )}
-                                                            <span>
-                                                                <b>{student.name || student.email}</b>
-                                                                <small>{student.email}</small>
-                                                            </span>
-                                                        </button>
-                                                    </td>
-                                                    <td>
-                                                        <span className="ah-status">
-                                                            {historyStatusLabel(student.status)}
-                                                        </span>
-                                                    </td>
-                                                    <td>{historyDate(student.startedAt)}</td>
-                                                    <td className="ah-num">{student.lampWeek}</td>
-                                                    <td className="ah-num">
-                                                        {student.pausesUsed} <span className="hint">de 3</span>
-                                                    </td>
-                                                    <td className="ah-num">
-                                                        {student.resetsUsed} <span className="hint">de 3</span>
-                                                    </td>
-                                                    <td>{historyDate(student.pausedSince)}</td>
-                                                    <td>
-                                                        {student.lastPauseFrom
-                                                            ? `${historyDate(student.lastPauseFrom)} – ${historyDate(student.lastPauseTo)}`
-                                                            : '—'}
-                                                    </td>
-                                                    <td>
-                                                        {student.lastResetAt
-                                                            ? historyDate(student.lastResetAt)
-                                                            : 'não registrada'}
-                                                    </td>
-                                                </tr>
-                                                {open && (
-                                                    <tr className="ah-events" id={detailId}>
-                                                        <td colSpan={COLUMNS.length}>
-                                                            <Timeline student={student} />
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </React.Fragment>
-                                        );
-                                    })}
+                                                    <ChevronRight size={16} aria-hidden="true" />
+                                                    <span>
+                                                        <b>{student.name || student.email}</b>
+                                                        <small>{student.email}</small>
+                                                    </span>
+                                                </Link>
+                                            </td>
+                                            <td>
+                                                <span className="ah-status">{historyStatusLabel(student.status)}</span>
+                                            </td>
+                                            <td>{historyDate(student.startedAt)}</td>
+                                            <td className="ah-num">{student.lampWeek}</td>
+                                            <td className="ah-num">
+                                                {student.pausesUsed} <span className="hint">de 3</span>
+                                            </td>
+                                            <td className="ah-num">
+                                                {student.resetsUsed} <span className="hint">de 3</span>
+                                            </td>
+                                            <td>{historyDate(student.pausedSince)}</td>
+                                            <td>
+                                                {student.lastPauseFrom
+                                                    ? `${historyDate(student.lastPauseFrom)} – ${historyDate(student.lastPauseTo)}`
+                                                    : '—'}
+                                            </td>
+                                            <td>
+                                                {student.lastResetAt
+                                                    ? historyDate(student.lastResetAt)
+                                                    : 'não registrada'}
+                                            </td>
+                                        </tr>
+                                    ))}
                                     {!result.total && (
                                         <tr>
                                             <td colSpan={COLUMNS.length} className="hint">

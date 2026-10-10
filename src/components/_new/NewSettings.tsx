@@ -62,7 +62,7 @@ const AccountSettings: React.FC = () => {
     ]
         .map((product) => ({ ...product, state: access(product.id).state }))
         .filter((product) => product.state !== 'none');
-    const labels = { active: 'Ativo', grace: 'Em carência', expired: 'Expirado', none: '' };
+    const labels = { active: 'Ativo', grace: 'Em carência', expired: 'Leitura', none: '' };
 
     return (
         <div className="panel" aria-busy={accessLoading}>
@@ -164,6 +164,8 @@ const ImersoSettings: React.FC = () => {
     const programReset = useResetMelp();
     const pauseDeda = usePauseDeda();
     const { user } = useAppContext();
+    // leitura: sem reiniciar nem pausar (gravam); o histórico fica
+    const readOnly = useProductAccess().access(IMERSO_PRODUCT).state === 'expired';
     // a mesma consulta (e o mesmo cache) do MelpProvider, com o estado completo: dados, carregando, erro, nova tentativa
     const summary = useMelpSummary(user?.uid);
     const melpSummary = summary.data;
@@ -203,68 +205,70 @@ const ImersoSettings: React.FC = () => {
         <div className="panel">
             {modalHolder}
             {stale && <p className="hint">Não foi possível atualizar o programa IMERSO. {retry}</p>}
-            <div className="rows">
-                <div className="row">
-                    <div className="lab">
-                        <b>
-                            Reiniciar o programa
-                            <Tooltip title="Você pode reiniciar a sua conta e recomeçar o programa IMERSO do início. Seu progresso até agora será inteiramente removido.">
-                                <Info {...ICON} size={16} aria-label="Sobre reiniciar" />
-                            </Tooltip>
-                        </b>
-                        <span>
-                            Reinícios restantes: <strong>{melpSummary.remaining_resets}</strong>
-                        </span>
-                    </div>
-                    <div className="field">
-                        <Button
-                            loading={programReset.isPending}
-                            disabled={busy}
-                            onClick={() =>
-                                modal.confirm({
-                                    title: 'Atenção!',
-                                    content:
-                                        'Tem certeza que deseja reiniciar? Você perderá todo o seu progresso atual e essa ação não poderá ser revertida.',
-                                    onOk: () => programReset.mutateAsync().catch(() => undefined),
-                                })
-                            }
-                        >
-                            Reiniciar
-                        </Button>
-                    </div>
-                </div>
-                {melpSummary.melp_status === 'DEDA_STARTED' && (
+            {!readOnly && (
+                <div className="rows">
                     <div className="row">
                         <div className="lab">
                             <b>
-                                Pausar DEDA
-                                <Tooltip title="Você pode pausar o DEDA 3 vezes. Ao pausar, seu progresso não será contabilizado até que você ative novamente.">
-                                    <Info {...ICON} size={16} aria-label="Sobre pausar" />
+                                Reiniciar o programa
+                                <Tooltip title="Você pode reiniciar a sua conta e recomeçar o programa IMERSO do início. Seu progresso até agora será inteiramente removido.">
+                                    <Info {...ICON} size={16} aria-label="Sobre reiniciar" />
                                 </Tooltip>
                             </b>
                             <span>
-                                Pausas restantes: <strong>{melpSummary.remaining_pauses}</strong>
+                                Reinícios restantes: <strong>{melpSummary.remaining_resets}</strong>
                             </span>
                         </div>
                         <div className="field">
                             <Button
-                                loading={pauseDeda.isPending}
+                                loading={programReset.isPending}
                                 disabled={busy}
                                 onClick={() =>
                                     modal.confirm({
                                         title: 'Atenção!',
                                         content:
-                                            'Tem certeza que deseja pausar? Você não poderá despausar até a próxima semana, e o progresso desta semana será perdido.',
-                                        onOk: () => pauseDeda.mutateAsync().catch(() => undefined),
+                                            'Tem certeza que deseja reiniciar? Você perderá todo o seu progresso atual e essa ação não poderá ser revertida.',
+                                        onOk: () => programReset.mutateAsync().catch(() => undefined),
                                     })
                                 }
                             >
-                                Pausar
+                                Reiniciar
                             </Button>
                         </div>
                     </div>
-                )}
-            </div>
+                    {melpSummary.melp_status === 'DEDA_STARTED' && (
+                        <div className="row">
+                            <div className="lab">
+                                <b>
+                                    Pausar DEDA
+                                    <Tooltip title="Você pode pausar o DEDA 3 vezes. Ao pausar, seu progresso não será contabilizado até que você ative novamente.">
+                                        <Info {...ICON} size={16} aria-label="Sobre pausar" />
+                                    </Tooltip>
+                                </b>
+                                <span>
+                                    Pausas restantes: <strong>{melpSummary.remaining_pauses}</strong>
+                                </span>
+                            </div>
+                            <div className="field">
+                                <Button
+                                    loading={pauseDeda.isPending}
+                                    disabled={busy}
+                                    onClick={() =>
+                                        modal.confirm({
+                                            title: 'Atenção!',
+                                            content:
+                                                'Tem certeza que deseja pausar? Você não poderá despausar até a próxima semana, e o progresso desta semana será perdido.',
+                                            onOk: () => pauseDeda.mutateAsync().catch(() => undefined),
+                                        })
+                                    }
+                                >
+                                    Pausar
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
             <ProgramHistory events={melpSummary.program_events} remainingResets={melpSummary.remaining_resets} />
         </div>
     );
@@ -273,8 +277,9 @@ const ImersoSettings: React.FC = () => {
 /** Configurações novas em uma página; a versão clássica continua em app/settings/page.tsx. */
 export const NewSettings: React.FC = () => {
     const { user } = useAppContext();
-    // Preserva a elegibilidade atual, inclusive contas sem a claim roles (PR #181).
-    const isUserImerso = !!user?.roles?.includes('METTLE_STUDENT');
+    const imerso = useProductAccess().access(IMERSO_PRODUCT);
+    // Preserva a elegibilidade atual, inclusive contas sem a claim roles (PR #181); o modelo novo (claims) manda.
+    const isUserImerso = imerso.final ? imerso.state !== 'none' : !!user?.roles?.includes('METTLE_STUDENT');
 
     return (
         <NewPage className="narrow settings">

@@ -7,6 +7,7 @@ import {
     EBOOK_LINK_URL,
     EBOOK_PRODUCT,
     EBOOK_READ_PATH,
+    EBOOK_SALES_URL,
     ebookOpen,
     type EbookLink,
     linkFresh,
@@ -155,9 +156,9 @@ export const NewEbook: React.FC = () => {
                                     : 'Este e-book não faz parte da sua conta.'}
                             </p>
                             <div className="acts">
-                                <Link href="/" className="btn line">
-                                    Voltar ao Início
-                                </Link>
+                                <a href={EBOOK_SALES_URL} className="btn gold">
+                                    {state.state === 'expired' ? 'Renovar' : 'Desbloquear'}
+                                </a>
                             </div>
                         </>
                     )}

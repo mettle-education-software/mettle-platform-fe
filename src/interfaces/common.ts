@@ -83,4 +83,6 @@ export interface FireUser {
     businessUuid: string;
     name: string;
     profileImageSrc: string | null;
+    /** claim `access` do token (modelo novo), sem validar: libs/productAccess.readLevels */
+    access?: unknown;
 }

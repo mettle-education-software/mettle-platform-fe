@@ -56,6 +56,8 @@ export const AppProvider: React.FC<ProviderProps> = ({ children }) => {
                 uid: claims.user_id,
                 businessUuid: claims.businessUuid,
                 profileImageSrc: user.photoURL ?? null,
+                // acesso por produto do modelo novo (libs/productAccess.readLevels); na impersonação é do administrador
+                access: impersonating ? undefined : claims.access,
             };
 
             Sentry.setUser({

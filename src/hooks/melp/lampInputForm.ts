@@ -2,7 +2,8 @@ import { QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import { InputDataDTO, InputDataResponse } from 'interfaces';
 import { MelpSummaryResponse } from 'interfaces/melp';
 import { lampLastDay, lampRunning, lampSaveError, lampSaveProblem } from 'libs/dedaClock';
-import { useAppContext, useMelpContext, useNotificationsContext } from 'providers';
+import { IMERSO_PRODUCT } from 'libs/productAccess';
+import { useAppContext, useMelpContext, useNotificationsContext, useProductAccess } from 'providers';
 import { useEffect, useMemo, useReducer, useState } from 'react';
 import { lampService } from 'services';
 import { lampRefusal, useGetInputData, withDayLock } from './lamp';
@@ -170,11 +171,16 @@ const env: {
     mounted: boolean;
     currentKey?: string;
     notify?: (text: string) => void;
+    /** Imerso em leitura (modelo novo) ou à espera da resposta que decide */
+    readOnly?: boolean;
 } = { mounted: false };
 
-/** A LAMP conta agora para esta conta? Pelo resumo mais recente em cache (vale também com a LAMP fora da tela). */
+/**
+ * A LAMP conta agora para esta conta? Pelo resumo mais recente em cache (vale também com a LAMP fora da tela) e sem o
+ * Imerso em leitura: o envio confere na hora, não só a edição.
+ */
 const writable = (uid: string) =>
-    lampRunning(env.queryClient?.getQueryData<MelpSummaryResponse['data']>(['imerso-summary', uid]));
+    !env.readOnly && lampRunning(env.queryClient?.getQueryData<MelpSummaryResponse['data']>(['imerso-summary', uid]));
 
 const dayText = (d: DayDraft) => `Week ${Number(d.week.replace('week', ''))} · Day ${Number(d.day.replace('day', ''))}`;
 
@@ -304,9 +310,13 @@ export const useLampInputForm = () => {
     const uid = user?.uid;
     const { melpSummary } = useMelpContext();
     const { showNotification } = useNotificationsContext();
+    const { access, levelsLoading } = useProductAccess();
     const queryClient = useQueryClient();
     const last = lampLastDay(melpSummary);
-    const readOnly = !lampRunning(melpSummary);
+    // Imerso em leitura (modelo novo) ou ainda sem a resposta que decide: nada grava, nem o que já estava na fila
+    env.readOnly = access(IMERSO_PRODUCT).state === 'expired' || levelsLoading;
+    // LAMP parada ou Imerso em leitura: só para ver
+    const readOnly = !lampRunning(melpSummary) || env.readOnly;
     const currentWeek = melpSummary?.current_deda_week;
     env.queryClient = queryClient;
     env.notify = (text) => showNotification('error', 'LAMP', text);

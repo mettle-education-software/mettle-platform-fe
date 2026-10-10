@@ -1,4 +1,14 @@
-import { isImersoRouteAllowedWhenExpired, renewalNotice, resolveAccess } from '../productAccess';
+import {
+    accessKey,
+    accessSource,
+    blockedWhenReadOnly,
+    isImersoRouteAllowedWhenExpired,
+    levelsFromMe,
+    readLevels,
+    renewalNotice,
+    resolveAccess,
+    shellGate,
+} from '../productAccess';
 
 describe('resolveAccess', () => {
     const api = {
@@ -62,4 +72,95 @@ describe('renewalNotice (faixa de vencimento do Imerso)', () => {
         expect(renewalNotice({ state: 'expired', expiresAt: at }, false)).toBeNull();
         expect(renewalNotice({ state: 'none' }, true)).toBeNull();
     });
+});
+
+describe('modelo novo (claims `access`: ativo | leitura | none)', () => {
+    const MC = 'MASTERCLASS_"AS_7_REGRAS"_9c466a35-2685-4d1e-8434-b29044628056';
+
+    it('readLevels aceita só chaves e valores conhecidos; nada válido = undefined', () => {
+        expect(readLevels({ imerso: 'leitura', masterclass: 'ativo', ebook: 'none' })).toEqual({
+            imerso: 'leitura',
+            masterclass: 'ativo',
+            ebook: 'none',
+        });
+        expect(readLevels({ imerso: 'active', ebook: 'leitura', outro: 'ativo' })).toEqual({ ebook: 'leitura' });
+        expect(readLevels({ imerso: 1 })).toBeUndefined();
+        expect(readLevels(undefined)).toBeUndefined();
+        expect(readLevels('ativo')).toBeUndefined();
+    });
+
+    it('accessKey: Imerso, e-book e qualquer Masterclass', () => {
+        expect(accessKey('METTLE_STUDENT')).toBe('imerso');
+        expect(accessKey('EBOOK_GUIA_COMPLETO')).toBe('ebook');
+        expect(accessKey(MC)).toBe('masterclass');
+        expect(accessKey('METTLE_ADMIN')).toBeUndefined();
+        expect(accessKey(undefined)).toBeUndefined();
+    });
+
+    it('cada estado vira o do front (leitura = expired) e vence a linha antiga e as roles', () => {
+        const api = { products: { METTLE_STUDENT: { state: 'active' as const } }, imerso: null };
+        const levels = { imerso: 'leitura', masterclass: 'ativo', ebook: 'none' } as const;
+        expect(resolveAccess('METTLE_STUDENT', ['METTLE_STUDENT'], api, levels).state).toBe('expired');
+        expect(resolveAccess(MC, [], undefined, levels).state).toBe('active');
+        expect(resolveAccess('EBOOK_GUIA_COMPLETO', ['EBOOK_GUIA_COMPLETO'], undefined, levels).state).toBe('none');
+        // produto fora das claims: o comportamento de antes
+        expect(resolveAccess('METTLE_STUDENT', ['METTLE_STUDENT'], undefined, { ebook: 'ativo' }).state).toBe('active');
+        expect(resolveAccess('OUTRO_CURSO', ['OUTRO_CURSO'], undefined, levels).state).toBe('active');
+    });
+
+    it('levelsFromMe: `access` (ou a claim do fbData) só se a resposta for da conta vista', () => {
+        const me = { fbData: { uid: 'aluno', customClaims: { access: { imerso: 'leitura' } } } };
+        expect(levelsFromMe(me, 'aluno')).toEqual({ imerso: 'leitura' });
+        expect(levelsFromMe({ ...me, access: { imerso: 'ativo' } }, 'aluno')).toEqual({ imerso: 'ativo' });
+        // servidor sem a impersonação devolve o administrador: não vale para o aluno visto
+        expect(levelsFromMe(me, 'outro')).toBeUndefined();
+        expect(levelsFromMe({ access: { imerso: 'ativo' } }, 'aluno')).toBeUndefined();
+        expect(levelsFromMe(undefined, 'aluno')).toBeUndefined();
+        expect(levelsFromMe(me, undefined)).toBeUndefined();
+    });
+
+    it('accessSource: claim da própria conta; /me na impersonação ou sem claim; nada para o admin na própria conta', () => {
+        const access = { imerso: 'leitura' };
+        expect(accessSource({ roles: ['METTLE_STUDENT'], access })).toEqual({ claim: access, me: false });
+        expect(accessSource({ roles: ['METTLE_STUDENT'] })).toEqual({ claim: undefined, me: true });
+        expect(accessSource({ roles: ['METTLE_STUDENT'], access: { imerso: 'x' } })).toEqual({
+            claim: undefined,
+            me: true,
+        });
+        // impersonação: as claims são do administrador; vale o /me (da conta vista)
+        expect(accessSource({ impersonating: true, roles: ['METTLE_ADMIN'], access })).toEqual({
+            claim: undefined,
+            me: true,
+        });
+        expect(accessSource({ roles: ['METTLE_ADMIN'], access })).toEqual({ claim: undefined, me: false });
+        expect(accessSource(undefined)).toEqual({ claim: undefined, me: false });
+    });
+
+    it('o estado das claims é final (manda sobre a role antiga, inclusive o none); sem claims, não', () => {
+        expect(resolveAccess('METTLE_STUDENT', ['METTLE_STUDENT'], undefined, { imerso: 'none' })).toEqual({
+            state: 'none',
+            final: true,
+        });
+        expect(resolveAccess('METTLE_STUDENT', ['METTLE_STUDENT'], undefined).final).toBeUndefined();
+    });
+
+    it('shellGate: espera o /me que decide; leitura bloqueia DEDA aberto e Comunidade; o resto abre', () => {
+        expect(shellGate('active', true, '/imerso/lamp')).toBe('loading');
+        expect(shellGate('expired', true, '/imerso/deda/london')).toBe('loading');
+        expect(shellGate('expired', false, '/imerso/deda/london')).toBe('renew');
+        expect(shellGate('expired', false, '/comunidade')).toBe('renew');
+        expect(shellGate('expired', false, '/imerso/lamp')).toBe('page');
+        expect(shellGate('active', false, '/imerso/deda/london')).toBe('page');
+        expect(shellGate('none', false, '/comunidade')).toBe('page');
+    });
+
+    it.each(['/imerso/deda/DEDA74', '/imerso/deda/london', '/comunidade', '/comunidade/'])(
+        'leitura: %s dá lugar à renovação',
+        (path) => expect(blockedWhenReadOnly(path)).toBe(true),
+    );
+
+    it.each(['/', '/imerso', '/imerso/deda', '/imerso/lamp', '/imerso/hpec/welcome', '/settings', '/suporte', '/guia'])(
+        'leitura: %s abre só para ver',
+        (path) => expect(blockedWhenReadOnly(path)).toBe(false),
+    );
 });

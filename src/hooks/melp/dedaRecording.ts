@@ -167,7 +167,8 @@ export const uploadProblem = (error: unknown): 'offline' | 'expired' | 'upload' 
     if (isDailyLimit(error)) return 'daily';
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'offline';
     const err = error as AxiosError<{ code?: string }>;
-    if (err?.response?.status === 403 && err.response.data?.code === 'ACCESS_EXPIRED') return 'expired';
+    const code = err?.response?.data?.code;
+    if (err?.response?.status === 403 && (code === 'ACCESS_EXPIRED' || code === 'ACCESS_READ_ONLY')) return 'expired';
     if (err?.isAxiosError && !err.response) return 'offline';
     return 'upload';
 };

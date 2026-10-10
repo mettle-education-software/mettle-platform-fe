@@ -6,10 +6,10 @@ import { DedaDifficulties, DedaDifficulty, MelpStatus } from 'interfaces/melp';
 import { formatImersoDate, nextMondayDate } from 'libs';
 import { dedaPath } from 'libs/cleanUrls';
 import { firstName, IntensityLang, readIntensityLang, saveIntensityLang } from 'libs/newDesign';
-import { IMERSO_PRODUCT, IMERSO_SALES_URL, RENEWAL_URLS } from 'libs/productAccess';
+import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAppContext, useMelpContext, useProductAccess } from 'providers';
+import { AccessCtaBlock, useAppContext, useMelpContext, useProductAccess } from 'providers';
 import React, { useEffect, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewDedasGrid } from './NewDedasGrid';
@@ -181,19 +181,6 @@ const Paused: React.FC = () => {
     );
 };
 
-/** Imerso vencido: sem painel "ativo"; um aviso e uma ação (renovar). */
-const Expired: React.FC = () => (
-    <div className="notice">
-        <div>
-            <b>Your IMERSO access has expired</b>
-            <p>Your progress is saved.</p>
-        </div>
-        <a className="btn gold" href={RENEWAL_URLS[IMERSO_PRODUCT] ?? IMERSO_SALES_URL} data-access-allow>
-            Renew access
-        </a>
-    </div>
-);
-
 const Finished: React.FC = () => (
     <div className="notice">
         <div>
@@ -229,8 +216,8 @@ const VIEWS: Partial<Record<MelpStatus, View>> = {
 
 /**
  * Home do IMERSO (/imerso) na plataforma nova. O estado mostrado segue a regra da página atual (melp_status, semana
- * zero pelos dias desde o início); vencido mostra só o aviso de renovação, suspenso o aviso com a saída, e falha do
- * resumo um "Try again".
+ * zero pelos dias desde o início); leitura põe a linha de renovação no lugar do aviso, suspenso mostra o aviso com a
+ * saída, e falha do resumo um "Try again".
  */
 export const NewImersoHome: React.FC = () => {
     const { melpSummary, isMelpSummaryError, retryMelpSummary } = useMelpContext();
@@ -244,20 +231,21 @@ export const NewImersoHome: React.FC = () => {
     if (melpStatus === 'MELP_BEGIN' && daysSinceMelpStart >= 2 && daysSinceMelpStart < 9) {
         renderStatus = 'WEEK_ZERO' as MelpStatus;
     }
-    const expired = access(IMERSO_PRODUCT).state === 'expired';
+    // Leitura: uma linha calma com a renovação no lugar do aviso do estado (as ações dele gravam); o painel fica para
+    // ver, e o que abre um DEDA ou uma aula leva à renovação.
+    const readOnly = access(IMERSO_PRODUCT).state === 'expired';
 
     const view = VIEWS[renderStatus];
     const { trail, loading, error } = useTrail();
 
     let body: React.ReactNode;
-    if (expired) body = <Expired />;
-    else if (isMelpSummaryError) body = <SummaryError onRetry={retryMelpSummary} />;
+    if (isMelpSummaryError) body = <SummaryError onRetry={retryMelpSummary} />;
     else if (!melpSummary) body = <NewContentLoading />;
     else if (melpStatus === 'MELP_SUSPENDED') body = <SuspendedNotice />;
     else if (view)
         body = (
             <>
-                {view.notice}
+                {!readOnly && view.notice}
                 <NowRow withDeda={!!view.deda} trail={trail} error={error} />
                 {view.kpis && (
                     <section aria-label="Your numbers">
@@ -275,6 +263,7 @@ export const NewImersoHome: React.FC = () => {
                 <header className="ph">
                     <h1>Welcome, {firstName(user?.name)}</h1>
                 </header>
+                {readOnly && <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />}
                 {body}
             </Dash>
         </NewPage>

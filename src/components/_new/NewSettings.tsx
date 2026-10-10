@@ -150,6 +150,10 @@ const styles = css`
         align-items: center;
         gap: 10px;
     }
+    .settings .cr.stack .cr-side {
+        flex: 0 1 auto;
+        min-width: 0;
+    }
     .settings .cr-value {
         min-width: 0;
         font-size: 14.5px;
@@ -495,18 +499,63 @@ const ProgramCard: React.FC = () => {
     );
 };
 
-/** "Acesso e segurança": o e-mail (só leitura) e a senha, que troca num modal. */
-const SecurityCard: React.FC = () => {
-    const { user } = useAppContext();
-    const email = useProfile().data?.email || user?.email || 'Não informado';
-    const [open, setOpen] = useState(false);
+/** Troca de senha (dentro do modal: fechar desmonta e limpa o que foi digitado). */
+const PasswordForm: React.FC = () => {
     const [form] = Form.useForm();
     const newPassword = Form.useWatch('newPassword', form);
     useEffect(() => {
         if (!newPassword) form.resetFields(['newPasswordRepeat']);
     }, [newPassword, form]);
     const updatePassword = useUpdatePassword();
+    return (
+        <Form
+            form={form}
+            layout="vertical"
+            colon={false}
+            onFinish={({ newPasswordRepeat }: { newPasswordRepeat: string }) =>
+                updatePassword.mutate(newPasswordRepeat)
+            }
+        >
+            <Form.Item name="newPassword" label="Nova senha" rules={passwordRules}>
+                <Input.Password autoComplete="new-password" />
+            </Form.Item>
+            <Form.Item
+                name="newPasswordRepeat"
+                label="Repita a nova senha"
+                rules={[
+                    { required: true, message: 'Por favor insira uma nova senha' },
+                    { min: 8, message: 'A senha deve ter pelo menos 8 caracteres' },
+                    {
+                        validator: async (_, value) => {
+                            if (value !== newPassword) {
+                                return Promise.reject(new Error('As senhas não coincidem'));
+                            }
+                            const validationRegex = new RegExp(/^(?!.*\s)(?=.*[a-zA-Z])(?=.*\d)(?=.*\W).{8,}$/, 'g');
+                            if (!validationRegex.test(value)) {
+                                return Promise.reject(
+                                    new Error(
+                                        'A senha deve ter pelo menos 8 caracteres, 1 letra maiúscula, 1 letra minúscula, 1 número e 1 caractere especial',
+                                    ),
+                                );
+                            }
+                        },
+                    },
+                ]}
+            >
+                <Input.Password autoComplete="new-password" disabled={!newPassword} />
+            </Form.Item>
+            <Button loading={updatePassword.isPending} htmlType="submit" type="primary" block>
+                Alterar senha
+            </Button>
+        </Form>
+    );
+};
 
+/** "Acesso e segurança": o e-mail (só leitura) e a senha, que troca num modal. */
+const SecurityCard: React.FC = () => {
+    const { user } = useAppContext();
+    const email = useProfile().data?.email || user?.email || 'Não informado';
+    const [open, setOpen] = useState(false);
     return (
         <div className="card">
             <div className="cr stack">
@@ -514,7 +563,7 @@ const SecurityCard: React.FC = () => {
                     <b className="cr-name">E-mail</b>
                     <span className="cr-sub">E-mail da compra</span>
                 </div>
-                <div className="cr-side" style={{ minWidth: 0 }}>
+                <div className="cr-side">
                     <span className="cr-value" title={email}>
                         {email}
                     </span>
@@ -530,56 +579,8 @@ const SecurityCard: React.FC = () => {
                     </button>
                 </div>
             </div>
-            <Modal
-                title="Alterar senha"
-                open={open}
-                onCancel={() => !updatePassword.isPending && setOpen(false)}
-                footer={null}
-                destroyOnClose
-            >
-                <Form
-                    form={form}
-                    layout="vertical"
-                    colon={false}
-                    onFinish={({ newPasswordRepeat }: { newPasswordRepeat: string }) =>
-                        updatePassword.mutate(newPasswordRepeat)
-                    }
-                >
-                    <Form.Item name="newPassword" label="Nova senha" rules={passwordRules}>
-                        <Input.Password id="s-pass" autoComplete="new-password" />
-                    </Form.Item>
-                    <Form.Item
-                        name="newPasswordRepeat"
-                        label="Repita a nova senha"
-                        rules={[
-                            { required: true, message: 'Por favor insira uma nova senha' },
-                            { min: 8, message: 'A senha deve ter pelo menos 8 caracteres' },
-                            {
-                                validator: async (_, value) => {
-                                    if (value !== newPassword) {
-                                        return Promise.reject(new Error('As senhas não coincidem'));
-                                    }
-                                    const validationRegex = new RegExp(
-                                        /^(?!.*\s)(?=.*[a-zA-Z])(?=.*\d)(?=.*\W).{8,}$/,
-                                        'g',
-                                    );
-                                    if (!validationRegex.test(value)) {
-                                        return Promise.reject(
-                                            new Error(
-                                                'A senha deve ter pelo menos 8 caracteres, 1 letra maiúscula, 1 letra minúscula, 1 número e 1 caractere especial',
-                                            ),
-                                        );
-                                    }
-                                },
-                            },
-                        ]}
-                    >
-                        <Input.Password id="s-pass2" autoComplete="new-password" disabled={!newPassword} />
-                    </Form.Item>
-                    <Button loading={updatePassword.isPending} htmlType="submit" type="primary" block>
-                        Alterar senha
-                    </Button>
-                </Form>
+            <Modal title="Alterar senha" open={open} onCancel={() => setOpen(false)} footer={null} destroyOnClose>
+                <PasswordForm />
             </Modal>
         </div>
     );

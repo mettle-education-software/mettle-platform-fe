@@ -66,10 +66,11 @@ export const planLabel = (origin?: string | null, plan?: string | null) => {
     if (origin !== 'compra') return null;
     const p = fold(plan);
     if (p.includes('vital')) return 'Vitalício';
+    if (/\b3 anos?\b/.test(p) || p.includes('trianual') || p.includes('melp') || p.includes('avulso'))
+        return 'Plano 3 anos';
+    if (/\b2 anos?\b/.test(p) || p.includes('bianual')) return 'Plano 2 anos';
     if (p.includes('mensal')) return 'Plano mensal';
     if (p.includes('anual') || /\b1 ano\b/.test(p)) return 'Plano anual';
-    if (/\b2 anos?\b/.test(p)) return 'Plano 2 anos';
-    if (/\b3 anos?\b/.test(p) || p.includes('melp') || p.includes('avulso')) return 'Plano 3 anos';
     return null;
 };
 
@@ -94,7 +95,8 @@ export const productLines = (rows: MyAccessRow[] | null | undefined, today = brT
         const valid = day(row.validUntil);
         const grace = day(row.graceUntil);
         if (row.state === 'leitura') {
-            const ended = longDate(grace ?? valid ?? row.leituraSince);
+            // o último dia de acesso que já passou (Leitura posta antes do prazo não anuncia uma data futura)
+            const ended = longDate([grace, valid].find((d) => d && d <= today) ?? row.leituraSince);
             return [
                 {
                     ...base,
@@ -115,6 +117,11 @@ export const productLines = (rows: MyAccessRow[] | null | undefined, today = brT
                     term: `Seu plano venceu em ${longDate(valid)}. Acesso total até ${longDate(grace)}.`,
                     renew: RENEW[key],
                 },
+            ];
+        // venceu e ainda está Ativo (a rotina da noite não passou): o aviso e o Renovar
+        if (valid && valid < today && !row.dateToConfirm)
+            return [
+                { ...base, pill: 'Ativo' as const, term: `Seu plano venceu em ${longDate(valid)}.`, renew: RENEW[key] },
             ];
         if (row.dateToConfirm) return [{ ...base, pill: 'Ativo' as const, term: null }];
         if (valid) {

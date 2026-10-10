@@ -15,6 +15,8 @@ test('linha 2 pela origem: plano da compra (MELP avulso = 3 anos), vitalício, c
     expect(planLabel('compra', '2 anos')).toBe('Plano 2 anos');
     expect(planLabel('compra', '3 anos')).toBe('Plano 3 anos');
     expect(planLabel('compra', 'MELP')).toBe('Plano 3 anos');
+    expect(planLabel('compra', 'Bianual')).toBe('Plano 2 anos');
+    expect(planLabel('compra', 'Trianual')).toBe('Plano 3 anos');
     expect(planLabel('compra', 'Vitalício')).toBe('Vitalício');
     expect(planLabel('vitalicio', null)).toBe('Vitalício');
     expect(planLabel('cortesia', null)).toBe('Cortesia');
@@ -111,4 +113,26 @@ test('leitura: acesso encerrado, ainda navega, Renovar; sem acesso não aparece;
     ]);
     expect(lines[1].renew).toContain('masterclass');
     expect(productLines(undefined, today)).toEqual([]);
+});
+
+test('Leitura antes do prazo não anuncia data futura; venceu e ainda Ativo: aviso e Renovar', () => {
+    const [early] = productLines(
+        [
+            {
+                product: 'imerso',
+                state: 'leitura',
+                origin: 'compra',
+                validUntil: '2027-01-01',
+                leituraSince: '2026-10-08',
+            },
+        ],
+        today,
+    );
+    expect(early.term).toBe('Acesso encerrado em 8 de outubro de 2026. Você ainda pode navegar.');
+    const [lapsed] = productLines(
+        [{ product: 'masterclass', state: 'ativo', origin: 'compra', validUntil: '2026-10-09' }],
+        today,
+    );
+    expect(lapsed.term).toBe('Seu plano venceu em 9 de outubro de 2026.');
+    expect(lapsed.renew).toContain('masterclass');
 });

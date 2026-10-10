@@ -20,10 +20,25 @@ import {
     validateProfileField,
     validateProfileImage,
 } from 'libs/profile';
-import { Camera } from 'lucide-react';
+import { Camera, Minus, Plus } from 'lucide-react';
 import { useAppContext } from 'providers';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
+
+const ZOOM_ROW: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10 };
+const ZOOM_BUTTON: React.CSSProperties = {
+    display: 'inline-grid',
+    placeItems: 'center',
+    width: 36,
+    height: 36,
+    flex: 'none',
+    padding: 0,
+    border: 0,
+    borderRadius: '50%',
+    background: 'none',
+    color: 'var(--r-muted)',
+    cursor: 'pointer',
+};
 
 /** Caixa do recorte: altura fixa (sem pulo a 360 px), cantos como os cards. */
 const CROP_BOX: React.CSSProperties = {
@@ -312,18 +327,39 @@ const PhotoPicker: React.FC<{ photo?: string | null; name?: string }> = ({ photo
                         />
                     )}
                 </div>
-                <label htmlFor="profile-photo-zoom">Zoom</label>
-                <input
-                    id="profile-photo-zoom"
-                    type="range"
-                    min="1"
-                    max="3"
-                    step="0.05"
-                    value={zoom}
-                    disabled={busy}
-                    onChange={(event) => setZoom(Number(event.target.value))}
-                    style={{ width: '100%' }}
-                />
+                {/* zoom como no iOS: menos e mais nas pontas (também ajustam), a barra na cor da marca */}
+                <div style={ZOOM_ROW}>
+                    <button
+                        type="button"
+                        aria-label="Diminuir zoom"
+                        disabled={busy || zoom <= 1}
+                        onClick={() => setZoom((current) => Math.max(1, +(current - 0.2).toFixed(2)))}
+                        style={ZOOM_BUTTON}
+                    >
+                        <Minus size={16} strokeWidth={1.8} aria-hidden />
+                    </button>
+                    <input
+                        id="profile-photo-zoom"
+                        type="range"
+                        aria-label="Zoom"
+                        min="1"
+                        max="3"
+                        step="0.05"
+                        value={zoom}
+                        disabled={busy}
+                        onChange={(event) => setZoom(Number(event.target.value))}
+                        style={{ flex: 1, minWidth: 0, accentColor: 'var(--r-gold)' }}
+                    />
+                    <button
+                        type="button"
+                        aria-label="Aumentar zoom"
+                        disabled={busy || zoom >= 3}
+                        onClick={() => setZoom((current) => Math.min(3, +(current + 0.2).toFixed(2)))}
+                        style={ZOOM_BUTTON}
+                    >
+                        <Plus size={16} strokeWidth={1.8} aria-hidden />
+                    </button>
+                </div>
                 {error && <p role="alert">{error}</p>}
             </Modal>
         </>

@@ -101,7 +101,15 @@ test('recorte redondo com arrastar e teclado; "Usar foto" grava a área escolhid
         mockCropper.onZoomChange(1.8);
     });
     expect(mockCropper.crop).toEqual({ x: 12, y: -4 });
-    expect((host.querySelector('#profile-photo-zoom') as HTMLInputElement).value).toBe('1.8');
+    const slider = host.querySelector('#profile-photo-zoom') as HTMLInputElement;
+    expect(slider.value).toBe('1.8');
+    // sem rótulo visível: o nome vem do aria-label; menos e mais nas pontas ajustam
+    expect(slider.getAttribute('aria-label')).toBe('Zoom');
+    expect(host.querySelector('label[for="profile-photo-zoom"]')).toBeNull();
+    act(() => (host.querySelector('button[aria-label="Aumentar zoom"]') as HTMLButtonElement).click());
+    expect(mockCropper.zoom).toBe(2);
+    act(() => (host.querySelector('button[aria-label="Diminuir zoom"]') as HTMLButtonElement).click());
+    expect(mockCropper.zoom).toBe(1.8);
     const area = { x: 220, y: 140, width: 900, height: 900 };
     act(() => mockCropper.onCropComplete({ x: 0, y: 0, width: 50, height: 50 }, area));
     const cropped = new File(['y'], 'profile.jpg', { type: 'image/jpeg' });

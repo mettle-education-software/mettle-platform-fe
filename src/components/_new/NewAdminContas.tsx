@@ -269,6 +269,10 @@ const styles = css`
         .ct .search {
             max-width: none;
         }
+        /* a coluna fixa da conta não toma a tela: sobra lugar para as outras ao rolar */
+        .ct .who {
+            max-width: 150px;
+        }
         .ct .tools .ant-select {
             flex: 1 1 140px;
             min-width: 0;

@@ -41,7 +41,7 @@ import {
     StickyNote,
     X,
 } from 'lucide-react';
-import { Literata } from 'next/font/google';
+import localFont from 'next/font/local';
 import Link from 'next/link';
 import { useAppContext, useProductAccess } from 'providers';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -66,8 +66,17 @@ type Op = Record<string, unknown> & { op: string; id: string };
 /** No sumário, "Sobre o autor" (o título do capítulo é o nome do André). */
 const tocTitle = (c: { slug: string; eyebrow: string; title: string }) => (c.slug === 'autor' ? c.eyebrow : c.title);
 
-/** Serifa de livro (padrão) para o texto; a interface continua em Manrope. */
-const bookSerif = Literata({ subsets: ['latin'], weight: ['400', '600'], style: ['normal', 'italic'] });
+/** Serifa de livro (padrão) para o texto; a interface continua em Manrope. Literata, do repositório (src/fonts). */
+const bookSerif = localFont({
+    src: [
+        { path: '../../fonts/literata-latin.woff2', weight: '400', style: 'normal' },
+        { path: '../../fonts/literata-latin.woff2', weight: '600', style: 'normal' },
+        { path: '../../fonts/literata-latin-italic.woff2', weight: '400', style: 'italic' },
+        { path: '../../fonts/literata-latin-italic.woff2', weight: '600', style: 'italic' },
+    ],
+    display: 'swap',
+    adjustFontFallback: 'Times New Roman',
+});
 
 const FONT_KEY = 'ebookFont';
 const THEME_KEY = 'ebookTheme'; // sepia | night (claro e escuro seguem o tema da Plataforma)

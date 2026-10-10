@@ -1,22 +1,48 @@
 import { auth, googleProvider, microsoftProvider } from 'config/firebase';
-import { signInWithEmailAndPassword, signInWithPopup, AuthError, AuthErrorCodes, AuthProvider } from 'firebase/auth';
+import {
+    signInWithEmailAndPassword,
+    signInWithPopup,
+    AuthError,
+    AuthErrorCodes,
+    AuthProvider,
+    type MultiFactorResolver,
+} from 'firebase/auth';
 import React from 'react';
 import { accountService } from 'services';
+import { MFA_REQUIRED, mfaResolverOf } from './mfa';
 
 type HandleLoginType = (params: {
     email: string;
     password: string;
     setLoginErrorMessage: React.Dispatch<React.SetStateAction<null | string>>;
     setIsSignInLoading: React.Dispatch<React.SetStateAction<boolean>>;
+    /** senha certa e a conta tem verificação em duas etapas: a tela pede o código (libs/authentication/mfa) */
+    onMfaRequired?: (resolver: MultiFactorResolver) => void;
 }) => Promise<void>;
 
-export const handleLogin: HandleLoginType = async ({ email, password, setLoginErrorMessage, setIsSignInLoading }) => {
+export const handleLogin: HandleLoginType = async ({
+    email,
+    password,
+    setLoginErrorMessage,
+    setIsSignInLoading,
+    onMfaRequired,
+}) => {
     try {
         await signInWithEmailAndPassword(auth, email, password);
     } catch (error: unknown) {
         setIsSignInLoading(false);
         if (error instanceof Error) {
             const authError = error as AuthError;
+            if (authError.code === MFA_REQUIRED && onMfaRequired) {
+                try {
+                    const resolver = mfaResolverOf(authError);
+                    setLoginErrorMessage(null);
+                    onMfaRequired(resolver);
+                } catch {
+                    setLoginErrorMessage('Oops! Parece que algo deu errado. Tente mais tarde!');
+                }
+                return;
+            }
             switch (authError.code) {
                 case AuthErrorCodes.USER_DISABLED:
                     setLoginErrorMessage('Oops! Parece que algo deu errado. Tente mais tarde!');

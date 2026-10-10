@@ -2,18 +2,34 @@
 
 import { css, Global } from '@emotion/react';
 import { useIsMutating } from '@tanstack/react-query';
-import { Button, Form, Input, Modal, Tooltip } from 'antd';
+import { Button, Form, Input, type InputRef, Modal, QRCode, Tooltip } from 'antd';
+import { auth } from 'config/firebase';
+import { sendEmailVerification, signOut, type TotpSecret } from 'firebase/auth';
 import { useMelpSummary, usePauseDeda, useResetMelp, useUpdatePassword } from 'hooks';
 import { useProfile } from 'hooks/useProfile';
 import { passwordRules, saoPauloWeekday } from 'libs';
+import {
+    authCode,
+    cleanCode,
+    disableTotp,
+    enrolledOn,
+    finishTotpEnrollment,
+    groupedKey,
+    MFA_CODES,
+    mfaErrorMessage,
+    retryable,
+    startTotpEnrollment,
+    totpFactors,
+} from 'libs/authentication/mfa';
 import { lampLastDay, lampOpen } from 'libs/dedaClock';
 import { longDate, productLines } from 'libs/myProducts';
 import { IMERSO_PRODUCT } from 'libs/productAccess';
 import { brLongDate, programHistory } from 'libs/programHistory';
+import { isViewOnly } from 'libs/viewOnly';
 import { Info } from 'lucide-react';
 import Link from 'next/link';
 import { useAppContext, useProductAccess } from 'providers';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewPage } from './NewPage';
 import { ProfileDataCard, ProfileIdentity } from './ProfileSettings';
@@ -235,6 +251,36 @@ const styles = css`
         flex: none;
         color: var(--r-muted);
         font-variant-numeric: tabular-nums;
+    }
+    /* verificação em duas etapas (modal: portal fora de .settings) */
+    .mfa p {
+        margin: 0 0 12px;
+    }
+    /* margem branca de 4 módulos em volta do QR (leitores de QR esperam a "zona quieta") */
+    .mfa-qr {
+        display: grid;
+        place-items: center;
+        width: fit-content;
+        margin: 0 auto 12px;
+        padding: 16px;
+        border-radius: 12px;
+        background: #ffffff;
+    }
+    .mfa-key {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        user-select: all;
+        overflow-wrap: anywhere;
+    }
+    .mfa-code {
+        display: flex;
+        gap: 8px;
+    }
+    .mfa-code .ant-input {
+        max-width: 160px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.2em;
     }
     /* Dados pessoais (o formulário traz a grade): o respiro do card */
     .settings .pf {
@@ -563,6 +609,209 @@ const PasswordForm: React.FC = () => {
     );
 };
 
+/**
+ * Verificação em duas etapas (só administradores, na própria conta): app autenticador (TOTP). Ativar mostra o QR e a
+ * chave e confirma com o primeiro código; ativada, mostra desde quando e permite desativar. A chave e o QR não vão para
+ * gravações de sessão (Clarity).
+ */
+const TwoFactorRow: React.FC = () => {
+    const { user } = useAppContext();
+    const [, setVersion] = useState(0); // relê os fatores depois de ativar ou desativar
+    const [open, setOpen] = useState(false);
+    const [setup, setSetup] = useState<{ secret: TotpSecret; uri: string } | null>(null);
+    const [code, setCode] = useState('');
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<{ text: string; code?: string } | null>(null);
+    const [done, setDone] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
+    const [modal, modalHolder] = Modal.useModal();
+    const codeInput = useRef<InputRef>(null);
+    const account = auth.currentUser;
+    if (!account || !user?.roles?.includes('METTLE_ADMIN') || user.impersonating || user.viewAs || isViewOnly())
+        return null;
+    const factor = totpFactors(account)[0];
+    const since = enrolledOn(factor?.enrollmentTime);
+
+    const fail = (failure: unknown) => {
+        const reason = authCode(failure);
+        setError({ text: mfaErrorMessage(reason), code: reason });
+        return reason;
+    };
+    const begin = async () => {
+        setOpen(true);
+        setSetup(null);
+        setCode('');
+        setError(null);
+        setDone(null);
+        setCopied(false);
+        try {
+            setSetup(await startTotpEnrollment(account));
+        } catch (failure) {
+            fail(failure);
+        }
+    };
+    const close = () => {
+        if (busy) return;
+        setOpen(false);
+        setSetup(null); // a chave não fica na memória da página
+    };
+    const confirm = async () => {
+        if (!setup || busy || code.length !== 6) return;
+        setBusy(true);
+        setError(null);
+        try {
+            await finishTotpEnrollment(account, setup.secret, code);
+            setOpen(false);
+            setSetup(null);
+            setDone('Verificação em duas etapas ativada.');
+            setVersion((n) => n + 1);
+        } catch (failure) {
+            setCode('');
+            const reason = fail(failure);
+            if (retryable(reason)) codeInput.current?.focus();
+            else if (reason !== MFA_CODES.recentLogin) {
+                // a ativação venceu: começa de novo (e a entrada antiga no app deve ser apagada)
+                setSetup(null);
+                setError({
+                    text: 'A ativação expirou. Toque em Ativar de novo e apague a entrada antiga no app.',
+                    code: reason,
+                });
+            }
+        } finally {
+            setBusy(false);
+        }
+    };
+    const disable = () =>
+        factor &&
+        modal.confirm({
+            title: 'Desativar a verificação em duas etapas?',
+            content: 'Você passa a entrar só com a senha. Talvez seja preciso entrar de novo agora.',
+            okText: 'Desativar',
+            cancelText: 'Cancelar',
+            onOk: () =>
+                disableTotp(account, factor)
+                    .then(() => {
+                        setDone('Verificação em duas etapas desativada.');
+                        setVersion((n) => n + 1);
+                    })
+                    .catch((failure) =>
+                        // o Firebase encerra a sessão depois de desativar: o fator já saiu
+                        setDone(
+                            authCode(failure) === MFA_CODES.tokenExpired
+                                ? 'Verificação desativada. Entre de novo com a senha.'
+                                : mfaErrorMessage(authCode(failure)),
+                        ),
+                    ),
+        });
+    const leave = () => void signOut(auth).then(() => window.location.assign('/login'));
+    const verifyEmail = () =>
+        void sendEmailVerification(account)
+            .then(() => setError({ text: 'Enviamos um e-mail de confirmação. Confirme e toque em Ativar de novo.' }))
+            .catch(fail);
+
+    return (
+        <div className="cr">
+            {modalHolder}
+            <div className="cr-main">
+                <b className="cr-name">Verificação em duas etapas</b>
+                <span className="cr-sub">
+                    {factor ? `Ativada${since ? ` desde ${since}` : ''} · app autenticador` : 'Desativada'}
+                </span>
+                {done && (
+                    <span className="cr-sub" role="alert">
+                        {done}
+                    </span>
+                )}
+            </div>
+            <div className="cr-side">
+                <button type="button" className="btn line sm" onClick={factor ? disable : begin}>
+                    {factor ? 'Desativar' : 'Ativar'}
+                </button>
+            </div>
+            <Modal
+                title="Ativar a verificação em duas etapas"
+                open={open}
+                onCancel={close}
+                footer={null}
+                destroyOnClose
+            >
+                <div className="mfa" data-clarity-mask="True">
+                    {setup ? (
+                        <>
+                            <p>1. No app autenticador (Google Authenticator, 1Password, Authy…), leia o código QR.</p>
+                            <div className="mfa-qr" role="img" aria-label="Código QR para o app autenticador">
+                                <QRCode
+                                    value={setup.uri}
+                                    size={184}
+                                    color="#000000"
+                                    bgColor="#ffffff"
+                                    bordered={false}
+                                />
+                            </div>
+                            <p className="cr-sub">
+                                Ou digite a chave: <code className="mfa-key">{groupedKey(setup.secret.secretKey)}</code>{' '}
+                                <button
+                                    type="button"
+                                    className="btn line sm"
+                                    onClick={() =>
+                                        void navigator.clipboard
+                                            ?.writeText(setup.secret.secretKey)
+                                            .then(() => setCopied(true))
+                                    }
+                                >
+                                    {copied ? 'Copiada' : 'Copiar chave'}
+                                </button>
+                            </p>
+                            <p>2. Digite o código de 6 dígitos que o app mostra.</p>
+                            <div className="mfa-code">
+                                <Input
+                                    ref={codeInput}
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    aria-label="Código de 6 dígitos"
+                                    aria-invalid={!!error}
+                                    placeholder="000000"
+                                    value={code}
+                                    readOnly={busy}
+                                    onChange={(event) => {
+                                        setError(null);
+                                        setCode(cleanCode(event.target.value));
+                                    }}
+                                    onPressEnter={confirm}
+                                />
+                                <Button type="primary" loading={busy} disabled={code.length !== 6} onClick={confirm}>
+                                    Ativar
+                                </Button>
+                            </div>
+                        </>
+                    ) : (
+                        !error && (
+                            <p className="cr-sub" role="status">
+                                Preparando…
+                            </p>
+                        )
+                    )}
+                    {error && (
+                        <p className="profile-error" role="alert">
+                            {error.text}
+                        </p>
+                    )}
+                    {error?.code === MFA_CODES.recentLogin && (
+                        <button type="button" className="btn line sm" onClick={leave}>
+                            Sair e entrar de novo
+                        </button>
+                    )}
+                    {error?.code === MFA_CODES.unverifiedEmail && (
+                        <button type="button" className="btn line sm" onClick={verifyEmail}>
+                            Enviar e-mail de confirmação
+                        </button>
+                    )}
+                </div>
+            </Modal>
+        </div>
+    );
+};
+
 /** "Acesso e segurança": o e-mail (só leitura) e a senha, que troca num modal. */
 const SecurityCard: React.FC = () => {
     const { user } = useAppContext();
@@ -591,6 +840,7 @@ const SecurityCard: React.FC = () => {
                     </button>
                 </div>
             </div>
+            <TwoFactorRow />
             <Modal title="Alterar senha" open={open} onCancel={() => setOpen(false)} footer={null} destroyOnClose>
                 <PasswordForm />
             </Modal>

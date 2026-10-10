@@ -2373,6 +2373,26 @@ export const Wrap = styled.div`
         font-variant-numeric: tabular-nums;
         color: var(--r-text);
     }
+    /* vidro fosco, como no WhatsApp: o campo, o "+" e a gravação em curso deixam ver, borrado, o que passa por trás
+       (o microfone segue sólido); só com color-mix E backdrop-filter — senão, a superfície sólida de sempre (com var(),
+       um color-mix desconhecido não cai no valor anterior: ficaria transparente) */
+    @supports (background: color-mix(in srgb, red 76%, transparent)) and
+        ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .pillin,
+        .ib.plus,
+        .rec {
+            background: color-mix(in srgb, var(--c-pill) 76%, transparent);
+            backdrop-filter: blur(16px) saturate(1.2);
+        }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+        .pillin,
+        .ib.plus,
+        .rec {
+            background: var(--c-pill);
+            backdrop-filter: none;
+        }
+    }
     .rec .pulse {
         width: 9px;
         height: 9px;

@@ -183,3 +183,35 @@ export const serverProblem = (error: unknown) => {
     if (data?.status === 403) return 'Sem permissão para esta ação.';
     return 'Não foi possível gravar. Tente de novo.';
 };
+
+// ---------- lixeira (só o dono; o servidor confere de novo: 403 OWNER_ONLY para qualquer outro) ----------
+
+/** Só esta conta exclui e restaura (POST /accounts/:uid/trash e /restore, GET /admin/trash). */
+export const TRASH_OWNER_UID = 'RBgG61nNKdgHUKCkxhR4vhaBLGU2';
+export const isTrashOwner = (uid?: string | null) => uid === TRASH_OWNER_UID;
+
+export interface TrashEntry {
+    userUid: string;
+    email: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    priorStatus: string | null;
+    trashedAt: string;
+    purgeAfter: string;
+    trashedBy: string | null;
+}
+
+/** O e-mail digitado confere com o da conta (sem diferença de maiúsculas e espaços nas pontas). */
+export const emailMatches = (typed: string, email?: string | null) =>
+    !!email && typed.trim().toLowerCase() === email.trim().toLowerCase();
+
+export const trashName = (entry: TrashEntry) =>
+    [entry.firstName, entry.lastName].filter(Boolean).join(' ').trim() || entry.email || entry.userUid;
+
+/** Dia de um instante, no relógio de Brasília (DD/MM/AAAA). */
+export const brInstantDay = (at: string | null | undefined) => {
+    const date = at ? new Date(at) : null;
+    return date && !Number.isNaN(date.getTime())
+        ? date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+        : '—';
+};

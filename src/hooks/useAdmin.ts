@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
 import { QueryParams } from 'interfaces';
-import type { AccessBody, AccessEvent, AccessRow, Product, StudentUser } from 'libs/adminAccess';
+import type { AccessBody, AccessEvent, AccessRow, Product, StudentUser, TrashEntry } from 'libs/adminAccess';
 import { ADMIN_HISTORY_URL, type HistorySnapshot } from 'libs/adminHistory';
 import { ADMIN_SEGMENTS, AdminSegment, EBOOK_BUYERS_URL, onlyBuyers } from 'libs/adminSegments';
 import { isLeituraOwner } from 'libs/leitura';
@@ -149,6 +149,49 @@ export const useSaveStudentAccess = (uid: string, product: Product) => {
             Promise.all([
                 queryClient.invalidateQueries({ queryKey: ['admin-access', uid] }),
                 queryClient.invalidateQueries({ queryKey: ['admin-access-events', uid] }),
+            ]),
+    });
+};
+
+// ---------- Lixeira (só o dono; o servidor confere) ----------
+
+export const useTrash = (enabled: boolean) =>
+    useQuery({
+        queryKey: ['admin-trash'],
+        queryFn: () => adminService.get<{ data: TrashEntry[] }>('/trash').then(({ data }) => data.data),
+        enabled,
+        retry: false,
+        staleTime: 30_000,
+    });
+
+/** Manda a conta para a lixeira (30 dias, sem login, restaurável); repetir é seguro. */
+export const useTrashAccount = (uid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (confirmEmail: string) =>
+            accountService
+                .post<
+                    { confirmEmail: string },
+                    { data: { purgeAfter: string } }
+                >(`/${encodeURIComponent(uid)}/trash`, { confirmEmail })
+                .then(({ data }) => data.data),
+        onSettled: () =>
+            Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['admin-trash'] }),
+                queryClient.invalidateQueries({ queryKey: ['admin-access', uid] }),
+            ]),
+    });
+};
+
+export const useRestoreAccount = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (uid: string) =>
+            accountService.post(`/${encodeURIComponent(uid)}/restore`).then(({ data }) => data),
+        onSettled: (_data, _error, uid) =>
+            Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['admin-trash'] }),
+                queryClient.invalidateQueries({ queryKey: ['admin-access', uid] }),
             ]),
     });
 };

@@ -18,6 +18,7 @@ export const ADMIN_TOOLS: readonly AdminTool[] = [
         line: 'Início, pausas e resets de cada aluno',
         href: '/admin/historico',
     },
+    { key: 'lixeira', title: 'Lixeira', line: 'Contas excluídas, 30 dias para restaurar', href: '/admin/lixeira' },
 ];
 
 /** Abre o painel de administração da casca (o mesmo do botão do menu). */

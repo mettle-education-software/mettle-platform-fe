@@ -3,19 +3,28 @@
 import { css, Global } from '@emotion/react';
 import { Select } from 'antd';
 import { auth } from 'config/firebase';
-import { useAdminHistory, useSaveStudentAccess, useStudentAccess, useStudentAccessEvents } from 'hooks/useAdmin';
+import {
+    useAdminHistory,
+    useSaveStudentAccess,
+    useStudentAccess,
+    useStudentAccessEvents,
+    useTrashAccount,
+} from 'hooks/useAdmin';
 import {
     AccessRow,
     accessBadges,
     accessBody,
     accessLabel,
     actorLabel,
+    brInstantDay,
     canExtend,
     Draft,
     draftOf,
+    emailMatches,
     eventWhen,
     grantOptions,
     isDirty,
+    isTrashOwner,
     MONTHS,
     ORIGINS,
     PRODUCT_NAMES,
@@ -143,6 +152,26 @@ const styles = css`
         margin: 0;
         padding: 0;
         list-style: none;
+    }
+    .as .btn.danger {
+        border-color: var(--r-danger);
+        color: var(--r-danger);
+    }
+    .as .del {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 12px;
+    }
+    .as .del input {
+        flex: 1 1 260px;
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid var(--r-line-strong);
+        border-radius: 999px;
+        background: var(--r-bg);
+        color: var(--r-text);
+        font: inherit;
     }
     .as .log .lab b {
         flex-wrap: wrap;
@@ -294,6 +323,68 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
     );
 };
 
+/** Só o dono: confirma digitando o e-mail; a conta vai para a lixeira por 30 dias (o servidor confere o dono de novo). */
+const DeleteAccount: React.FC<{ uid: string; email?: string | null }> = ({ uid, email }) => {
+    const [open, setOpen] = useState(false);
+    const [typed, setTyped] = useState('');
+    const trash = useTrashAccount(uid);
+    if (trash.isSuccess)
+        return (
+            <p className="msg" role="status">
+                A conta vai para a lixeira por 30 dias (exclusão definitiva em {brInstantDay(trash.data?.purgeAfter)}).{' '}
+                <Link href="/admin/lixeira">Lixeira</Link>
+            </p>
+        );
+    if (!open)
+        return (
+            <button type="button" className="btn line danger" onClick={() => setOpen(true)}>
+                Excluir conta permanentemente
+            </button>
+        );
+    const ok = emailMatches(typed, email);
+    return (
+        <form
+            className="del"
+            onSubmit={(event) => {
+                event.preventDefault();
+                if (ok && !trash.isPending) trash.mutate(typed.trim());
+            }}
+        >
+            <input
+                type="email"
+                autoComplete="off"
+                aria-label="Digite o e-mail da conta para confirmar"
+                placeholder="Digite o e-mail da conta"
+                value={typed}
+                onChange={(event) => {
+                    trash.reset();
+                    setTyped(event.target.value);
+                }}
+            />
+            <button type="submit" className="btn line danger" disabled={!ok || trash.isPending}>
+                {trash.isPending ? 'Excluindo…' : 'Excluir'}
+            </button>
+            <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                    setOpen(false);
+                    setTyped('');
+                    trash.reset();
+                }}
+            >
+                Cancelar
+            </button>
+            {!email && <p className="msg">Conta sem e-mail conhecido: não dá para confirmar aqui.</p>}
+            {trash.isError && (
+                <p className="msg err" role="alert">
+                    {serverProblem(trash.error)}
+                </p>
+            )}
+        </form>
+    );
+};
+
 const AccessEvents: React.FC<{ uid: string }> = ({ uid }) => {
     const events = useStudentAccessEvents(uid);
     if (events.isLoading) return null;
@@ -410,6 +501,12 @@ export const NewAdminStudent: React.FC<{ uid: string }> = ({ uid }) => {
                             </li>
                         ))}
                     </ol>
+                </section>
+            )}
+
+            {isTrashOwner(auth.currentUser?.uid) && !notFound && (
+                <section aria-label="Excluir conta">
+                    <DeleteAccount uid={uid} email={email} />
                 </section>
             )}
         </NewPage>

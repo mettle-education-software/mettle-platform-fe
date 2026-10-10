@@ -137,7 +137,8 @@ test('com os números: base, período, Imerso e atenção; listas abrem a conta;
     expect(cards(d, 'db-imerso')).toEqual(['Renovaram o Imerso77']);
     // atenção: totais exatos do servidor, linhas abrem a conta
     const attention = d.querySelector('section[aria-labelledby="db-attention"]')!;
-    expect(attention.textContent).toContain('Vencem em 30 dias · 64');
+    // o total do servidor conta produtos (64) e a lista veio cortada: pessoas que vieram, com "+"
+    expect(attention.textContent).toContain('Vencem em 30 dias · 1+');
     expect(attention.textContent).toContain('Sem acessar há 14+ dias · 210');
     const links = [...d.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')]);
     expect(links).toContainEqual(['ver todos', '/admin/contas?product=imerso&state=ativo&sort=expiry']);
@@ -179,4 +180,20 @@ test('sem a rota nova (ou a antiga no mesmo endereço): "—" em tudo, nada inve
     expect([...d.querySelectorAll('.kp b')].map((b) => b.textContent)).toEqual(Array(9).fill('—'));
     expect(d.querySelector('.chart')).toBeNull();
     expect(d.body.textContent).not.toContain('alunos estudaram');
+});
+
+test('um dia só: sem curva (fica a linha do número); quem nunca entrou diz "nunca entrou"', () => {
+    mockData = {
+        isLoading: false,
+        isPlaceholderData: false,
+        data: readDashboard({
+            ...full,
+            estudoPorDia: [{ date: '2026-10-10', alunos: 2 }],
+            semAcesso: [{ uid: 'u9', name: 'Zé', lastAccess: null, dias: null, semana: null }],
+        }),
+    };
+    const d = render();
+    expect(d.querySelector('section[aria-labelledby="db-period"] .chart')).toBeNull();
+    expect(d.body.textContent).toContain('990 alunos estudaram');
+    expect(d.body.textContent).toContain('nunca entrou');
 });

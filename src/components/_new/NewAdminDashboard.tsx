@@ -3,17 +3,20 @@
 import { css, Global } from '@emotion/react';
 import { useAdminDashboard } from 'hooks/useAdmin';
 import { useTheme } from 'hooks/useTheme';
-import { brDay, brToday, eventWhen, ORIGINS, PRODUCT_NAMES } from 'libs/adminAccess';
+import { brDay, brToday, eventWhen } from 'libs/adminAccess';
 import {
     changeLabel,
     count,
     type Dashboard,
     dayMonth,
+    duePeople,
+    duePeopleCount,
     hoursMinutes,
     inRange,
     PRESETS,
     type PresetKey,
     presetRange,
+    productList,
     type Range,
     rangeFloor,
     type Split,
@@ -211,6 +214,9 @@ const styles = css`
         gap: 12px;
         min-height: 36px;
     }
+    .db .sub.changes {
+        margin-top: 32px;
+    }
     .db .sub a {
         font-size: 13.5px;
         color: var(--r-gold-hi);
@@ -230,7 +236,6 @@ const styles = css`
     }
 `;
 
-const originLabel = (origin: string | null) => ORIGINS.find((o) => o.value === origin)?.label ?? 'origem a confirmar';
 const splitLine = (split: Split) => `Ativos ${count(split.ativo)} · Leitura ${count(split.leitura)}`;
 
 type Card = { label: string; value: string; sub?: string | null };
@@ -435,9 +440,10 @@ export const NewAdminDashboard: React.FC = () => {
                 <Cards cards={period} label="No período" />
                 <div className="study">
                     <h3>Alunos que estudaram por dia</h3>
-                    {days?.length ? (
+                    {/* um dia só (Hoje) não faz curva: fica o número da linha abaixo */}
+                    {days && days.length > 1 ? (
                         <StudyChart days={days} />
-                    ) : (
+                    ) : days?.length === 1 ? null : (
                         <p className="hint">
                             {days ? (query.isPlaceholderData ? 'Carregando…' : 'Sem dados no período.') : none('—')}
                         </p>
@@ -500,7 +506,7 @@ export const NewAdminDashboard: React.FC = () => {
                         <div className="sub">
                             <h3>
                                 Vencem em 30 dias
-                                {d && d.vencendoTotal !== null && ` · ${count(d.vencendoTotal)}`}
+                                {d && duePeopleCount(d) !== null && ` · ${duePeopleCount(d)}`}
                             </h3>
                             <Link href={contasPath({ product: 'imerso', state: 'ativo', sort: 'expiry' })}>
                                 ver todos
@@ -508,20 +514,21 @@ export const NewAdminDashboard: React.FC = () => {
                         </div>
                         {d?.vencendo.length ? (
                             <ol className="rows">
-                                {d.vencendo.slice(0, 10).map((row) => (
-                                    <li key={`${row.uid}:${row.product}`}>
-                                        <Link href={adminPanelPath(row.uid)}>
-                                            <b>
-                                                {row.name || 'Sem nome'}
-                                                {row.inCarencia && <em>carência</em>}
-                                            </b>
-                                            <span>
-                                                {PRODUCT_NAMES[row.product]} · {originLabel(row.origin)} ·{' '}
-                                                {brDay(row.validUntil)}
-                                            </span>
-                                        </Link>
-                                    </li>
-                                ))}
+                                {duePeople(d.vencendo)
+                                    .slice(0, 10)
+                                    .map((person) => (
+                                        <li key={person.uid}>
+                                            <Link href={adminPanelPath(person.uid)}>
+                                                <b>
+                                                    {person.name || 'Sem nome'}
+                                                    {person.inCarencia && <em>carência</em>}
+                                                </b>
+                                                <span>
+                                                    {productList(person.products)} · {brDay(person.validUntil)}
+                                                </span>
+                                            </Link>
+                                        </li>
+                                    ))}
                             </ol>
                         ) : (
                             <p className="hint">{none('Ninguém vence nos próximos 30 dias.')}</p>
@@ -544,7 +551,9 @@ export const NewAdminDashboard: React.FC = () => {
                                             <span>
                                                 {row.dias !== null
                                                     ? `${row.dias} dias`
-                                                    : lastAccessLabel(row.lastAccess)}
+                                                    : row.lastAccess
+                                                      ? lastAccessLabel(row.lastAccess)
+                                                      : 'nunca entrou'}
                                                 {row.semana ? ` · sem. ${row.semana}` : ''}
                                             </span>
                                         </Link>
@@ -556,7 +565,7 @@ export const NewAdminDashboard: React.FC = () => {
                         )}
                     </div>
                 </div>
-                <div className="sub">
+                <div className="sub changes">
                     <h3>Últimas mudanças</h3>
                 </div>
                 {d?.eventos.length ? (

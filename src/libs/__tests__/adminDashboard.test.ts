@@ -1,5 +1,8 @@
 import {
     changeLabel,
+    duePeople,
+    duePeopleCount,
+    productList,
     count,
     dayMonth,
     hoursMinutes,
@@ -157,4 +160,43 @@ test('período: prontos contam hoje (Brasília); De/Até só valem em ordem e at
             { from: today, to: today },
         ),
     ).toEqual([{ date: '2026-10-10', alunos: 2 }]);
+});
+
+test('vencem: uma linha por pessoa (produtos juntos, data mais cedo, carência de qualquer um); contagem de pessoas', () => {
+    const rows = [
+        {
+            uid: 'a',
+            name: 'Ana',
+            product: 'masterclass' as const,
+            origin: 'compra' as const,
+            validUntil: '2026-10-26',
+            inCarencia: false,
+        },
+        {
+            uid: 'b',
+            name: 'Bia',
+            product: 'imerso' as const,
+            origin: 'compra' as const,
+            validUntil: '2026-10-23',
+            inCarencia: true,
+        },
+        {
+            uid: 'a',
+            name: 'Ana',
+            product: 'ebook' as const,
+            origin: 'compra' as const,
+            validUntil: '2026-10-25',
+            inCarencia: false,
+        },
+    ];
+    expect(duePeople(rows)).toEqual([
+        { uid: 'b', name: 'Bia', products: ['imerso'], validUntil: '2026-10-23', inCarencia: true },
+        { uid: 'a', name: 'Ana', products: ['masterclass', 'ebook'], validUntil: '2026-10-25', inCarencia: false },
+    ]);
+    expect(productList(['masterclass', 'ebook'])).toBe('Masterclass e E-book');
+    expect(productList(['imerso', 'masterclass', 'ebook'])).toBe('Imerso, Masterclass e E-book');
+    // lista inteira: pessoas exatas; lista cortada pelo servidor: "N+"
+    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 3 })).toBe('2');
+    expect(duePeopleCount({ vencendo: rows, vencendoTotal: 64 })).toBe('2+');
+    expect(duePeopleCount({ vencendo: rows, vencendoTotal: null })).toBeNull();
 });

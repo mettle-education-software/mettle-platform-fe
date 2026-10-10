@@ -724,8 +724,10 @@ export const Page = styled.div`
     .profile-form .row {
         align-items: start;
     }
-    .profile-form .row > label {
-        padding-top: 10px;
+    @media (min-width: 861px) {
+        .profile-form .row > label {
+            padding-top: 10px;
+        }
     }
     .profile-actions {
         border-bottom: 0;

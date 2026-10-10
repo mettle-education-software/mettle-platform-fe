@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { auth } from 'config/firebase';
 import { HTTPOptions, HTTPResponse, HTTPClient } from 'interfaces';
+import { ADMIN_MFA_CODE, flagAdminMfa } from 'libs/authentication/mfa';
 import { ACCESS_DENIED_EVENT, IMERSO_PRODUCT, IMERSO_SALES_URL } from 'libs/productAccess';
 import { blocksWrite, VIEW_ONLY_CODE, VIEW_ONLY_EVENT, viewOnlyRefusal } from 'libs/viewOnly';
 
@@ -47,6 +48,8 @@ class ApiClient implements HTTPClient {
                 error.response.data?.code === VIEW_ONLY_CODE
             )
                 window.dispatchEvent(new CustomEvent(VIEW_ONLY_EVENT));
+            // Admin sem o segundo fator (ADMIN_MFA_REQUIRED ligado): o aviso do Admin pede para ativar nas Configurações
+            if (error?.response?.status === 403 && error.response.data?.code === ADMIN_MFA_CODE) flagAdminMfa();
             return Promise.reject(error);
         });
     }

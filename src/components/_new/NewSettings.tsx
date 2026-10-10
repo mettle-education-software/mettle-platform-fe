@@ -10,6 +10,7 @@ import { useProfile } from 'hooks/useProfile';
 import { passwordRules, saoPauloWeekday } from 'libs';
 import {
     authCode,
+    clearAdminMfa,
     cleanCode,
     disableTotp,
     enrolledOn,
@@ -623,6 +624,7 @@ const TwoFactorRow: React.FC = () => {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<{ text: string; code?: string } | null>(null);
     const [done, setDone] = useState<string | null>(null);
+    const [info, setInfo] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [modal, modalHolder] = Modal.useModal();
     const codeInput = useRef<InputRef>(null);
@@ -643,8 +645,11 @@ const TwoFactorRow: React.FC = () => {
         setCode('');
         setError(null);
         setDone(null);
+        setInfo(null);
         setCopied(false);
         try {
+            // token novo: e-mail confirmado agora há pouco já vale (sem um segundo "Confirme o seu e-mail")
+            await account.getIdToken(true);
             setSetup(await startTotpEnrollment(account));
         } catch (failure) {
             fail(failure);
@@ -661,6 +666,7 @@ const TwoFactorRow: React.FC = () => {
         setError(null);
         try {
             await finishTotpEnrollment(account, setup.secret, code);
+            clearAdminMfa();
             setOpen(false);
             setSetup(null);
             setDone('Verificação em duas etapas ativada.');
@@ -704,10 +710,17 @@ const TwoFactorRow: React.FC = () => {
                     ),
         });
     const leave = () => void signOut(auth).then(() => window.location.assign('/login'));
-    const verifyEmail = () =>
-        void sendEmailVerification(account)
-            .then(() => setError({ text: 'Enviamos um e-mail de confirmação. Confirme e toque em Ativar de novo.' }))
-            .catch(fail);
+    const verifyEmail = () => {
+        if (busy) return; // dois toques não mandam dois e-mails
+        setBusy(true);
+        sendEmailVerification(account)
+            .then(() => {
+                setError(null);
+                setInfo('Enviamos um e-mail de confirmação. Confirme e toque em Ativar de novo.');
+            })
+            .catch(fail)
+            .finally(() => setBusy(false));
+    };
 
     return (
         <div className="cr">
@@ -750,17 +763,17 @@ const TwoFactorRow: React.FC = () => {
                             </div>
                             <p className="cr-sub">
                                 Ou digite a chave: <code className="mfa-key">{groupedKey(setup.secret.secretKey)}</code>{' '}
-                                <button
-                                    type="button"
-                                    className="btn line sm"
+                                <Button
+                                    size="small"
                                     onClick={() =>
                                         void navigator.clipboard
                                             ?.writeText(setup.secret.secretKey)
                                             .then(() => setCopied(true))
+                                            .catch(() => undefined)
                                     }
                                 >
                                     {copied ? 'Copiada' : 'Copiar chave'}
-                                </button>
+                                </Button>
                             </p>
                             <p>2. Digite o código de 6 dígitos que o app mostra.</p>
                             <div className="mfa-code">
@@ -785,7 +798,8 @@ const TwoFactorRow: React.FC = () => {
                             </div>
                         </>
                     ) : (
-                        !error && (
+                        !error &&
+                        !info && (
                             <p className="cr-sub" role="status">
                                 Preparando…
                             </p>
@@ -796,15 +810,16 @@ const TwoFactorRow: React.FC = () => {
                             {error.text}
                         </p>
                     )}
-                    {error?.code === MFA_CODES.recentLogin && (
-                        <button type="button" className="btn line sm" onClick={leave}>
-                            Sair e entrar de novo
-                        </button>
+                    {info && (
+                        <p className="cr-sub" role="status">
+                            {info}
+                        </p>
                     )}
+                    {error?.code === MFA_CODES.recentLogin && <Button onClick={leave}>Sair e entrar de novo</Button>}
                     {error?.code === MFA_CODES.unverifiedEmail && (
-                        <button type="button" className="btn line sm" onClick={verifyEmail}>
+                        <Button loading={busy} onClick={verifyEmail}>
                             Enviar e-mail de confirmação
-                        </button>
+                        </Button>
                     )}
                 </div>
             </Modal>

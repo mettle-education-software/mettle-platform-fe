@@ -1,9 +1,12 @@
 /** @jest-environment node */
 // Verificação em duas etapas: código limpo, frases calmas, desafio vencido volta para a senha, o fator TOTP no login.
 import {
+    adminMfaRequired,
     challengeExpired,
+    clearAdminMfa,
     cleanCode,
     enrolledOn,
+    flagAdminMfa,
     groupedKey,
     mfaErrorMessage,
     resolveTotp,
@@ -48,6 +51,16 @@ test('frases calmas; o desafio vencido manda de volta para a senha', () => {
     expect(retryable(undefined)).toBe(false);
     expect(mfaErrorMessage('auth/requires-recent-login')).toContain('saia e entre de novo');
     expect(mfaErrorMessage('qualquer')).toBe('Não foi possível concluir agora. Tente de novo.');
+    // sessão sem senha (link mágico, conta criada pelo servidor): o Firebase não deixa ativar
+    expect(mfaErrorMessage('auth/unsupported-first-factor')).toBe('Entre com e-mail e senha para ativar.');
+});
+
+test('aviso do Admin: liga no 403 MFA_REQUIRED e desliga ao ativar ou sair', () => {
+    expect(adminMfaRequired()).toBe(false);
+    flagAdminMfa();
+    expect(adminMfaRequired()).toBe(true);
+    clearAdminMfa();
+    expect(adminMfaRequired()).toBe(false);
 });
 
 test('login: o código vai para o fator TOTP da conta; sem ele, recusa calma', async () => {

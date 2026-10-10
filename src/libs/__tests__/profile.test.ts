@@ -5,7 +5,7 @@ import {
     phoneE164,
     profileError,
     profilePatch,
-    squareCrop,
+    cropSide,
     typePhone,
     validateProfileField,
     validateProfileImage,
@@ -82,10 +82,10 @@ test('rejeita formatos fora da lista', () => {
     expect(validateProfileImage({ type: 'image/svg+xml', size: 100 })).toBeDefined();
 });
 
-test('recorte quadrado central corresponde à prévia, inclusive com zoom', () => {
-    expect(squareCrop(1600, 900)).toEqual({ x: 350, y: 0, side: 900 });
-    expect(squareCrop(900, 1600)).toEqual({ x: 0, y: 350, side: 900 });
-    expect(squareCrop(1600, 900, 2)).toEqual({ x: 575, y: 225, side: 450 });
+test('lado da foto final: o da área escolhida, no máximo 1024 px', () => {
+    expect(cropSide({ x: 10, y: 20, width: 3000.4, height: 3000.4 })).toBe(1024);
+    expect(cropSide({ x: 0, y: 0, width: 640.6, height: 640.6 })).toBe(641);
+    expect(cropSide({ x: 0, y: 0, width: 0, height: 0 })).toBe(1);
 });
 
 test('conserva mensagens claras do servidor (conflito e limite) e trata falhas de rede', () => {

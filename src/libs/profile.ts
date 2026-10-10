@@ -182,20 +182,22 @@ export function profileError(error: unknown): string {
     return 'Não foi possível salvar. Tente novamente.';
 }
 
-/** Mesmo recorte central usado na prévia com object-fit: cover. */
-export function squareCrop(width: number, height: number, zoom = 1) {
-    const side = Math.min(width, height) / Math.max(1, zoom);
-    return { x: (width - side) / 2, y: (height - side) / 2, side };
-}
+/** Área escolhida no recorte, em pixels da foto original (react-easy-crop, croppedAreaPixels). */
+export type CropArea = { x: number; y: number; width: number; height: number };
 
-export async function cropProfileImage(image: HTMLImageElement, zoom: number): Promise<File> {
-    const crop = squareCrop(image.naturalWidth, image.naturalHeight, zoom);
-    if (!crop.side) throw new Error('Foto inválida.');
+/** Lado da foto final: o da área escolhida, no máximo 1024 px. */
+export const cropSide = (area: CropArea) => Math.max(1, Math.min(1024, Math.round(area.width)));
+
+/** Recorta a área escolhida (redonda na tela, quadrada no arquivo) em JPEG de até 1024 px. */
+export async function cropProfileImage(source: string, area: CropArea): Promise<File> {
+    const image = new Image();
+    image.src = source;
+    await image.decode();
     const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = Math.min(1024, Math.round(crop.side));
+    canvas.width = canvas.height = cropSide(area);
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Não foi possível recortar a foto.');
-    context.drawImage(image, crop.x, crop.y, crop.side, crop.side, 0, 0, canvas.width, canvas.height);
+    context.drawImage(image, area.x, area.y, area.width, area.height, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise<Blob>((resolve, reject) =>
         canvas.toBlob(
             (result) => (result ? resolve(result) : reject(new Error('Não foi possível recortar a foto.'))),

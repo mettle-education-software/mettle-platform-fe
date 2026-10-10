@@ -2,6 +2,7 @@ import { Button, Input, Modal } from 'antd';
 import type { InputRef } from 'antd';
 import { useProfile, useSaveProfile, useSaveProfilePhoto } from 'hooks/useProfile';
 import {
+    type CropArea,
     cropProfileImage,
     fieldChanged,
     fieldValue,
@@ -21,7 +22,19 @@ import {
 } from 'libs/profile';
 import { useAppContext } from 'providers';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Cropper from 'react-easy-crop';
 import { ThemeSwitch } from './ThemeSwitch';
+
+/** Caixa do recorte: altura fixa (sem pulo a 360 px), cantos como os cards. */
+const CROP_BOX: React.CSSProperties = {
+    position: 'relative',
+    width: '100%',
+    height: 'min(72vw, 320px)',
+    margin: '16px 0',
+    overflow: 'hidden',
+    borderRadius: 12,
+    background: '#111',
+};
 
 const savedValues = (data: Profile) =>
     Object.fromEntries(PROFILE_FIELDS.map(({ key }) => [key, fieldValue(key, data[key])])) as ProfileValues;
@@ -178,15 +191,16 @@ const ProfileForm: React.FC<{ data: Profile }> = ({ data }) => {
     );
 };
 
+/** Recorte como no iPhone: arrastar para posicionar, pinça ou roda (e a barra) para o zoom, círculo como o avatar. */
 const ProfilePhoto: React.FC<{ photo?: string | null; name?: string }> = ({ photo, name }) => {
     const [file, setFile] = useState<File>();
     const [source, setSource] = useState<string>();
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
-    const [loaded, setLoaded] = useState(false);
+    const [area, setArea] = useState<CropArea | null>(null);
     const [error, setError] = useState<string>();
     const [busy, setBusy] = useState(false);
     const input = useRef<HTMLInputElement>(null);
-    const image = useRef<HTMLImageElement>(null);
     const mutation = useSaveProfilePhoto();
     useEffect(() => {
         if (!file) {
@@ -204,11 +218,11 @@ const ProfilePhoto: React.FC<{ photo?: string | null; name?: string }> = ({ phot
         }
     };
     const save = async () => {
-        if (!image.current || !loaded || busy) return;
+        if (!source || !area || busy) return;
         setBusy(true);
         setError(undefined);
         try {
-            const cropped = await cropProfileImage(image.current, zoom);
+            const cropped = await cropProfileImage(source, area);
             const invalid = validateProfileImage(cropped);
             if (invalid) {
                 setError(invalid);
@@ -243,8 +257,9 @@ const ProfilePhoto: React.FC<{ photo?: string | null; name?: string }> = ({ phot
                             if (!selected) return;
                             // qualquer tamanho ou formato que o navegador abra: o recorte reduz para 1024 px em JPEG
                             setError(undefined);
+                            setCrop({ x: 0, y: 0 });
                             setZoom(1);
-                            setLoaded(false);
+                            setArea(null);
                             setFile(selected);
                         }}
                     />
@@ -263,36 +278,36 @@ const ProfilePhoto: React.FC<{ photo?: string | null; name?: string }> = ({ phot
                     okText="Usar foto"
                     cancelText="Cancelar"
                     confirmLoading={busy}
-                    okButtonProps={{ disabled: !loaded || busy }}
+                    okButtonProps={{ disabled: !area || busy }}
                     cancelButtonProps={{ disabled: busy }}
                     closable={!busy}
                     maskClosable={!busy}
                 >
-                    <div
-                        style={{
-                            width: 256,
-                            maxWidth: '100%',
-                            aspectRatio: '1',
-                            overflow: 'hidden',
-                            margin: '16px auto',
-                        }}
-                    >
+                    {/* altura fixa: nada pula quando a foto carrega; o recorte não deixa a página rolar ao arrastar */}
+                    <div className="profile-crop" style={CROP_BOX}>
                         {source && (
-                            // eslint-disable-next-line @next/next/no-img-element -- prévia local, removida ao fechar
-                            <img
-                                ref={image}
-                                src={source}
-                                alt="Prévia do recorte quadrado"
-                                onLoad={() => setLoaded(true)}
-                                onError={() => {
-                                    setLoaded(false);
-                                    setError('Não foi possível abrir esta foto.');
+                            <Cropper
+                                image={source}
+                                crop={crop}
+                                zoom={zoom}
+                                minZoom={1}
+                                maxZoom={3}
+                                aspect={1}
+                                cropShape="round"
+                                showGrid={false}
+                                keyboardStep={8}
+                                onCropChange={setCrop}
+                                onZoomChange={setZoom}
+                                onCropComplete={(_, pixels) => setArea(pixels)}
+                                mediaProps={{
+                                    alt: 'Prévia do recorte',
+                                    onError: () => {
+                                        setArea(null);
+                                        setError('Não foi possível abrir esta foto.');
+                                    },
                                 }}
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover',
-                                    transform: `scale(${zoom})`,
+                                cropperProps={{
+                                    'aria-label': 'Recorte: arraste para posicionar; setas ajustam',
                                 }}
                             />
                         )}

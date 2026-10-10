@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { auth } from 'config/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { MFA_REQUIRED } from 'libs/authentication/mfa';
 import { useRouter } from 'next/navigation';
 import { useAppContext, useNotificationsContext } from 'providers';
 import { accountService } from 'services';
@@ -49,7 +50,13 @@ export const useUpdatePassword = () => {
         mutationFn: (password: string) => accountService.post(`/users/${userUid}/password`, { password }),
         onSuccess: async (_, password) => {
             showNotification('success', 'Senha atualizada!', 'Senha atualizada com sucesso.');
-            await signInWithEmailAndPassword(auth, userEmail, password);
+            try {
+                await signInWithEmailAndPassword(auth, userEmail, password);
+            } catch (error) {
+                // conta com verificação em duas etapas: a sessão nova pede o código — sai, e o login pede senha e código
+                if ((error as { code?: string })?.code !== MFA_REQUIRED) throw error;
+                await signOut(auth);
+            }
             window.location.reload();
         },
         onError: () => {

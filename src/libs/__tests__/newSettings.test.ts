@@ -74,7 +74,12 @@ jest.mock(
     }),
     { virtual: true },
 );
-jest.mock('firebase/auth', () => ({ TotpMultiFactorGenerator: { FACTOR_ID: 'totp' } }));
+jest.mock('firebase/auth', () => ({
+    TotpMultiFactorGenerator: { FACTOR_ID: 'totp' },
+    sendEmailVerification: jest.fn(),
+    signOut: jest.fn(),
+}));
+jest.mock('libs/viewOnly', () => ({ isViewOnly: () => false }), { virtual: true });
 jest.mock('libs/myProducts', () => jest.requireActual('../myProducts'), { virtual: true });
 jest.mock('libs', () => ({ passwordRules: [], saoPauloWeekday: () => 3 }), { virtual: true });
 jest.mock('libs/productAccess', () => jest.requireActual('../productAccess'), { virtual: true });

@@ -101,6 +101,8 @@ export default function Login() {
     const [isSignInLoading, setIsSignInLoading] = React.useState<boolean>(false);
     // conta com verificação em duas etapas: depois da senha, o código do app autenticador
     const [mfa, setMfa] = React.useState<MultiFactorResolver | null>(null);
+    // voltar do código não apaga o e-mail
+    const [lastEmail, setLastEmail] = React.useState<string>();
 
     const { enabled, preview } = useLoginDesign();
 
@@ -148,8 +150,10 @@ export default function Login() {
                     </FormHeader>
                     <Form
                         layout="vertical"
+                        initialValues={lastEmail ? { email: lastEmail } : undefined}
                         onFinish={(values) => {
                             setIsSignInLoading(true);
+                            setLastEmail(values.email);
                             handleLogin({
                                 email: values.email,
                                 password: values.password,

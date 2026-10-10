@@ -16,28 +16,46 @@ import {
 /** Senha certa, falta o segundo fator: o login pede o código. */
 export const MFA_REQUIRED = 'auth/multi-factor-auth-required';
 
+/** Códigos do Firebase usados aqui (os mesmos de AuthErrorCodes do SDK 10). */
+export const MFA_CODES = {
+    invalidCode: 'auth/invalid-verification-code',
+    missingCode: 'auth/missing-verification-code',
+    codeExpired: 'auth/code-expired',
+    invalidSession: 'auth/invalid-multi-factor-session',
+    missingSession: 'auth/missing-multi-factor-session',
+    recentLogin: 'auth/requires-recent-login',
+    tooMany: 'auth/too-many-requests',
+    network: 'auth/network-request-failed',
+    unverifiedEmail: 'auth/unverified-email',
+    tokenExpired: 'auth/user-token-expired',
+} as const;
+
 /** Só os 6 dígitos (colar "123 456" ou "123-456" também vale). */
 export const cleanCode = (raw: string) => raw.replace(/\D/g, '').slice(0, 6);
 
 /** Código do Firebase (ou undefined). */
 export const authCode = (error: unknown) => (error as { code?: unknown } | null)?.code as string | undefined;
 
-/** O tempo do desafio acabou: voltar para a senha (sem insistir no mesmo desafio). */
+/** Erro que se resolve tentando de novo no mesmo desafio (o resto volta para o começo). */
+export const retryable = (code?: string) =>
+    code === MFA_CODES.invalidCode ||
+    code === MFA_CODES.missingCode ||
+    code === MFA_CODES.tooMany ||
+    code === MFA_CODES.network;
+
+/** O desafio do login acabou (o SDK devolve sessão inválida; não há código próprio de tempo esgotado). */
 export const challengeExpired = (code?: string) =>
-    code === 'auth/code-expired' ||
-    code === 'auth/totp-challenge-timeout' ||
-    code === 'auth/missing-multi-factor-session' ||
-    code === 'auth/invalid-multi-factor-session';
+    code === MFA_CODES.codeExpired || code === MFA_CODES.invalidSession || code === MFA_CODES.missingSession;
 
 /** Uma frase calma para cada erro do segundo fator. */
 export const mfaErrorMessage = (code?: string) => {
-    if (code === 'auth/invalid-verification-code' || code === 'auth/missing-code')
+    if (code === MFA_CODES.invalidCode || code === MFA_CODES.missingCode)
         return 'Código inválido. Confira o app autenticador e tente de novo.';
     if (challengeExpired(code)) return 'O tempo para confirmar acabou. Entre de novo com a senha.';
-    if (code === 'auth/requires-recent-login') return 'Por segurança, saia e entre de novo antes desta alteração.';
-    if (code === 'auth/too-many-requests') return 'Muitas tentativas. Espere alguns minutos e tente de novo.';
-    if (code === 'auth/unverified-email') return 'Confirme o seu e-mail antes de ativar.';
-    if (code === 'auth/network-request-failed') return 'Sem conexão. Tente de novo.';
+    if (code === MFA_CODES.recentLogin) return 'Por segurança, saia e entre de novo antes desta alteração.';
+    if (code === MFA_CODES.tooMany) return 'Muitas tentativas. Espere alguns minutos e tente de novo.';
+    if (code === MFA_CODES.unverifiedEmail) return 'Confirme o seu e-mail antes de ativar.';
+    if (code === MFA_CODES.network) return 'Sem conexão. Tente de novo.';
     if (code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation')
         return 'A verificação em duas etapas não está disponível agora.';
     return 'Não foi possível concluir agora. Tente de novo.';
@@ -74,8 +92,21 @@ export const finishTotpEnrollment = (user: User, secret: TotpSecret, code: strin
         'App autenticador',
     );
 
-/** Desativar (o Firebase pode pedir para entrar de novo). */
+/** Desativar (o Firebase pode encerrar a sessão: sair com o fator desativado também é sucesso). */
 export const disableTotp = (user: User, factor: MultiFactorInfo) => multiFactor(user).unenroll(factor);
 
 /** A chave em grupos de 4 (digitar à mão no app). */
 export const groupedKey = (key: string) => key.replace(/(.{4})/g, '$1 ').trim();
+
+/** "10 de outubro de 2026" (Brasília) a partir da data do Firebase; data inválida = null. */
+export const enrolledOn = (value?: string | null) => {
+    const time = value ? Date.parse(value) : NaN;
+    return Number.isNaN(time)
+        ? null
+        : new Date(time).toLocaleDateString('pt-BR', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+              timeZone: 'America/Sao_Paulo',
+          });
+};

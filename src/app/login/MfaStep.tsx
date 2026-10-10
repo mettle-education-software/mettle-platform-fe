@@ -1,13 +1,14 @@
 'use client';
 
-import { Button, Form, Input, Typography } from 'antd';
+import { Button, Form, Input, InputRef, Typography } from 'antd';
 import type { MultiFactorResolver } from 'firebase/auth';
-import { authCode, challengeExpired, cleanCode, mfaErrorMessage, resolveTotp } from 'libs/authentication/mfa';
-import React, { useState } from 'react';
+import { authCode, cleanCode, mfaErrorMessage, resolveTotp, retryable } from 'libs/authentication/mfa';
+import React, { useRef, useState } from 'react';
 
 /**
  * Segundo passo do login (verificação em duas etapas, administradores): o código de 6 dígitos do app autenticador.
- * Código errado: tenta de novo no mesmo desafio; tempo esgotado: volta para a senha (nada de laço).
+ * Código errado, muitas tentativas ou sem conexão: tenta de novo no mesmo desafio; o resto (tempo esgotado, desafio
+ * inválido) volta para a senha com a frase. Nada de laço.
  */
 export const MfaStep: React.FC<{
     resolver: MultiFactorResolver;
@@ -16,6 +17,7 @@ export const MfaStep: React.FC<{
     const [code, setCode] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const input = useRef<InputRef>(null);
 
     const submit = async () => {
         if (busy || code.length !== 6) return;
@@ -28,14 +30,17 @@ export const MfaStep: React.FC<{
             const reason = authCode(failure);
             setBusy(false);
             setCode('');
-            if (challengeExpired(reason)) onBack(mfaErrorMessage(reason));
-            else setError(mfaErrorMessage(reason));
+            if (!retryable(reason)) return onBack(mfaErrorMessage(reason));
+            setError(mfaErrorMessage(reason));
+            // o teclado do celular não fecha: o campo segue em foco para o próximo código
+            input.current?.focus();
         }
     };
 
     return (
-        <Form layout="vertical" onFinish={submit}>
-            <Typography.Title level={4} style={{ marginTop: 0 }}>
+        // o código não vai para gravações de sessão (Clarity)
+        <Form layout="vertical" onFinish={submit} data-clarity-mask="True">
+            <Typography.Title level={1} style={{ marginTop: 0, fontSize: 22 }}>
                 Verificação em duas etapas
             </Typography.Title>
             <Typography.Paragraph type="secondary">
@@ -43,16 +48,17 @@ export const MfaStep: React.FC<{
             </Typography.Paragraph>
             <Form.Item validateStatus={error ? 'error' : undefined} help={error ?? undefined}>
                 <Input
+                    ref={input}
                     className="input"
                     size="large"
                     autoFocus
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     aria-label="Código de 6 dígitos"
+                    aria-invalid={!!error}
                     placeholder="000000"
-                    maxLength={7}
                     value={code}
-                    disabled={busy}
+                    readOnly={busy}
                     onChange={(event) => {
                         setError(null);
                         setCode(cleanCode(event.target.value));

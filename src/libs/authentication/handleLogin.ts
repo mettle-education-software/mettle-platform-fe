@@ -34,8 +34,13 @@ export const handleLogin: HandleLoginType = async ({
         if (error instanceof Error) {
             const authError = error as AuthError;
             if (authError.code === MFA_REQUIRED && onMfaRequired) {
-                setLoginErrorMessage(null);
-                onMfaRequired(mfaResolverOf(authError));
+                try {
+                    const resolver = mfaResolverOf(authError);
+                    setLoginErrorMessage(null);
+                    onMfaRequired(resolver);
+                } catch {
+                    setLoginErrorMessage('Oops! Parece que algo deu errado. Tente mais tarde!');
+                }
                 return;
             }
             switch (authError.code) {

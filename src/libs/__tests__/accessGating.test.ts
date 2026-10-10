@@ -69,6 +69,7 @@ jest.mock('hooks/queries/dedaQueries', () => ({ useFeaturedDedaData: () => ({ da
 jest.mock('hooks/useNewDesign', () => ({ useNewDesign: () => mockNewDesign }), { virtual: true });
 jest.mock('hooks/useTheme', () => ({ useNewAntdTheme: () => ({}) }), { virtual: true });
 jest.mock('services', () => ({ accountService: { get: jest.fn() } }), { virtual: true });
+jest.mock('config/firebase', () => ({ auth: { currentUser: null } }), { virtual: true });
 jest.mock('components/_new/ui', () => ({ popupStyles: '' }), { virtual: true });
 jest.mock('interfaces/melp', () => jest.requireActual('../../interfaces/melp'), { virtual: true });
 jest.mock('libs', () => ({ formatImersoDate: () => 'Oct 12', nextMondayDate: () => new Date() }), { virtual: true });

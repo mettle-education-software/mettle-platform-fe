@@ -53,7 +53,10 @@ class ApiClient implements HTTPClient {
             const code = error?.response?.status === 403 ? error.response.data?.code : undefined;
             if (typeof window !== 'undefined') {
                 if (code === 'ACCESS_EXPIRED' || code === 'ACCESS_READ_ONLY') {
-                    window.dispatchEvent(new CustomEvent(ACCESS_DENIED_EVENT, { detail: { product: IMERSO_PRODUCT } }));
+                    // o AccessProvider decide: ACCESS_READ_ONLY (modelo novo) só abre o convite na plataforma nova
+                    window.dispatchEvent(
+                        new CustomEvent(ACCESS_DENIED_EVENT, { detail: { product: IMERSO_PRODUCT, code } }),
+                    );
                 } else if (code === 'NO_ACCESS') {
                     window.location.href = IMERSO_SALES_URL;
                 }

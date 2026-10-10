@@ -1,21 +1,24 @@
 'use client';
 
 import { Global } from '@emotion/react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, ConfigProvider, Flex, Modal, Typography } from 'antd';
 import { popupStyles } from 'components/_new/ui';
+import { auth } from 'config/firebase';
 import { useNewDesign } from 'hooks/useNewDesign';
 import { useNewAntdTheme } from 'hooks/useTheme';
 import { MASTERCLASS_SALES_URL } from 'libs/masterclass';
 import {
     ACCESS_DENIED_EVENT,
     accessKey,
+    type AccessLevels,
     accessSource,
     IMERSO_PRODUCT,
     IMERSO_SALES_URL,
     levelsFromMe,
     MyAccessResponse,
     ProductAccess,
+    readLevels,
     RENEWAL_URLS,
     resolveAccess,
 } from 'libs/productAccess';
@@ -36,6 +39,8 @@ interface AccessContext {
     access: (product: string) => ProductAccess;
     /** a resposta de /v2/me/access ainda não chegou (negar acesso só depois dela: o produto pode vir só de lá) */
     accessLoading: boolean;
+    /** plataforma nova: o /accounts/me que decide o acesso ainda não chegou (a casca não abre nem grava nada antes) */
+    levelsLoading: boolean;
     imerso: MyAccessResponse['imerso'];
     cta: CtaTarget | null;
     openCta: (target: CtaTarget | null) => void;
@@ -44,6 +49,7 @@ interface AccessContext {
 const Context = createContext<AccessContext>({
     access: () => ({ state: 'none' }),
     accessLoading: false,
+    levelsLoading: false,
     imerso: null,
     cta: null,
     openCta: () => undefined,
@@ -108,14 +114,19 @@ const CtaContent: React.FC<{
     );
 };
 
+const NO_SOURCE = { claim: undefined, me: false };
+
 export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAppContext();
     const [cta, setCta] = useState<CtaTarget | null>(null);
     const newDesign = useNewDesign();
     const roles = user?.roles as unknown as string[] | undefined;
+    const queryClient = useQueryClient();
 
     // Modelo novo (claims `access`), só na plataforma nova: libs/productAccess.accessSource
-    const source = newDesign ? accessSource(user) : { claim: undefined, me: false };
+    const source = useMemo(() => (newDesign ? accessSource(user) : NO_SOURCE), [newDesign, user]);
+    // claims relidas depois de uma recusa do servidor: o token novo traz o estado de agora (só da mesma conta)
+    const [fresh, setFresh] = useState<{ uid?: string; levels?: AccessLevels }>({});
     const { data: meLevels, isLoading: meLoading } = useQuery({
         queryKey: ['me-access', user?.uid],
         // null, não undefined: o React Query não aceita undefined como resposta
@@ -127,7 +138,14 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         retry: false,
         staleTime: 5 * 60 * 1000,
     });
-    const levels = source.claim ?? (source.me ? (meLevels ?? undefined) : undefined);
+    const levelsLoading = source.me && meLoading;
+    const levels = source.claim
+        ? fresh.uid === user?.uid && fresh.levels
+            ? fresh.levels
+            : source.claim
+        : source.me
+          ? (meLevels ?? undefined)
+          : undefined;
 
     // Sem o endpoint (backend sem o PR #102) o erro é ignorado e vale o comportamento atual pelas roles.
     const { data, isLoading: accessLoading } = useQuery({
@@ -139,20 +157,35 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     useEffect(() => {
-        const onDenied = (event: Event) => setCta((event as CustomEvent<CtaTarget>).detail);
+        const onDenied = (event: Event) => {
+            const { code, ...target } = (event as CustomEvent<CtaTarget & { code?: string }>).detail;
+            // ACCESS_READ_ONLY é do modelo novo: a tela clássica segue como antes (o erro fica com quem pediu)
+            if (code === 'ACCESS_READ_ONLY' && !newDesign) return;
+            setCta(target);
+            if (!newDesign) return;
+            // o servidor recusou pelo estado de agora: relê as claims (própria conta) ou o /accounts/me
+            const uid = user?.uid;
+            if (source.claim)
+                auth.currentUser
+                    ?.getIdTokenResult(true)
+                    .then((token) => setFresh({ uid, levels: readLevels(token.claims.access) }))
+                    .catch(() => undefined);
+            else if (source.me) void queryClient.invalidateQueries({ queryKey: ['me-access', uid] });
+        };
         window.addEventListener(ACCESS_DENIED_EVENT, onDenied);
         return () => window.removeEventListener(ACCESS_DENIED_EVENT, onDenied);
-    }, []);
+    }, [newDesign, source, user?.uid, queryClient]);
 
     const value = useMemo<AccessContext>(
         () => ({
             access: (product) => resolveAccess(product, roles, data, levels),
             accessLoading: accessLoading || meLoading,
+            levelsLoading,
             imerso: data?.imerso ?? null,
             cta,
             openCta: setCta,
         }),
-        [roles, data, levels, accessLoading, meLoading, cta],
+        [roles, data, levels, accessLoading, meLoading, levelsLoading, cta],
     );
 
     return <Context.Provider value={value}>{children}</Context.Provider>;

@@ -58,7 +58,7 @@ const Lesson: React.FC<LessonProps> = ({ params: { courseSlug, lessonId } }) => 
 
     const router = useRouter();
     const { user } = useAppContext();
-    const { access } = useProductAccess();
+    const { access, levelsLoading } = useProductAccess();
     const [emptyVideo, setEmptyVideo] = useState(false);
     const device = useDeviceSize();
     const newDesign = useNewDesign();
@@ -70,8 +70,8 @@ const Lesson: React.FC<LessonProps> = ({ params: { courseSlug, lessonId } }) => 
     const course = courseDetails?.courseCollection?.items[0];
     const courseState = course ? access(course.coursePurchaseId).state : 'none';
 
-    // temporary solution for permission to access
-    if (!!user && !!course && courseState === 'none') {
+    // temporary solution for permission to access (plataforma nova: depois do /accounts/me, quando é ele quem decide)
+    if (!!user && !!course && courseState === 'none' && !levelsLoading) {
         router.push('/403');
         return null;
     }

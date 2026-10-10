@@ -7,6 +7,7 @@ import {
     readLevels,
     renewalNotice,
     resolveAccess,
+    shellGate,
 } from '../productAccess';
 
 describe('resolveAccess', () => {
@@ -133,6 +134,24 @@ describe('modelo novo (claims `access`: ativo | leitura | none)', () => {
         });
         expect(accessSource({ roles: ['METTLE_ADMIN'], access })).toEqual({ claim: undefined, me: false });
         expect(accessSource(undefined)).toEqual({ claim: undefined, me: false });
+    });
+
+    it('o estado das claims é final (manda sobre a role antiga, inclusive o none); sem claims, não', () => {
+        expect(resolveAccess('METTLE_STUDENT', ['METTLE_STUDENT'], undefined, { imerso: 'none' })).toEqual({
+            state: 'none',
+            final: true,
+        });
+        expect(resolveAccess('METTLE_STUDENT', ['METTLE_STUDENT'], undefined).final).toBeUndefined();
+    });
+
+    it('shellGate: espera o /me que decide; leitura bloqueia DEDA aberto e Comunidade; o resto abre', () => {
+        expect(shellGate('active', true, '/imerso/lamp')).toBe('loading');
+        expect(shellGate('expired', true, '/imerso/deda/london')).toBe('loading');
+        expect(shellGate('expired', false, '/imerso/deda/london')).toBe('renew');
+        expect(shellGate('expired', false, '/comunidade')).toBe('renew');
+        expect(shellGate('expired', false, '/imerso/lamp')).toBe('page');
+        expect(shellGate('active', false, '/imerso/deda/london')).toBe('page');
+        expect(shellGate('none', false, '/comunidade')).toBe('page');
     });
 
     it.each(['/imerso/deda/DEDA74', '/imerso/deda/london', '/comunidade', '/comunidade/'])(

@@ -4,6 +4,7 @@ import { css, Global, keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
 import { Button, ConfigProvider, Drawer, Flex, Modal, Select } from 'antd';
 import { NewPage } from 'components/_new/NewPage';
+import { NewContentLoading } from 'components/_new/NewStatus';
 import { RunChip } from 'components/_new/RunGold';
 import { ThemeCycle, ThemeSwitch } from 'components/_new/ThemeSwitch';
 import { popupStyles } from 'components/_new/ui';
@@ -18,7 +19,7 @@ import { ADMIN_SEGMENTS, SEGMENT_OWNERS } from 'libs/adminSegments';
 import { ADMIN_PANEL_EVENT } from 'libs/adminTools';
 import { isLeituraOwner } from 'libs/leitura';
 import { activeMenuKeys, displayName, MENU_OPEN_EVENT, readMenuCollapsed, saveMenuCollapsed } from 'libs/newDesign';
-import { blockedWhenReadOnly, IMERSO_PRODUCT, IMERSO_SALES_URL, RENEWAL_URLS, renewalNotice } from 'libs/productAccess';
+import { IMERSO_PRODUCT, IMERSO_SALES_URL, RENEWAL_URLS, renewalNotice, shellGate } from 'libs/productAccess';
 import {
     GraduationCap,
     Headset,
@@ -977,7 +978,7 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
             if (settings >= 0 && logout > settings) items.splice(logout - 1, 0, items.splice(settings, 1)[0]);
             return items;
         }, [menu.items]);
-        const { access } = useProductAccess();
+        const { access, levelsLoading } = useProductAccess();
         const logoTheme = useLogoTheme();
 
         // Fluidez: com a casca de pé, adianta (em tempo ocioso) o código das páginas novas e as rotas do menu, para a
@@ -1026,8 +1027,12 @@ export const NewAppLayout = forwardRef<HTMLDivElement, { children: React.ReactNo
 
         // Imerso em leitura (claims do modelo novo; o "expired" do front): abrir um DEDA e a Comunidade dão lugar à
         // renovação; as demais rotas abrem só para ver (cada página tira o que grava: LAMP, HPEC, Configurações).
+        // Com o /accounts/me decidindo (impersonação, conta sem a claim), nada abre antes da resposta.
+        const gate = shellGate(access(IMERSO_PRODUCT).state, levelsLoading, pathname);
         const content =
-            access(IMERSO_PRODUCT).state === 'expired' && blockedWhenReadOnly(pathname) ? (
+            gate === 'loading' ? (
+                <NewContentLoading />
+            ) : gate === 'renew' ? (
                 <NewPage className="narrow">
                     <AccessCtaBlock target={{ product: IMERSO_PRODUCT }} />
                 </NewPage>

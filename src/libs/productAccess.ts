@@ -11,6 +11,8 @@ export interface ProductAccess {
     expiresAt?: string | null;
     graceUntil?: string | null;
     expiring?: boolean;
+    /** veio do modelo novo (claims): manda sobre as roles, inclusive o "none" */
+    final?: boolean;
 }
 
 export interface MyAccessResponse {
@@ -87,6 +89,13 @@ const STATE_OF: Record<AccessLevel, AccessState> = { ativo: 'active', leitura: '
 export const blockedWhenReadOnly = (pathname: string) =>
     /^\/comunidade(\/|$)/.test(pathname) || !isImersoRouteAllowedWhenExpired(pathname);
 
+/**
+ * O que a casca nova mostra no lugar da página: espera o /accounts/me quando é ele quem decide (nada abre nem grava
+ * antes), a renovação nas rotas bloqueadas da leitura, ou a própria página.
+ */
+export const shellGate = (imerso: AccessState, levelsLoading: boolean, pathname: string) =>
+    levelsLoading ? 'loading' : imerso === 'expired' && blockedWhenReadOnly(pathname) ? 'renew' : 'page';
+
 export const resolveAccess = (
     product: string,
     roles: string[] | undefined,
@@ -96,7 +105,7 @@ export const resolveAccess = (
     // Modelo novo primeiro (o provedor só o passa na plataforma nova, já com a conta vista na impersonação).
     const key = accessKey(product);
     const level = key && levels?.[key];
-    if (level) return { state: STATE_OF[level] };
+    if (level) return { state: STATE_OF[level], final: true };
     // A linha do backend vem primeiro: admin impersonando um aluno expirado vê o que o aluno vê.
     const fromApi = api?.products?.[product];
     if (fromApi) return fromApi;

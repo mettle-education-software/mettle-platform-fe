@@ -169,6 +169,13 @@ test('Imerso em leitura (claims): sem reiniciar nem pausar; o histórico e a Con
     expect(text).toContain('E-bookAtivo');
 });
 
+test('claims com o Imerso em none: sem a seção IMERSO mesmo com a role antiga', () => {
+    mockLevels = { imerso: 'none', ebook: 'ativo' };
+    const doc = render();
+    expect(doc.querySelector('#settings-imerso')).toBeNull();
+    expect(mockSummaryHook).not.toHaveBeenCalled();
+});
+
 test('Conta em carregamento não anuncia ausência de produtos', () => {
     mockAccessLoading = true;
     const text = render().querySelector('section[aria-labelledby="settings-account"]')!.textContent;

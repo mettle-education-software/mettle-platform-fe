@@ -277,8 +277,9 @@ const ImersoSettings: React.FC = () => {
 /** Configurações novas em uma página; a versão clássica continua em app/settings/page.tsx. */
 export const NewSettings: React.FC = () => {
     const { user } = useAppContext();
-    // Preserva a elegibilidade atual, inclusive contas sem a claim roles (PR #181).
-    const isUserImerso = !!user?.roles?.includes('METTLE_STUDENT');
+    const imerso = useProductAccess().access(IMERSO_PRODUCT);
+    // Preserva a elegibilidade atual, inclusive contas sem a claim roles (PR #181); o modelo novo (claims) manda.
+    const isUserImerso = imerso.final ? imerso.state !== 'none' : !!user?.roles?.includes('METTLE_STUDENT');
 
     return (
         <NewPage className="narrow settings">

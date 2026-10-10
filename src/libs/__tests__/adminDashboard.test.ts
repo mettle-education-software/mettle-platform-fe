@@ -203,8 +203,8 @@ test('vencem: uma linha por pessoa (produtos juntos, data mais cedo, carência a
         // carência e outro produto: o fim mais cedo (o do outro produto) vale para a ordem e aparece
         { ...row('c', 'Cris', 'imerso', '2024-09-15'), inCarencia: true, graceUntil: '2026-10-30' },
         // duas carências: o fim mais cedo
-        { ...row('e', 'Eva', 'imerso', '2024-01-10'), inCarencia: true, graceUntil: '2026-10-20' },
-        { ...row('e', 'Eva', 'masterclass', '2024-02-10'), inCarencia: true, graceUntil: '2026-10-15' },
+        { ...row('e', 'Eva', 'imerso', '2024-01-10'), inCarencia: true, graceUntil: '2026-10-15' },
+        { ...row('e', 'Eva', 'masterclass', '2024-02-10'), inCarencia: true, graceUntil: '2026-10-20' },
         // carência sem o fim (servidor antigo): sem data
         { ...row('d', 'Duda', 'imerso', '2024-01-01'), inCarencia: true },
     ];

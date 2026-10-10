@@ -3,6 +3,7 @@ import {
     count,
     dayMonth,
     hoursMinutes,
+    inRange,
     presetRange,
     programTimeLabel,
     readDashboard,
@@ -97,6 +98,9 @@ test('campo que falta é null (a tela mostra "—"), nunca zero', () => {
     expect(d.base.contas).toBeNull();
     expect(d.periodo.estudoAtivoMin).toBeNull();
     expect(d.planosImerso).toBeNull();
+    expect(d.tempoPrograma).toBeNull();
+    // sem o período, a série (fixa em 30 dias na rota anterior) não vale
+    expect(d.estudoPorDia).toBeNull();
     expect(d.renovaramImerso).toBeNull();
     expect(d.vencendoTotal).toBeNull();
     expect(count(null)).toBe('—');
@@ -126,4 +130,16 @@ test('período: prontos contam hoje (Brasília); De/Até só valem em ordem e at
     expect(validRange({ from: '2026-10-11', to: '2026-10-10' }, today)).toBe(false);
     expect(validRange({ from: '2026-10-01', to: '2026-10-11' }, today)).toBe(false);
     expect(validRange({ from: '', to: '2026-10-10' }, today)).toBe(false);
+    // até 2 anos para trás: data digitada errada não pede o histórico inteiro
+    expect(validRange({ from: '2024-10-10', to: today }, today)).toBe(true);
+    expect(validRange({ from: '0001-01-01', to: today }, today)).toBe(false);
+    expect(
+        inRange(
+            [
+                { date: '2026-10-09', alunos: 1 },
+                { date: '2026-10-10', alunos: 2 },
+            ],
+            { from: today, to: today },
+        ),
+    ).toEqual([{ date: '2026-10-10', alunos: 2 }]);
 });

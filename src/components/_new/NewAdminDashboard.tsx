@@ -10,10 +10,12 @@ import {
     type Dashboard,
     dayMonth,
     hoursMinutes,
+    inRange,
     PRESETS,
     type PresetKey,
     presetRange,
     type Range,
+    rangeFloor,
     type Split,
     validRange,
 } from 'libs/adminDashboard';
@@ -93,6 +95,17 @@ const styles = css`
         font: inherit;
         font-size: 13px;
         font-variant-numeric: tabular-nums;
+    }
+    .db .dt input[aria-invalid='true'] {
+        border-color: var(--r-gold);
+    }
+    .db .bad {
+        color: var(--r-text);
+    }
+    .db [aria-busy='true'] .kp,
+    .db [aria-busy='true'] .study {
+        opacity: 0.45;
+        transition: opacity 0.2s;
     }
     .db .line {
         margin: 6px 0 0;
@@ -235,7 +248,7 @@ const Cards: React.FC<{ cards: Card[]; label: string; className?: string }> = ({
 
 const useGold = () => (useTheme().resolved === 'light' ? LIGHT : DARK)['--r-gold'];
 
-const StudyChart: React.FC<{ days: Dashboard['estudoPorDia'] }> = ({ days }) => {
+const StudyChart: React.FC<{ days: NonNullable<Dashboard['estudoPorDia']> }> = ({ days }) => {
     const soft = useSoftChart();
     const gold = useGold();
     return (
@@ -264,7 +277,7 @@ const StudyChart: React.FC<{ days: Dashboard['estudoPorDia'] }> = ({ days }) => 
     );
 };
 
-const TimeChart: React.FC<{ rows: Dashboard['tempoPrograma'] }> = ({ rows }) => {
+const TimeChart: React.FC<{ rows: NonNullable<Dashboard['tempoPrograma']> }> = ({ rows }) => {
     const soft = useSoftChart();
     const gold = useGold();
     return (
@@ -301,6 +314,7 @@ const PeriodPicker: React.FC<{
     onDraft: (range: Range) => void;
 }> = ({ preset, draft, onPreset, onDraft }) => {
     const today = brToday();
+    const invalid = !validRange(draft, today);
     return (
         <div className="pf">
             <div className="chips" role="group" aria-label="Período">
@@ -315,7 +329,9 @@ const PeriodPicker: React.FC<{
                 <input
                     type="date"
                     value={draft.from}
+                    min={rangeFloor(today)}
                     max={draft.to || today}
+                    aria-invalid={invalid}
                     onChange={(event) => onDraft({ ...draft, from: event.target.value })}
                 />
             </label>
@@ -326,9 +342,15 @@ const PeriodPicker: React.FC<{
                     value={draft.to}
                     min={draft.from}
                     max={today}
+                    aria-invalid={invalid}
                     onChange={(event) => onDraft({ ...draft, to: event.target.value })}
                 />
             </label>
+            {invalid && (
+                <span className="dt bad" role="status">
+                    Datas inválidas (até 2 anos, De antes de Até)
+                </span>
+            )}
         </div>
     );
 };
@@ -388,11 +410,14 @@ export const NewAdminDashboard: React.FC = () => {
         { label: 'Horas de Estudo Passivo', value: hoursMinutes(p?.estudoPassivoMin ?? null) },
     ];
     const plans = d?.planosImerso ?? null;
+    // a série segue o período (a da rota anterior, fixa em 30 dias, não aparece: d.estudoPorDia é null)
+    const days = d?.estudoPorDia ? inRange(d.estudoPorDia, range) : null;
     const widest = Math.max(1, ...(plans ?? []).map((plan) => plan.alunos));
 
     return (
         <NewPage className="xwide db">
             <Global styles={[styles, chipStyles]} />
+            <h1 className="sr">Início</h1>
             <AdminNav />
 
             <section aria-labelledby="db-base">
@@ -402,7 +427,7 @@ export const NewAdminDashboard: React.FC = () => {
                 <Cards cards={base} label="Base" />
             </section>
 
-            <section aria-labelledby="db-period">
+            <section aria-labelledby="db-period" aria-busy={query.isPlaceholderData}>
                 <div className="sh period">
                     <h2 id="db-period">No período</h2>
                     <PeriodPicker preset={preset} draft={draft} onPreset={choose} onDraft={edit} />
@@ -410,10 +435,10 @@ export const NewAdminDashboard: React.FC = () => {
                 <Cards cards={period} label="No período" />
                 <div className="study">
                     <h3>Alunos que estudaram por dia</h3>
-                    {d?.estudoPorDia.length ? (
-                        <StudyChart days={d.estudoPorDia} />
+                    {days?.length ? (
+                        <StudyChart days={days} />
                     ) : (
-                        <p className="hint">{none('Sem dados no período.')}</p>
+                        <p className="hint">{days ? 'Sem dados no período.' : none('—')}</p>
                     )}
                     {p && (
                         <p className="line">
@@ -445,7 +470,7 @@ export const NewAdminDashboard: React.FC = () => {
                                 ))}
                             </ul>
                         ) : (
-                            <p className="hint">{none('Sem planos ativos.')}</p>
+                            <p className="hint">{plans ? 'Sem planos ativos.' : none('—')}</p>
                         )}
                         <Cards
                             className="one"
@@ -455,10 +480,10 @@ export const NewAdminDashboard: React.FC = () => {
                     </div>
                     <div>
                         <h3>Tempo de programa</h3>
-                        {d?.tempoPrograma.length ? (
+                        {d?.tempoPrograma?.length ? (
                             <TimeChart rows={d.tempoPrograma} />
                         ) : (
-                            <p className="hint">{none('Sem dados.')}</p>
+                            <p className="hint">{d?.tempoPrograma ? 'Sem dados.' : none('—')}</p>
                         )}
                     </div>
                 </div>

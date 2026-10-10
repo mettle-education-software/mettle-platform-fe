@@ -22,10 +22,11 @@ export interface Dashboard {
         alunosEstudaram: Count;
         compras: { novas: Count; renovacoes: Count };
     };
-    estudoPorDia: { date: string; alunos: number }[];
+    /** null = resposta sem o período (rota anterior: série fixa de 30 dias, que não segue o filtro) */
+    estudoPorDia: { date: string; alunos: number }[] | null;
     /** null = o servidor não mandou; "A confirmar" só entra com alguém */
     planosImerso: { label: string; alunos: number }[] | null;
-    tempoPrograma: { label: string; alunos: number }[];
+    tempoPrograma: { label: string; alunos: number }[] | null;
     renovaramImerso: Count;
     vencendo: {
         uid: string;
@@ -107,23 +108,26 @@ export const readDashboard = (data: unknown): Dashboard | null => {
             alunosEstudaram: nn(p.alunosEstudaram),
             compras: { novas: nn(obj(p.compras).novas), renovacoes: nn(obj(p.compras).renovacoes) },
         },
-        estudoPorDia: list(d.estudoPorDia).flatMap((day) => {
-            const date = s(day.date) ?? '';
-            const alunos = nn(day.alunos);
-            return ISO_DAY.test(date) && alunos !== null ? [{ date, alunos }] : [];
-        }),
+        estudoPorDia:
+            'periodo' in d
+                ? list(d.estudoPorDia).flatMap((day) => {
+                      const date = s(day.date) ?? '';
+                      const alunos = nn(day.alunos);
+                      return ISO_DAY.test(date) && alunos !== null ? [{ date, alunos }] : [];
+                  })
+                : null,
         planosImerso: plans
             ? PLANS.flatMap(([key, label]) => {
                   const alunos = nn(plans[key]);
                   return alunos === null || (key === 'aConfirmar' && alunos <= 0) ? [] : [{ label, alunos }];
               })
             : null,
-        tempoPrograma: list(d.tempoPrograma).flatMap((row) => {
-            const alunos = nn(row.alunos);
-            const min = nn(row.min);
-            const max = nn(row.max);
-            return alunos === null ? [] : [{ label: programTimeLabel(min, max), alunos }];
-        }),
+        tempoPrograma: Array.isArray(d.tempoPrograma)
+            ? list(d.tempoPrograma).flatMap((row) => {
+                  const alunos = nn(row.alunos);
+                  return alunos === null ? [] : [{ label: programTimeLabel(nn(row.min), nn(row.max)), alunos }];
+              })
+            : null,
         renovaramImerso: nn(d.renovaramImerso),
         vencendo: list(d.vencendo).flatMap((v) => {
             const uid = s(v.uid);
@@ -209,6 +213,17 @@ export const presetRange = (key: PresetKey, today = brToday()): Range => {
     return { from: plusDays(today, -(days - 1)), to: today };
 };
 
-/** De/Até escolhidos à mão: datas válidas, De ≤ Até e nada depois de hoje. */
+/** Até onde o De/Até volta (2 anos): uma data digitada errada não pede o histórico inteiro. */
+export const rangeFloor = (today = brToday()) => plusDays(today, -730);
+
+/** De/Até escolhidos à mão: datas válidas, De ≤ Até, de 2 anos para cá e nada depois de hoje. */
 export const validRange = (range: Range, today = brToday()) =>
-    ISO_DAY.test(range.from) && ISO_DAY.test(range.to) && range.from <= range.to && range.to <= today;
+    ISO_DAY.test(range.from) &&
+    ISO_DAY.test(range.to) &&
+    range.from >= rangeFloor(today) &&
+    range.from <= range.to &&
+    range.to <= today;
+
+/** Os dias da série dentro do período escolhido. */
+export const inRange = (days: { date: string; alunos: number }[], range: Range) =>
+    days.filter((day) => day.date >= range.from && day.date <= range.to);

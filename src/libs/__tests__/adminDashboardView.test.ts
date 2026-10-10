@@ -103,7 +103,7 @@ const cards = (d: Document, section: string) =>
     [...d.querySelectorAll(`section[aria-labelledby="${section}"] .kp li`)].map((li) => li.textContent);
 
 test('com os números: base, período, Imerso e atenção; listas abrem a conta; "ver todos" filtrados', () => {
-    mockData = { isLoading: false, data: readDashboard(full) };
+    mockData = { isLoading: false, isPlaceholderData: false, data: readDashboard(full) };
     const d = render();
     expect(cards(d, 'db-base')).toEqual([
         'Contas na Plataforma5.210',
@@ -145,6 +145,32 @@ test('com os números: base, período, Imerso e atenção; listas abrem a conta;
     expect(links.filter(([, href]) => href === '/admin/contas?conta=u1')).toHaveLength(2);
     expect(d.body.textContent).toContain('Ana · Imerso: Leitura → Total');
     expect(d.body.textContent).not.toContain('ver registro');
+});
+
+test('resposta de hoje (be #158, sem os campos novos): "—" onde falta, listas seguem, sem o gráfico de 30 dias fixos', () => {
+    mockData = {
+        isLoading: false,
+        isPlaceholderData: false,
+        data: readDashboard({
+            acessos: { imerso: { ativo: 1 } },
+            estudo: { hoje: 1 },
+            estudoPorDia: [{ date: '2026-10-09', alunos: 40 }],
+            compras30d: 3,
+            vencendo: full.vencendo,
+            semAcesso: full.semAcesso,
+            eventos: full.eventos,
+        }),
+    };
+    const d = render();
+    expect([...d.querySelectorAll('.kp b')].map((b) => b.textContent)).toEqual(Array(9).fill('—'));
+    expect(d.querySelector('.chart')).toBeNull();
+    const imerso = d.querySelector('section[aria-labelledby="db-imerso"]')!;
+    expect(imerso.textContent).not.toContain('Sem planos ativos');
+    expect(imerso.textContent).not.toContain('Sem dados');
+    expect(d.body.textContent).toContain('Ana · Imerso: Leitura → Total');
+    // sem o total do servidor, só o título
+    expect(d.body.textContent).toContain('Vencem em 30 dias');
+    expect(d.body.textContent).not.toContain('Vencem em 30 dias ·');
 });
 
 test('sem a rota nova (ou a antiga no mesmo endereço): "—" em tudo, nada inventado', () => {

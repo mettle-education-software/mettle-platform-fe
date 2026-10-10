@@ -85,14 +85,15 @@ export type Term =
     | { kind: 'extend'; months: number };
 
 export interface Draft {
-    state: 'ativo' | 'leitura';
+    /** null: produto sem acesso, nada escolhido ainda (a origem escolhida liga Total) */
+    state: 'ativo' | 'leitura' | null;
     origin: Origin | null;
     term: Term;
 }
 
 /** O rascunho começa igual ao servidor (sem acesso: Total, a origem por escolher). */
 export const draftOf = (row: AccessRow): Draft => ({
-    state: row.state === 'leitura' ? 'leitura' : 'ativo',
+    state: row.state === 'none' ? null : row.state,
     origin: row.origin,
     term: { kind: 'keep' },
 });
@@ -135,7 +136,7 @@ export const termProblem = (draft: Draft, row: AccessRow, today = brToday()) => 
  */
 export const accessBody = (draft: Draft, row: AccessRow, today = brToday()): AccessBody | null => {
     const { state, origin, term } = draft;
-    if (!origin || termProblem(draft, row, today)) return null;
+    if (!state || !origin || termProblem(draft, row, today)) return null;
     const body: AccessBody = { state, origin };
     const kind = termKind(origin);
     if (kind === 'none') return body;

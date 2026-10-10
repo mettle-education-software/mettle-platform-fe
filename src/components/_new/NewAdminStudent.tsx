@@ -33,7 +33,6 @@ import {
     termProblem,
 } from 'libs/adminAccess';
 import { studentHistory } from 'libs/adminHistory';
-import { isLeituraOwner } from 'libs/leitura';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { NewPage } from './NewPage';
@@ -75,27 +74,30 @@ const styles = css`
         color: var(--r-muted);
         overflow-wrap: anywhere;
     }
-    .as .as-head .eyebrow a {
-        color: inherit;
-        text-decoration: none;
-    }
     .as .prod .lab b {
         font-size: 15px;
         font-weight: 500;
     }
-    .as .badges {
+    /* selos: pílulas do tamanho do texto (vencem o "span em bloco" de .row .lab) */
+    .as .row .lab .badges {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
         margin-top: 6px;
     }
-    .as .badge {
-        padding: 2px 8px;
+    .as .row .lab .badge {
+        display: inline-block;
+        margin: 0;
+        padding: 2px 9px;
+        border: 1px solid var(--r-gold);
         border-radius: 999px;
         background: var(--r-gold-tint);
-        color: var(--r-gold-hi);
+        color: var(--r-text);
         font-size: 12px;
         white-space: nowrap;
+    }
+    .as .ctl .ant-select-selection-placeholder {
+        color: var(--r-muted);
     }
     .as .ctl {
         display: flex;
@@ -285,7 +287,8 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
                         disabled={busy}
                         options={ORIGINS}
                         popupMatchSelectWidth={false}
-                        onChange={(origin) => set({ origin, term: { kind: 'keep' } })}
+                        // produto sem acesso: escolher a origem já é conceder (Total)
+                        onChange={(origin) => set({ origin, term: { kind: 'keep' }, state: draft.state ?? 'ativo' })}
                     />
                     {kind === 'date' && (
                         <input
@@ -465,14 +468,7 @@ export const NewAdminStudent: React.FC<{ uid: string }> = ({ uid }) => {
                     )}
                 </span>
                 <div>
-                    <p className="eyebrow">
-                        {/* o histórico do programa é só do dono */}
-                        {isLeituraOwner(auth.currentUser?.uid) ? (
-                            <Link href="/admin/historico">Histórico do programa</Link>
-                        ) : (
-                            'Admin'
-                        )}
-                    </p>
+                    <p className="eyebrow">Aluno</p>
                     <h1>{name}</h1>
                     {email && <p>{email}</p>}
                     {user && user.disabled !== false && <p>{user.disabled ? 'Login desligado' : 'Sem login'}</p>}

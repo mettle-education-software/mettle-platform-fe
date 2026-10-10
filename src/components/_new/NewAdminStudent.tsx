@@ -30,6 +30,7 @@ import {
     PRODUCT_NAMES,
     serverProblem,
     termKind,
+    termProblem,
 } from 'libs/adminAccess';
 import { studentHistory } from 'libs/adminHistory';
 import { isLeituraOwner } from 'libs/leitura';
@@ -198,11 +199,18 @@ const Months: React.FC<{
     label: string;
     options: readonly number[];
     chosen: number | null;
+    disabled?: boolean;
     onPick: (months: number) => void;
-}> = ({ label, options, chosen, onPick }) => (
+}> = ({ label, options, chosen, disabled, onPick }) => (
     <span className="tog" role="group" aria-label={label}>
         {options.map((months) => (
-            <button key={months} type="button" aria-pressed={chosen === months} onClick={() => onPick(months)}>
+            <button
+                key={months}
+                type="button"
+                disabled={disabled}
+                aria-pressed={chosen === months}
+                onClick={() => onPick(months)}
+            >
                 {options.length === 1 ? '1 mês' : `+${months}`}
             </button>
         ))}
@@ -212,11 +220,16 @@ const Months: React.FC<{
 /** Um produto: Total/Leitura, origem e prazo (data, meses ou sem prazo); grava no Salvar. */
 const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) => {
     const [draft, setDraft] = useState<Draft>(() => draftOf(row));
-    // nova versão do servidor (depois de salvar ou de outra pessoa): o rascunho recomeça dela; o "Salvo." fica
-    useEffect(() => setDraft(draftOf(row)), [row.updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+    // o rascunho recomeça da linha do servidor (fonte única): quando ela muda (outra pessoa, rotina) e depois de cada
+    // gravação, já com a linha relida; o "Salvo." fica
+    const [saves, setSaves] = useState(0);
+    useEffect(() => setDraft(draftOf(row)), [row.updatedAt, saves]); // eslint-disable-line react-hooks/exhaustive-deps
     const save = useSaveStudentAccess(uid, row.product);
+    // gravando: nada muda até a resposta (sem pedido em dobro, sem perder o retorno)
+    const busy = save.isPending;
     const name = PRODUCT_NAMES[row.product];
     const kind = termKind(draft.origin);
+    const problem = termProblem(draft, row);
     const body = accessBody(draft, row);
     const dirty = isDirty(draft, row);
     const sameOrigin = draft.origin === row.origin;
@@ -225,6 +238,7 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
     const chosen =
         (draft.term.kind === 'grant' || draft.term.kind === 'extend') && draft.term.months ? draft.term.months : null;
     const set = (patch: Partial<Draft>) => {
+        if (busy) return;
         save.reset();
         setDraft((current) => ({ ...current, ...patch }));
     };
@@ -249,6 +263,7 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
                     <span className="tog" role="group" aria-label={`Acesso ao ${name}`}>
                         <button
                             type="button"
+                            disabled={busy}
                             aria-pressed={draft.state === 'ativo'}
                             onClick={() => set({ state: 'ativo' })}
                         >
@@ -256,6 +271,7 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
                         </button>
                         <button
                             type="button"
+                            disabled={busy}
                             aria-pressed={draft.state === 'leitura'}
                             onClick={() => set({ state: 'leitura' })}
                         >
@@ -266,6 +282,7 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
                         aria-label={`Origem do ${name}`}
                         value={draft.origin ?? undefined}
                         placeholder="Origem a confirmar"
+                        disabled={busy}
                         options={ORIGINS}
                         popupMatchSelectWidth={false}
                         onChange={(origin) => set({ origin, term: { kind: 'keep' } })}
@@ -273,6 +290,7 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
                     {kind === 'date' && (
                         <input
                             type="date"
+                            disabled={busy}
                             aria-label={`Válido até (${name})`}
                             value={
                                 draft.term.kind === 'date' ? draft.term.value : sameOrigin ? (row.validUntil ?? '') : ''
@@ -285,6 +303,7 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
                             label={`Conceder cortesia (${name})`}
                             options={grantOptions(row.product)}
                             chosen={draft.term.kind === 'grant' ? chosen : null}
+                            disabled={busy}
                             onPick={(months) => set({ state: 'ativo', term: { kind: 'grant', months } })}
                         />
                     )}
@@ -293,6 +312,7 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
                             label={`Estender (${name})`}
                             options={MONTHS}
                             chosen={draft.term.kind === 'extend' ? chosen : null}
+                            disabled={busy}
                             onPick={(months) => set({ state: 'ativo', term: { kind: 'extend', months } })}
                         />
                     )}
@@ -301,11 +321,12 @@ const ProductAccess: React.FC<{ uid: string; row: AccessRow }> = ({ uid, row }) 
                         type="button"
                         className="btn gold"
                         disabled={!dirty || !body || save.isPending}
-                        onClick={() => body && save.mutate(body, { onSuccess: (saved) => setDraft(draftOf(saved)) })}
+                        onClick={() => body && !busy && save.mutate(body, { onSuccess: () => setSaves((n) => n + 1) })}
                     >
                         {save.isPending ? 'Salvando…' : 'Salvar'}
                     </button>
                 </div>
+                {problem && <p className="msg">{problem}</p>}
                 {save.isError && (
                     <p className="msg err" role="alert">
                         {serverProblem(save.error)}

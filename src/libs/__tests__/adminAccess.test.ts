@@ -12,6 +12,7 @@ import {
     serverProblem,
     studentPath,
     termKind,
+    termProblem,
 } from '../adminAccess';
 
 const row = (patch: Partial<AccessRow> = {}): AccessRow => ({
@@ -116,6 +117,44 @@ describe('PUT do rascunho', () => {
             state: 'ativo',
             origin: 'cortesia',
         });
+    });
+});
+
+describe('prazo vencido (o servidor recusaria com ALREADY_EXPIRED)', () => {
+    const today = '2026-10-10';
+
+    it('cortesia vencida em Leitura → Total sem prazo novo: não grava e diz o que falta', () => {
+        const ended = row({ state: 'leitura', origin: 'cortesia', validUntil: '2026-09-30', graceUntil: null });
+        const draft = { ...draftOf(ended), state: 'ativo' as const };
+        expect(termProblem(draft, ended, today)).toBe('Prazo vencido: escolha um prazo novo.');
+        expect(accessBody(draft, ended, today)).toBeNull();
+        // com os meses escolhidos, grava
+        expect(accessBody({ ...draft, term: { kind: 'grant', months: 1 } }, ended, today)).toEqual({
+            state: 'ativo',
+            origin: 'cortesia',
+            grantMonths: 1,
+        });
+        // em Leitura, o prazo velho não importa (e nada mudou: Salvar desligado)
+        expect(accessBody(draftOf(ended), ended, today)).toEqual({ state: 'leitura', origin: 'cortesia' });
+        expect(isDirty(draftOf(ended), ended)).toBe(false);
+    });
+
+    it('Compra: vale a carência de 14 dias; data escolhida no passado também', () => {
+        const inGrace = row({ validUntil: '2026-10-01', graceUntil: '2026-10-15' });
+        expect(termProblem({ ...draftOf(inGrace), state: 'ativo' }, inGrace, today)).toBeNull();
+        const lapsed = row({ state: 'leitura', validUntil: '2026-09-01', graceUntil: '2026-09-15' });
+        expect(termProblem({ ...draftOf(lapsed), state: 'ativo' }, lapsed, today)).toBe(
+            'Prazo vencido: escolha um prazo novo.',
+        );
+        const old = {
+            ...draftOf(lapsed),
+            state: 'ativo' as const,
+            term: { kind: 'date' as const, value: '2026-09-20' },
+        };
+        expect(termProblem(old, lapsed, today)).toBe('Data já vencida: escolha uma data futura.');
+        const recent = { ...old, term: { kind: 'date' as const, value: '2026-10-01' } }; // +14 = 15/10
+        expect(termProblem(recent, lapsed, today)).toBeNull();
+        expect(termProblem({ ...old, state: 'leitura' }, lapsed, today)).toBeNull();
     });
 });
 

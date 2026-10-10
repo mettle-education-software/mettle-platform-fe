@@ -14,41 +14,8 @@ import React, { useEffect } from 'react';
 import { ICON } from 'themes/newDesign';
 import { NewPage } from './NewPage';
 import { PageHead } from './PageHead';
+import { ProfileSettings } from './ProfileSettings';
 import { ProgramHistory } from './ProgramHistory';
-import { ThemeSwitch } from './ThemeSwitch';
-
-/* Mesmos dados e fluxos da página atual; só a apresentação é nova. */
-
-const PersonalInformation: React.FC = () => {
-    const { user } = useAppContext();
-    return (
-        <div className="panel">
-            <dl className="rows settings-data">
-                <div className="row">
-                    <dt className="lab">Nome completo</dt>
-                    <dd className="field">{user?.name || 'Não informado'}</dd>
-                </div>
-                <div className="row">
-                    <dt className="lab">E-mail</dt>
-                    <dd className="field">{user?.email || 'Não informado'}</dd>
-                </div>
-                <div className="row">
-                    <dt className="lab">Telefone</dt>
-                    {/* O contexto atual não fornece telefone. Nenhuma consulta extra para preenchê-lo. */}
-                    <dd className="field">Não informado</dd>
-                </div>
-            </dl>
-            <div className="row">
-                <span className="lab" id="s-theme">
-                    Tema
-                </span>
-                <div className="field" aria-labelledby="s-theme">
-                    <ThemeSwitch labels />
-                </div>
-            </div>
-        </div>
-    );
-};
 
 const AccountSettings: React.FC = () => {
     const { access, accessLoading } = useProductAccess();
@@ -288,7 +255,7 @@ export const NewSettings: React.FC = () => {
                 <div className="sh">
                     <h2 id="settings-profile">Perfil</h2>
                 </div>
-                <PersonalInformation />
+                <ProfileSettings />
             </section>
             <section aria-labelledby="settings-account">
                 <div className="sh">

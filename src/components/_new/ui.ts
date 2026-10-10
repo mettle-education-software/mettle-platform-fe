@@ -707,13 +707,46 @@ export const Page = styled.div`
         color: var(--r-on-gold);
         font-weight: 500;
     }
-    /* Configurações: dados legíveis, sem campos editáveis nem truncamento de nome/e-mail. */
+    /* Configurações: edição por campo e dados de acesso só para leitura. */
     &.settings > section + section {
         margin-top: 28px;
     }
     &.settings .sh {
         min-height: 32px;
         margin-bottom: 8px;
+    }
+    .profile-edit,
+    .profile-photo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .profile-edit .ant-input {
+        min-width: 0;
+    }
+    .profile-avatar {
+        display: grid;
+        place-items: center;
+        width: 64px;
+        height: 64px;
+        overflow: hidden;
+        border-radius: 50%;
+        background: var(--r-hover);
+        font-size: 24px;
+    }
+    .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .profile-error {
+        color: var(--r-error);
+        font-size: 13px;
+        margin: 6px 0 0;
+    }
+    .profile-saved {
+        color: var(--r-muted);
+        font-size: 13px;
     }
     .settings-data,
     .settings-data dd {
